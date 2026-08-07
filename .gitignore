@@ -1,0 +1,68 @@
+# ==========================================
+# Unity generated
+# ==========================================
+
+/ProjectMazzang/[Ll]ibrary/
+/ProjectMazzang/[Tt]emp/
+/ProjectMazzang/[Oo]bj/
+/ProjectMazzang/[Ll]ogs/
+/ProjectMazzang/[Uu]ser[Ss]ettings/
+/ProjectMazzang/[Mm]emoryCaptures/
+/ProjectMazzang/[Rr]ecordings/
+
+# ==========================================
+# Unity Builds
+# ==========================================
+
+/ProjectMazzang/[Bb]uild/
+/ProjectMazzang/[Bb]uilds/
+
+# ==========================================
+# IDE / Visual Studio / Rider
+# ==========================================
+
+.vs/
+.idea/
+
+*.csproj
+*.unityproj
+*.sln
+*.slnx
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+*.DotSettings.user
+
+# ==========================================
+# Unity generated / misc
+# ==========================================
+
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+sysinfo.txt
+mono_crash.*
+
+# ==========================================
+# Build / package files
+# ==========================================
+
+*.apk
+*.aab
+*.app
+*.unitypackage
+
+# ==========================================
+# JetBrains generated
+# ==========================================
+
+/ProjectMazzang/[Aa]ssets/Plugins/Editor/JetBrains*
