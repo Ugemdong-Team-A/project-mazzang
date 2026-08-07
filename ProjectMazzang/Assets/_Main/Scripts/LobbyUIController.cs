@@ -2,25 +2,48 @@ using System.Collections.Generic;
 using Fusion;
 using UnityEngine;
 
-public sealed class LobbyUIController : MonoBehaviour
+public sealed class LobbyUIController :
+    MonoBehaviour
 {
+    private enum LobbyPage
+    {
+        Title,
+        SessionBrowser,
+        Room
+    }
+
     [SerializeField]
     private LobbyUI ui;
 
     private FusionSessionController network;
 
+    private LobbyPage currentPage =
+        LobbyPage.Title;
+
+    // 타이틀에서 확정된 로컬 닉네임.
+    // 방 입장 후 NetworkPlayerData로 제출한다.
+    private string localNickname;
+
+    private bool nicknameSubmittedForRoom;
+    private bool readyRequestPending;
+
+    // ==================================================
+    // Unity
+    // ==================================================
+
     private void Start()
     {
-        network = AppRoot.Instance.Network;
+        network =
+            AppRoot.Instance.Network;
 
         Bind();
 
-        // 이벤트를 먼저 연결한 뒤
-        // 현재 Snapshot을 복원한다.
+        currentPage = LobbyPage.Title;
+
+        ui.ShowTitle();
+
         RefreshFromCurrentState();
 
-        // 처음 로비 씬에 왔다면
-        // 자동으로 Photon Session Lobby에 접속.
         if (network.State ==
             NetworkSessionState.Offline)
         {
@@ -34,7 +57,7 @@ public sealed class LobbyUIController : MonoBehaviour
     }
 
     // ==================================================
-    // Binding
+    // Bind
     // ==================================================
 
     private void Bind()
@@ -48,6 +71,23 @@ public sealed class LobbyUIController : MonoBehaviour
 
         network.OperationFailed +=
             OnNetworkOperationFailed;
+
+        // NetworkPlayerData
+        NetworkPlayerData.LocalSpawned +=
+            OnPlayerDataSpawned;
+
+        NetworkPlayerData.LocalChanged +=
+            OnPlayerDataChanged;
+
+        NetworkPlayerData.LocalDespawned +=
+            OnPlayerDataDespawned;
+
+        // Title
+        ui.Title.NicknameChanged +=
+            OnNicknameChanged;
+
+        ui.Title.EnterRequested +=
+            OnTitleEnterRequested;
 
         // Browser
         ui.Browser.CreateRoomRequested +=
@@ -65,10 +105,6 @@ public sealed class LobbyUIController : MonoBehaviour
 
         ui.Room.LeaveRequested +=
             OnLeaveRequested;
-
-        // Error
-        ui.RetryRequested +=
-            OnRetryRequested;
     }
 
     private void Unbind()
@@ -85,8 +121,23 @@ public sealed class LobbyUIController : MonoBehaviour
                 OnNetworkOperationFailed;
         }
 
+        NetworkPlayerData.LocalSpawned -=
+            OnPlayerDataSpawned;
+
+        NetworkPlayerData.LocalChanged -=
+            OnPlayerDataChanged;
+
+        NetworkPlayerData.LocalDespawned -=
+            OnPlayerDataDespawned;
+
         if (ui == null)
             return;
+
+        ui.Title.NicknameChanged -=
+            OnNicknameChanged;
+
+        ui.Title.EnterRequested -=
+            OnTitleEnterRequested;
 
         ui.Browser.CreateRoomRequested -=
             OnCreateRoomRequested;
@@ -102,9 +153,6 @@ public sealed class LobbyUIController : MonoBehaviour
 
         ui.Room.LeaveRequested -=
             OnLeaveRequested;
-
-        ui.RetryRequested -=
-            OnRetryRequested;
     }
 
     // ==================================================
@@ -113,14 +161,96 @@ public sealed class LobbyUIController : MonoBehaviour
 
     private void RefreshFromCurrentState()
     {
-        ApplyNetworkState(network.State);
-
         ui.Browser.SetSessions(
             network.Sessions);
+
+        ApplyNetworkState(
+            network.State);
+
+        RefreshNicknameValidation();
+
+        if (network.State ==
+            NetworkSessionState.InRoom)
+        {
+            RefreshRoomPlayers();
+            TrySubmitLocalNickname();
+        }
     }
 
     // ==================================================
-    // FSC Events
+    // Title
+    // ==================================================
+
+    private void OnNicknameChanged(
+        string value)
+    {
+        RefreshNicknameValidation();
+    }
+
+    private void RefreshNicknameValidation()
+    {
+        string input =
+            ui.Title.NicknameInput;
+
+        bool nicknameValid =
+            PlayerNicknamePolicy.TryNormalize(
+                input,
+                out _);
+
+        if (!nicknameValid)
+        {
+            ui.Title.SetValidationMessage(
+                "닉네임은 2~16자로 입력해 주세요.");
+        }
+        else
+        {
+            ui.Title.SetValidationMessage(
+                string.Empty);
+        }
+
+        bool canEnter =
+            nicknameValid &&
+            network.State ==
+            NetworkSessionState.LobbyReady;
+
+        ui.Title.SetEnterInteractable(
+            canEnter);
+    }
+
+    private void OnTitleEnterRequested(
+        string nickname)
+    {
+        if (network.State !=
+            NetworkSessionState.LobbyReady)
+        {
+            return;
+        }
+
+        if (!PlayerNicknamePolicy.TryNormalize(
+                nickname,
+                out string normalized))
+        {
+            RefreshNicknameValidation();
+            return;
+        }
+
+        localNickname =
+            normalized;
+
+        currentPage =
+            LobbyPage.SessionBrowser;
+
+        ui.ShowBrowser();
+
+        ui.Browser.SetSessions(
+            network.Sessions);
+
+        ApplyNetworkState(
+            network.State);
+    }
+
+    // ==================================================
+    // FSC State
     // ==================================================
 
     private void OnNetworkStateChanged(
@@ -129,35 +259,6 @@ public sealed class LobbyUIController : MonoBehaviour
         ApplyNetworkState(state);
     }
 
-    private void OnSessionListChanged(
-        IReadOnlyList<SessionInfo> sessions)
-    {
-        ui.Browser.SetSessions(sessions);
-    }
-
-    private void OnNetworkOperationFailed(
-        NetworkOperationFailure failure)
-    {
-        ui.HideLoading();
-
-        string message =
-            GetUserFriendlyError(failure);
-
-        // Runner가 실패했다면 현재 Offline으로
-        // 돌아왔으므로 다시 Lobby 연결 가능.
-        bool allowRetry =
-            network.State ==
-            NetworkSessionState.Offline;
-
-        ui.ShowError(
-            message,
-            allowRetry);
-    }
-
-    // ==================================================
-    // State -> UI
-    // ==================================================
-
     private void ApplyNetworkState(
         NetworkSessionState state)
     {
@@ -165,87 +266,178 @@ public sealed class LobbyUIController : MonoBehaviour
         {
             case NetworkSessionState.Offline:
                 {
-                    ui.ShowBrowser();
-
-                    ui.HideLoading();
-
-                    ui.Browser.SetInteractable(false);
-
+                    HandleOfflineState();
                     break;
                 }
 
             case NetworkSessionState.LobbyConnecting:
                 {
-                    ui.ShowBrowser();
-
-                    ui.Browser.SetInteractable(false);
-
-                    ui.ShowLoading(
-                        "온라인 로비에 연결 중...");
-
+                    HandleLobbyConnectingState();
                     break;
                 }
 
             case NetworkSessionState.LobbyReady:
                 {
-                    ui.ShowBrowser();
-
-                    ui.HideLoading();
-
-                    ui.Browser.SetInteractable(true);
-
+                    HandleLobbyReadyState();
                     break;
                 }
 
             case NetworkSessionState.RoomConnecting:
                 {
-                    ui.Browser.SetInteractable(false);
-
-                    ui.ShowLoading(
-                        "방에 연결 중...");
-
+                    HandleRoomConnectingState();
                     break;
                 }
 
             case NetworkSessionState.InRoom:
                 {
-                    ui.HideLoading();
-
-                    ui.ShowRoom();
-
-                    ui.Room.SetRoomName(
-                        network.CurrentRoomName);
-
-                    // NetworkGameSession / LobbyPlayer
-                    // 연결 전까지는 잠시 비활성화.
-                    ui.Room.SetReadyInteractable(false);
-                    ui.Room.SetStartVisible(false);
-
-                    ui.Room.SetLeaveInteractable(true);
-
+                    HandleInRoomState();
                     break;
                 }
 
             case NetworkSessionState.ShuttingDown:
                 {
-                    ui.ShowLoading(
-                        "연결을 종료하는 중...");
-
-                    ui.Browser.SetInteractable(false);
-                    ui.Room.SetLeaveInteractable(false);
-
+                    HandleShuttingDownState();
                     break;
                 }
         }
+
+        RefreshNicknameValidation();
+    }
+
+    private void HandleOfflineState()
+    {
+        ui.HideLoading();
+
+        readyRequestPending = false;
+        nicknameSubmittedForRoom = false;
+
+        ui.Title.SetConnectionState(
+            "온라인 연결 없음");
+
+        // 실제 Room 연결은 존재하지 않는데
+        // UI만 Room에 남아 있는 상태를 허용하지 않는다.
+        if (currentPage ==
+            LobbyPage.Room)
+        {
+            ui.Room.ClearPlayers();
+
+            currentPage =
+                LobbyPage.SessionBrowser;
+
+            ui.ShowBrowser();
+        }
+
+        ui.Browser.SetInteractable(false);
+
+        ui.Room.SetReadyInteractable(false);
+        ui.Room.SetStartInteractable(false);
+        ui.Room.SetLeaveInteractable(false);
+    }
+
+    private void HandleLobbyConnectingState()
+    {
+        ui.Title.SetConnectionState(
+            "온라인 로비 연결 중...");
+
+        // 타이틀에서는 닉네임을 입력할 수 있으므로
+        // 전체 Loading Overlay를 띄우지 않는다.
+        if (currentPage ==
+            LobbyPage.SessionBrowser)
+        {
+            ui.ShowLoading(
+                "온라인 로비에 연결 중...");
+        }
+
+        ui.Browser.SetInteractable(false);
+    }
+
+    private void HandleLobbyReadyState()
+    {
+        ui.Title.SetConnectionState(
+            "온라인 연결 완료");
+
+        ui.HideLoading();
+
+        if (currentPage ==
+            LobbyPage.SessionBrowser)
+        {
+            ui.Browser.SetInteractable(true);
+
+            ui.Browser.SetSessions(
+                network.Sessions);
+        }
+    }
+
+    private void HandleRoomConnectingState()
+    {
+        nicknameSubmittedForRoom = false;
+        readyRequestPending = false;
+
+        ui.Browser.SetInteractable(false);
+
+        ui.ShowLoading(
+            "방에 연결 중...");
+    }
+
+    private void HandleInRoomState()
+    {
+        currentPage =
+            LobbyPage.Room;
+
+        ui.HideLoading();
+
+        ui.ShowRoom();
+
+        ui.Room.SetRoomName(
+            network.CurrentRoomName);
+
+        // ui.Room.SetStartVisible(false);
+
+        ui.Room.SetReadyInteractable(true);
+        ui.Room.SetLeaveInteractable(true);
+
+        nicknameSubmittedForRoom = false;
+        readyRequestPending = false;
+
+        RefreshRoomPlayers();
+
+        TrySubmitLocalNickname();
+    }
+
+    private void HandleShuttingDownState()
+    {
+        ui.ShowLoading(
+            "연결을 종료하는 중...");
+
+        ui.Browser.SetInteractable(false);
+        ui.Room.SetReadyInteractable(false);
+        ui.Room.SetLeaveInteractable(false);
     }
 
     // ==================================================
-    // Browser Input
+    // Session List
+    // ==================================================
+
+    private void OnSessionListChanged(
+        IReadOnlyList<SessionInfo> sessions)
+    {
+        ui.Browser.SetSessions(
+            sessions);
+    }
+
+    // ==================================================
+    // Browser
     // ==================================================
 
     private async void OnCreateRoomRequested(
         string roomName)
     {
+        if (network.State !=
+            NetworkSessionState.LobbyReady)
+        {
+            return;
+        }
+
         await network.CreateRoomAsync(
             roomName);
     }
@@ -253,48 +445,352 @@ public sealed class LobbyUIController : MonoBehaviour
     private async void OnJoinRoomRequested(
         string sessionName)
     {
+        if (network.State !=
+            NetworkSessionState.LobbyReady)
+        {
+            return;
+        }
+
         await network.JoinRoomAsync(
             sessionName);
     }
 
     // ==================================================
-    // Room Input
+    // NetworkPlayerData
+    // ==================================================
+
+    private void OnPlayerDataSpawned(
+        NetworkPlayerData playerData)
+    {
+        if (!BelongsToCurrentRunner(
+                playerData))
+        {
+            return;
+        }
+
+        UpsertPlayerItem(playerData);
+
+        if (playerData.IsLocalPlayer)
+        {
+            TrySubmitLocalNickname(
+                playerData);
+        }
+
+        RefreshReadySummary();
+    }
+
+    private void OnPlayerDataChanged(
+        NetworkPlayerData playerData)
+    {
+        if (!BelongsToCurrentRunner(
+                playerData))
+        {
+            return;
+        }
+
+        UpsertPlayerItem(playerData);
+
+        if (playerData.IsLocalPlayer)
+        {
+            readyRequestPending = false;
+
+            ui.Room.SetLocalReadyState(
+                playerData.Ready);
+
+            if (network.State ==
+                NetworkSessionState.InRoom)
+            {
+                ui.Room.SetReadyInteractable(
+                    true);
+            }
+        }
+
+        RefreshReadySummary();
+    }
+
+    private void OnPlayerDataDespawned(
+        NetworkRunner sourceRunner,
+        PlayerRef player)
+    {
+        if (network.Runner != sourceRunner)
+            return;
+
+        ui.Room.RemovePlayer(player);
+
+        RefreshReadySummary();
+    }
+
+    private void UpsertPlayerItem(
+        NetworkPlayerData playerData)
+    {
+        ui.Room.UpsertPlayer(
+            playerData.PlayerRef,
+            playerData.DisplayName,
+            playerData.Ready,
+            playerData.IsLocalPlayer);
+    }
+
+    // ==================================================
+    // Room Snapshot
+    // ==================================================
+
+    private void RefreshRoomPlayers()
+    {
+        ui.Room.ClearPlayers();
+
+        NetworkRunner runner =
+            network.Runner;
+
+        if (runner == null)
+            return;
+
+        foreach (PlayerRef player
+                 in runner.ActivePlayers)
+        {
+            if (!runner.TryGetPlayerObject(
+                    player,
+                    out NetworkObject playerObject))
+            {
+                continue;
+            }
+
+            NetworkPlayerData playerData =
+                playerObject.GetComponent<
+                    NetworkPlayerData>();
+
+            if (playerData == null)
+                continue;
+
+            UpsertPlayerItem(playerData);
+
+            if (playerData.IsLocalPlayer)
+            {
+                ui.Room.SetLocalReadyState(
+                    playerData.Ready);
+            }
+        }
+
+        RefreshReadySummary();
+    }
+
+    private void RefreshReadySummary()
+    {
+        NetworkRunner runner =
+            network.Runner;
+
+        if (runner == null)
+        {
+            ui.Room.SetReadySummary(0, 0);
+            ui.Room.SetStartInteractable(false);
+            return;
+        }
+
+        int playerCount = 0;
+        int readyCount = 0;
+
+        foreach (PlayerRef player
+                 in runner.ActivePlayers)
+        {
+            if (!runner.TryGetPlayerObject(
+                    player,
+                    out NetworkObject playerObject))
+            {
+                continue;
+            }
+
+            NetworkPlayerData playerData =
+                playerObject.GetComponent<
+                    NetworkPlayerData>();
+
+            if (playerData == null)
+                continue;
+
+            playerCount++;
+
+            if (playerData.Ready)
+                readyCount++;
+        }
+
+        ui.Room.SetReadySummary(
+            readyCount,
+            playerCount);
+
+        bool isHost =
+            runner.IsServer;
+
+        bool allReady =
+            playerCount > 0 &&
+            readyCount == playerCount;
+
+        ui.Room.SetStartInteractable(
+            isHost && allReady);
+    }
+
+    // ==================================================
+    // Nickname Submit
+    // ==================================================
+
+    private void TrySubmitLocalNickname()
+    {
+        if (nicknameSubmittedForRoom)
+            return;
+
+        NetworkRunner runner =
+            network.Runner;
+
+        if (runner == null)
+            return;
+
+        if (!runner.TryGetPlayerObject(
+                runner.LocalPlayer,
+                out NetworkObject playerObject))
+        {
+            return;
+        }
+
+        NetworkPlayerData playerData =
+            playerObject.GetComponent<
+                NetworkPlayerData>();
+
+        if (playerData == null)
+            return;
+
+        TrySubmitLocalNickname(
+            playerData);
+    }
+
+    private void TrySubmitLocalNickname(
+        NetworkPlayerData playerData)
+    {
+        if (nicknameSubmittedForRoom)
+            return;
+
+        if (!playerData.IsLocalPlayer)
+            return;
+
+        if (string.IsNullOrWhiteSpace(
+                localNickname))
+        {
+            return;
+        }
+
+        bool requested =
+            playerData.RequestNickname(
+                localNickname);
+
+        if (requested)
+        {
+            nicknameSubmittedForRoom = true;
+        }
+    }
+
+    // ==================================================
+    // Ready
     // ==================================================
 
     private void OnReadyRequested()
     {
-        // 다음 구현:
-        //
-        // Local LobbyPlayer
-        //     .RequestToggleReady();
+        if (readyRequestPending)
+            return;
+
+        NetworkPlayerData localPlayer =
+            GetLocalPlayerData();
+
+        if (localPlayer == null)
+            return;
+
+        bool nextReady =
+            !localPlayer.Ready;
+
+        bool requested =
+            localPlayer.RequestReady(
+                nextReady);
+
+        if (!requested)
+            return;
+
+        readyRequestPending = true;
+
+        // 실제 확정 값이 복제되어 돌아오기 전까지
+        // 재입력 방지.
+        ui.Room.SetReadyInteractable(
+            false);
     }
+
+    private NetworkPlayerData
+        GetLocalPlayerData()
+    {
+        NetworkRunner runner =
+            network.Runner;
+
+        if (runner == null)
+            return null;
+
+        if (!runner.TryGetPlayerObject(
+                runner.LocalPlayer,
+                out NetworkObject playerObject))
+        {
+            return null;
+        }
+
+        return playerObject.GetComponent<
+            NetworkPlayerData>();
+    }
+
+    // ==================================================
+    // Start
+    // ==================================================
 
     private void OnStartRequested()
     {
-        // 다음 구현:
+        // 다음 단계:
         //
         // NetworkGameSession
-        //     .RequestStartGame();
+        // → Host 최종 Ready 검증
+        // → Starting
+        // → Scene Load
     }
+
+    // ==================================================
+    // Leave
+    // ==================================================
 
     private async void OnLeaveRequested()
     {
-        bool left =
+        readyRequestPending = false;
+        nicknameSubmittedForRoom = false;
+
+        bool result =
             await network.LeaveRoomAsync();
 
-        if (!left)
+        if (!result)
             return;
 
-        // Room에서 나왔으므로
-        // 새 Runner로 Photon Lobby 재진입.
+        ui.Room.ClearPlayers();
+
+        currentPage =
+            LobbyPage.SessionBrowser;
+
+        ui.ShowBrowser();
+
         await network.ConnectLobbyAsync();
     }
 
     // ==================================================
-    // Error
+    // Failure
     // ==================================================
 
-    private async void OnRetryRequested()
+    private void ShowLobbyConnectionFailedPopup()
+    {
+        AppRoot.Instance.Popup.Show(
+            "온라인 로비에 연결하지 못했습니다.\n" +
+            "네트워크 상태를 확인한 뒤 다시 시도해 주세요.",
+            "다시 시도",
+            RetryLobbyConnection,
+            allowClose: false);
+    }
+
+    private void RetryLobbyConnection()
     {
         if (network.State !=
             NetworkSessionState.Offline)
@@ -302,7 +798,87 @@ public sealed class LobbyUIController : MonoBehaviour
             return;
         }
 
-        await network.ConnectLobbyAsync();
+        _ = network.ConnectLobbyAsync();
+    }
+
+    private void ShowConnectionLostPopup()
+    {
+        AppRoot.Instance.Popup.Show(
+            "방과의 연결이 종료되었습니다.",
+            "로비로 돌아가기",
+            ReconnectToLobby,
+            allowClose: false);
+    }
+
+    private void ReconnectToLobby()
+    {
+        if (network.State !=
+            NetworkSessionState.Offline)
+        {
+            return;
+        }
+
+        _ = network.ConnectLobbyAsync();
+    }
+
+    private void OnNetworkOperationFailed(
+    NetworkOperationFailure failure)
+    {
+        readyRequestPending = false;
+
+        ui.HideLoading();
+
+        switch (failure.Operation)
+        {
+            case NetworkOperation.ConnectionLost:
+                {
+                    ShowConnectionLostPopup();
+                    break;
+                }
+
+            case NetworkOperation.ConnectLobby:
+                {
+                    ShowLobbyConnectionFailedPopup();
+                    break;
+                }
+
+            case NetworkOperation.CreateRoom:
+                {
+                    AppRoot.Instance.Popup.Show(
+                        "방을 생성하지 못했습니다.",
+                        "확인");
+
+                    break;
+                }
+
+            case NetworkOperation.JoinRoom:
+                {
+                    AppRoot.Instance.Popup.Show(
+                        "방에 참가하지 못했습니다.\n" +
+                        "방이 가득 찼거나 종료되었을 수 있습니다.",
+                        "확인");
+
+                    break;
+                }
+
+            case NetworkOperation.LeaveRoom:
+                {
+                    AppRoot.Instance.Popup.Show(
+                        "방에서 나가는 중 문제가 발생했습니다.",
+                        "확인");
+
+                    break;
+                }
+
+            default:
+                {
+                    AppRoot.Instance.Popup.Show(
+                        "네트워크 작업 중 문제가 발생했습니다.",
+                        "확인");
+
+                    break;
+                }
+        }
     }
 
     private static string GetUserFriendlyError(
@@ -311,16 +887,14 @@ public sealed class LobbyUIController : MonoBehaviour
         return failure.Operation switch
         {
             NetworkOperation.ConnectLobby =>
-                "온라인 로비에 연결하지 못했습니다.\n" +
-                "네트워크 상태를 확인한 뒤 다시 시도해 주세요.",
+                "온라인 로비에 연결하지 못했습니다.",
 
             NetworkOperation.CreateRoom =>
-                "방을 생성하지 못했습니다.\n" +
-                "다시 시도해 주세요.",
+                "방을 생성하지 못했습니다.",
 
             NetworkOperation.JoinRoom =>
                 "방에 참가하지 못했습니다.\n" +
-                "방이 가득 찼거나 이미 종료되었을 수 있습니다.",
+                "방이 가득 찼거나 종료되었을 수 있습니다.",
 
             NetworkOperation.LeaveRoom =>
                 "방에서 나가는 중 문제가 발생했습니다.",
@@ -331,5 +905,22 @@ public sealed class LobbyUIController : MonoBehaviour
             _ =>
                 "네트워크 작업 중 문제가 발생했습니다."
         };
+    }
+
+    // ==================================================
+    // Utility
+    // ==================================================
+
+    private bool BelongsToCurrentRunner(
+        NetworkPlayerData playerData)
+    {
+        if (playerData == null)
+            return false;
+
+        if (network.Runner == null)
+            return false;
+
+        return playerData.Runner ==
+               network.Runner;
     }
 }

@@ -9,11 +9,20 @@ public sealed class AppRoot : MonoBehaviour
     [SerializeField]
     private FusionSessionController network;
 
-    public FusionSessionController Network => network;
+    [Header("Global UI")]
+    [SerializeField]
+    private PopupUI popup;
+
+    public FusionSessionController Network =>
+        network;
+
+    public PopupUI Popup =>
+        popup;
 
     private void Awake()
     {
-        if (Instance != null && Instance != this)
+        if (Instance != null &&
+            Instance != this)
         {
             Destroy(gameObject);
             return;
@@ -26,8 +35,14 @@ public sealed class AppRoot : MonoBehaviour
         if (network == null)
         {
             Debug.LogError(
-                $"{nameof(AppRoot)}에 " +
                 $"{nameof(FusionSessionController)}가 등록되지 않았습니다.",
+                this);
+        }
+
+        if (popup == null)
+        {
+            Debug.LogError(
+                $"{nameof(PopupUI)}가 등록되지 않았습니다.",
                 this);
         }
     }

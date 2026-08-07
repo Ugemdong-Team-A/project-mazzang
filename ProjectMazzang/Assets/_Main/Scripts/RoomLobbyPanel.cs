@@ -1,9 +1,12 @@
 using System;
+using System.Collections.Generic;
+using Fusion;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-public sealed class RoomLobbyPanel : MonoBehaviour
+public sealed class RoomLobbyPanel :
+    MonoBehaviour
 {
     [Header("Room")]
     [SerializeField]
@@ -13,9 +16,18 @@ public sealed class RoomLobbyPanel : MonoBehaviour
     [SerializeField]
     private Transform playerListRoot;
 
+    [SerializeField]
+    private PlayerListItem playerListItemPrefab;
+
+    [SerializeField]
+    private TMP_Text readySummaryText;
+
     [Header("Actions")]
     [SerializeField]
     private Button readyButton;
+
+    [SerializeField]
+    private TMP_Text readyButtonText;
 
     [SerializeField]
     private Button startButton;
@@ -23,11 +35,9 @@ public sealed class RoomLobbyPanel : MonoBehaviour
     [SerializeField]
     private Button leaveButton;
 
-    [SerializeField]
-    private TMP_Text readyButtonText;
-
-    public Transform PlayerListRoot =>
-        playerListRoot;
+    private readonly Dictionary<
+        PlayerRef,
+        PlayerListItem> playerItems = new();
 
     public event Action ReadyRequested;
     public event Action StartRequested;
@@ -57,7 +67,12 @@ public sealed class RoomLobbyPanel : MonoBehaviour
             OnLeaveClicked);
     }
 
-    public void SetRoomName(string roomName)
+    // ==================================================
+    // Room
+    // ==================================================
+
+    public void SetRoomName(
+        string roomName)
     {
         roomNameText.text =
             string.IsNullOrWhiteSpace(roomName)
@@ -65,30 +80,120 @@ public sealed class RoomLobbyPanel : MonoBehaviour
                 : roomName;
     }
 
-    public void SetReadyState(bool ready)
+    // ==================================================
+    // Players
+    // ==================================================
+
+    public void UpsertPlayer(
+        PlayerRef player,
+        string nickname,
+        bool ready,
+        bool isLocal)
+    {
+        if (!playerItems.TryGetValue(
+                player,
+                out PlayerListItem item))
+        {
+            item = Instantiate(
+                playerListItemPrefab,
+                playerListRoot);
+
+            playerItems.Add(
+                player,
+                item);
+        }
+
+        item.SetView(
+            nickname,
+            ready,
+            isLocal);
+    }
+
+    public void RemovePlayer(
+        PlayerRef player)
+    {
+        if (!playerItems.TryGetValue(
+                player,
+                out PlayerListItem item))
+        {
+            return;
+        }
+
+        playerItems.Remove(player);
+
+        if (item != null)
+            Destroy(item.gameObject);
+    }
+
+    public void ClearPlayers()
+    {
+        foreach (PlayerListItem item
+                 in playerItems.Values)
+        {
+            if (item != null)
+                Destroy(item.gameObject);
+        }
+
+        playerItems.Clear();
+
+        SetReadySummary(0, 0);
+    }
+
+    public void SetReadySummary(
+        int readyCount,
+        int playerCount)
+    {
+        readySummaryText.text =
+            $"{readyCount} / {playerCount} READY";
+    }
+
+    // ==================================================
+    // Ready
+    // ==================================================
+
+    public void SetLocalReadyState(
+        bool ready)
     {
         readyButtonText.text =
-            ready ? "READY" : "READY?";
+            ready
+                ? "준비 해제"
+                : "준비";
     }
 
-    public void SetReadyInteractable(bool interactable)
+    public void SetReadyInteractable(
+        bool interactable)
     {
-        readyButton.interactable = interactable;
+        readyButton.interactable =
+            interactable;
     }
 
-    public void SetStartVisible(bool visible)
+    // ==================================================
+    // Start
+    // ==================================================
+
+    public void SetStartVisible(
+        bool visible)
     {
-        startButton.gameObject.SetActive(visible);
+        startButton.gameObject.SetActive(
+            visible);
     }
 
-    public void SetStartInteractable(bool interactable)
+    public void SetStartInteractable(
+        bool interactable)
     {
-        startButton.interactable = interactable;
+        startButton.interactable =
+            interactable;
     }
 
-    public void SetLeaveInteractable(bool interactable)
+    // ==================================================
+    // Leave
+    // ==================================================
+
+    public void SetLeaveInteractable(
+        bool interactable)
     {
-        leaveButton.interactable = interactable;
+        leaveButton.interactable =
+            interactable;
     }
 
     private void OnReadyClicked()

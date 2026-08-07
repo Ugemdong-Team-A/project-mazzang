@@ -18,6 +18,10 @@ public sealed class FusionSessionController :
     [SerializeField]
     private int defaultMaxPlayers = 4;
 
+    [Header("Player")]
+    [SerializeField]
+    private NetworkPlayerData networkPlayerDataPrefab;
+
     private readonly List<SessionInfo> sessions = new();
 
     private NetworkRunner runner;
@@ -128,6 +132,62 @@ public sealed class FusionSessionController :
         }
     }
 
+    private void EnsurePlayerData(
+    NetworkRunner targetRunner,
+    PlayerRef player)
+    {
+        if (networkPlayerDataPrefab == null)
+        {
+            Debug.LogError(
+                "NetworkPlayerData Prefab이 등록되지 않았습니다.",
+                this);
+
+            return;
+        }
+
+        if (targetRunner.TryGetPlayerObject(
+                player,
+                out _))
+        {
+            return;
+        }
+
+        NetworkPlayerData playerData =
+            targetRunner.Spawn(
+            networkPlayerDataPrefab,
+            inputAuthority: player,
+            flags: NetworkSpawnFlags.DontDestroyOnLoad);
+
+        if (playerData == null)
+        {
+            Debug.LogError(
+                $"PlayerData Spawn 실패: {player}",
+                this);
+
+            return;
+        }
+
+        targetRunner.SetPlayerObject(
+            player,
+            playerData.Object);
+
+        Debug.Log(
+            $"[Fusion] PlayerData Created: {player}",
+            this);
+    }
+
+    private void EnsurePlayerDataForActivePlayers(
+    NetworkRunner targetRunner)
+    {
+        foreach (PlayerRef player
+                 in targetRunner.ActivePlayers)
+        {
+            EnsurePlayerData(
+                targetRunner,
+                player);
+        }
+    }
+
     // ==================================================
     // Room Create
     // ==================================================
@@ -136,11 +196,17 @@ public sealed class FusionSessionController :
         string roomName)
     {
         if (!CanStartRoomOperation())
-            return false;
+            return false;       
 
         activeOperation = NetworkOperation.CreateRoom;
 
         NetworkRunner currentRunner = runner;
+
+        if (currentRunner.IsServer)
+        {
+            EnsurePlayerDataForActivePlayers(
+                currentRunner);
+        }
 
         try
         {
@@ -571,19 +637,40 @@ public sealed class FusionSessionController :
     }
 
     public void OnPlayerJoined(
-        NetworkRunner runner,
-        PlayerRef player)
+    NetworkRunner callbackRunner,
+    PlayerRef player)
     {
-        // 다음 단계:
-        // Host가 LobbyPlayer를 생성하는 진입점 후보.
+        if (callbackRunner != runner)
+            return;
+
+        // Host / Server만 NetworkObject를 생성한다.
+        if (!callbackRunner.IsServer)
+            return;
+
+        EnsurePlayerData(
+            callbackRunner,
+            player);
     }
 
     public void OnPlayerLeft(
-        NetworkRunner runner,
+        NetworkRunner callbackRunner,
         PlayerRef player)
     {
-        // 다음 단계:
-        // LobbyPlayer 정리.
+        if (callbackRunner != runner)
+            return;
+
+        if (!callbackRunner.IsServer)
+            return;
+
+        if (!callbackRunner.TryGetPlayerObject(
+                player,
+                out NetworkObject playerObject))
+        {
+            return;
+        }
+
+        callbackRunner.Despawn(
+            playerObject);
     }
 
     public void OnInput(
