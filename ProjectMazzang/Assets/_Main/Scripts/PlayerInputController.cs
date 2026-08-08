@@ -9,7 +9,7 @@ public class PlayerInputController : NetworkBehaviour, INetworkRunnerCallbacks
 {
     private InputSystem_Actions _inputActions;
 
-    private float _moveX;
+    private Vector2 _move;
 
     private NetworkButtons _buttons;
 
@@ -48,7 +48,7 @@ public class PlayerInputController : NetworkBehaviour, INetworkRunnerCallbacks
 
     private void OnMove(InputAction.CallbackContext context)
     {
-        _moveX = context.ReadValue<Vector2>().x;
+        _move = context.ReadValue<Vector2>();
     }
 
     private void OnJump(InputAction.CallbackContext context)
@@ -65,7 +65,7 @@ public class PlayerInputController : NetworkBehaviour, INetworkRunnerCallbacks
 
         PlayerInputData data = new();
 
-        data.MoveX = _moveX;
+        data.Move = _move;
         data.Buttons =_buttons;
 
         input.Set(data);

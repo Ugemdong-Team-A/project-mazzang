@@ -20,8 +20,19 @@ public sealed class PlayerVisual : NetworkBehaviour
     {
         Vector3 scale = defaultScale;
 
+        bool facingRight =
+    movement.FacingRight;
+
+        if (movement.IsWallSliding)
+        {
+            if (movement.IsTouchingWallLeft)
+                facingRight = true;
+            else if (movement.IsTouchingWallRight)
+                facingRight = false;
+        }
+
         scale.x *=
-            movement.FacingRight
+           facingRight
                 ? 1f
                 : -1f;
 
