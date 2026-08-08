@@ -12,6 +12,10 @@ public sealed class NetworkPlayerData : NetworkBehaviour
      OnChangedRender(nameof(OnPlayerDataChanged))]
     public NetworkBool IsReady { get; private set; }
 
+    [Networked,
+     OnChangedRender(nameof(OnPlayerDataChanged))]
+    public NetworkObject CharacterObject { get; private set; }
+
     public PlayerRef PlayerRef =>
         Object.InputAuthority;
 
@@ -61,6 +65,24 @@ public sealed class NetworkPlayerData : NetworkBehaviour
         LocalDespawned?.Invoke(
             runner,
             player);
+    }
+
+    public void SetPlayerCharacter(NetworkObject player)
+    {
+        if (!HasStateAuthority)
+            return;
+
+        if (player != null &&
+        player.InputAuthority != Object.InputAuthority)
+        {
+            Debug.LogWarning(
+                "[NPD] Character InputAuthority mismatch.",
+                this);
+
+            return;
+        }
+
+        CharacterObject = player;
     }
 
     // ==================================================

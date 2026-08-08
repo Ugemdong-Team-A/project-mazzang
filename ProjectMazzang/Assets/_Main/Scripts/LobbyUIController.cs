@@ -743,12 +743,27 @@ public sealed class LobbyUIController :
 
     private void OnStartRequested()
     {
-        // 다음 단계:
-        //
-        // NetworkGameSession
-        // → Host 최종 Ready 검증
-        // → Starting
-        // → Scene Load
+        NetworkGameSession gameSession =
+            network.GameSession;
+
+        if (gameSession == null)
+        {
+            AppRoot.Instance.Popup.Show(
+                "게임 세션을 찾지 못했습니다.",
+                "확인");
+
+            return;
+        }
+
+        bool requested =
+            gameSession.RequestStartGame();
+
+        if (!requested)
+            return;
+
+        ui.Room.SetStartInteractable(false);
+        ui.Room.SetReadyInteractable(false);
+        ui.Room.SetLeaveInteractable(false);
     }
 
     // ==================================================

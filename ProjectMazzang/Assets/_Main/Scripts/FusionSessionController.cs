@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Fusion;
 using Fusion.Sockets;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public sealed class FusionSessionController :
     MonoBehaviour,
@@ -22,9 +23,15 @@ public sealed class FusionSessionController :
     [SerializeField]
     private NetworkPlayerData networkPlayerDataPrefab;
 
+    [Header("Game Session")]
+    [SerializeField]
+    private NetworkGameSession networkGameSessionPrefab;
+
     private readonly List<SessionInfo> sessions = new();
 
     private NetworkRunner runner;
+    private NetworkSceneManagerDefault sceneManager;
+    private NetworkGameSession gameSession;
 
     private NetworkSessionState state =
         NetworkSessionState.Offline;
@@ -37,6 +44,9 @@ public sealed class FusionSessionController :
     // --------------------------------------------------
 
     public NetworkRunner Runner => runner;
+
+    public NetworkGameSession GameSession =>
+        gameSession;
 
     public NetworkSessionState State => state;
 
@@ -60,6 +70,9 @@ public sealed class FusionSessionController :
 
     public event Action<NetworkOperationFailure>
         OperationFailed;
+
+    public event Action SceneLoadStarted;
+    public event Action SceneLoadCompleted;
 
     // ==================================================
     // Lobby
@@ -196,7 +209,7 @@ public sealed class FusionSessionController :
         string roomName)
     {
         if (!CanStartRoomOperation())
-            return false;       
+            return false;
 
         activeOperation = NetworkOperation.CreateRoom;
 
@@ -232,7 +245,9 @@ public sealed class FusionSessionController :
                         PlayerCount = defaultMaxPlayers,
 
                         IsOpen = true,
-                        IsVisible = true
+                        IsVisible = true,
+
+                        SceneManager = sceneManager
                     });
 
             if (!result.Ok)
@@ -254,6 +269,9 @@ public sealed class FusionSessionController :
                 return false;
 
             CurrentRoomName = roomName;
+
+            EnsureGameSession(
+                currentRunner);
 
             ClearSessionList();
 
@@ -311,7 +329,9 @@ public sealed class FusionSessionController :
 
                         // Client가 대상 Room을 못 찾았다고
                         // 새 Session을 만들어 버리는 의도가 아님.
-                        EnableClientSessionCreation = false
+                        EnableClientSessionCreation = false,
+
+                        SceneManager = sceneManager
                     });
 
             if (!result.Ok)
@@ -384,10 +404,17 @@ public sealed class FusionSessionController :
 
             await currentRunner.Shutdown();
 
-            // OnShutdown에서 이미 정리될 가능성이 높지만
-            // 혹시 그렇지 않은 경우를 위해 보정.
+            // NetworkRunner는 종료 후 재사용하지 않는다.
             if (runner == currentRunner)
                 runner = null;
+
+            if (currentRunner != null)
+            {
+                Destroy(currentRunner.gameObject);
+            }
+
+            sceneManager = null;
+            gameSession = null;
 
             CurrentRoomName = null;
 
@@ -439,9 +466,90 @@ public sealed class FusionSessionController :
 
         runner.name = "NetworkRunner";
 
+        sceneManager =
+            runner.GetComponentInChildren<
+                NetworkSceneManagerDefault>();
+
+        if (sceneManager == null)
+        {
+            sceneManager =
+                runner.gameObject.AddComponent<
+                    NetworkSceneManagerDefault>();
+        }
+
         runner.AddCallbacks(this);
 
         return runner;
+    }
+
+    public bool TryLoadScene(
+        string sceneName,
+        LoadSceneMode loadMode,
+        out NetworkSceneAsyncOp operation)
+    {
+        operation = default;
+
+        if (runner == null ||
+            !runner.IsRunning)
+        {
+            return false;
+        }
+
+        if (!runner.IsSceneAuthority)
+            return false;
+
+        if (runner.IsSceneManagerBusy)
+            return false;
+
+        if (string.IsNullOrWhiteSpace(sceneName))
+            return false;
+
+        try
+        {
+            operation = runner.LoadScene(
+                sceneName,
+                loadMode);
+
+            return operation.IsValid;
+        }
+        catch (Exception e)
+        {
+            Debug.LogError(
+                $"[Fusion] Scene Load 요청 실패: {e.Message}",
+                this);
+
+            return false;
+        }
+    }
+
+    private void EnsureGameSession(
+        NetworkRunner targetRunner)
+    {
+        if (!targetRunner.IsServer)
+            return;
+
+        if (gameSession != null)
+            return;
+
+        if (networkGameSessionPrefab == null)
+        {
+            Debug.LogError(
+                "NetworkGameSession Prefab이 등록되지 않았습니다.",
+                this);
+
+            return;
+        }
+
+        gameSession = targetRunner.Spawn(
+            networkGameSessionPrefab,
+            flags: NetworkSpawnFlags.DontDestroyOnLoad);
+
+        if (gameSession == null)
+        {
+            Debug.LogError(
+                "NetworkGameSession Spawn에 실패했습니다.",
+                this);
+        }
     }
 
     private async Task DisposeFailedRunnerAsync(
@@ -462,6 +570,9 @@ public sealed class FusionSessionController :
         if (runner == target)
             runner = null;
 
+        sceneManager = null;
+        gameSession = null;
+
         if (target != null)
         {
             Destroy(target.gameObject);
@@ -477,6 +588,9 @@ public sealed class FusionSessionController :
     {
         if (runner == target)
             runner = null;
+
+        sceneManager = null;
+        gameSession = null;
 
         if (target != null)
             Destroy(target.gameObject);
@@ -586,6 +700,8 @@ public sealed class FusionSessionController :
             shutdownReason != ShutdownReason.Ok;
 
         runner = null;
+        sceneManager = null;
+        gameSession = null;
 
         CurrentRoomName = null;
 
@@ -706,13 +822,21 @@ public sealed class FusionSessionController :
     }
 
     public void OnSceneLoadStart(
-        NetworkRunner runner)
+        NetworkRunner callbackRunner)
     {
+        if (callbackRunner != runner)
+            return;
+
+        SceneLoadStarted?.Invoke();
     }
 
     public void OnSceneLoadDone(
-        NetworkRunner runner)
+        NetworkRunner callbackRunner)
     {
+        if (callbackRunner != runner)
+            return;
+
+        SceneLoadCompleted?.Invoke();
     }
 
     public void OnObjectEnterAOI(

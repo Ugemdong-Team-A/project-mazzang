@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 7112535791173461728}
   - component: {fileID: 4343389403332560966}
   m_Layer: 0
-  m_Name: NetworkRunnerPrefab
+  m_Name: NetworkRunner
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
