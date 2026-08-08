@@ -1,0 +1,298 @@
+using Fusion;
+using UnityEngine;
+
+public enum PlayerAttackState : byte
+{
+    None = 0,
+    Startup,
+    Active,
+    Recovery
+}
+
+public sealed class PlayerCombat : NetworkBehaviour
+{
+    [Header("References")]
+    [SerializeField]
+    private PlayerMovement movement;
+
+
+    [Header("Basic Attack")]
+    [SerializeField]
+    private int basicDamage = 10;
+
+    [SerializeField]
+    private Vector2 basicAttackOffset =
+        new Vector2(1f, 0f);
+
+    [SerializeField]
+    private Vector2 basicAttackSize =
+        new Vector2(1.5f, 1f);
+
+    [SerializeField]
+    private LayerMask hurtboxLayer;
+
+
+    // 추가
+    [SerializeField]
+    private Vector2 basicKnockback =
+        new Vector2(6f, 4f);
+
+    [SerializeField]
+    private float basicKnockbackControlLock =
+        0.12f;
+
+
+    [Header("Basic Attack Timing")]
+    [SerializeField]
+    private float startupDuration = 0.08f;
+
+    [SerializeField]
+    private float activeDuration = 0.06f;
+
+    [SerializeField]
+    private float recoveryDuration = 0.2f;
+
+
+    [Networked]
+    private NetworkButtons PreviousButtons { get; set; }
+
+    [Networked]
+    private TickTimer AttackPhaseTimer { get; set; }
+
+    [Networked]
+    public PlayerAttackState AttackState { get; private set; }
+
+    [Networked]
+    public byte AttackSequence { get; private set; }
+
+    public bool IsAttacking =>
+        AttackState != PlayerAttackState.None;
+
+
+    public override void FixedUpdateNetwork()
+    {
+        UpdateAttack();
+
+        if (!GetInput(out PlayerInputData input))
+            return;
+
+        bool attackPressed =
+            input.Buttons.WasPressed(
+                PreviousButtons,
+                PlayerButton.Attack);
+
+        PreviousButtons =
+            input.Buttons;
+
+        if (attackPressed)
+        {
+            TryAttack(input.Move);
+        }
+    }
+
+
+    // =========================================================
+    // Attack Request
+    // =========================================================
+
+    private void TryAttack(Vector2 moveInput)
+    {
+        if (IsAttacking)
+            return;
+
+        /*
+         * 나중에는 여기서만 분기한다.
+         *
+         * if (HasEquippedWeapon)
+         * {
+         *     StartWeaponAttack(...);
+         *     return;
+         * }
+         */
+
+        StartBasicAttack(moveInput);
+    }
+
+
+    // =========================================================
+    // Basic Attack
+    // =========================================================
+
+    private void StartBasicAttack(
+        Vector2 moveInput)
+    {
+        AttackState =
+            PlayerAttackState.Startup;
+
+        AttackPhaseTimer =
+            TickTimer.CreateFromSeconds(
+                Runner,
+                startupDuration);
+
+        AttackSequence++;
+    }
+
+
+    private void UpdateAttack()
+    {
+        switch (AttackState)
+        {
+            case PlayerAttackState.None:
+                break;
+
+            case PlayerAttackState.Startup:
+                UpdateStartup();
+                break;
+
+            case PlayerAttackState.Active:
+                UpdateActive();
+                break;
+
+            case PlayerAttackState.Recovery:
+                UpdateRecovery();
+                break;
+        }
+    }
+
+
+    private void UpdateStartup()
+    {
+        if (!AttackPhaseTimer.Expired(Runner))
+            return;
+
+        BeginActive();
+    }
+
+
+    private void BeginActive()
+    {
+        AttackState =
+            PlayerAttackState.Active;
+
+        PerformBasicAttackHit();
+
+        AttackPhaseTimer =
+            TickTimer.CreateFromSeconds(
+                Runner,
+                activeDuration);
+    }
+
+
+    private void UpdateActive()
+    {
+        if (!AttackPhaseTimer.Expired(Runner))
+            return;
+
+        AttackState =
+            PlayerAttackState.Recovery;
+
+        AttackPhaseTimer =
+            TickTimer.CreateFromSeconds(
+                Runner,
+                recoveryDuration);
+    }
+
+
+    private void UpdateRecovery()
+    {
+        if (!AttackPhaseTimer.Expired(Runner))
+            return;
+
+        AttackState =
+            PlayerAttackState.None;
+
+        AttackPhaseTimer =
+            TickTimer.None;
+    }
+
+
+    // =========================================================
+    // Hit
+    // =========================================================
+
+    private void PerformBasicAttackHit()
+    {
+        float direction =
+            movement.FacingRight
+                ? 1f
+                : -1f;
+
+        Vector2 offset =
+            basicAttackOffset;
+
+        offset.x *= direction;
+
+        Vector2 center =
+            (Vector2)transform.position +
+            offset;
+
+        Collider2D[] hits =
+            Physics2D.OverlapBoxAll(
+                center,
+                basicAttackSize,
+                0f,
+                hurtboxLayer);
+
+        foreach (Collider2D hit in hits)
+        {
+            IDamageable damageable =
+                hit.GetComponentInParent<IDamageable>();
+
+            if (damageable == null)
+                continue;
+
+            // 자기 자신 제외
+            if (damageable == GetComponent<PlayerHealth>())
+                continue;
+
+            if (!damageable.IsAlive)
+                continue;
+
+            Vector2 knockback =
+                basicKnockback;
+
+            knockback.x *= direction;
+
+            DamageInfo info =
+                new DamageInfo(
+                    basicDamage,
+                    Object.InputAuthority,
+                    knockback,
+                    basicKnockbackControlLock);
+
+            damageable.ApplyDamage(in info);
+        }
+    }
+
+
+#if UNITY_EDITOR
+
+    private void OnDrawGizmosSelected()
+    {
+        Vector2 rightOffset =
+            basicAttackOffset;
+
+        Vector2 leftOffset =
+            basicAttackOffset;
+
+        leftOffset.x *= -1f;
+
+        Vector2 rightCenter =
+            (Vector2)transform.position +
+            rightOffset;
+
+        Vector2 leftCenter =
+            (Vector2)transform.position +
+            leftOffset;
+
+        Gizmos.DrawWireCube(
+            rightCenter,
+            basicAttackSize);
+
+        Gizmos.DrawWireCube(
+            leftCenter,
+            basicAttackSize);
+    }
+
+#endif
+}

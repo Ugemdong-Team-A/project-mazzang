@@ -126,6 +126,8 @@ public sealed class PlayerMovement : NetworkBehaviour
     [Networked]
     public JumpType LastJumpType { get; private set; }
 
+    [Networked]
+    private TickTimer KnockbackControlTimer { get; set; }
 
     // =========================================================
     // Runtime State
@@ -170,6 +172,25 @@ public sealed class PlayerMovement : NetworkBehaviour
             Vector2.ClampMagnitude(
                 input.Move,
                 1f);
+
+
+        // ==========================================
+        // Knockback Control Lock
+        // ==========================================
+
+        if (!KnockbackControlTimer
+                .ExpiredOrNotRunning(Runner))
+        {
+            // 잠금 중 입력이 나중에 새 입력처럼
+            // 튀어나오지 않도록 현재 버튼 상태는 소비.
+            PreviousButtons =
+                input.Buttons;
+
+            return;
+        }
+
+        HandleWallSlide(moveInput.x);
+        HandleFastFall(moveInput.y);
 
         MoveHorizontal(moveInput.x);
 
@@ -523,6 +544,24 @@ public sealed class PlayerMovement : NetworkBehaviour
             IsWallSliding &&
             WallJumpReadyTimer
                 .Expired(Runner);
+    }
+
+    public void ApplyKnockback(
+    Vector2 velocity,
+    float controlLockDuration)
+    {
+        if (!HasStateAuthority)
+            return;
+
+        rb.linearVelocity =
+            velocity;
+
+        KnockbackControlTimer =
+            TickTimer.CreateFromSeconds(
+                Runner,
+                controlLockDuration);
+
+        IsWallSliding = false;
     }
 
 

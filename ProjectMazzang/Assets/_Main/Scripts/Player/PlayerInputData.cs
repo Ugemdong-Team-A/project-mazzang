@@ -4,6 +4,7 @@ using Fusion;
 public enum PlayerButton
 {
     Jump = 0,
+    Attack,
 }
 
 public struct PlayerInputData : INetworkInput

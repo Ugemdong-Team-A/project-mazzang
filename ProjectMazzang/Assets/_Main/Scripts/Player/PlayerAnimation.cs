@@ -5,17 +5,25 @@ public sealed class PlayerAnimation : NetworkBehaviour
 {
     [SerializeField]
     private PlayerMovement movement;
+    [SerializeField]
+    private PlayerCombat combat;
+    [SerializeField]
+    private PlayerHealth health;
 
     [SerializeField]
     private Animator animator;
 
     private byte lastJumpSequence;
-
+    private byte lastAttackSequence;
+    private byte lastDeathSequence;
 
     public override void Spawned()
     {
         lastJumpSequence =
             movement.JumpSequence;
+
+        lastDeathSequence =
+        health.DeathSequence;
     }
 
 
@@ -42,6 +50,10 @@ public sealed class PlayerAnimation : NetworkBehaviour
                 movement.IsWallSliding);
 
         HandleJumpAnimation();
+
+        HandleAttackAnimation();
+
+        HandleDeathAnimation();
     }
 
 
@@ -62,5 +74,33 @@ public sealed class PlayerAnimation : NetworkBehaviour
 
         animator.SetTrigger(
             "Jump");
+    }
+
+    private void HandleAttackAnimation()
+    {
+        if (lastAttackSequence ==
+            combat.AttackSequence)
+        {
+            return;
+        }
+
+        lastAttackSequence =
+            combat.AttackSequence;
+
+        animator.SetTrigger("Attack");
+    }
+
+    private void HandleDeathAnimation()
+    {
+        if (lastDeathSequence ==
+            health.DeathSequence)
+        {
+            return;
+        }
+
+        lastDeathSequence =
+            health.DeathSequence;
+
+        animator.SetTrigger("Death");
     }
 }

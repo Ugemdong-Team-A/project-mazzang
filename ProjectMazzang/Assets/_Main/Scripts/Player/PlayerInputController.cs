@@ -23,6 +23,9 @@ public class PlayerInputController : NetworkBehaviour, INetworkRunnerCallbacks
         _inputActions.Player.Jump.performed += OnJump;
         _inputActions.Player.Jump.canceled += OnJump;
 
+        _inputActions.Player.Attack.performed += OnAttack;
+        _inputActions.Player.Attack.canceled += OnAttack;
+
         _inputActions.Enable();
     }
 
@@ -55,6 +58,12 @@ public class PlayerInputController : NetworkBehaviour, INetworkRunnerCallbacks
     {
         bool jumped = context.ReadValueAsButton();
         _buttons.Set(PlayerButton.Jump, jumped);
+    }
+
+    private void OnAttack(InputAction.CallbackContext context)
+    {
+        bool attacked = context.ReadValueAsButton();
+        _buttons.Set(PlayerButton.Attack, attacked);
     }
 
     public void OnInput(
