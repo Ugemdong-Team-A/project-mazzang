@@ -958,7 +958,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerHealth
   movement: {fileID: 6238690141146646799}
   maxHealth: 100
-  startingLives: 3
+  startingLives: 1
   respawnDelay: 2
   _Health: 0
   _Lives: 0

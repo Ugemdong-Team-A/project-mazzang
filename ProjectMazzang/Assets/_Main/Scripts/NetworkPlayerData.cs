@@ -266,4 +266,17 @@ public sealed class NetworkPlayerData : NetworkBehaviour
     {
         LocalChanged?.Invoke(this);
     }
+
+    // ==================================================
+    // Match Reset
+    // ==================================================
+
+    public void ResetForLobby()
+    {
+        if (!HasStateAuthority)
+            return;
+
+        IsReady = false;
+        CharacterObject = null;
+    }
 }

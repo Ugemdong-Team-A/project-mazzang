@@ -45,8 +45,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f2a12d0ab3dbf7e40ba27b374cdc9f82, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NetworkGameSession
+  lobbySceneName: Lobby
   gameplaySceneName: Gameplay
-  defaultMapData: {fileID: 11400000, guid: def4484f8c8f3c646a004563af977835, type: 2}
+  defaultMap: {fileID: 11400000, guid: def4484f8c8f3c646a004563af977835, type: 2}
 --- !u!114 &5993176475120403535
 MonoBehaviour:
   m_ObjectHideFlags: 0

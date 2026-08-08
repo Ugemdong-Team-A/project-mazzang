@@ -21,14 +21,18 @@ public sealed class PlayerHealth :
     [SerializeField]
     private float respawnDelay = 2f;
 
+    private float _lastHealth;
 
-    [Networked]
+
+    [Networked,
+        OnChangedRender(nameof(OnHealthChanged))]
     public int Health { get; private set; }
 
     [Networked]
     public int Lives { get; private set; }
 
-    [Networked]
+    [Networked,
+        OnChangedRender(nameof(OnDeadChanged))]
     public NetworkBool IsDead { get; private set; }
 
     [Networked]
@@ -61,6 +65,8 @@ public sealed class PlayerHealth :
 
     public override void Spawned()
     {
+        _lastHealth = Health;
+
         if (!HasStateAuthority)
             return;
 
@@ -69,6 +75,9 @@ public sealed class PlayerHealth :
 
         IsDead = false;
         RespawnTimer = TickTimer.None;
+
+        BattleCameraController.Instance?
+            .AddTarget(transform);
     }
 
 
@@ -127,6 +136,28 @@ public sealed class PlayerHealth :
     // Life
     // =========================================================
 
+    private void OnHealthChanged()
+    {
+        if (_lastHealth > Health)
+            BattleCameraController.Instance?.
+                PlayHitShake(transform.position);
+
+        _lastHealth = Health;
+    }
+
+    private void OnDeadChanged()
+    {
+        BattleCameraController bcc = BattleCameraController.Instance;
+
+        if (IsDead)
+        {
+            bcc?.RemoveTarget(transform);
+            bcc?.PlayDeathShake(transform.position);
+        }
+        else
+            bcc?.AddTarget(transform);
+    }
+
     private void Die(
         PlayerRef attacker)
     {
@@ -136,7 +167,7 @@ public sealed class PlayerHealth :
         IsDead = true;
         DeathSequence++;
 
-        LoseLife();
+        LoseLife();        
 
         if (Lives <= 0)
         {
@@ -193,5 +224,9 @@ public sealed class PlayerHealth :
         // 입력 차단
         // 캐릭터 제거
         // 승패 처리
+        NetworkGameManager.Instance?
+        .ReportPlayerEliminated(
+            Object.InputAuthority,
+            attacker);
     }
 }
