@@ -1,5 +1,5 @@
-using UnityEngine;
 using Fusion;
+using UnityEngine;
 
 public enum PlayerButton
 {
@@ -7,8 +7,10 @@ public enum PlayerButton
     Attack,
 }
 
-public struct PlayerInputData : INetworkInput
+public struct PlayerInputData :
+    INetworkInput
 {
     public Vector2 Move;
+
     public NetworkButtons Buttons;
 }

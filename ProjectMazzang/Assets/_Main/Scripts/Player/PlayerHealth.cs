@@ -8,15 +8,12 @@ public enum DeathCause : byte
     MapOut = 2
 }
 
+[DefaultExecutionOrder(-300)]
 public sealed class PlayerHealth :
-    NetworkBehaviour,
-    IDamageable
+    PlayerModule,
+    IPlayerHealthState,
+    IPlayerDamageReceiver
 {
-    [Header("References")]
-    [SerializeField]
-    private PlayerMovement movement;
-
-
     [Header("Health")]
     [SerializeField]
     private int maxHealth = 100;
@@ -30,8 +27,10 @@ public sealed class PlayerHealth :
     [Header("Respawn")]
     [SerializeField]
     private float respawnDelay = 2f;
+
     [SerializeField]
     private float respawnInvulnerabilityDuration = 2f;
+
 
     [Header("Kill Credit")]
     [Tooltip("마지막으로 공격한 플레이어에게 MapOut KO를 인정하는 시간입니다.")]
@@ -40,6 +39,12 @@ public sealed class PlayerHealth :
 
 
     private float _lastHealth;
+
+    private IPlayerKnockbackReceiver
+        _knockbackReceiver;
+
+    private IPlayerCombatControl
+        _combatControl;
 
 
     // =========================================================
@@ -64,13 +69,10 @@ public sealed class PlayerHealth :
     public byte DeathSequence { get; private set; }
 
 
-    // 가장 최근에 이 플레이어에게 유효한 공격을 가한 플레이어.
     [Networked]
     public PlayerRef LastAttacker { get; private set; }
 
 
-    // 가장 최근 사망에서 실제로 Kill Credit을 받은 플레이어.
-    // Death Feedback / Kill Feed에서 나중에 활용 가능.
     [Networked]
     public PlayerRef LastDeathAttacker { get; private set; }
 
@@ -86,8 +88,10 @@ public sealed class PlayerHealth :
     [Networked]
     private TickTimer RespawnTimer { get; set; }
 
+
     [Networked]
     private TickTimer InvulnerabilityTimer { get; set; }
+
 
     // =========================================================
     // Public State
@@ -105,21 +109,41 @@ public sealed class PlayerHealth :
         !IsDead &&
         Lives > 0;
 
+
     public bool IsInvulnerable =>
-    !InvulnerabilityTimer
-        .ExpiredOrNotRunning(Runner);
+        !InvulnerabilityTimer
+            .ExpiredOrNotRunning(Runner);
+
+
+    bool IPlayerHealthState.IsDead =>
+        IsDead;
+
 
     // =========================================================
-    // Unity
+    // Context
     // =========================================================
 
-    private void Awake()
+    protected override void RegisterContextUnits()
     {
-        if (movement == null)
-        {
-            movement =
-                GetComponent<PlayerMovement>();
-        }
+        Context.Register<
+            IPlayerHealthState>(
+            this);
+
+        Context.Register<
+            IPlayerDamageReceiver>(
+            this);
+    }
+
+
+    protected override void OnContextReady()
+    {
+        _knockbackReceiver =
+            Context.Get<
+                IPlayerKnockbackReceiver>();
+
+        _combatControl =
+            Context.Get<
+                IPlayerCombatControl>();
     }
 
 
@@ -132,10 +156,9 @@ public sealed class PlayerHealth :
         _lastHealth =
             Health;
 
-        // Camera는 각 Peer의 로컬 Presentation이므로
-        // StateAuthority 여부와 관계없이 등록한다.
         BattleCameraController.Instance?
-            .AddTarget(transform);
+            .AddTarget(
+                transform);
 
         if (!HasStateAuthority)
             return;
@@ -177,7 +200,8 @@ public sealed class PlayerHealth :
         bool hasState)
     {
         BattleCameraController.Instance?
-            .RemoveTarget(transform);
+            .RemoveTarget(
+                transform);
     }
 
 
@@ -192,8 +216,11 @@ public sealed class PlayerHealth :
         if (Lives <= 0)
             return;
 
-        if (!RespawnTimer.Expired(Runner))
+        if (!RespawnTimer
+                .Expired(Runner))
+        {
             return;
+        }
 
         TryRespawn();
     }
@@ -221,13 +248,16 @@ public sealed class PlayerHealth :
         Health =
             Mathf.Max(
                 0,
-                Health - info.Damage);
+                Health -
+                info.Damage);
 
-        if (info.Knockback.sqrMagnitude > 0f)
+        if (info.Knockback
+                .sqrMagnitude > 0f)
         {
-            movement.ApplyKnockback(
-                info.Knockback,
-                info.KnockbackControlLock);
+            _knockbackReceiver?
+                .ApplyKnockback(
+                    info.Knockback,
+                    info.KnockbackControlLock);
         }
 
         if (Health > 0)
@@ -271,19 +301,23 @@ public sealed class PlayerHealth :
     private void RegisterLastAttacker(
         PlayerRef attacker)
     {
-        // 공격자가 없는 환경 피해 등.
-        if (attacker == PlayerRef.None)
+        if (attacker ==
+            PlayerRef.None)
+        {
             return;
+        }
 
-        // 자기 자신에게 발생한 피해는
-        // 외부 Kill Credit 대상으로 기록하지 않는다.
-        if (attacker == Object.InputAuthority)
+        if (attacker ==
+            Object.InputAuthority)
+        {
             return;
+        }
 
         LastAttacker =
             attacker;
 
-        if (lastAttackerCreditDuration <= 0f)
+        if (lastAttackerCreditDuration <=
+            0f)
         {
             LastAttackerTimer =
                 TickTimer.None;
@@ -298,10 +332,14 @@ public sealed class PlayerHealth :
     }
 
 
-    private PlayerRef GetValidLastAttacker()
+    private PlayerRef
+        GetValidLastAttacker()
     {
-        if (LastAttacker == PlayerRef.None)
+        if (LastAttacker ==
+            PlayerRef.None)
+        {
             return PlayerRef.None;
+        }
 
         if (LastAttackerTimer
             .ExpiredOrNotRunning(Runner))
@@ -316,16 +354,14 @@ public sealed class PlayerHealth :
     private PlayerRef ResolveDeathAttacker(
         PlayerRef directAttacker)
     {
-        // 이번 공격에 명확한 공격자가 있으면
-        // 그 공격자를 최우선으로 사용.
-        if (directAttacker != PlayerRef.None &&
-            directAttacker != Object.InputAuthority)
+        if (directAttacker !=
+                PlayerRef.None &&
+            directAttacker !=
+                Object.InputAuthority)
         {
             return directAttacker;
         }
 
-        // 환경 피해 등으로 직접 공격자가 없다면
-        // 최근 공격자를 확인.
         return GetValidLastAttacker();
     }
 
@@ -351,9 +387,6 @@ public sealed class PlayerHealth :
         if (IsDead)
             return;
 
-        // State를 바꾸기 전에 이번 사망 정보를 먼저 확정.
-        // 로컬 Presentation에서 IsDead 변경을 감지했을 때
-        // 이미 Cause / Attacker를 읽을 수 있도록 한다.
         LastDeathAttacker =
             attacker;
 
@@ -370,6 +403,10 @@ public sealed class PlayerHealth :
             true;
 
         DeathSequence++;
+
+        // 사망한 틱에 이미 진행 중인 공격도 즉시 취소한다.
+        _combatControl?
+            .CancelAttack();
 
         LoseLife();
 
@@ -415,6 +452,7 @@ public sealed class PlayerHealth :
         CompleteRespawn();
     }
 
+
     private void CompleteRespawn()
     {
         Health =
@@ -433,6 +471,7 @@ public sealed class PlayerHealth :
         IsDead =
             false;
     }
+
 
     private void HandleEliminated(
         PlayerRef attacker)
@@ -453,9 +492,8 @@ public sealed class PlayerHealth :
 
     private void OnHealthChanged()
     {
-        // 죽음 자체에는 Death Shake가 있으므로
-        // 치명타에서 Hit + Death Shake가 동시에 겹치는 것을 방지.
-        if (_lastHealth > Health &&
+        if (_lastHealth >
+                Health &&
             !IsDead)
         {
             BattleCameraController.Instance?

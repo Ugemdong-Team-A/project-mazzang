@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Fusion;
 using UnityEngine;
 
@@ -9,13 +10,12 @@ public enum PlayerAttackState : byte
     Recovery
 }
 
-public sealed class PlayerCombat : NetworkBehaviour
+[DefaultExecutionOrder(-200)]
+public sealed class PlayerCombat :
+    PlayerModule,
+    IPlayerCombatState,
+    IPlayerCombatControl
 {
-    [Header("References")]
-    [SerializeField]
-    private PlayerMovement movement;
-
-
     [Header("Basic Attack")]
     [SerializeField]
     private int basicDamage = 10;
@@ -31,8 +31,6 @@ public sealed class PlayerCombat : NetworkBehaviour
     [SerializeField]
     private LayerMask hurtboxLayer;
 
-
-    // 추가
     [SerializeField]
     private Vector2 basicKnockback =
         new Vector2(6f, 4f);
@@ -53,6 +51,23 @@ public sealed class PlayerCombat : NetworkBehaviour
     private float recoveryDuration = 0.2f;
 
 
+    private readonly HashSet<IDamageable>
+        _hitTargets = new();
+
+    private IPlayerMovementState
+        _movementState;
+
+    private IPlayerHealthState
+        _healthState;
+
+    private IPlayerDamageReceiver
+        _selfDamageReceiver;
+
+
+    // =========================================================
+    // Network State
+    // =========================================================
+
     [Networked]
     private NetworkButtons PreviousButtons { get; set; }
 
@@ -60,21 +75,83 @@ public sealed class PlayerCombat : NetworkBehaviour
     private TickTimer AttackPhaseTimer { get; set; }
 
     [Networked]
+    private NetworkBool AttackFacingRight { get; set; }
+
+
+    [Networked]
     public PlayerAttackState AttackState { get; private set; }
 
     [Networked]
     public byte AttackSequence { get; private set; }
 
-    public bool IsAttacking =>
-        AttackState != PlayerAttackState.None;
 
+    public bool IsAttacking =>
+        AttackState !=
+        PlayerAttackState.None;
+
+
+    // =========================================================
+    // Context
+    // =========================================================
+
+    protected override void RegisterContextUnits()
+    {
+        Context.Register<
+            IPlayerCombatState>(
+            this);
+
+        Context.Register<
+            IPlayerCombatControl>(
+            this);
+    }
+
+
+    protected override void OnContextReady()
+    {
+        _movementState =
+            Context.Get<
+                IPlayerMovementState>();
+
+        _healthState =
+            Context.Get<
+                IPlayerHealthState>();
+
+        _selfDamageReceiver =
+            Context.Get<
+                IPlayerDamageReceiver>();
+    }
+
+
+    // =========================================================
+    // Fusion
+    // =========================================================
 
     public override void FixedUpdateNetwork()
     {
+        if (_healthState == null)
+            return;
+
+        if (!_healthState.IsAlive)
+        {
+            CancelAttack();
+
+            if (GetInput(
+                    out PlayerInputData deadInput))
+            {
+                PreviousButtons =
+                    deadInput.Buttons;
+            }
+
+            return;
+        }
+
         UpdateAttack();
 
-        if (!GetInput(out PlayerInputData input))
+        if (!GetInput(
+                out PlayerInputData input))
+        {
             return;
+        }
 
         bool attackPressed =
             input.Buttons.WasPressed(
@@ -86,7 +163,8 @@ public sealed class PlayerCombat : NetworkBehaviour
 
         if (attackPressed)
         {
-            TryAttack(input.Move);
+            TryAttack(
+                input.Move);
         }
     }
 
@@ -95,7 +173,8 @@ public sealed class PlayerCombat : NetworkBehaviour
     // Attack Request
     // =========================================================
 
-    private void TryAttack(Vector2 moveInput)
+    private void TryAttack(
+        Vector2 moveInput)
     {
         if (IsAttacking)
             return;
@@ -110,7 +189,8 @@ public sealed class PlayerCombat : NetworkBehaviour
          * }
          */
 
-        StartBasicAttack(moveInput);
+        StartBasicAttack(
+            moveInput);
     }
 
 
@@ -128,6 +208,24 @@ public sealed class PlayerCombat : NetworkBehaviour
             TickTimer.CreateFromSeconds(
                 Runner,
                 startupDuration);
+
+        if (moveInput.x > 0.01f)
+        {
+            AttackFacingRight =
+                true;
+        }
+        else if (moveInput.x < -0.01f)
+        {
+            AttackFacingRight =
+                false;
+        }
+        else
+        {
+            AttackFacingRight =
+                _movementState != null
+                    ? _movementState.FacingRight
+                    : true;
+        }
 
         AttackSequence++;
     }
@@ -157,8 +255,11 @@ public sealed class PlayerCombat : NetworkBehaviour
 
     private void UpdateStartup()
     {
-        if (!AttackPhaseTimer.Expired(Runner))
+        if (!AttackPhaseTimer
+                .Expired(Runner))
+        {
             return;
+        }
 
         BeginActive();
     }
@@ -180,8 +281,11 @@ public sealed class PlayerCombat : NetworkBehaviour
 
     private void UpdateActive()
     {
-        if (!AttackPhaseTimer.Expired(Runner))
+        if (!AttackPhaseTimer
+                .Expired(Runner))
+        {
             return;
+        }
 
         AttackState =
             PlayerAttackState.Recovery;
@@ -195,9 +299,18 @@ public sealed class PlayerCombat : NetworkBehaviour
 
     private void UpdateRecovery()
     {
-        if (!AttackPhaseTimer.Expired(Runner))
+        if (!AttackPhaseTimer
+                .Expired(Runner))
+        {
             return;
+        }
 
+        CancelAttack();
+    }
+
+
+    public void CancelAttack()
+    {
         AttackState =
             PlayerAttackState.None;
 
@@ -213,14 +326,15 @@ public sealed class PlayerCombat : NetworkBehaviour
     private void PerformBasicAttackHit()
     {
         float direction =
-            movement.FacingRight
+            AttackFacingRight
                 ? 1f
                 : -1f;
 
         Vector2 offset =
             basicAttackOffset;
 
-        offset.x *= direction;
+        offset.x *=
+            direction;
 
         Vector2 center =
             (Vector2)transform.position +
@@ -233,17 +347,29 @@ public sealed class PlayerCombat : NetworkBehaviour
                 0f,
                 hurtboxLayer);
 
+        _hitTargets.Clear();
+
         foreach (Collider2D hit in hits)
         {
             IDamageable damageable =
-                hit.GetComponentInParent<IDamageable>();
+                hit.GetComponentInParent<
+                    IDamageable>();
 
             if (damageable == null)
                 continue;
 
-            // 자기 자신 제외
-            if (damageable == GetComponent<PlayerHealth>())
+            if (ReferenceEquals(
+                    damageable,
+                    _selfDamageReceiver))
+            {
                 continue;
+            }
+
+            if (!_hitTargets.Add(
+                    damageable))
+            {
+                continue;
+            }
 
             if (!damageable.IsAlive)
                 continue;
@@ -251,7 +377,8 @@ public sealed class PlayerCombat : NetworkBehaviour
             Vector2 knockback =
                 basicKnockback;
 
-            knockback.x *= direction;
+            knockback.x *=
+                direction;
 
             DamageInfo info =
                 new DamageInfo(
@@ -260,7 +387,8 @@ public sealed class PlayerCombat : NetworkBehaviour
                     knockback,
                     basicKnockbackControlLock);
 
-            damageable.ApplyDamage(in info);
+            damageable.ApplyDamage(
+                in info);
         }
     }
 
@@ -275,7 +403,8 @@ public sealed class PlayerCombat : NetworkBehaviour
         Vector2 leftOffset =
             basicAttackOffset;
 
-        leftOffset.x *= -1f;
+        leftOffset.x *=
+            -1f;
 
         Vector2 rightCenter =
             (Vector2)transform.position +

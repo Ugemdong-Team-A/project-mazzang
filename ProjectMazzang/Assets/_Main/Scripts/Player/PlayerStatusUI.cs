@@ -4,61 +4,79 @@ using UnityEngine;
 using UnityEngine.UI;
 
 public sealed class PlayerStatusUI :
-    NetworkBehaviour
+    PlayerModule
 {
-    [Header("References")]
-    [SerializeField]
-    private PlayerHealth health;
-
     [Header("Nickname")]
     [SerializeField]
     private TMP_Text nicknameText;
 
+
     [Header("Health")]
     [SerializeField]
     private Slider healthBar;
+
     [SerializeField]
     private Image healthFill;
 
     [SerializeField]
     private TMP_Text healthText;
 
+
     [Header("Lives")]
     [SerializeField]
     private TMP_Text livesText;
 
 
-    private NetworkPlayerData playerData;
+    private IPlayerHealthState
+        _healthState;
+
+    private NetworkPlayerData
+        _playerData;
 
 
-    private void Awake()
+    // =========================================================
+    // Context
+    // =========================================================
+
+    protected override void OnContextReady()
     {
-        if (health == null)
-        {
-            health =
-                GetComponent<PlayerHealth>();
-        }
+        _healthState =
+            Context.Get<
+                IPlayerHealthState>();
     }
 
+
+    // =========================================================
+    // Fusion
+    // =========================================================
 
     public override void Spawned()
     {
         TryResolvePlayerData();
+
         Refresh();
 
-        nicknameText.color = HasInputAuthority ?
-           Color.yellow :
-           Color.white;
+        if (nicknameText != null)
+        {
+            nicknameText.color =
+                HasInputAuthority
+                    ? Color.yellow
+                    : Color.white;
+        }
 
-        healthFill.color = HasInputAuthority ?
-            Color.greenYellow :
-            Color.softRed;
+        if (healthFill != null)
+        {
+            healthFill.color =
+                HasInputAuthority
+                    ? Color.greenYellow
+                    : Color.softRed;
+        }
     }
 
 
     public override void Render()
     {
-        if (playerData == null)
+        if (_playerData == null)
         {
             TryResolvePlayerData();
         }
@@ -83,7 +101,7 @@ public sealed class PlayerStatusUI :
             return;
         }
 
-        playerData =
+        _playerData =
             playerObject.GetComponent<
                 NetworkPlayerData>();
     }
@@ -106,7 +124,7 @@ public sealed class PlayerStatusUI :
         if (nicknameText == null)
             return;
 
-        if (playerData == null)
+        if (_playerData == null)
         {
             nicknameText.text =
                 string.Empty;
@@ -115,31 +133,33 @@ public sealed class PlayerStatusUI :
         }
 
         nicknameText.text =
-            playerData.DisplayName;
+            _playerData.DisplayName;
     }
 
 
     private void RefreshHealth()
     {
-        if (health == null)
+        if (_healthState == null)
             return;
 
         if (healthBar != null)
         {
             float ratio =
-                health.MaxHealth > 0
-                    ? (float)health.Health /
-                      health.MaxHealth
+                _healthState.MaxHealth > 0
+                    ? (float)_healthState.Health /
+                      _healthState.MaxHealth
                     : 0f;
 
             healthBar.value =
-                Mathf.Clamp01(ratio);
+                Mathf.Clamp01(
+                    ratio);
         }
 
         if (healthText != null)
         {
             healthText.text =
-                $"{health.Health}/{health.MaxHealth}";
+                $"{_healthState.Health}/" +
+                $"{_healthState.MaxHealth}";
         }
     }
 
@@ -147,12 +167,12 @@ public sealed class PlayerStatusUI :
     private void RefreshLives()
     {
         if (livesText == null ||
-            health == null)
+            _healthState == null)
         {
             return;
         }
 
         livesText.text =
-            $"x{health.Lives}";
+            $"x{_healthState.Lives}";
     }
 }

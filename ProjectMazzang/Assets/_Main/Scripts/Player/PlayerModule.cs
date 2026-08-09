@@ -10,6 +10,9 @@ using UnityEngine;
 public abstract class PlayerModule :
     NetworkBehaviour
 {
+    private bool _contextCompleted;
+
+
     protected PlayerContext Context
     {
         get;
@@ -18,7 +21,8 @@ public abstract class PlayerModule :
 
 
     public bool IsContextReady =>
-        Context != null;
+        Context != null &&
+        _contextCompleted;
 
 
     internal void InitializeContext(
@@ -36,9 +40,16 @@ public abstract class PlayerModule :
 
         if (Context != null)
         {
+            if (ReferenceEquals(
+                    Context,
+                    context))
+            {
+                return;
+            }
+
             Debug.LogError(
-                $"{GetType().Name}은 이미 " +
-                "PlayerContext가 초기화되었습니다.",
+                $"{GetType().Name}은 이미 다른 " +
+                "PlayerContext로 초기화되었습니다.",
                 this);
 
             return;
@@ -52,6 +63,9 @@ public abstract class PlayerModule :
 
     internal void CompleteContextInitialization()
     {
+        if (_contextCompleted)
+            return;
+
         if (Context == null)
         {
             Debug.LogError(
@@ -63,6 +77,8 @@ public abstract class PlayerModule :
         }
 
         OnContextReady();
+
+        _contextCompleted = true;
     }
 
 

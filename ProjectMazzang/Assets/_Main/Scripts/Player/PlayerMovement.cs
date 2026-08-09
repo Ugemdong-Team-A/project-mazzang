@@ -8,7 +8,11 @@ public enum JumpType : byte
     Wall = 2
 }
 
-public sealed class PlayerMovement : NetworkBehaviour
+[DefaultExecutionOrder(-100)]
+public sealed class PlayerMovement :
+    PlayerModule,
+    IPlayerMovementState,
+    IPlayerKnockbackReceiver
 {
     [Header("References")]
     [SerializeField]
@@ -80,15 +84,14 @@ public sealed class PlayerMovement : NetworkBehaviour
     [SerializeField]
     private float wallJumpVerticalSpeed = 10f;
 
-    // 벽점프 후 잠깐 동안 수평 입력을 막아
-    // 벽 반대쪽으로 확실히 튕겨나가게 한다.
     [SerializeField]
     private float wallJumpControlDelay = 0.1f;
 
-    // WallSlide에 진입한 뒤
-    // 이 시간이 지나야 벽점프를 허용한다.
     [SerializeField]
     private float wallJumpReadyDelay = 0.08f;
+
+
+    private IPlayerHealthState _healthState;
 
 
     // =========================================================
@@ -113,6 +116,12 @@ public sealed class PlayerMovement : NetworkBehaviour
     [Networked]
     private NetworkBool WasWallSliding { get; set; }
 
+    [Networked]
+    private TickTimer KnockbackControlTimer { get; set; }
+
+
+    [Networked]
+    public NetworkBool IsGrounded { get; private set; }
 
     [Networked]
     public NetworkBool FacingRight { get; private set; }
@@ -126,14 +135,10 @@ public sealed class PlayerMovement : NetworkBehaviour
     [Networked]
     public JumpType LastJumpType { get; private set; }
 
-    [Networked]
-    private TickTimer KnockbackControlTimer { get; set; }
 
     // =========================================================
     // Runtime State
     // =========================================================
-
-    public bool IsGrounded { get; private set; }
 
     public bool IsTouchingWallLeft { get; private set; }
 
@@ -147,12 +152,50 @@ public sealed class PlayerMovement : NetworkBehaviour
         rb.linearVelocity;
 
 
+    bool IPlayerMovementState.IsGrounded =>
+        IsGrounded;
+
+    bool IPlayerMovementState.FacingRight =>
+        FacingRight;
+
+    bool IPlayerMovementState.IsWallSliding =>
+        IsWallSliding;
+
+
+    // =========================================================
+    // Unity
+    // =========================================================
+
     private void Awake()
     {
         if (rb == null)
         {
             rb = GetComponent<Rigidbody2D>();
         }
+    }
+
+
+    // =========================================================
+    // Context
+    // =========================================================
+
+    protected override void RegisterContextUnits()
+    {
+        Context.Register<
+            IPlayerMovementState>(
+            this);
+
+        Context.Register<
+            IPlayerKnockbackReceiver>(
+            this);
+    }
+
+
+    protected override void OnContextReady()
+    {
+        _healthState =
+            Context.Get<
+                IPlayerHealthState>();
     }
 
 
@@ -165,13 +208,29 @@ public sealed class PlayerMovement : NetworkBehaviour
         UpdateGrounded();
         UpdateWallState();
 
-        if (!GetInput(out PlayerInputData input))
+        if (!GetInput(
+                out PlayerInputData input))
+        {
             return;
+        }
 
         Vector2 moveInput =
             Vector2.ClampMagnitude(
                 input.Move,
                 1f);
+
+        // 사망 중에도 현재 버튼 상태는 소비해
+        // 리스폰 직후 과거 입력이 새 입력처럼 튀어나오지 않게 한다.
+        if (_healthState == null ||
+            !_healthState.IsAlive)
+        {
+            PreviousButtons =
+                input.Buttons;
+
+            ClearControlDrivenStates();
+
+            return;
+        }
 
 
         // ==========================================
@@ -181,22 +240,20 @@ public sealed class PlayerMovement : NetworkBehaviour
         if (!KnockbackControlTimer
                 .ExpiredOrNotRunning(Runner))
         {
-            // 잠금 중 입력이 나중에 새 입력처럼
-            // 튀어나오지 않도록 현재 버튼 상태는 소비.
             PreviousButtons =
                 input.Buttons;
 
             return;
         }
 
-        HandleWallSlide(moveInput.x);
-        HandleFastFall(moveInput.y);
+        MoveHorizontal(
+            moveInput.x);
 
-        MoveHorizontal(moveInput.x);
+        HandleWallSlide(
+            moveInput.x);
 
-        HandleWallSlide(moveInput.x);
-
-        HandleFastFall(moveInput.y);
+        HandleFastFall(
+            moveInput.y);
 
         bool jumpPressed =
             input.Buttons.WasPressed(
@@ -217,10 +274,9 @@ public sealed class PlayerMovement : NetworkBehaviour
     // Horizontal
     // =========================================================
 
-    private void MoveHorizontal(float inputX)
+    private void MoveHorizontal(
+        float inputX)
     {
-        // 벽 점프 직후에는 현재 입력보다
-        // 벽점프의 초기 X 속도를 우선한다.
         if (!WallJumpControlTimer
                 .ExpiredOrNotRunning(Runner))
         {
@@ -233,13 +289,16 @@ public sealed class PlayerMovement : NetworkBehaviour
                 -1f,
                 1f);
 
-        UpdateFacing(inputX);
+        UpdateFacing(
+            inputX);
 
         float targetSpeed =
-            inputX * maxMoveSpeed;
+            inputX *
+            maxMoveSpeed;
 
         bool hasInput =
-            Mathf.Abs(inputX) > 0.01f;
+            Mathf.Abs(inputX) >
+            0.01f;
 
         float acceleration;
 
@@ -273,7 +332,8 @@ public sealed class PlayerMovement : NetworkBehaviour
     }
 
 
-    private void UpdateFacing(float inputX)
+    private void UpdateFacing(
+        float inputX)
     {
         if (inputX > 0.01f)
         {
@@ -290,24 +350,24 @@ public sealed class PlayerMovement : NetworkBehaviour
     // Fast Fall
     // =========================================================
 
-    private void HandleFastFall(float inputY)
+    private void HandleFastFall(
+        float inputY)
     {
         if (IsGrounded)
             return;
 
-        // WallSlide의 낙하 제한을
-        // FastFall이 덮어쓰지 않도록 한다.
         if (IsWallSliding)
             return;
 
-        if (inputY > fastFallInputThreshold)
+        if (inputY >
+            fastFallInputThreshold)
+        {
             return;
+        }
 
         Vector2 velocity =
             rb.linearVelocity;
 
-        // 아직 상승 중이면 Fast Fall을 시작하지 않는다.
-        // 정점을 지나 실제 하강이 시작됐을 때만 적용.
         if (velocity.y >= 0f)
             return;
 
@@ -329,7 +389,6 @@ public sealed class PlayerMovement : NetworkBehaviour
 
     private void TryJump()
     {
-        // 1. Ground Jump
         if (IsGrounded)
         {
             ApplyJump(
@@ -339,11 +398,6 @@ public sealed class PlayerMovement : NetworkBehaviour
             return;
         }
 
-        // 2. Wall
-        //
-        // WallSliding 상태라면
-        // WallJump 준비 시간이 끝나기 전에는
-        // AirJump로 빠져나가지 않고 입력을 무시한다.
         if (IsWallSliding)
         {
             if (CanWallJump())
@@ -354,7 +408,6 @@ public sealed class PlayerMovement : NetworkBehaviour
             return;
         }
 
-        // 3. Air Jump
         if (RemainingAirJumps == 0)
             return;
 
@@ -379,7 +432,8 @@ public sealed class PlayerMovement : NetworkBehaviour
         rb.linearVelocity =
             velocity;
 
-        NotifyJump(jumpType);
+        NotifyJump(
+            jumpType);
     }
 
 
@@ -394,7 +448,6 @@ public sealed class PlayerMovement : NetworkBehaviour
             new Vector2(
                 direction *
                 wallJumpHorizontalSpeed,
-
                 wallJumpVerticalSpeed);
 
         WallJumpControlTimer =
@@ -402,7 +455,11 @@ public sealed class PlayerMovement : NetworkBehaviour
                 Runner,
                 wallJumpControlDelay);
 
-        IsWallSliding = false;
+        IsWallSliding =
+            false;
+
+        WasWallSliding =
+            false;
 
         WallJumpReadyTimer =
             TickTimer.None;
@@ -473,9 +530,9 @@ public sealed class PlayerMovement : NetworkBehaviour
         float inputX)
     {
         bool wallSliding =
-            CanWallSlide(inputX);
+            CanWallSlide(
+                inputX);
 
-        // WallSlide에 처음 진입한 Tick.
         if (wallSliding &&
             !WasWallSliding)
         {
@@ -485,8 +542,6 @@ public sealed class PlayerMovement : NetworkBehaviour
                     wallJumpReadyDelay);
         }
 
-        // 완전히 WallSlide에서 빠져나갔다면
-        // 다시 벽을 잡을 때 새로 시간을 재도록 초기화.
         if (!wallSliding)
         {
             WallJumpReadyTimer =
@@ -501,6 +556,19 @@ public sealed class PlayerMovement : NetworkBehaviour
 
         if (!IsWallSliding)
             return;
+
+        // Presentation이 로컬 Wall Check를 읽지 않아도 되도록
+        // 벽을 타는 동안 최종 바라보는 방향을 Networked 상태로 확정한다.
+        if (IsTouchingWallLeft)
+        {
+            FacingRight =
+                true;
+        }
+        else if (IsTouchingWallRight)
+        {
+            FacingRight =
+                false;
+        }
 
         Vector2 velocity =
             rb.linearVelocity;
@@ -533,7 +601,8 @@ public sealed class PlayerMovement : NetworkBehaviour
         return
             !IsGrounded &&
             IsTouchingWall &&
-            IsPressingTowardWall(inputX) &&
+            IsPressingTowardWall(
+                inputX) &&
             rb.linearVelocity.y < 0f;
     }
 
@@ -546,9 +615,27 @@ public sealed class PlayerMovement : NetworkBehaviour
                 .Expired(Runner);
     }
 
+
+    private void ClearControlDrivenStates()
+    {
+        IsWallSliding =
+            false;
+
+        WasWallSliding =
+            false;
+
+        WallJumpReadyTimer =
+            TickTimer.None;
+    }
+
+
+    // =========================================================
+    // External Movement Commands
+    // =========================================================
+
     public void ApplyKnockback(
-    Vector2 velocity,
-    float controlLockDuration)
+        Vector2 velocity,
+        float controlLockDuration)
     {
         if (!HasStateAuthority)
             return;
@@ -561,15 +648,23 @@ public sealed class PlayerMovement : NetworkBehaviour
                 Runner,
                 controlLockDuration);
 
-        IsWallSliding = false;
+        IsWallSliding =
+            false;
+
+        WasWallSliding =
+            false;
+
+        WallJumpReadyTimer =
+            TickTimer.None;
     }
+
 
     // =========================================================
     // Respawn
     // =========================================================
 
     public void ResetForRespawn(
-    Vector2 position)
+        Vector2 position)
     {
         if (!HasStateAuthority)
             return;

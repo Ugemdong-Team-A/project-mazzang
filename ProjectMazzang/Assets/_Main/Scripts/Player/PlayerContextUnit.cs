@@ -2,9 +2,8 @@ using Fusion;
 using UnityEngine;
 
 /// <summary>
-/// PlayerContext에 등록할 수 있는 공통 단위입니다.
-/// 상태 조회용 인터페이스와 기능 요청용 인터페이스 모두
-/// 이 인터페이스를 상속합니다.
+/// PlayerContext에 등록할 수 있는 플레이어 내부 계약의 공통 단위입니다.
+/// 상태 조회와 즉시 명령 모두 이 인터페이스를 기반으로 등록합니다.
 /// </summary>
 public interface IPlayerContextUnit
 {
@@ -12,7 +11,7 @@ public interface IPlayerContextUnit
 
 
 // =========================================================
-// Movement State
+// Movement
 // =========================================================
 
 public interface IPlayerMovementState :
@@ -22,25 +21,15 @@ public interface IPlayerMovementState :
 
     bool IsGrounded { get; }
 
-    bool IsTouchingWallLeft { get; }
+    bool FacingRight { get; }
 
-    bool IsTouchingWallRight { get; }
-
-    bool IsTouchingWall { get; }
-
-    NetworkBool FacingRight { get; }
-
-    NetworkBool IsWallSliding { get; }
+    bool IsWallSliding { get; }
 
     byte JumpSequence { get; }
 
     JumpType LastJumpType { get; }
 }
 
-
-// =========================================================
-// Movement Commands
-// =========================================================
 
 public interface IPlayerKnockbackReceiver :
     IPlayerContextUnit
@@ -52,7 +41,7 @@ public interface IPlayerKnockbackReceiver :
 
 
 // =========================================================
-// Combat State
+// Combat
 // =========================================================
 
 public interface IPlayerCombatState :
@@ -66,8 +55,15 @@ public interface IPlayerCombatState :
 }
 
 
+public interface IPlayerCombatControl :
+    IPlayerContextUnit
+{
+    void CancelAttack();
+}
+
+
 // =========================================================
-// Health State
+// Health
 // =========================================================
 
 public interface IPlayerHealthState :
@@ -81,7 +77,7 @@ public interface IPlayerHealthState :
 
     int MaxLives { get; }
 
-    NetworkBool IsDead { get; }
+    bool IsDead { get; }
 
     bool IsAlive { get; }
 
@@ -92,4 +88,11 @@ public interface IPlayerHealthState :
     PlayerRef LastDeathAttacker { get; }
 
     DeathCause LastDeathCause { get; }
+}
+
+
+public interface IPlayerDamageReceiver :
+    IPlayerContextUnit,
+    IDamageable
+{
 }

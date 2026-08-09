@@ -1,40 +1,90 @@
 using Fusion;
 using UnityEngine;
 
-public sealed class PlayerAnimation : NetworkBehaviour
+public sealed class PlayerAnimation :
+    PlayerModule
 {
-    [SerializeField]
-    private PlayerMovement movement;
-    [SerializeField]
-    private PlayerCombat combat;
-    [SerializeField]
-    private PlayerHealth health;
-
     [SerializeField]
     private Animator animator;
 
-    private byte lastJumpSequence;
-    private byte lastAttackSequence;
-    private byte lastDeathSequence;
+
+    private IPlayerMovementState
+        _movementState;
+
+    private IPlayerCombatState
+        _combatState;
+
+    private IPlayerHealthState
+        _healthState;
+
+
+    private byte _lastJumpSequence;
+
+    private byte _lastAttackSequence;
+
+    private byte _lastDeathSequence;
+
+
+    // =========================================================
+    // Context
+    // =========================================================
+
+    protected override void OnContextReady()
+    {
+        _movementState =
+            Context.Get<
+                IPlayerMovementState>();
+
+        _combatState =
+            Context.Get<
+                IPlayerCombatState>();
+
+        _healthState =
+            Context.Get<
+                IPlayerHealthState>();
+    }
+
+
+    // =========================================================
+    // Fusion
+    // =========================================================
 
     public override void Spawned()
     {
-        lastJumpSequence =
-            movement.JumpSequence;
+        if (_movementState == null ||
+            _combatState == null ||
+            _healthState == null)
+        {
+            return;
+        }
 
-        lastDeathSequence =
-        health.DeathSequence;
+        _lastJumpSequence =
+            _movementState.JumpSequence;
+
+        _lastAttackSequence =
+            _combatState.AttackSequence;
+
+        _lastDeathSequence =
+            _healthState.DeathSequence;
     }
 
 
     public override void Render()
     {
+        if (_movementState == null ||
+            _combatState == null ||
+            _healthState == null)
+        {
+            return;
+        }
+
         Vector2 velocity =
-            movement.Velocity;
+            _movementState.Velocity;
 
         animator.SetFloat(
             "Speed",
-            Mathf.Abs(velocity.x));
+            Mathf.Abs(
+                velocity.x));
 
         animator.SetFloat(
             "VerticalSpeed",
@@ -42,65 +92,76 @@ public sealed class PlayerAnimation : NetworkBehaviour
 
         animator.SetBool(
             "Grounded",
-            movement.IsGrounded);
+            _movementState.IsGrounded);
 
-        if (animator.GetBool("WallSliding") == !movement.IsWallSliding)
+        if (animator.GetBool(
+                "WallSliding") !=
+            _movementState.IsWallSliding)
+        {
             animator.SetBool(
                 "WallSliding",
-                movement.IsWallSliding);
+                _movementState.IsWallSliding);
+        }
 
         HandleJumpAnimation();
-
         HandleAttackAnimation();
-
         HandleDeathAnimation();
     }
 
 
+    // =========================================================
+    // Animation Events
+    // =========================================================
+
     private void HandleJumpAnimation()
     {
-        if (lastJumpSequence ==
-            movement.JumpSequence)
+        if (_lastJumpSequence ==
+            _movementState.JumpSequence)
         {
             return;
         }
 
-        lastJumpSequence =
-            movement.JumpSequence;
+        _lastJumpSequence =
+            _movementState.JumpSequence;
 
         animator.SetInteger(
             "JumpType",
-            (int)movement.LastJumpType);
+            (int)_movementState
+                .LastJumpType);
 
         animator.SetTrigger(
             "Jump");
     }
 
+
     private void HandleAttackAnimation()
     {
-        if (lastAttackSequence ==
-            combat.AttackSequence)
+        if (_lastAttackSequence ==
+            _combatState.AttackSequence)
         {
             return;
         }
 
-        lastAttackSequence =
-            combat.AttackSequence;
+        _lastAttackSequence =
+            _combatState.AttackSequence;
 
-        animator.SetTrigger("Attack");
+        animator.SetTrigger(
+            "Attack");
     }
+
 
     private void HandleDeathAnimation()
     {
-        if (lastDeathSequence ==
-            health.DeathSequence)
+        if (_lastDeathSequence ==
+            _healthState.DeathSequence)
         {
             return;
         }
 
-        lastDeathSequence =
-            health.DeathSequence;
+        _lastDeathSequence =
+            _healthState.DeathSequence;
 
-        animator.SetTrigger("Death");
+        animator.SetTrigger(
+            "Death");
     }
 }

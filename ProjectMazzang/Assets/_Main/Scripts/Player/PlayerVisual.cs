@@ -1,41 +1,53 @@
-using Fusion;
 using UnityEngine;
 
-public sealed class PlayerVisual : NetworkBehaviour
+public sealed class PlayerVisual :
+    PlayerModule
 {
-    [SerializeField]
-    private PlayerMovement movement;
-
     [SerializeField]
     private Transform visualRoot;
 
-    private Vector3 defaultScale;
+
+    private IPlayerMovementState
+        _movementState;
+
+    private Vector3 _defaultScale;
+
 
     private void Awake()
     {
-        defaultScale = visualRoot.localScale;
+        if (visualRoot != null)
+        {
+            _defaultScale =
+                visualRoot.localScale;
+        }
     }
+
+
+    protected override void OnContextReady()
+    {
+        _movementState =
+            Context.Get<
+                IPlayerMovementState>();
+    }
+
 
     public override void Render()
     {
-        Vector3 scale = defaultScale;
-
-        bool facingRight =
-    movement.FacingRight;
-
-        if (movement.IsWallSliding)
+        if (_movementState == null ||
+            visualRoot == null)
         {
-            if (movement.IsTouchingWallLeft)
-                facingRight = true;
-            else if (movement.IsTouchingWallRight)
-                facingRight = false;
+            return;
         }
 
+        Vector3 scale =
+            _defaultScale;
+
         scale.x *=
-           facingRight
+            _movementState.FacingRight
                 ? 1f
                 : -1f;
 
-        visualRoot.localScale = scale;
+        visualRoot.localScale =
+            scale;
     }
 }
