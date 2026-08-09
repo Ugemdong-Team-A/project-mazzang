@@ -18,4 +18,22 @@ public sealed class MapRuntime : MonoBehaviour
 
         return spawnPoints[index];
     }
+
+    public Transform GetRandomSpawnPoint()
+    {
+        if (SpawnPointCount <= 0)
+        {
+            return null;
+        }
+
+        int spawnIndex =
+            Random.Range(
+                0, SpawnPointCount);
+
+        Transform spawnPoint =
+            GetSpawnPoint(
+                spawnIndex);
+
+        return spawnPoint;
+    }
 }

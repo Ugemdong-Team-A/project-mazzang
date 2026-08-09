@@ -1,49 +1,94 @@
-using UnityEngine;
+using System;
+using System.Collections.Generic;
 using Fusion;
+using UnityEngine;
 
 public enum MatchState : byte
 {
-    Playing,
-    Ending,
-    Finished
+    Playing = 0,
+    Ending = 1,
+    Result = 2,
+    Finished = 3
 }
 
-public class NetworkGameManager : NetworkBehaviour
+public sealed class NetworkGameManager : NetworkBehaviour
 {
     public static NetworkGameManager Instance { get; private set; }
 
+    [Header("Player")]
     [SerializeField]
     private NetworkObject defaultPlayerPrefab;
 
+    [Header("Respawn")]
+    [SerializeField]
+    private float respawnHeight = 2f;
+
     [Header("Match")]
+    [SerializeField]
+    private float endingDuration = 1.5f;
+
     [SerializeField]
     private float resultDuration = 3f;
 
     private MapRuntime _currentMap;
 
+    // =========================================================
+    // Network State
+    // =========================================================
 
     [Networked,
-        OnChangedRender(nameof(OnMatchStateChanged))]
+     OnChangedRender(nameof(OnMatchStateChanged))]
     public MatchState State { get; private set; }
 
     [Networked]
     public PlayerRef Winner { get; private set; }
 
     [Networked]
-    private TickTimer ResultTimer { get; set; }
+    private TickTimer PhaseTimer { get; set; }
 
+
+    // =========================================================
+    // Local Events
+    // =========================================================
+
+    // GameUIController 같은 씬 로컬 객체가
+    // NetworkGameManager의 Spawn 시점을 몰라도
+    // 안전하게 바인딩하기 위한 이벤트.
+    public static event Action<NetworkGameManager> LocalSpawned;
+
+    public static event Action<NetworkGameManager> LocalDespawned;
+
+    // Network 상태가 각 로컬에 반영되었을 때 발생.
+    // UI / Camera 등의 Presentation에서 사용한다.
+    public event Action<MatchState> StateChanged;
+
+
+    // =========================================================
+    // Public State
+    // =========================================================
+
+    public bool IsPlaying =>
+        State == MatchState.Playing;
+
+
+    // =========================================================
+    // Fusion
+    // =========================================================
 
     public override void Spawned()
     {
         Instance = this;
 
-        if (!HasStateAuthority)
-            return;
+        if (HasStateAuthority)
+        {
+            Winner = PlayerRef.None;
+            PhaseTimer = TickTimer.None;
+            State = MatchState.Playing;
 
-        State = MatchState.Playing;
-        Winner = PlayerRef.None;
+            InitializeGame();
+        }
 
-        InitializeGame();
+        LocalSpawned?.Invoke(this);
     }
 
 
@@ -52,13 +97,22 @@ public class NetworkGameManager : NetworkBehaviour
         if (!HasStateAuthority)
             return;
 
-        if (State != MatchState.Ending)
-            return;
+        switch (State)
+        {
+            case MatchState.Playing:
+                break;
 
-        if (!ResultTimer.Expired(Runner))
-            return;
+            case MatchState.Ending:
+                UpdateEnding();
+                break;
 
-        FinishMatch();
+            case MatchState.Result:
+                UpdateResult();
+                break;
+
+            case MatchState.Finished:
+                break;
+        }
     }
 
 
@@ -66,6 +120,8 @@ public class NetworkGameManager : NetworkBehaviour
         NetworkRunner runner,
         bool hasState)
     {
+        LocalDespawned?.Invoke(this);
+
         if (Instance == this)
         {
             Instance = null;
@@ -74,47 +130,18 @@ public class NetworkGameManager : NetworkBehaviour
 
 
     // =========================================================
-    // Match
+    // Local Presentation Notification
     // =========================================================
 
     private void OnMatchStateChanged()
     {
-        if (State == MatchState.Ending)
-        {
-            PlayEndingPresentation();
-        }
+        StateChanged?.Invoke(State);
     }
 
-    private void PlayEndingPresentation()
-    {
-        if (!Runner.TryGetPlayerObject(
-                    Winner,
-                    out NetworkObject dataObject))
-        {
-            return;
-        }
 
-        if (!dataObject.TryGetComponent(
-                out NetworkPlayerData playerData))
-        {
-            return;
-        }
-
-        Transform winnerTransform = playerData.CharacterObject.transform;
-
-        Debug.Log
-                (winnerTransform);
-
-        if (winnerTransform != null)
-        {
-            BattleCameraController.Instance?
-                .FocusWinner(winnerTransform);
-        }
-
-        // GameUI.Instance?.ShowWinner(...);
-        // Audio...
-        // Fade...
-    }
+    // =========================================================
+    // Match
+    // =========================================================
 
     public void ReportPlayerEliminated(
         PlayerRef eliminatedPlayer,
@@ -126,6 +153,8 @@ public class NetworkGameManager : NetworkBehaviour
         if (State != MatchState.Playing)
             return;
 
+        // eliminatedPlayer / attacker는
+        // 이후 KillFeed, Score 등의 매치 기록에 활용 가능.
         CheckMatchResult();
     }
 
@@ -133,9 +162,12 @@ public class NetworkGameManager : NetworkBehaviour
     private void CheckMatchResult()
     {
         int remainingCount = 0;
-        PlayerRef remainingPlayer = PlayerRef.None;
 
-        foreach (PlayerRef player in Runner.ActivePlayers)
+        PlayerRef remainingPlayer =
+            PlayerRef.None;
+
+        foreach (PlayerRef player
+                 in Runner.ActivePlayers)
         {
             if (!Runner.TryGetPlayerObject(
                     player,
@@ -162,8 +194,9 @@ public class NetworkGameManager : NetworkBehaviour
                 continue;
             }
 
-            // IsAlive를 쓰면 안 됨.
-            // Respawn 대기 중인 플레이어도 매치에서는 생존자이기 때문.
+            // Respawn 대기 중인 플레이어도
+            // 아직 매치에서 탈락한 것이 아니므로
+            // IsAlive가 아닌 Lives를 사용한다.
             if (health.Lives <= 0)
                 continue;
 
@@ -186,6 +219,60 @@ public class NetworkGameManager : NetworkBehaviour
         }
     }
 
+    // =========================================================
+    // Respawn
+    // =========================================================
+
+    public bool TryRespawnPlayer(
+        PlayerRef player)
+    {
+        if (!HasStateAuthority)
+            return false;
+
+        if (!Runner.TryGetPlayerObject(
+                player,
+                out NetworkObject dataObject))
+        {
+            return false;
+        }
+
+        if (!dataObject.TryGetComponent(
+                out NetworkPlayerData playerData))
+        {
+            return false;
+        }
+
+        NetworkObject character =
+            playerData.CharacterObject;
+
+        if (character == null)
+            return false;
+
+        Transform spawnPoint =
+            _currentMap.GetRandomSpawnPoint();
+
+        if (spawnPoint == null)
+            return false;
+
+        Vector2 respawnPosition =
+            (Vector2)spawnPoint.position +
+            Vector2.up * respawnHeight;
+
+        if (!character.TryGetComponent(
+                out PlayerMovement movement))
+        {
+            return false;
+        }
+
+        movement.ResetForRespawn(
+            respawnPosition);
+
+        return true;
+    }
+
+    // =========================================================
+    // Ending
+    // =========================================================
 
     private void BeginEnding(
         PlayerRef winner)
@@ -193,26 +280,66 @@ public class NetworkGameManager : NetworkBehaviour
         if (State != MatchState.Playing)
             return;
 
+        // Presentation이 Ending을 감지했을 때
+        // Winner가 이미 확정되어 있도록 먼저 설정.
         Winner = winner;
-        State = MatchState.Ending;
 
-        ResultTimer =
+        PhaseTimer =
             TickTimer.CreateFromSeconds(
                 Runner,
-                resultDuration);
+                endingDuration);
+
+        State = MatchState.Ending;
     }
 
 
-    private void FinishMatch()
+    private void UpdateEnding()
+    {
+        if (!PhaseTimer.Expired(Runner))
+            return;
+
+        BeginResult();
+    }
+
+
+    // =========================================================
+    // Result
+    // =========================================================
+
+    private void BeginResult()
     {
         if (State != MatchState.Ending)
             return;
 
-        State =
-            MatchState.Finished;
+        PhaseTimer =
+            TickTimer.CreateFromSeconds(
+                Runner,
+                resultDuration);
 
-        ResultTimer =
-            TickTimer.None;
+        State = MatchState.Result;
+    }
+
+
+    private void UpdateResult()
+    {
+        if (!PhaseTimer.Expired(Runner))
+            return;
+
+        FinishMatch();
+    }
+
+
+    // =========================================================
+    // Finished
+    // =========================================================
+
+    private void FinishMatch()
+    {
+        if (State != MatchState.Result)
+            return;
+
+        State = MatchState.Finished;
+        PhaseTimer = TickTimer.None;
 
         NetworkGameSession gameSession =
             AppRoot.Instance.Network.GameSession;
@@ -234,10 +361,24 @@ public class NetworkGameManager : NetworkBehaviour
         }
     }
 
+
+    // =========================================================
+    // Initialize
+    // =========================================================
+
     private void InitializeGame()
     {
         NetworkGameSession gameSession =
             AppRoot.Instance.Network.GameSession;
+
+        if (gameSession == null)
+        {
+            Debug.LogError(
+                "[GM] NetworkGameSession을 찾을 수 없습니다.",
+                this);
+
+            return;
+        }
 
         MapData mapData =
             gameSession.SelectedMapData;
@@ -253,30 +394,60 @@ public class NetworkGameManager : NetworkBehaviour
         }
 
         NetworkObject mapObject =
-            Runner.Spawn(mapData.MapPrefab);
+            Runner.Spawn(
+                mapData.MapPrefab);
+
+        if (mapObject == null)
+        {
+            Debug.LogError(
+                "[GM] Map Spawn에 실패했습니다.",
+                this);
+
+            return;
+        }
 
         MapRuntime map =
             mapObject.GetComponent<MapRuntime>();
 
+        if (map == null)
+        {
+            Debug.LogError(
+                "[GM] Spawn된 Map에 MapRuntime이 없습니다.",
+                mapObject);
+
+            return;
+        }
+
         SpawnPlayers(map);
     }
 
-    private void SpawnPlayers(MapRuntime map)
+
+    // =========================================================
+    // Player Spawn
+    // =========================================================
+
+    private void SpawnPlayers(
+        MapRuntime map)
     {
         _currentMap = map;
 
         if (defaultPlayerPrefab == null)
         {
-            Debug.LogError("[GM] 플레이어 프리팹이 null 입니다.");
+            Debug.LogError(
+                "[GM] 플레이어 프리팹이 null 입니다.",
+                this);
+
             return;
         }
 
         int index = 0;
 
-        foreach (PlayerRef player in Runner.ActivePlayers)
+        foreach (PlayerRef player
+                 in Runner.ActivePlayers)
         {
             Transform spawnPoint =
-                _currentMap.GetSpawnPoint(index);
+                _currentMap.GetSpawnPoint(
+                    index);
 
             if (spawnPoint == null)
             {
@@ -287,15 +458,24 @@ public class NetworkGameManager : NetworkBehaviour
                 break;
             }
 
-            NetworkObject playerObj = Runner.Spawn(
-                defaultPlayerPrefab,
-                spawnPoint.position,
-                spawnPoint.rotation,
-                player);
+            NetworkObject playerObject =
+                Runner.Spawn(
+                    defaultPlayerPrefab,
+                    spawnPoint.position,
+                    spawnPoint.rotation,
+                    player);
 
-            if (Runner.TryGetPlayerObject(player, out NetworkObject dataObj))
-                if (dataObj.TryGetComponent(out NetworkPlayerData data))
-                    data.SetPlayerCharacter(playerObj);
+            if (Runner.TryGetPlayerObject(
+                    player,
+                    out NetworkObject dataObject))
+            {
+                if (dataObject.TryGetComponent(
+                        out NetworkPlayerData playerData))
+                {
+                    playerData.SetPlayerCharacter(
+                        playerObject);
+                }
+            }
 
             index++;
         }

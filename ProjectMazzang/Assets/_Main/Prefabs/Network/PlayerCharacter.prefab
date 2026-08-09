@@ -958,13 +958,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerHealth
   movement: {fileID: 6238690141146646799}
   maxHealth: 100
-  startingLives: 1
+  startingLives: 3
   respawnDelay: 2
+  respawnInvulnerabilityDuration: 2
+  lastAttackerCreditDuration: 5
   _Health: 0
   _Lives: 0
   _IsDead:
     RawValue: 0
   _DeathSequence: 0
+  _LastDeathCause: 0
 --- !u!1 &3158334327498006070
 GameObject:
   m_ObjectHideFlags: 0

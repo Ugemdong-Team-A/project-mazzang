@@ -564,6 +564,56 @@ public sealed class PlayerMovement : NetworkBehaviour
         IsWallSliding = false;
     }
 
+    // =========================================================
+    // Respawn
+    // =========================================================
+
+    public void ResetForRespawn(
+    Vector2 position)
+    {
+        if (!HasStateAuthority)
+            return;
+
+        rb.position =
+            position;
+
+        rb.linearVelocity =
+            Vector2.zero;
+
+        RemainingAirJumps =
+            maxAirJumps;
+
+        WasGrounded =
+            false;
+
+        PreviousButtons =
+            default;
+
+        WallJumpControlTimer =
+            TickTimer.None;
+
+        WallJumpReadyTimer =
+            TickTimer.None;
+
+        KnockbackControlTimer =
+            TickTimer.None;
+
+        WasWallSliding =
+            false;
+
+        IsWallSliding =
+            false;
+
+        IsGrounded =
+            false;
+
+        IsTouchingWallLeft =
+            false;
+
+        IsTouchingWallRight =
+            false;
+    }
+
 
 #if UNITY_EDITOR
 
