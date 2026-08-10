@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f8606ce429b130d43919be943b524e0b, type: 3}
+  m_Name: 01_Knite
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterData
+  characterId: 0
+  displayName: "\uC804\uC0AC"
+  description: "\uCCAB \uBC88\uC9F8 \uD14C\uC2A4\uD2B8\uC6A9 \uAE30\uBCF8 \uCE90\uB9AD\uD130
+    \uC804\uC0AC"
+  portrait: {fileID: 21300000, guid: fc392f599181fac449981c53711e4ef5, type: 3}
+  playerPrefab: {fileID: 4098969700376898355, guid: 4b61eb54b4b975c43acc7b5dd68a035c, type: 3}

@@ -8,10 +8,3 @@ NativeFormatImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 267958
-  packageName: Photon Fusion - Multiplayer SDK
-  packageVersion: 2.0.12
-  assetPath: Assets/Photon/Fusion/Editor/EditorResources/FusionEditorHubPages.asset
-  uploadId: 945812

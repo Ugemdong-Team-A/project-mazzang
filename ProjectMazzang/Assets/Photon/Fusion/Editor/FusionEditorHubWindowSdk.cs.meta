@@ -15,10 +15,3 @@ MonoImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 267958
-  packageName: Photon Fusion - Multiplayer SDK
-  packageVersion: 2.0.12
-  assetPath: Assets/Photon/Fusion/Editor/FusionEditorHubWindowSdk.cs
-  uploadId: 945812
