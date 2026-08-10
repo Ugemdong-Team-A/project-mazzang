@@ -1,0 +1,63 @@
+testtt.png
+size:2003,1943
+filter:Linear,Linear
+pma:true
+L body
+bounds:2,121,749,714
+offsets:882,1189,2482,3510
+U body
+bounds:976,1163,683,527
+offsets:868,1719,2482,3510
+W eye L
+bounds:319,1476,342,276
+offsets:873,2514,2482,3510
+W eye R
+bounds:663,1419,311,308
+offsets:1360,2437,2482,3510
+arm R
+bounds:2,837,580,972
+offsets:1413,1223,2482,3510
+rotate:90
+eye L
+bounds:935,1729,212,228
+offsets:948,2545,2482,3510
+rotate:90
+eye R
+bounds:695,1745,196,238
+offsets:1416,2506,2482,3510
+rotate:90
+eye S L L
+bounds:1165,1692,430,249
+offsets:821,2454,2482,3510
+eye S L R
+bounds:1597,1692,329,249
+offsets:1331,2411,2482,3510
+eye S U L
+bounds:305,1754,388,187
+offsets:841,2655,2482,3510
+eye S U R
+bounds:2,1759,301,182
+offsets:1373,2618,2482,3510
+leg R
+bounds:753,2,550,1248
+offsets:745,253,2482,3510
+rotate:90
+neck
+bounds:2,1495,257,315
+offsets:1099,2144,2482,3510
+rotate:90
+레이어 4
+bounds:976,554,607,997
+offsets:457,1217,2482,3510
+rotate:90
+
+testtt_2.png
+size:1585,1255
+filter:Linear,Linear
+pma:true
+head
+bounds:2,215,1000,1038
+offsets:756,2280,2482,3510
+leg L
+bounds:1004,2,579,1251
+offsets:1264,249,2482,3510

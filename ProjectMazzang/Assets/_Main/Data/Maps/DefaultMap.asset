@@ -13,5 +13,6 @@ MonoBehaviour:
   m_Name: DefaultMap
   m_EditorClassIdentifier: Assembly-CSharp::MapData
   mapId: 0
-  displayName: "\uAE30\uBCF8 \uB9F5"
+  displayName: "\u3157 \uB9F5"
+  previewImage: {fileID: 21300000, guid: 4b04f570672274a4681f0e36e578522e, type: 3}
   mapPrefab: {fileID: 5108523914516887572, guid: 075ce169a84f49148b635fb8fe7db89d, type: 3}

@@ -93,6 +93,8 @@ public sealed class PlayerMovement :
 
     private IPlayerHealthState _healthState;
 
+    private IPlayerCombatState _combatState;
+
 
     // =========================================================
     // Network State
@@ -162,6 +164,11 @@ public sealed class PlayerMovement :
         IsWallSliding;
 
 
+    public bool IsControlLocked =>
+        !KnockbackControlTimer
+            .ExpiredOrNotRunning(Runner);
+
+
     // =========================================================
     // Unity
     // =========================================================
@@ -196,6 +203,10 @@ public sealed class PlayerMovement :
         _healthState =
             Context.Get<
                 IPlayerHealthState>();
+
+        _combatState =
+            Context.Get<
+                IPlayerCombatState>();
     }
 
 
@@ -237,11 +248,26 @@ public sealed class PlayerMovement :
         // Knockback Control Lock
         // ==========================================
 
-        if (!KnockbackControlTimer
-                .ExpiredOrNotRunning(Runner))
+        if (IsControlLocked)
         {
             PreviousButtons =
                 input.Buttons;
+
+            return;
+        }
+
+
+        // ==========================================
+        // Attack Control Lock
+        // ==========================================
+
+        if (_combatState != null &&
+            _combatState.IsAttacking)
+        {
+            PreviousButtons =
+                input.Buttons;
+
+            LockMovementForAttack();
 
             return;
         }
@@ -267,6 +293,27 @@ public sealed class PlayerMovement :
         {
             TryJump();
         }
+    }
+
+
+    // =========================================================
+    // Attack Control Lock
+    // =========================================================
+
+    private void LockMovementForAttack()
+    {
+        ClearControlDrivenStates();
+
+        Vector2 velocity =
+            rb.linearVelocity;
+
+        // 공격 중에는 입력 기반 수평 이동을 멈춘다.
+        // 수직 속도는 유지해 공중에서는 중력/낙하가 계속 적용된다.
+        velocity.x =
+            0f;
+
+        rb.linearVelocity =
+            velocity;
     }
 
 

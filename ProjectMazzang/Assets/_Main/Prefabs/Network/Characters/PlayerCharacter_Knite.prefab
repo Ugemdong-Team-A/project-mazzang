@@ -943,16 +943,17 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerCombat
   basicDamage: 10
-  basicAttackOffset: {x: 1, y: 1}
+  basicAttackOffset: {x: 0.5, y: 1}
   basicAttackSize: {x: 1.5, y: 1}
   hurtboxLayer:
     serializedVersion: 2
     m_Bits: 256
   basicKnockback: {x: 6, y: 4}
   basicKnockbackControlLock: 0.12
-  startupDuration: 0.08
-  activeDuration: 0.06
-  recoveryDuration: 0.2
+  startupDuration: 0.5
+  activeDuration: 0.1
+  recoveryDuration: 0.15
+  basicAttackCooldown: 0.8
   _AttackState: 0
   _AttackSequence: 0
 --- !u!114 &4107694489920312526

@@ -218,6 +218,13 @@ public sealed class RoomLobbyPanel :
                 showMap);
         }
 
+        if (mapVoteTimerText != null)
+        {
+            mapVoteTimerText.gameObject.SetActive(
+                phase ==
+                LobbySelectionPhase.MapVote);
+        }
+
         if (phase !=
             LobbySelectionPhase.MapRoulette)
         {

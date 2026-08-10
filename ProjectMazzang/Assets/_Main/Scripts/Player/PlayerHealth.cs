@@ -251,6 +251,11 @@ public sealed class PlayerHealth :
                 Health -
                 info.Damage);
 
+        // 유효한 피격이 들어오는 즉시 현재 공격을 끊는다.
+        // 이후 Movement의 control lock 동안 새 공격도 차단된다.
+        _combatControl?
+            .CancelAttack();
+
         if (info.Knockback
                 .sqrMagnitude > 0f)
         {

@@ -50,6 +50,10 @@ public sealed class PlayerCombat :
     [SerializeField]
     private float recoveryDuration = 0.2f;
 
+    [SerializeField]
+    [Min(0f)]
+    private float basicAttackCooldown = 0.45f;
+
 
     private readonly HashSet<IDamageable>
         _hitTargets = new();
@@ -75,6 +79,9 @@ public sealed class PlayerCombat :
     private TickTimer AttackPhaseTimer { get; set; }
 
     [Networked]
+    private TickTimer AttackCooldownTimer { get; set; }
+
+    [Networked]
     private NetworkBool AttackFacingRight { get; set; }
 
 
@@ -88,6 +95,11 @@ public sealed class PlayerCombat :
     public bool IsAttacking =>
         AttackState !=
         PlayerAttackState.None;
+
+
+    public bool IsAttackOnCooldown =>
+        !AttackCooldownTimer
+            .ExpiredOrNotRunning(Runner);
 
 
     // =========================================================
@@ -145,6 +157,23 @@ public sealed class PlayerCombat :
             return;
         }
 
+        // 피격으로 인한 제어락 중에는
+        // 진행 중 공격을 즉시 취소하고 새 공격도 받지 않는다.
+        if (_movementState != null &&
+            _movementState.IsControlLocked)
+        {
+            CancelAttack();
+
+            if (GetInput(
+                    out PlayerInputData lockedInput))
+            {
+                PreviousButtons =
+                    lockedInput.Buttons;
+            }
+
+            return;
+        }
+
         UpdateAttack();
 
         if (!GetInput(
@@ -179,6 +208,15 @@ public sealed class PlayerCombat :
         if (IsAttacking)
             return;
 
+        if (IsAttackOnCooldown)
+            return;
+
+        if (_movementState != null &&
+            _movementState.IsControlLocked)
+        {
+            return;
+        }
+
         /*
          * 나중에는 여기서만 분기한다.
          *
@@ -208,6 +246,13 @@ public sealed class PlayerCombat :
             TickTimer.CreateFromSeconds(
                 Runner,
                 startupDuration);
+
+        AttackCooldownTimer =
+            basicAttackCooldown > 0f
+                ? TickTimer.CreateFromSeconds(
+                    Runner,
+                    basicAttackCooldown)
+                : TickTimer.None;
 
         if (moveInput.x > 0.01f)
         {

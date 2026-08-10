@@ -25,6 +25,8 @@ public interface IPlayerMovementState :
 
     bool IsWallSliding { get; }
 
+    bool IsControlLocked { get; }
+
     byte JumpSequence { get; }
 
     JumpType LastJumpType { get; }
@@ -50,6 +52,8 @@ public interface IPlayerCombatState :
     PlayerAttackState AttackState { get; }
 
     bool IsAttacking { get; }
+
+    bool IsAttackOnCooldown { get; }
 
     byte AttackSequence { get; }
 }

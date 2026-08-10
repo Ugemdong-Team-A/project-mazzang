@@ -31,11 +31,6 @@ public sealed class NetworkGameSession :
     [SerializeField]
     private MapCatalog mapCatalog;
 
-    [Header("Character Select")]
-    [Min(0f)]
-    [SerializeField]
-    private float characterSelectDuration = 10f;
-
     [Header("Map Vote")]
     [Min(1f)]
     [SerializeField]
@@ -291,18 +286,6 @@ public sealed class NetworkGameSession :
 
     private void UpdateCharacterSelect()
     {
-        // 현재 접속자가 전부 빠르게 선택했다고 해서
-        // 즉시 다음 단계로 넘어가지 않는다.
-        //
-        // 방은 아직 열려 있을 수 있고 새 플레이어가 들어올 수 있으므로
-        // 최소 CharacterSelect 구간이 지난 뒤에만 다음 단계로 진행한다.
-        bool selectionWindowEnded =
-            characterSelectDuration <= 0f ||
-            PhaseTimer.Expired(Runner);
-
-        if (!selectionWindowEnded)
-            return;
-
         if (!AreAllCharactersConfirmed())
             return;
 
@@ -457,10 +440,47 @@ public sealed class NetworkGameSession :
             return;
         }
 
+        // 모든 현재 플레이어가 유효한 투표를 마쳤다면
+        // 남은 카운트다운을 기다리지 않고 즉시 결과를 확정한다.
+        if (AreAllMapVotesSubmitted())
+        {
+            ResolveMapVote();
+            return;
+        }
+
         if (!PhaseTimer.Expired(Runner))
             return;
 
         ResolveMapVote();
+    }
+
+    private bool AreAllMapVotesSubmitted()
+    {
+        int playerCount = 0;
+
+        foreach (PlayerRef player
+                 in Runner.ActivePlayers)
+        {
+            if (!TryGetPlayerData(
+                    player,
+                    out NetworkPlayerData playerData))
+            {
+                return false;
+            }
+
+            if (!playerData.HasMapVote)
+                return false;
+
+            if (!IsValidMapId(
+                    playerData.VotedMapId))
+            {
+                return false;
+            }
+
+            playerCount++;
+        }
+
+        return playerCount > 0;
     }
 
     private void ReturnToCharacterSelectForLateJoin()
@@ -468,8 +488,7 @@ public sealed class NetworkGameSession :
         ClearPlayerVotes();
 
         SelectedMapId = -1;
-
-        StartCharacterSelectTimer();
+        PhaseTimer = TickTimer.None;
 
         Phase =
             LobbySelectionPhase.CharacterSelect;
@@ -757,43 +776,10 @@ public sealed class NetworkGameSession :
     private void InitializeLobbyState()
     {
         SelectedMapId = -1;
-
-        StartCharacterSelectTimer();
+        PhaseTimer = TickTimer.None;
 
         Phase =
             LobbySelectionPhase.CharacterSelect;
-    }
-
-    private void StartCharacterSelectTimer()
-    {
-        if (characterSelectDuration <= 0f)
-        {
-            PhaseTimer =
-                TickTimer.None;
-
-            return;
-        }
-
-        PhaseTimer =
-            TickTimer.CreateFromSeconds(
-                Runner,
-                characterSelectDuration);
-    }
-
-    public float GetCharacterSelectRemainingTime()
-    {
-        if (Phase !=
-            LobbySelectionPhase.CharacterSelect)
-        {
-            return 0f;
-        }
-
-        if (characterSelectDuration <= 0f)
-            return 0f;
-
-        return PhaseTimer
-                   .RemainingTime(Runner)
-               ?? 0f;
     }
 
     private void ResetPlayersForLobby()
