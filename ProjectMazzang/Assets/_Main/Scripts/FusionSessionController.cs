@@ -39,31 +39,39 @@ public sealed class FusionSessionController :
     private NetworkOperation activeOperation =
         NetworkOperation.None;
 
-    // --------------------------------------------------
+    // ==================================================
     // Public State
-    // --------------------------------------------------
+    // ==================================================
 
-    public NetworkRunner Runner => runner;
+    public NetworkRunner Runner =>
+        runner;
 
     public NetworkGameSession GameSession =>
         gameSession;
 
-    public NetworkSessionState State => state;
+    public NetworkSessionState State =>
+        state;
 
-    public IReadOnlyList<SessionInfo> Sessions => sessions;
+    public IReadOnlyList<SessionInfo> Sessions =>
+        sessions;
 
-    public string CurrentRoomName { get; private set; }
+    public string CurrentRoomName
+    {
+        get;
+        private set;
+    }
 
     public bool IsBusy =>
         state == NetworkSessionState.LobbyConnecting ||
         state == NetworkSessionState.RoomConnecting ||
         state == NetworkSessionState.ShuttingDown;
 
-    // --------------------------------------------------
+    // ==================================================
     // Events
-    // --------------------------------------------------
+    // ==================================================
 
-    public event Action<NetworkSessionState> StateChanged;
+    public event Action<NetworkSessionState>
+        StateChanged;
 
     public event Action<IReadOnlyList<SessionInfo>>
         SessionListChanged;
@@ -71,8 +79,40 @@ public sealed class FusionSessionController :
     public event Action<NetworkOperationFailure>
         OperationFailed;
 
+    /// <summary>
+    /// Host뿐 아니라 Client에서도 복제된 NetworkGameSession을
+    /// FSC가 확보했을 때 발생합니다.
+    ///
+    /// LobbyUIController는 이 이벤트를 통해
+    /// 늦게 복제된 GameSession에도 안전하게 바인딩할 수 있습니다.
+    /// </summary>
+    public event Action<NetworkGameSession>
+        GameSessionChanged;
+
     public event Action SceneLoadStarted;
     public event Action SceneLoadCompleted;
+
+    // ==================================================
+    // Unity
+    // ==================================================
+
+    private void Awake()
+    {
+        NetworkGameSession.LocalSpawned +=
+            OnGameSessionSpawned;
+
+        NetworkGameSession.LocalDespawned +=
+            OnGameSessionDespawned;
+    }
+
+    private void OnDestroy()
+    {
+        NetworkGameSession.LocalSpawned -=
+            OnGameSessionSpawned;
+
+        NetworkGameSession.LocalDespawned -=
+            OnGameSessionDespawned;
+    }
 
     // ==================================================
     // Lobby
@@ -80,22 +120,31 @@ public sealed class FusionSessionController :
 
     public async Task<bool> ConnectLobbyAsync()
     {
-        // 중복 요청 방지.
-        if (state != NetworkSessionState.Offline)
+        if (state !=
+            NetworkSessionState.Offline)
+        {
             return false;
+        }
 
-        if (activeOperation != NetworkOperation.None)
+        if (activeOperation !=
+            NetworkOperation.None)
+        {
             return false;
+        }
 
-        activeOperation = NetworkOperation.ConnectLobby;
+        activeOperation =
+            NetworkOperation.ConnectLobby;
 
-        NetworkRunner newRunner = null;
+        NetworkRunner newRunner =
+            null;
 
         try
         {
-            newRunner = CreateRunner();
+            newRunner =
+                CreateRunner();
 
-            SetState(NetworkSessionState.LobbyConnecting);
+            SetState(
+                NetworkSessionState.LobbyConnecting);
 
             StartGameResult result =
                 await newRunner.JoinSessionLobby(
@@ -103,9 +152,11 @@ public sealed class FusionSessionController :
 
             if (!result.Ok)
             {
-                await DisposeFailedRunnerAsync(newRunner);
+                await DisposeFailedRunnerAsync(
+                    newRunner);
 
-                SetState(NetworkSessionState.Offline);
+                SetState(
+                    NetworkSessionState.Offline);
 
                 RaiseFailure(
                     NetworkOperation.ConnectLobby,
@@ -120,7 +171,8 @@ public sealed class FusionSessionController :
             if (runner != newRunner)
                 return false;
 
-            SetState(NetworkSessionState.LobbyReady);
+            SetState(
+                NetworkSessionState.LobbyReady);
 
             return true;
         }
@@ -128,10 +180,12 @@ public sealed class FusionSessionController :
         {
             if (newRunner != null)
             {
-                await DisposeFailedRunnerAsync(newRunner);
+                await DisposeFailedRunnerAsync(
+                    newRunner);
             }
 
-            SetState(NetworkSessionState.Offline);
+            SetState(
+                NetworkSessionState.Offline);
 
             RaiseFailure(
                 NetworkOperation.ConnectLobby,
@@ -141,13 +195,18 @@ public sealed class FusionSessionController :
         }
         finally
         {
-            activeOperation = NetworkOperation.None;
+            activeOperation =
+                NetworkOperation.None;
         }
     }
 
+    // ==================================================
+    // Player Data
+    // ==================================================
+
     private void EnsurePlayerData(
-    NetworkRunner targetRunner,
-    PlayerRef player)
+        NetworkRunner targetRunner,
+        PlayerRef player)
     {
         if (networkPlayerDataPrefab == null)
         {
@@ -167,9 +226,10 @@ public sealed class FusionSessionController :
 
         NetworkPlayerData playerData =
             targetRunner.Spawn(
-            networkPlayerDataPrefab,
-            inputAuthority: player,
-            flags: NetworkSpawnFlags.DontDestroyOnLoad);
+                networkPlayerDataPrefab,
+                inputAuthority: player,
+                flags:
+                    NetworkSpawnFlags.DontDestroyOnLoad);
 
         if (playerData == null)
         {
@@ -190,7 +250,7 @@ public sealed class FusionSessionController :
     }
 
     private void EnsurePlayerDataForActivePlayers(
-    NetworkRunner targetRunner)
+        NetworkRunner targetRunner)
     {
         foreach (PlayerRef player
                  in targetRunner.ActivePlayers)
@@ -211,43 +271,51 @@ public sealed class FusionSessionController :
         if (!CanStartRoomOperation())
             return false;
 
-        activeOperation = NetworkOperation.CreateRoom;
+        activeOperation =
+            NetworkOperation.CreateRoom;
 
-        NetworkRunner currentRunner = runner;
-
-        if (currentRunner.IsServer)
-        {
-            EnsurePlayerDataForActivePlayers(
-                currentRunner);
-        }
+        NetworkRunner currentRunner =
+            runner;
 
         try
         {
-            if (string.IsNullOrWhiteSpace(roomName))
+            if (string.IsNullOrWhiteSpace(
+                    roomName))
             {
                 roomName =
                     $"Room_{Guid.NewGuid():N}"
-                    .Substring(0, 13);
+                    .Substring(
+                        0,
+                        13);
             }
 
-            roomName = roomName.Trim();
+            roomName =
+                roomName.Trim();
 
-            SetState(NetworkSessionState.RoomConnecting);
+            SetState(
+                NetworkSessionState.RoomConnecting);
 
             StartGameResult result =
                 await currentRunner.StartGame(
                     new StartGameArgs
                     {
-                        GameMode = GameMode.Host,
+                        GameMode =
+                            GameMode.Host,
 
-                        SessionName = roomName,
+                        SessionName =
+                            roomName,
 
-                        PlayerCount = defaultMaxPlayers,
+                        PlayerCount =
+                            defaultMaxPlayers,
 
-                        IsOpen = true,
-                        IsVisible = true,
+                        IsOpen =
+                            true,
 
-                        SceneManager = sceneManager
+                        IsVisible =
+                            true,
+
+                        SceneManager =
+                            sceneManager
                     });
 
             if (!result.Ok)
@@ -255,7 +323,8 @@ public sealed class FusionSessionController :
                 await DisposeFailedRunnerAsync(
                     currentRunner);
 
-                SetState(NetworkSessionState.Offline);
+                SetState(
+                    NetworkSessionState.Offline);
 
                 RaiseFailure(
                     NetworkOperation.CreateRoom,
@@ -265,17 +334,27 @@ public sealed class FusionSessionController :
                 return false;
             }
 
-            if (runner != currentRunner)
+            if (runner !=
+                currentRunner)
+            {
                 return false;
+            }
 
-            CurrentRoomName = roomName;
+            CurrentRoomName =
+                roomName;
+
+            // StartGame 이후 ActivePlayers가 유효해진 시점에서
+            // Host 자신의 PlayerData까지 한 번 더 보장한다.
+            EnsurePlayerDataForActivePlayers(
+                currentRunner);
 
             EnsureGameSession(
                 currentRunner);
 
             ClearSessionList();
 
-            SetState(NetworkSessionState.InRoom);
+            SetState(
+                NetworkSessionState.InRoom);
 
             return true;
         }
@@ -284,7 +363,8 @@ public sealed class FusionSessionController :
             await DisposeFailedRunnerAsync(
                 currentRunner);
 
-            SetState(NetworkSessionState.Offline);
+            SetState(
+                NetworkSessionState.Offline);
 
             RaiseFailure(
                 NetworkOperation.CreateRoom,
@@ -294,7 +374,8 @@ public sealed class FusionSessionController :
         }
         finally
         {
-            activeOperation = NetworkOperation.None;
+            activeOperation =
+                NetworkOperation.None;
         }
     }
 
@@ -308,30 +389,40 @@ public sealed class FusionSessionController :
         if (!CanStartRoomOperation())
             return false;
 
-        if (string.IsNullOrWhiteSpace(sessionName))
+        if (string.IsNullOrWhiteSpace(
+                sessionName))
+        {
             return false;
+        }
 
-        activeOperation = NetworkOperation.JoinRoom;
+        activeOperation =
+            NetworkOperation.JoinRoom;
 
-        NetworkRunner currentRunner = runner;
+        NetworkRunner currentRunner =
+            runner;
 
         try
         {
-            SetState(NetworkSessionState.RoomConnecting);
+            SetState(
+                NetworkSessionState.RoomConnecting);
 
             StartGameResult result =
                 await currentRunner.StartGame(
                     new StartGameArgs
                     {
-                        GameMode = GameMode.Client,
+                        GameMode =
+                            GameMode.Client,
 
-                        SessionName = sessionName,
+                        SessionName =
+                            sessionName,
 
                         // Client가 대상 Room을 못 찾았다고
                         // 새 Session을 만들어 버리는 의도가 아님.
-                        EnableClientSessionCreation = false,
+                        EnableClientSessionCreation =
+                            false,
 
-                        SceneManager = sceneManager
+                        SceneManager =
+                            sceneManager
                     });
 
             if (!result.Ok)
@@ -339,7 +430,8 @@ public sealed class FusionSessionController :
                 await DisposeFailedRunnerAsync(
                     currentRunner);
 
-                SetState(NetworkSessionState.Offline);
+                SetState(
+                    NetworkSessionState.Offline);
 
                 RaiseFailure(
                     NetworkOperation.JoinRoom,
@@ -349,14 +441,19 @@ public sealed class FusionSessionController :
                 return false;
             }
 
-            if (runner != currentRunner)
+            if (runner !=
+                currentRunner)
+            {
                 return false;
+            }
 
-            CurrentRoomName = sessionName;
+            CurrentRoomName =
+                sessionName;
 
             ClearSessionList();
 
-            SetState(NetworkSessionState.InRoom);
+            SetState(
+                NetworkSessionState.InRoom);
 
             return true;
         }
@@ -365,7 +462,8 @@ public sealed class FusionSessionController :
             await DisposeFailedRunnerAsync(
                 currentRunner);
 
-            SetState(NetworkSessionState.Offline);
+            SetState(
+                NetworkSessionState.Offline);
 
             RaiseFailure(
                 NetworkOperation.JoinRoom,
@@ -375,7 +473,8 @@ public sealed class FusionSessionController :
         }
         finally
         {
-            activeOperation = NetworkOperation.None;
+            activeOperation =
+                NetworkOperation.None;
         }
     }
 
@@ -388,47 +487,53 @@ public sealed class FusionSessionController :
         if (runner == null)
             return false;
 
-        if (state == NetworkSessionState.ShuttingDown)
+        if (state ==
+            NetworkSessionState.ShuttingDown)
+        {
             return false;
+        }
 
-        if (activeOperation != NetworkOperation.None)
+        if (activeOperation !=
+            NetworkOperation.None)
+        {
             return false;
+        }
 
-        activeOperation = NetworkOperation.LeaveRoom;
+        activeOperation =
+            NetworkOperation.LeaveRoom;
 
-        NetworkRunner currentRunner = runner;
+        NetworkRunner currentRunner =
+            runner;
 
         try
         {
-            SetState(NetworkSessionState.ShuttingDown);
+            SetState(
+                NetworkSessionState.ShuttingDown);
 
             await currentRunner.Shutdown();
 
-            // NetworkRunner는 종료 후 재사용하지 않는다.
-            if (runner == currentRunner)
-                runner = null;
-
-            if (currentRunner != null)
+            // 정상적으로는 Shutdown 과정에서 OnShutdown이 호출되어
+            // Runner 정리가 끝난다.
+            // 혹시 callback을 타지 못한 경우만 여기서 보정한다.
+            if (runner ==
+                currentRunner)
             {
-                Destroy(currentRunner.gameObject);
+                ForceDestroyRunner(
+                    currentRunner);
+
+                SetState(
+                    NetworkSessionState.Offline);
             }
-
-            sceneManager = null;
-            gameSession = null;
-
-            CurrentRoomName = null;
-
-            ClearSessionList();
-
-            SetState(NetworkSessionState.Offline);
 
             return true;
         }
         catch (Exception e)
         {
-            ForceDestroyRunner(currentRunner);
+            ForceDestroyRunner(
+                currentRunner);
 
-            SetState(NetworkSessionState.Offline);
+            SetState(
+                NetworkSessionState.Offline);
 
             RaiseFailure(
                 NetworkOperation.LeaveRoom,
@@ -438,7 +543,8 @@ public sealed class FusionSessionController :
         }
         finally
         {
-            activeOperation = NetworkOperation.None;
+            activeOperation =
+                NetworkOperation.None;
         }
     }
 
@@ -460,11 +566,13 @@ public sealed class FusionSessionController :
                 "NetworkRunner Prefab이 등록되지 않았습니다.");
         }
 
-        runner = Instantiate(
-            runnerPrefab,
-            transform);
+        runner =
+            Instantiate(
+                runnerPrefab,
+                transform);
 
-        runner.name = "NetworkRunner";
+        runner.name =
+            "NetworkRunner";
 
         sceneManager =
             runner.GetComponentInChildren<
@@ -477,7 +585,8 @@ public sealed class FusionSessionController :
                     NetworkSceneManagerDefault>();
         }
 
-        runner.AddCallbacks(this);
+        runner.AddCallbacks(
+            this);
 
         return runner;
     }
@@ -487,7 +596,8 @@ public sealed class FusionSessionController :
         LoadSceneMode loadMode,
         out NetworkSceneAsyncOp operation)
     {
-        operation = default;
+        operation =
+            default;
 
         if (runner == null ||
             !runner.IsRunning)
@@ -501,14 +611,18 @@ public sealed class FusionSessionController :
         if (runner.IsSceneManagerBusy)
             return false;
 
-        if (string.IsNullOrWhiteSpace(sceneName))
+        if (string.IsNullOrWhiteSpace(
+                sceneName))
+        {
             return false;
+        }
 
         try
         {
-            operation = runner.LoadScene(
-                sceneName,
-                loadMode);
+            operation =
+                runner.LoadScene(
+                    sceneName,
+                    loadMode);
 
             return operation.IsValid;
         }
@@ -521,6 +635,10 @@ public sealed class FusionSessionController :
             return false;
         }
     }
+
+    // ==================================================
+    // Game Session
+    // ==================================================
 
     private void EnsureGameSession(
         NetworkRunner targetRunner)
@@ -540,17 +658,75 @@ public sealed class FusionSessionController :
             return;
         }
 
-        gameSession = targetRunner.Spawn(
-            networkGameSessionPrefab,
-            flags: NetworkSpawnFlags.DontDestroyOnLoad);
+        NetworkGameSession spawnedSession =
+            targetRunner.Spawn(
+                networkGameSessionPrefab,
+                flags:
+                    NetworkSpawnFlags.DontDestroyOnLoad);
 
-        if (gameSession == null)
+        if (spawnedSession == null)
         {
             Debug.LogError(
                 "NetworkGameSession Spawn에 실패했습니다.",
                 this);
+
+            return;
         }
+
+        SetGameSession(
+            spawnedSession);
     }
+
+    private void OnGameSessionSpawned(
+        NetworkGameSession session)
+    {
+        if (session == null)
+            return;
+
+        // Host/Client 공통.
+        // 현재 FSC가 관리 중인 Runner의 NGS만 저장한다.
+        if (runner == null ||
+            session.Runner != runner)
+        {
+            return;
+        }
+
+        SetGameSession(
+            session);
+    }
+
+    private void OnGameSessionDespawned(
+        NetworkGameSession session)
+    {
+        if (gameSession !=
+            session)
+        {
+            return;
+        }
+
+        SetGameSession(
+            null);
+    }
+
+    private void SetGameSession(
+        NetworkGameSession session)
+    {
+        if (gameSession ==
+            session)
+        {
+            return;
+        }
+
+        gameSession =
+            session;
+
+        GameSessionChanged?.Invoke(
+            gameSession);
+    }
+
+    // ==================================================
+    // Runner Cleanup
+    // ==================================================
 
     private async Task DisposeFailedRunnerAsync(
         NetworkRunner target)
@@ -567,37 +743,45 @@ public sealed class FusionSessionController :
             // 실패 Runner는 어차피 재사용하지 않는다.
         }
 
-        if (runner == target)
-            runner = null;
-
-        sceneManager = null;
-        gameSession = null;
-
-        if (target != null)
+        // 정상 Shutdown callback이 이미 정리했다면
+        // 현재 runner는 target이 아니다.
+        if (runner ==
+            target)
         {
-            Destroy(target.gameObject);
+            ForceDestroyRunner(
+                target);
         }
-
-        CurrentRoomName = null;
-
-        ClearSessionList();
     }
 
     private void ForceDestroyRunner(
         NetworkRunner target)
     {
-        if (runner == target)
-            runner = null;
+        if (target == null)
+            return;
 
-        sceneManager = null;
-        gameSession = null;
+        if (runner ==
+            target)
+        {
+            runner =
+                null;
+
+            sceneManager =
+                null;
+
+            SetGameSession(
+                null);
+
+            CurrentRoomName =
+                null;
+
+            ClearSessionList();
+        }
 
         if (target != null)
-            Destroy(target.gameObject);
-
-        CurrentRoomName = null;
-
-        ClearSessionList();
+        {
+            Destroy(
+                target.gameObject);
+        }
     }
 
     // ==================================================
@@ -606,14 +790,20 @@ public sealed class FusionSessionController :
 
     private bool CanStartRoomOperation()
     {
-        if (state != NetworkSessionState.LobbyReady)
+        if (state !=
+            NetworkSessionState.LobbyReady)
+        {
             return false;
+        }
 
         if (runner == null)
             return false;
 
-        if (activeOperation != NetworkOperation.None)
+        if (activeOperation !=
+            NetworkOperation.None)
+        {
             return false;
+        }
 
         return true;
     }
@@ -621,16 +811,21 @@ public sealed class FusionSessionController :
     private void SetState(
         NetworkSessionState newState)
     {
-        if (state == newState)
+        if (state ==
+            newState)
+        {
             return;
+        }
 
-        state = newState;
+        state =
+            newState;
 
         Debug.Log(
             $"[Fusion] Session State -> {state}",
             this);
 
-        StateChanged?.Invoke(state);
+        StateChanged?.Invoke(
+            state);
     }
 
     private void RaiseFailure(
@@ -638,7 +833,8 @@ public sealed class FusionSessionController :
         string message,
         ShutdownReason? shutdownReason = null)
     {
-        if (string.IsNullOrWhiteSpace(message))
+        if (string.IsNullOrWhiteSpace(
+                message))
         {
             message =
                 shutdownReason?.ToString()
@@ -663,103 +859,24 @@ public sealed class FusionSessionController :
 
         sessions.Clear();
 
-        SessionListChanged?.Invoke(sessions);
+        SessionListChanged?.Invoke(
+            sessions);
     }
 
     // ==================================================
-    // Fusion Callbacks
+    // Fusion Callbacks - Players
     // ==================================================
-
-    public void OnSessionListUpdated(
-        NetworkRunner callbackRunner,
-        List<SessionInfo> sessionList)
-    {
-        if (callbackRunner != runner)
-            return;
-
-        sessions.Clear();
-
-        if (sessionList != null)
-        {
-            sessions.AddRange(sessionList);
-        }
-
-        SessionListChanged?.Invoke(sessions);
-    }
-
-    public void OnShutdown(
-        NetworkRunner callbackRunner,
-        ShutdownReason shutdownReason)
-    {
-        if (callbackRunner != runner)
-            return;
-
-        bool wasUnexpected =
-            activeOperation == NetworkOperation.None &&
-            state != NetworkSessionState.ShuttingDown &&
-            shutdownReason != ShutdownReason.Ok;
-
-        runner = null;
-        sceneManager = null;
-        gameSession = null;
-
-        CurrentRoomName = null;
-
-        ClearSessionList();
-
-        SetState(NetworkSessionState.Offline);
-
-        if (wasUnexpected)
-        {
-            RaiseFailure(
-                NetworkOperation.ConnectionLost,
-                $"네트워크 연결이 종료되었습니다. ({shutdownReason})",
-                shutdownReason);
-        }
-    }
-
-    public void OnDisconnectedFromServer(
-        NetworkRunner callbackRunner,
-        NetDisconnectReason reason)
-    {
-        if (callbackRunner != runner)
-            return;
-
-        Debug.LogWarning(
-            $"[Fusion] Disconnected: {reason}",
-            this);
-    }
-
-    public void OnConnectFailed(
-        NetworkRunner callbackRunner,
-        NetAddress remoteAddress,
-        NetConnectFailedReason reason)
-    {
-        if (callbackRunner != runner)
-            return;
-
-        Debug.LogWarning(
-            $"[Fusion] Connect Failed: {reason}",
-            this);
-    }
-
-    // --------------------------------------------------
-    // 현재 단계에서는 사용하지 않는 Callback
-    // --------------------------------------------------
-
-    public void OnConnectedToServer(
-        NetworkRunner runner)
-    {
-    }
 
     public void OnPlayerJoined(
-    NetworkRunner callbackRunner,
-    PlayerRef player)
+        NetworkRunner callbackRunner,
+        PlayerRef player)
     {
-        if (callbackRunner != runner)
+        if (callbackRunner !=
+            runner)
+        {
             return;
+        }
 
-        // Host / Server만 NetworkObject를 생성한다.
         if (!callbackRunner.IsServer)
             return;
 
@@ -772,60 +889,171 @@ public sealed class FusionSessionController :
         NetworkRunner callbackRunner,
         PlayerRef player)
     {
-        if (callbackRunner != runner)
-            return;
+    }
 
-        if (!callbackRunner.IsServer)
-            return;
+    // ==================================================
+    // Fusion Callbacks - Lobby / Connection
+    // ==================================================
 
-        if (!callbackRunner.TryGetPlayerObject(
-                player,
-                out NetworkObject playerObject))
+    public void OnSessionListUpdated(
+        NetworkRunner callbackRunner,
+        List<SessionInfo> sessionList)
+    {
+        if (callbackRunner !=
+            runner)
         {
             return;
         }
 
-        callbackRunner.Despawn(
-            playerObject);
+        sessions.Clear();
+
+        if (sessionList != null)
+        {
+            sessions.AddRange(
+                sessionList);
+        }
+
+        SessionListChanged?.Invoke(
+            sessions);
     }
 
-    public void OnInput(
-        NetworkRunner runner,
-        NetworkInput input)
+    public void OnConnectedToServer(
+        NetworkRunner callbackRunner)
     {
     }
 
-    public void OnInputMissing(
-        NetworkRunner runner,
-        PlayerRef player,
-        NetworkInput input)
+    public void OnDisconnectedFromServer(
+        NetworkRunner callbackRunner,
+        NetDisconnectReason reason)
     {
+        if (callbackRunner !=
+            runner)
+        {
+            return;
+        }
+
+        // 실제 상태 정리와 ConnectionLost 발생은
+        // OnShutdown에서 일괄 처리한다.
+        Debug.LogWarning(
+            $"[Fusion] Disconnected: {reason}",
+            this);
     }
 
     public void OnConnectRequest(
-        NetworkRunner runner,
+        NetworkRunner callbackRunner,
         NetworkRunnerCallbackArgs.ConnectRequest request,
         byte[] token)
     {
+        if (callbackRunner !=
+            runner)
+        {
+            request.Refuse();
+            return;
+        }
+
+        // 현재는 별도 입장 정책이 없으므로 허용한다.
+        // Session의 PlayerCount 제한은 Fusion Session 설정이 담당한다.
+        request.Accept();
+    }
+
+    public void OnConnectFailed(
+        NetworkRunner callbackRunner,
+        NetAddress remoteAddress,
+        NetConnectFailedReason reason)
+    {
+        if (callbackRunner !=
+            runner)
+        {
+            return;
+        }
+
+        Debug.LogWarning(
+            $"[Fusion] Connect Failed: {reason}",
+            this);
     }
 
     public void OnCustomAuthenticationResponse(
-        NetworkRunner runner,
+        NetworkRunner callbackRunner,
         Dictionary<string, object> data)
     {
     }
 
-    public void OnHostMigration(
-        NetworkRunner runner,
-        HostMigrationToken hostMigrationToken)
+    // ==================================================
+    // Fusion Callbacks - Shutdown
+    // ==================================================
+
+    public void OnShutdown(
+        NetworkRunner callbackRunner,
+        ShutdownReason shutdownReason)
     {
+        if (callbackRunner !=
+            runner)
+        {
+            return;
+        }
+
+        bool wasUnexpected =
+            activeOperation ==
+                NetworkOperation.None &&
+            state !=
+                NetworkSessionState.ShuttingDown &&
+            shutdownReason !=
+                ShutdownReason.Ok;
+
+        NetworkRunner stoppedRunner =
+            callbackRunner;
+
+        // 먼저 FSC의 현재 네트워크 상태를 정리한다.
+        runner =
+            null;
+
+        sceneManager =
+            null;
+
+        SetGameSession(
+            null);
+
+        CurrentRoomName =
+            null;
+
+        ClearSessionList();
+
+        SetState(
+            NetworkSessionState.Offline);
+
+        // NetworkRunner는 Shutdown 후 재사용하지 않는다.
+        if (stoppedRunner != null)
+        {
+            Destroy(
+                stoppedRunner.gameObject);
+        }
+
+        // 정상 LeaveRoomAsync에서는 activeOperation이 LeaveRoom이고
+        // state도 ShuttingDown이므로 여기로 들어오지 않는다.
+        //
+        // Host가 종료되거나 연결이 끊긴 Client만
+        // ConnectionLost를 UI에 알린다.
+        if (wasUnexpected)
+        {
+            RaiseFailure(
+                NetworkOperation.ConnectionLost,
+                $"네트워크 연결이 종료되었습니다. ({shutdownReason})",
+                shutdownReason);
+        }
     }
+
+    // ==================================================
+    // Fusion Callbacks - Scene
+    // ==================================================
 
     public void OnSceneLoadStart(
         NetworkRunner callbackRunner)
     {
-        if (callbackRunner != runner)
+        if (callbackRunner !=
+            runner)
+        {
             return;
+        }
 
         SceneLoadStarted?.Invoke();
     }
@@ -833,45 +1061,81 @@ public sealed class FusionSessionController :
     public void OnSceneLoadDone(
         NetworkRunner callbackRunner)
     {
-        if (callbackRunner != runner)
+        if (callbackRunner !=
+            runner)
+        {
             return;
+        }
 
         SceneLoadCompleted?.Invoke();
     }
 
+    // ==================================================
+    // Fusion Callbacks - Input
+    // ==================================================
+
+    public void OnInput(
+        NetworkRunner callbackRunner,
+        NetworkInput input)
+    {
+    }
+
+    public void OnInputMissing(
+        NetworkRunner callbackRunner,
+        PlayerRef player,
+        NetworkInput input)
+    {
+    }
+
+    // ==================================================
+    // Fusion Callbacks - Other
+    // ==================================================
+
     public void OnObjectEnterAOI(
-        NetworkRunner runner,
+        NetworkRunner callbackRunner,
         NetworkObject obj,
         PlayerRef player)
     {
     }
 
     public void OnObjectExitAOI(
-        NetworkRunner runner,
+        NetworkRunner callbackRunner,
         NetworkObject obj,
         PlayerRef player)
     {
     }
 
+    public void OnUserSimulationMessage(
+        NetworkRunner callbackRunner,
+        SimulationMessagePtr message)
+    {
+    }
+
+    public void OnHostMigration(
+        NetworkRunner callbackRunner,
+        HostMigrationToken hostMigrationToken)
+    {
+        // 현재 프로젝트에서는 Host Migration 미구현.
+    }
+
     public void OnReliableDataReceived(
-        NetworkRunner runner,
+        NetworkRunner callbackRunner,
         PlayerRef player,
         ReliableKey key,
-        ReadOnlySpan<byte> data)
+        ArraySegment<byte> data)
     {
     }
 
     public void OnReliableDataProgress(
-        NetworkRunner runner,
+        NetworkRunner callbackRunner,
         PlayerRef player,
         ReliableKey key,
         float progress)
     {
     }
 
-    public void OnUserSimulationMessage(
-        NetworkRunner runner,
-        SimulationMessagePtr message)
+    public void OnReliableDataReceived(NetworkRunner runner, PlayerRef player, ReliableKey key, ReadOnlySpan<byte> data)
     {
+        throw new NotImplementedException();
     }
 }

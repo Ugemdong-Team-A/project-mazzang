@@ -15,10 +15,6 @@ public sealed class NetworkGameManager : NetworkBehaviour
 {
     public static NetworkGameManager Instance { get; private set; }
 
-    [Header("Player")]
-    [SerializeField]
-    private NetworkObject defaultPlayerPrefab;
-
     [Header("Respawn")]
     [SerializeField]
     private float respawnHeight = 2f;
@@ -426,15 +422,20 @@ public sealed class NetworkGameManager : NetworkBehaviour
     // Player Spawn
     // =========================================================
 
+
     private void SpawnPlayers(
         MapRuntime map)
     {
         _currentMap = map;
 
-        if (defaultPlayerPrefab == null)
+        NetworkGameSession gameSession =
+            AppRoot.Instance.Network.GameSession;
+
+        if (gameSession == null ||
+            gameSession.CharacterCatalog == null)
         {
             Debug.LogError(
-                "[GM] 플레이어 프리팹이 null 입니다.",
+                "[GM] CharacterCatalog을 찾을 수 없습니다.",
                 this);
 
             return;
@@ -445,6 +446,46 @@ public sealed class NetworkGameManager : NetworkBehaviour
         foreach (PlayerRef player
                  in Runner.ActivePlayers)
         {
+            if (!Runner.TryGetPlayerObject(
+                    player,
+                    out NetworkObject dataObject) ||
+                !dataObject.TryGetComponent(
+                    out NetworkPlayerData playerData))
+            {
+                Debug.LogError(
+                    $"[GM] PlayerData를 찾을 수 없습니다: {player}",
+                    this);
+
+                continue;
+            }
+
+            CharacterData characterData =
+                gameSession.CharacterCatalog.GetById(
+                    playerData.SelectedCharacterId);
+
+            if (characterData == null)
+            {
+                Debug.LogError(
+                    $"[GM] CharacterId " +
+                    $"{playerData.SelectedCharacterId}를 찾을 수 없습니다.",
+                    this);
+
+                continue;
+            }
+
+            NetworkObject playerPrefab =
+                characterData.PlayerPrefab;
+
+            if (playerPrefab == null)
+            {
+                Debug.LogError(
+                    $"[GM] {characterData.DisplayName}의 " +
+                    "PlayerPrefab이 null입니다.",
+                    this);
+
+                continue;
+            }
+
             Transform spawnPoint =
                 _currentMap.GetSpawnPoint(
                     index);
@@ -460,22 +501,22 @@ public sealed class NetworkGameManager : NetworkBehaviour
 
             NetworkObject playerObject =
                 Runner.Spawn(
-                    defaultPlayerPrefab,
+                    playerPrefab,
                     spawnPoint.position,
                     spawnPoint.rotation,
                     player);
 
-            if (Runner.TryGetPlayerObject(
-                    player,
-                    out NetworkObject dataObject))
+            if (playerObject == null)
             {
-                if (dataObject.TryGetComponent(
-                        out NetworkPlayerData playerData))
-                {
-                    playerData.SetPlayerCharacter(
-                        playerObject);
-                }
+                Debug.LogError(
+                    $"[GM] Player Spawn에 실패했습니다: {player}",
+                    this);
+
+                continue;
             }
+
+            playerData.SetPlayerCharacter(
+                playerObject);
 
             index++;
         }

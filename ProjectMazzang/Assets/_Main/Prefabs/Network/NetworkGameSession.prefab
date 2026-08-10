@@ -47,7 +47,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NetworkGameSession
   lobbySceneName: Lobby
   gameplaySceneName: Gameplay
-  defaultMap: {fileID: 11400000, guid: def4484f8c8f3c646a004563af977835, type: 2}
+  characterCatalog: {fileID: 11400000, guid: f991e3e643eb7c94b84bdef0b9d9a7cf, type: 2}
+  mapCatalog: {fileID: 11400000, guid: e94c52bb3246dbf409da6fbad2f37d4a, type: 2}
+  mapVoteDuration: 10
+  mapRouletteDuration: 2.5
+  _Phase: 0
+  _SelectedMapId: 0
 --- !u!114 &5993176475120403535
 MonoBehaviour:
   m_ObjectHideFlags: 0

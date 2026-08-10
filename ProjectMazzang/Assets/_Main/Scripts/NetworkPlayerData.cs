@@ -2,19 +2,48 @@ using System;
 using Fusion;
 using UnityEngine;
 
-public sealed class NetworkPlayerData : NetworkBehaviour
+public sealed class NetworkPlayerData :
+    NetworkBehaviour
 {
     [Networked,
      OnChangedRender(nameof(OnPlayerDataChanged))]
-    public NetworkString<_16> Nickname { get; private set; }
+    public NetworkString<_16> Nickname
+    {
+        get;
+        private set;
+    }
 
     [Networked,
      OnChangedRender(nameof(OnPlayerDataChanged))]
-    public NetworkBool IsReady { get; private set; }
+    public int SelectedCharacterId
+    {
+        get;
+        private set;
+    }
 
     [Networked,
      OnChangedRender(nameof(OnPlayerDataChanged))]
-    public NetworkObject CharacterObject { get; private set; }
+    public NetworkBool IsCharacterConfirmed
+    {
+        get;
+        private set;
+    }
+
+    [Networked,
+     OnChangedRender(nameof(OnPlayerDataChanged))]
+    public int VotedMapId
+    {
+        get;
+        private set;
+    }
+
+    [Networked,
+     OnChangedRender(nameof(OnPlayerDataChanged))]
+    public NetworkObject CharacterObject
+    {
+        get;
+        private set;
+    }
 
     public PlayerRef PlayerRef =>
         Object.InputAuthority;
@@ -22,16 +51,20 @@ public sealed class NetworkPlayerData : NetworkBehaviour
     public string DisplayName =>
         Nickname.ToString();
 
-    public bool Ready =>
-        IsReady;
+    public bool CharacterConfirmed =>
+        IsCharacterConfirmed;
+
+    public bool HasMapVote =>
+        VotedMapId >= 0;
 
     public bool IsLocalPlayer =>
         HasInputAuthority;
 
-    // 로컬 프로세스의 UI 등에 알려주기 위한 이벤트.
-    // Network 상태 자체의 원본은 아님.
-    public static event Action<NetworkPlayerData> LocalSpawned;
-    public static event Action<NetworkPlayerData> LocalChanged;
+    public static event Action<
+        NetworkPlayerData> LocalSpawned;
+
+    public static event Action<
+        NetworkPlayerData> LocalChanged;
 
     public static event Action<
         NetworkRunner,
@@ -49,7 +82,10 @@ public sealed class NetworkPlayerData : NetworkBehaviour
                 PlayerNicknamePolicy.CreateFallback(
                     PlayerRef);
 
-            IsReady = false;
+            SelectedCharacterId = -1;
+            IsCharacterConfirmed = false;
+            VotedMapId = -1;
+            CharacterObject = null;
         }
 
         LocalSpawned?.Invoke(this);
@@ -59,21 +95,24 @@ public sealed class NetworkPlayerData : NetworkBehaviour
         NetworkRunner runner,
         bool hasState)
     {
-        PlayerRef player =
-            Object.InputAuthority;
-
         LocalDespawned?.Invoke(
             runner,
-            player);
+            Object.InputAuthority);
     }
 
-    public void SetPlayerCharacter(NetworkObject player)
+    // ==================================================
+    // Character Object
+    // ==================================================
+
+    public void SetPlayerCharacter(
+        NetworkObject player)
     {
         if (!HasStateAuthority)
             return;
 
         if (player != null &&
-        player.InputAuthority != Object.InputAuthority)
+            player.InputAuthority !=
+            Object.InputAuthority)
         {
             Debug.LogWarning(
                 "[NPD] Character InputAuthority mismatch.",
@@ -86,10 +125,51 @@ public sealed class NetworkPlayerData : NetworkBehaviour
     }
 
     // ==================================================
+    // Lobby Selection State
+    // ==================================================
+
+    /// <summary>
+    /// 방 전체 선택 규칙은 NetworkGameSession이 검사하고,
+    /// NetworkPlayerData는 확정된 개인 상태만 저장합니다.
+    /// </summary>
+    public void SetCharacterSelection(
+        int characterId,
+        bool confirmed)
+    {
+        if (!HasStateAuthority)
+            return;
+
+        SelectedCharacterId =
+            characterId;
+
+        IsCharacterConfirmed =
+            confirmed;
+    }
+
+    public void SetMapVote(
+        int mapId)
+    {
+        if (!HasStateAuthority)
+            return;
+
+        VotedMapId =
+            mapId;
+    }
+
+    public void ResetMapVote()
+    {
+        if (!HasStateAuthority)
+            return;
+
+        VotedMapId = -1;
+    }
+
+    // ==================================================
     // Nickname
     // ==================================================
 
-    public bool RequestNickname(string nickname)
+    public bool RequestNickname(
+        string nickname)
     {
         if (!HasInputAuthority)
             return false;
@@ -104,15 +184,15 @@ public sealed class NetworkPlayerData : NetworkBehaviour
         NetworkString<_16> networkName =
             normalized;
 
-        // Host 자신은 Input + State Authority일 수 있으므로
-        // 굳이 자기 자신에게 RPC를 보낼 필요가 없다.
         if (HasStateAuthority)
         {
-            ApplyNickname(networkName);
+            ApplyNickname(
+                networkName);
         }
         else
         {
-            RPC_RequestNickname(networkName);
+            RPC_RequestNickname(
+                networkName);
         }
 
         return true;
@@ -124,7 +204,8 @@ public sealed class NetworkPlayerData : NetworkBehaviour
     private void RPC_RequestNickname(
         NetworkString<_16> requestedNickname)
     {
-        ApplyNickname(requestedNickname);
+        ApplyNickname(
+            requestedNickname);
     }
 
     private void ApplyNickname(
@@ -146,46 +227,11 @@ public sealed class NetworkPlayerData : NetworkBehaviour
         }
 
         normalized =
-            ResolveUniqueNickname(normalized);
+            ResolveUniqueNickname(
+                normalized);
 
-        Nickname = normalized;
-    }
-
-    // ==================================================
-    // Ready
-    // ==================================================
-
-    public bool RequestReady(bool ready)
-    {
-        if (!HasInputAuthority)
-            return false;
-
-        if (HasStateAuthority)
-        {
-            ApplyReady(ready);
-        }
-        else
-        {
-            RPC_RequestReady(ready);
-        }
-
-        return true;
-    }
-
-    [Rpc(
-        RpcSources.InputAuthority,
-        RpcTargets.StateAuthority)]
-    private void RPC_RequestReady(bool ready)
-    {
-        ApplyReady(ready);
-    }
-
-    private void ApplyReady(bool ready)
-    {
-        if (!HasStateAuthority)
-            return;
-
-        IsReady = ready;
+        Nickname =
+            normalized;
     }
 
     // ==================================================
@@ -195,16 +241,21 @@ public sealed class NetworkPlayerData : NetworkBehaviour
     private string ResolveUniqueNickname(
         string requested)
     {
-        string candidate = requested;
+        string candidate =
+            requested;
 
-        if (!NicknameExists(candidate))
+        if (!NicknameExists(
+                candidate))
+        {
             return candidate;
+        }
 
         int number = 2;
 
         while (number < 100)
         {
-            string suffix = $"#{number}";
+            string suffix =
+                $"#{number}";
 
             string baseName =
                 PlayerNicknamePolicy.ClampForSuffix(
@@ -212,10 +263,14 @@ public sealed class NetworkPlayerData : NetworkBehaviour
                     suffix);
 
             candidate =
-                baseName + suffix;
+                baseName +
+                suffix;
 
-            if (!NicknameExists(candidate))
+            if (!NicknameExists(
+                    candidate))
+            {
                 return candidate;
+            }
 
             number++;
         }
@@ -227,7 +282,8 @@ public sealed class NetworkPlayerData : NetworkBehaviour
     private bool NicknameExists(
         string nickname)
     {
-        foreach (PlayerRef player in Runner.ActivePlayers)
+        foreach (PlayerRef player
+                 in Runner.ActivePlayers)
         {
             if (player == PlayerRef)
                 continue;
@@ -276,7 +332,9 @@ public sealed class NetworkPlayerData : NetworkBehaviour
         if (!HasStateAuthority)
             return;
 
-        IsReady = false;
+        SelectedCharacterId = -1;
+        IsCharacterConfirmed = false;
+        VotedMapId = -1;
         CharacterObject = null;
     }
 }

@@ -1,8 +1,21 @@
+using System;
+using System.Collections.Generic;
 using Fusion;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-public sealed class NetworkGameSession : NetworkBehaviour
+public enum LobbySelectionPhase : byte
+{
+    CharacterSelect = 0,
+    MapVote = 1,
+    MapRoulette = 2,
+    Starting = 3,
+    Playing = 4,
+    Returning = 5
+}
+
+public sealed class NetworkGameSession :
+    NetworkBehaviour
 {
     [Header("Scenes")]
     [SerializeField]
@@ -11,217 +24,310 @@ public sealed class NetworkGameSession : NetworkBehaviour
     [SerializeField]
     private string gameplaySceneName = "Gameplay";
 
-    [Header("Temporary Map Selection")]
+    [Header("Selection Data")]
     [SerializeField]
-    private MapData defaultMap;
+    private CharacterCatalog characterCatalog;
 
+    [SerializeField]
+    private MapCatalog mapCatalog;
+
+    [Header("Character Select")]
+    [Min(0f)]
+    [SerializeField]
+    private float characterSelectDuration = 10f;
+
+    [Header("Map Vote")]
+    [Min(1f)]
+    [SerializeField]
+    private float mapVoteDuration = 10f;
+
+    [Min(0f)]
+    [SerializeField]
+    private float mapRouletteDuration = 2.5f;
+
+    private bool _gameplayLoadRequested;
+    private bool _lobbyLoadRequested;
+
+    // ==================================================
+    // Network State
+    // ==================================================
+
+    [Networked,
+     OnChangedRender(nameof(OnPhaseChanged))]
+    public LobbySelectionPhase Phase
+    {
+        get;
+        private set;
+    }
+
+    [Networked,
+     OnChangedRender(nameof(OnSelectionStateChanged))]
+    public int SelectedMapId
+    {
+        get;
+        private set;
+    }
+
+    [Networked]
+    private TickTimer PhaseTimer
+    {
+        get;
+        set;
+    }
+
+    // ==================================================
+    // Local Events
+    // ==================================================
+
+    // 씬 로컬 UI가 Spawn 순서를 몰라도 바인딩하기 위한 lifecycle event.
+    // Instance 접근용 singleton은 두지 않습니다.
+    public static event Action<
+        NetworkGameSession> LocalSpawned;
+
+    public static event Action<
+        NetworkGameSession> LocalDespawned;
+
+    public event Action<
+        LobbySelectionPhase> PhaseChanged;
+
+    public event Action SelectionStateChanged;
+
+    // ==================================================
+    // Public Data
+    // ==================================================
+
+    public CharacterCatalog CharacterCatalog =>
+        characterCatalog;
+
+    public MapCatalog MapCatalog =>
+        mapCatalog;
 
     public MapData SelectedMapData =>
-        _selectedMap;
+        mapCatalog != null
+            ? mapCatalog.GetById(
+                SelectedMapId)
+            : null;
 
+    public float MapRouletteDuration =>
+        mapRouletteDuration;
 
-    private MapData _selectedMap;
+    public bool IsCharacterSelectionOpen =>
+        Phase ==
+        LobbySelectionPhase.CharacterSelect;
 
-    private bool _startRequested;
-    private bool _returnRequested;
-    private bool _gameStarted;
+    public bool IsMapVoteOpen =>
+        Phase ==
+        LobbySelectionPhase.MapVote;
 
+    // ==================================================
+    // Fusion
+    // ==================================================
 
     public override void Spawned()
     {
         if (HasStateAuthority)
         {
-            _selectedMap =
-                defaultMap;
+            InitializeLobbyState();
         }
 
-        if (AppRoot.Instance != null &&
-            AppRoot.Instance.Network != null)
+        FusionSessionController network =
+            AppRoot.Instance != null
+                ? AppRoot.Instance.Network
+                : null;
+
+        if (network != null)
         {
-            AppRoot.Instance.Network.SceneLoadCompleted +=
+            network.SceneLoadCompleted +=
                 OnSceneLoadCompleted;
         }
-    }
 
+        LocalSpawned?.Invoke(this);
+    }
 
     public override void Despawned(
         NetworkRunner runner,
         bool hasState)
     {
-        if (AppRoot.Instance != null &&
-            AppRoot.Instance.Network != null)
+        FusionSessionController network =
+            AppRoot.Instance != null
+                ? AppRoot.Instance.Network
+                : null;
+
+        if (network != null)
         {
-            AppRoot.Instance.Network.SceneLoadCompleted -=
+            network.SceneLoadCompleted -=
                 OnSceneLoadCompleted;
         }
+
+        LocalDespawned?.Invoke(this);
     }
 
-
-    // ==================================================
-    // Start Game
-    // ==================================================
-
-    public bool RequestStartGame()
+    public override void FixedUpdateNetwork()
     {
         if (!HasStateAuthority)
+            return;
+
+        switch (Phase)
+        {
+            case LobbySelectionPhase.CharacterSelect:
+                UpdateCharacterSelect();
+                break;
+
+            case LobbySelectionPhase.MapVote:
+                UpdateMapVote();
+                break;
+
+            case LobbySelectionPhase.MapRoulette:
+                UpdateMapRoulette();
+                break;
+
+            case LobbySelectionPhase.Starting:
+            case LobbySelectionPhase.Playing:
+            case LobbySelectionPhase.Returning:
+                break;
+        }
+    }
+
+    // ==================================================
+    // Validation
+    // ==================================================
+
+    public bool IsValidCharacterId(
+        int characterId)
+    {
+        return characterCatalog != null &&
+               characterCatalog.ContainsId(
+                   characterId);
+    }
+
+    public bool IsValidMapId(
+        int mapId)
+    {
+        return mapCatalog != null &&
+               mapCatalog.ContainsId(
+                   mapId);
+    }
+
+    // ==================================================
+    // Character Select Request
+    // ==================================================
+
+    public bool RequestCharacterConfirm(
+        int characterId)
+    {
+        if (!IsCharacterSelectionOpen)
             return false;
 
-        if (_startRequested ||
-            _returnRequested ||
-            _gameStarted)
+        if (!IsValidCharacterId(
+                characterId))
         {
             return false;
         }
 
-        if (!AreAllPlayersReady())
-            return false;
-
-        if (defaultMap == null ||
-            defaultMap.MapPrefab == null)
+        if (HasStateAuthority)
         {
-            Debug.LogError(
-                "기본 MapData 또는 MapPrefab이 등록되지 않았습니다.",
-                this);
-
-            return false;
+            return ApplyCharacterConfirm(
+                Runner.LocalPlayer,
+                characterId);
         }
 
-        if (string.IsNullOrWhiteSpace(
-                gameplaySceneName))
-        {
-            Debug.LogError(
-                "Gameplay Scene 이름이 등록되지 않았습니다.",
-                this);
-
-            return false;
-        }
-
-        _selectedMap =
-            defaultMap;
-
-        FusionSessionController network =
-            AppRoot.Instance.Network;
-
-        _startRequested =
-            true;
-
-        bool loadStarted =
-            network.TryLoadScene(
-                gameplaySceneName,
-                LoadSceneMode.Single,
-                out _);
-
-        if (!loadStarted)
-        {
-            _startRequested =
-                false;
-
-            return false;
-        }
+        RPC_RequestCharacterConfirm(
+            characterId);
 
         return true;
     }
 
+    [Rpc(
+        RpcSources.All,
+        RpcTargets.StateAuthority)]
+    private void RPC_RequestCharacterConfirm(
+        int characterId,
+        RpcInfo info = default)
+    {
+        ApplyCharacterConfirm(
+            info.Source,
+            characterId);
+    }
 
-    // ==================================================
-    // Return Lobby
-    // ==================================================
-
-    public bool RequestReturnToLobby()
+    private bool ApplyCharacterConfirm(
+        PlayerRef player,
+        int characterId)
     {
         if (!HasStateAuthority)
             return false;
 
-        if (_startRequested ||
-            _returnRequested ||
-            !_gameStarted)
+        if (Phase !=
+            LobbySelectionPhase.CharacterSelect)
         {
             return false;
         }
 
-        if (string.IsNullOrWhiteSpace(
-                lobbySceneName))
+        if (!IsValidCharacterId(
+                characterId))
         {
-            Debug.LogError(
-                "Lobby Scene 이름이 등록되지 않았습니다.",
-                this);
-
             return false;
         }
 
-        FusionSessionController network =
-            AppRoot.Instance.Network;
-
-        _returnRequested =
-            true;
-
-        bool loadStarted =
-            network.TryLoadScene(
-                lobbySceneName,
-                LoadSceneMode.Single,
-                out _);
-
-        if (!loadStarted)
+        if (!TryGetPlayerData(
+                player,
+                out NetworkPlayerData playerData))
         {
-            _returnRequested =
-                false;
-
             return false;
         }
 
-        ResetPlayersForLobby();
+        if (playerData.CharacterConfirmed)
+            return false;
+
+        playerData.SetCharacterSelection(
+            characterId,
+            true);
 
         return true;
     }
 
+    // ==================================================
+    // Character Select Phase
+    // ==================================================
 
-    private void ResetPlayersForLobby()
+    private void UpdateCharacterSelect()
     {
-        foreach (PlayerRef player
-                 in Runner.ActivePlayers)
-        {
-            if (!Runner.TryGetPlayerObject(
-                    player,
-                    out NetworkObject playerObject))
-            {
-                continue;
-            }
+        // 현재 접속자가 전부 빠르게 선택했다고 해서
+        // 즉시 다음 단계로 넘어가지 않는다.
+        //
+        // 방은 아직 열려 있을 수 있고 새 플레이어가 들어올 수 있으므로
+        // 최소 CharacterSelect 구간이 지난 뒤에만 다음 단계로 진행한다.
+        bool selectionWindowEnded =
+            characterSelectDuration <= 0f ||
+            PhaseTimer.Expired(Runner);
 
-            if (!playerObject.TryGetComponent(
-                    out NetworkPlayerData playerData))
-            {
-                continue;
-            }
+        if (!selectionWindowEnded)
+            return;
 
-            playerData.ResetForLobby();
-        }
+        if (!AreAllCharactersConfirmed())
+            return;
+
+        BeginMapVote();
     }
 
-
-    // ==================================================
-    // Ready
-    // ==================================================
-
-    private bool AreAllPlayersReady()
+    private bool AreAllCharactersConfirmed()
     {
         int playerCount = 0;
 
         foreach (PlayerRef player
                  in Runner.ActivePlayers)
         {
-            if (!Runner.TryGetPlayerObject(
+            if (!TryGetPlayerData(
                     player,
-                    out NetworkObject playerObject))
+                    out NetworkPlayerData playerData))
             {
                 return false;
             }
 
-            NetworkPlayerData playerData =
-                playerObject.GetComponent<
-                    NetworkPlayerData>();
+            if (!playerData.CharacterConfirmed)
+                return false;
 
-            if (playerData == null ||
-                !playerData.Ready)
+            if (!IsValidCharacterId(
+                    playerData.SelectedCharacterId))
             {
                 return false;
             }
@@ -232,69 +338,534 @@ public sealed class NetworkGameSession : NetworkBehaviour
         return playerCount > 0;
     }
 
+    private void BeginMapVote()
+    {
+        if (Phase !=
+            LobbySelectionPhase.CharacterSelect)
+        {
+            return;
+        }
+
+        if (mapCatalog == null ||
+            mapCatalog.Maps == null ||
+            mapCatalog.Maps.Count == 0)
+        {
+            Debug.LogError(
+                "[NGS] MapCatalog에 맵이 없습니다.",
+                this);
+
+            return;
+        }
+
+        ClearPlayerVotes();
+
+        SelectedMapId = -1;
+
+        PhaseTimer =
+            TickTimer.CreateFromSeconds(
+                Runner,
+                mapVoteDuration);
+
+        Phase =
+            LobbySelectionPhase.MapVote;
+    }
 
     // ==================================================
-    // Scene
+    // Map Vote Request
     // ==================================================
+
+    public bool RequestMapVote(
+        int mapId)
+    {
+        if (!IsMapVoteOpen)
+            return false;
+
+        if (!IsValidMapId(
+                mapId))
+        {
+            return false;
+        }
+
+        if (HasStateAuthority)
+        {
+            return ApplyMapVote(
+                Runner.LocalPlayer,
+                mapId);
+        }
+
+        RPC_RequestMapVote(
+            mapId);
+
+        return true;
+    }
+
+    [Rpc(
+        RpcSources.All,
+        RpcTargets.StateAuthority)]
+    private void RPC_RequestMapVote(
+        int mapId,
+        RpcInfo info = default)
+    {
+        ApplyMapVote(
+            info.Source,
+            mapId);
+    }
+
+    private bool ApplyMapVote(
+        PlayerRef player,
+        int mapId)
+    {
+        if (!HasStateAuthority)
+            return false;
+
+        if (Phase !=
+            LobbySelectionPhase.MapVote)
+        {
+            return false;
+        }
+
+        if (!IsValidMapId(
+                mapId))
+        {
+            return false;
+        }
+
+        if (!TryGetPlayerData(
+                player,
+                out NetworkPlayerData playerData))
+        {
+            return false;
+        }
+
+        playerData.SetMapVote(
+            mapId);
+
+        return true;
+    }
+
+    // ==================================================
+    // Map Vote Phase
+    // ==================================================
+
+    private void UpdateMapVote()
+    {
+        // 투표 도중 새 플레이어가 들어오면
+        // 새 플레이어가 캐릭터를 선택할 수 있도록 선택 단계로 되돌립니다.
+        if (!AreAllCharactersConfirmed())
+        {
+            ReturnToCharacterSelectForLateJoin();
+            return;
+        }
+
+        if (!PhaseTimer.Expired(Runner))
+            return;
+
+        ResolveMapVote();
+    }
+
+    private void ReturnToCharacterSelectForLateJoin()
+    {
+        ClearPlayerVotes();
+
+        SelectedMapId = -1;
+
+        StartCharacterSelectTimer();
+
+        Phase =
+            LobbySelectionPhase.CharacterSelect;
+    }
+
+    private void ResolveMapVote()
+    {
+        if (Phase !=
+            LobbySelectionPhase.MapVote)
+        {
+            return;
+        }
+
+        List<int> candidates =
+            BuildTopVotedMapCandidates();
+
+        if (candidates.Count == 0)
+        {
+            Debug.LogError(
+                "[NGS] 선택 가능한 맵 후보가 없습니다.",
+                this);
+
+            return;
+        }
+
+        int randomIndex =
+            UnityEngine.Random.Range(
+                0,
+                candidates.Count);
+
+        SelectedMapId =
+            candidates[randomIndex];
+
+        PhaseTimer =
+            TickTimer.CreateFromSeconds(
+                Runner,
+                mapRouletteDuration);
+
+        Phase =
+            LobbySelectionPhase.MapRoulette;
+    }
+
+    private List<int>
+        BuildTopVotedMapCandidates()
+    {
+        Dictionary<int, int> voteCounts =
+            new();
+
+        if (mapCatalog != null &&
+            mapCatalog.Maps != null)
+        {
+            foreach (MapData map
+                     in mapCatalog.Maps)
+            {
+                if (map == null)
+                    continue;
+
+                voteCounts[map.MapId] = 0;
+            }
+        }
+
+        foreach (PlayerRef player
+                 in Runner.ActivePlayers)
+        {
+            if (!TryGetPlayerData(
+                    player,
+                    out NetworkPlayerData playerData))
+            {
+                continue;
+            }
+
+            int voteId =
+                playerData.VotedMapId;
+
+            if (!voteCounts.ContainsKey(
+                    voteId))
+            {
+                continue;
+            }
+
+            voteCounts[voteId]++;
+        }
+
+        int bestVoteCount = -1;
+
+        foreach (int count
+                 in voteCounts.Values)
+        {
+            if (count > bestVoteCount)
+            {
+                bestVoteCount = count;
+            }
+        }
+
+        List<int> candidates =
+            new();
+
+        foreach (KeyValuePair<int, int> pair
+                 in voteCounts)
+        {
+            if (pair.Value !=
+                bestVoteCount)
+            {
+                continue;
+            }
+
+            candidates.Add(
+                pair.Key);
+        }
+
+        return candidates;
+    }
+
+    public float GetMapVoteRemainingTime()
+    {
+        if (Phase !=
+            LobbySelectionPhase.MapVote)
+        {
+            return 0f;
+        }
+
+        return PhaseTimer
+                   .RemainingTime(Runner)
+               ?? 0f;
+    }
+
+    // ==================================================
+    // Roulette / Start
+    // ==================================================
+
+    private void UpdateMapRoulette()
+    {
+        // 룰렛 연출 중 새 플레이어가 들어온 경우에도
+        // 아직 Gameplay 로드를 요청하기 전이라면 선택 단계로 되돌린다.
+        if (!AreAllCharactersConfirmed())
+        {
+            ReturnToCharacterSelectForLateJoin();
+            return;
+        }
+
+        if (!PhaseTimer.Expired(Runner))
+            return;
+
+        BeginGameplay();
+    }
+
+    private void BeginGameplay()
+    {
+        if (!HasStateAuthority)
+            return;
+
+        if (Phase !=
+            LobbySelectionPhase.MapRoulette)
+        {
+            return;
+        }
+
+        MapData selectedMap =
+            SelectedMapData;
+
+        if (selectedMap == null ||
+            selectedMap.MapPrefab == null)
+        {
+            Debug.LogError(
+                "[NGS] 확정된 MapData가 올바르지 않습니다.",
+                this);
+
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(
+                gameplaySceneName))
+        {
+            Debug.LogError(
+                "[NGS] Gameplay Scene 이름이 비어 있습니다.",
+                this);
+
+            return;
+        }
+
+        FusionSessionController network =
+            AppRoot.Instance.Network;
+
+        _gameplayLoadRequested = true;
+
+        Phase =
+            LobbySelectionPhase.Starting;
+
+        bool loadStarted =
+            network.TryLoadScene(
+                gameplaySceneName,
+                LoadSceneMode.Single,
+                out _);
+
+        if (loadStarted)
+            return;
+
+        _gameplayLoadRequested = false;
+
+        Phase =
+            LobbySelectionPhase.MapRoulette;
+
+        PhaseTimer =
+            TickTimer.CreateFromSeconds(
+                Runner,
+                0.5f);
+    }
+
+    // ==================================================
+    // Return To Lobby
+    // ==================================================
+
+    public bool RequestReturnToLobby()
+    {
+        if (!HasStateAuthority)
+            return false;
+
+        if (_lobbyLoadRequested)
+            return false;
+
+        if (string.IsNullOrWhiteSpace(
+                lobbySceneName))
+        {
+            Debug.LogError(
+                "[NGS] Lobby Scene 이름이 비어 있습니다.",
+                this);
+
+            return false;
+        }
+
+        FusionSessionController network =
+            AppRoot.Instance.Network;
+
+        _lobbyLoadRequested = true;
+
+        Phase =
+            LobbySelectionPhase.Returning;
+
+        bool loadStarted =
+            network.TryLoadScene(
+                lobbySceneName,
+                LoadSceneMode.Single,
+                out _);
+
+        if (loadStarted)
+            return true;
+
+        _lobbyLoadRequested = false;
+
+        Phase =
+            LobbySelectionPhase.Playing;
+
+        return false;
+    }
 
     private void OnSceneLoadCompleted()
     {
         if (!HasStateAuthority)
             return;
 
-        if (_startRequested)
+        if (_gameplayLoadRequested)
         {
-            CompleteStartGame();
-            return;
-        }
+            _gameplayLoadRequested = false;
 
-        if (_returnRequested)
-        {
-            CompleteReturnToLobby();
-        }
-    }
-
-
-    private void CompleteStartGame()
-    {
-        if (_selectedMap == null ||
-            _selectedMap.MapPrefab == null)
-        {
-            Debug.LogError(
-                "선택된 MapData가 올바르지 않습니다.",
-                this);
-
-            _startRequested =
-                false;
+            PhaseTimer = TickTimer.None;
+            Phase =
+                LobbySelectionPhase.Playing;
 
             return;
         }
 
-        _startRequested =
-            false;
+        if (!_lobbyLoadRequested)
+            return;
 
-        _gameStarted =
-            true;
+        _lobbyLoadRequested = false;
 
-        Debug.Log(
-            $"[Game] Game Started: {_selectedMap.DisplayName}",
-            this);
+        ResetPlayersForLobby();
+        InitializeLobbyState();
     }
 
+    // ==================================================
+    // Reset
+    // ==================================================
 
-    private void CompleteReturnToLobby()
+    private void InitializeLobbyState()
     {
-        _returnRequested =
-            false;
+        SelectedMapId = -1;
 
-        _gameStarted =
-            false;
+        StartCharacterSelectTimer();
 
-        _selectedMap =
-            defaultMap;
+        Phase =
+            LobbySelectionPhase.CharacterSelect;
+    }
 
-        Debug.Log(
-            "[Game] Returned To Lobby.",
-            this);
+    private void StartCharacterSelectTimer()
+    {
+        if (characterSelectDuration <= 0f)
+        {
+            PhaseTimer =
+                TickTimer.None;
+
+            return;
+        }
+
+        PhaseTimer =
+            TickTimer.CreateFromSeconds(
+                Runner,
+                characterSelectDuration);
+    }
+
+    public float GetCharacterSelectRemainingTime()
+    {
+        if (Phase !=
+            LobbySelectionPhase.CharacterSelect)
+        {
+            return 0f;
+        }
+
+        if (characterSelectDuration <= 0f)
+            return 0f;
+
+        return PhaseTimer
+                   .RemainingTime(Runner)
+               ?? 0f;
+    }
+
+    private void ResetPlayersForLobby()
+    {
+        foreach (PlayerRef player
+                 in Runner.ActivePlayers)
+        {
+            if (!TryGetPlayerData(
+                    player,
+                    out NetworkPlayerData playerData))
+            {
+                continue;
+            }
+
+            playerData.ResetForLobby();
+        }
+    }
+
+    private void ClearPlayerVotes()
+    {
+        foreach (PlayerRef player
+                 in Runner.ActivePlayers)
+        {
+            if (!TryGetPlayerData(
+                    player,
+                    out NetworkPlayerData playerData))
+            {
+                continue;
+            }
+
+            playerData.ResetMapVote();
+        }
+    }
+
+    // ==================================================
+    // Player Data
+    // ==================================================
+
+    private bool TryGetPlayerData(
+        PlayerRef player,
+        out NetworkPlayerData playerData)
+    {
+        playerData = null;
+
+        if (!Runner.TryGetPlayerObject(
+                player,
+                out NetworkObject playerObject))
+        {
+            return false;
+        }
+
+        playerData =
+            playerObject.GetComponent<
+                NetworkPlayerData>();
+
+        return playerData != null;
+    }
+
+    // ==================================================
+    // Presentation
+    // ==================================================
+
+    private void OnPhaseChanged()
+    {
+        PhaseChanged?.Invoke(
+            Phase);
+
+        SelectionStateChanged?.Invoke();
+    }
+
+    private void OnSelectionStateChanged()
+    {
+        SelectionStateChanged?.Invoke();
     }
 }
