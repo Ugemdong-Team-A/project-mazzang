@@ -46,6 +46,7 @@ public sealed class PlayerHealth :
     private IPlayerCombatControl
         _combatControl;
 
+    private int _respawnTick = -1;
 
     // =========================================================
     // Network State
@@ -290,6 +291,14 @@ public sealed class PlayerHealth :
         if (!IsAlive)
             return;
 
+        // 리스폰 위치를 적용한 바로 그 Tick에
+        // 이전 MapOut 접촉에서 들어온 잔여 판정은 무시한다.
+        if (Runner.Tick ==
+            _respawnTick)
+        {
+            return;
+        }
+
         PlayerRef attacker =
             GetValidLastAttacker();
 
@@ -475,6 +484,9 @@ public sealed class PlayerHealth :
 
         IsDead =
             false;
+
+        _respawnTick =
+            Runner.Tick;
     }
 
 

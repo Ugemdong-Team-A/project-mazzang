@@ -4,21 +4,25 @@ public sealed class PlayerVisual :
     PlayerModule
 {
     [SerializeField]
-    private Transform visualRoot;
-
+    private GameObject characterVisualRoot;
 
     private IPlayerMovementState
         _movementState;
+
+    private IPlayerHealthState
+        _healthState;
 
     private Vector3 _defaultScale;
 
 
     private void Awake()
     {
-        if (visualRoot != null)
+        if (characterVisualRoot != null)
         {
             _defaultScale =
-                visualRoot.localScale;
+                characterVisualRoot
+                    .transform
+                    .localScale;
         }
     }
 
@@ -28,16 +32,46 @@ public sealed class PlayerVisual :
         _movementState =
             Context.Get<
                 IPlayerMovementState>();
+
+        _healthState =
+            Context.Get<
+                IPlayerHealthState>();
     }
 
 
     public override void Render()
     {
-        if (_movementState == null ||
-            visualRoot == null)
+        if (characterVisualRoot == null)
+            return;
+
+        UpdateVisibility();
+        UpdateFacing();
+    }
+
+
+    private void UpdateVisibility()
+    {
+        if (_healthState == null)
+            return;
+
+        bool visible =
+            !_healthState.IsDead;
+
+        if (characterVisualRoot.activeSelf ==
+            visible)
         {
             return;
         }
+
+        characterVisualRoot.SetActive(
+            visible);
+    }
+
+
+    private void UpdateFacing()
+    {
+        if (_movementState == null)
+            return;
 
         Vector3 scale =
             _defaultScale;
@@ -47,7 +81,9 @@ public sealed class PlayerVisual :
                 ? 1f
                 : -1f;
 
-        visualRoot.localScale =
+        characterVisualRoot
+            .transform
+            .localScale =
             scale;
     }
 }

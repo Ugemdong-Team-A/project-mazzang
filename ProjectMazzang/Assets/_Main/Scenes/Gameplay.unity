@@ -270,7 +270,6 @@ GameObject:
   - component: {fileID: 161591454}
   - component: {fileID: 161591452}
   - component: {fileID: 161591457}
-  - component: {fileID: 161591458}
   m_Layer: 0
   m_Name: BattleCamera
   m_TagString: Untagged
@@ -285,7 +284,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 161591451}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4eb4843bae7d24943842ea23130dcd55, type: 3}
   m_Name: 
@@ -293,12 +292,12 @@ MonoBehaviour:
   FramingMode: 2
   FramingSize: 0.8
   CenterOffset: {x: 0, y: 0}
-  Damping: 2
+  Damping: 4
   SizeAdjustment: 2
   LateralAdjustment: 0
   FovRange: {x: 1, y: 100}
   DollyRange: {x: -100, y: 100}
-  OrthoSizeRange: {x: 1, y: 1000}
+  OrthoSizeRange: {x: 3, y: 1000}
 --- !u!114 &161591453
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -429,27 +428,6 @@ MonoBehaviour:
     FrequencyGain: 1
     Duration: 1
     m_NoiseOffsets: {x: 0, y: 0, z: 0}
---- !u!114 &161591458
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 161591451}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4eb4843bae7d24943842ea23130dcd55, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineGroupFraming
-  FramingMode: 2
-  FramingSize: 0.7
-  CenterOffset: {x: 0, y: 0}
-  Damping: 1
-  SizeAdjustment: 2
-  LateralAdjustment: 0
-  FovRange: {x: 1, y: 100}
-  DollyRange: {x: -100, y: 100}
-  OrthoSizeRange: {x: 2, y: 10}
 --- !u!1 &288821241
 GameObject:
   m_ObjectHideFlags: 0
@@ -609,7 +587,7 @@ Camera:
   far clip plane: 1000
   field of view: 34
   orthographic: 1
-  orthographic size: 2
+  orthographic size: 3
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2

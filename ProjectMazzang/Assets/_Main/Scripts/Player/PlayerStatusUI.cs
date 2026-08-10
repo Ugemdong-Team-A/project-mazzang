@@ -6,6 +6,10 @@ using UnityEngine.UI;
 public sealed class PlayerStatusUI :
     PlayerModule
 {
+    [Header("Root")]
+    [SerializeField]
+    private GameObject statusRoot;
+
     [Header("Nickname")]
     [SerializeField]
     private TMP_Text nicknameText;
@@ -81,9 +85,36 @@ public sealed class PlayerStatusUI :
             TryResolvePlayerData();
         }
 
+        if (statusRoot != null &&
+            !statusRoot.activeSelf)
+        {
+            return;
+        }
+
         Refresh();
     }
 
+
+    private void RefreshVisibility()
+    {
+        if (statusRoot == null ||
+            _healthState == null)
+        {
+            return;
+        }
+
+        bool visible =
+            !_healthState.IsDead;
+
+        if (statusRoot.activeSelf ==
+            visible)
+        {
+            return;
+        }
+
+        statusRoot.SetActive(
+            visible);
+    }
 
     // =========================================================
     // Player Data
@@ -113,6 +144,7 @@ public sealed class PlayerStatusUI :
 
     private void Refresh()
     {
+        RefreshVisibility();
         RefreshNickname();
         RefreshHealth();
         RefreshLives();
