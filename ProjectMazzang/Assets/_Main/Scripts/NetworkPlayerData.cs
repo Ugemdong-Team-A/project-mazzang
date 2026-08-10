@@ -95,6 +95,15 @@ public sealed class NetworkPlayerData :
         NetworkRunner runner,
         bool hasState)
     {
+        // 여기서는 다른 NetworkObject를 Despawn하지 않는다.
+        //
+        // 서버의 Player 이탈 순서는:
+        // 1. FSC.OnPlayerLeft
+        // 2. NetworkGameManager가 Character Despawn
+        // 3. FSC가 이 PlayerData Despawn
+        //
+        // Despawned는 각 로컬의 UI/Presentation에게
+        // 데이터가 사라졌다는 사실만 알리는 역할로 유지한다.
         LocalDespawned?.Invoke(
             runner,
             Object.InputAuthority);

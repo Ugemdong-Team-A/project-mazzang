@@ -75,6 +75,8 @@ public sealed class NetworkGameManager : NetworkBehaviour
     {
         Instance = this;
 
+        BindPlayerLeaveEvent();
+
         if (HasStateAuthority)
         {
             Winner = PlayerRef.None;
@@ -113,9 +115,11 @@ public sealed class NetworkGameManager : NetworkBehaviour
 
 
     public override void Despawned(
-        NetworkRunner runner,
-        bool hasState)
+    NetworkRunner runner,
+    bool hasState)
     {
+        UnbindPlayerLeaveEvent();
+
         LocalDespawned?.Invoke(this);
 
         if (Instance == this)
@@ -417,6 +421,60 @@ public sealed class NetworkGameManager : NetworkBehaviour
         SpawnPlayers(map);
     }
 
+    private void BindPlayerLeaveEvent()
+    {
+        FusionSessionController network =
+            AppRoot.Instance != null
+                ? AppRoot.Instance.Network
+                : null;
+
+        if (network == null)
+            return;
+
+        network.PlayerLeaving +=
+            OnPlayerLeaving;
+    }
+
+    private void UnbindPlayerLeaveEvent()
+    {
+        FusionSessionController network =
+            AppRoot.Instance != null
+                ? AppRoot.Instance.Network
+                : null;
+
+        if (network == null)
+            return;
+
+        network.PlayerLeaving -=
+            OnPlayerLeaving;
+    }
+
+    private void OnPlayerLeaving(
+    PlayerRef player,
+    NetworkPlayerData playerData)
+    {
+        if (!HasStateAuthority)
+            return;
+
+        if (playerData != null)
+        {
+            NetworkObject character =
+                playerData.CharacterObject;
+
+            if (character != null &&
+                Runner.Exists(character))
+            {
+                Runner.Despawn(
+                    character);
+            }
+        }
+
+        if (State ==
+            MatchState.Playing)
+        {
+            CheckMatchResult();
+        }
+    }
 
     // =========================================================
     // Player Spawn
@@ -442,6 +500,8 @@ public sealed class NetworkGameManager : NetworkBehaviour
         }
 
         int index = 0;
+
+        Transform lastSpawnPoint = null;
 
         foreach (PlayerRef player
                  in Runner.ActivePlayers)
@@ -496,7 +556,8 @@ public sealed class NetworkGameManager : NetworkBehaviour
                     $"SpawnPoint가 부족합니다. Index: {index}",
                     this);
 
-                break;
+                spawnPoint = lastSpawnPoint; 
+                // break;
             }
 
             NetworkObject playerObject =
@@ -505,6 +566,8 @@ public sealed class NetworkGameManager : NetworkBehaviour
                     spawnPoint.position,
                     spawnPoint.rotation,
                     player);
+
+            lastSpawnPoint = spawnPoint;
 
             if (playerObject == null)
             {

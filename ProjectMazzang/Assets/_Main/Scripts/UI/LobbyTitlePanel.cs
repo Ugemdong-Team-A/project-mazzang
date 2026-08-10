@@ -6,15 +6,21 @@ using UnityEngine.UI;
 public sealed class LobbyTitlePanel :
     MonoBehaviour
 {
+    [Header("Nickname")]
     [SerializeField]
     private TMP_InputField nicknameInput;
 
     [SerializeField]
     private TMP_Text validationText;
 
+    [Header("State")]
     [SerializeField]
     private TMP_Text connectionStateText;
 
+    [SerializeField]
+    private TMP_Text versionText;
+
+    [Header("Action")]
     [SerializeField]
     private Button enterButton;
 
@@ -24,28 +30,36 @@ public sealed class LobbyTitlePanel :
     private void Awake()
     {
         nicknameInput.onValueChanged.AddListener(
-            OnNicknameChanged);
+            HandleNicknameInputChanged);
 
         enterButton.onClick.AddListener(
-            OnEnterClicked);
+            HandleEnterClicked);
     }
 
     private void OnDestroy()
     {
         nicknameInput.onValueChanged.RemoveListener(
-            OnNicknameChanged);
+            HandleNicknameInputChanged);
 
         enterButton.onClick.RemoveListener(
-            OnEnterClicked);
+            HandleEnterClicked);
     }
 
     public string NicknameInput =>
         nicknameInput.text;
 
-    public void SetNickname(string nickname)
+    public void SetNickname(
+        string nickname)
     {
         nicknameInput.SetTextWithoutNotify(
             nickname);
+    }
+
+    public void SetNicknameInteractable(
+        bool interactable)
+    {
+        nicknameInput.interactable =
+            interactable;
     }
 
     public void SetEnterInteractable(
@@ -69,13 +83,27 @@ public sealed class LobbyTitlePanel :
             message ?? string.Empty;
     }
 
-    private void OnNicknameChanged(
-        string value)
+    public void SetVersion(
+        string version)
     {
-        NicknameChanged?.Invoke(value);
+        if (versionText == null)
+            return;
+
+        versionText.text =
+            string.IsNullOrWhiteSpace(
+                version)
+                ? string.Empty
+                : $"v{version}";
     }
 
-    private void OnEnterClicked()
+    private void HandleNicknameInputChanged(
+        string value)
+    {
+        NicknameChanged?.Invoke(
+            value);
+    }
+
+    private void HandleEnterClicked()
     {
         EnterRequested?.Invoke(
             nicknameInput.text);

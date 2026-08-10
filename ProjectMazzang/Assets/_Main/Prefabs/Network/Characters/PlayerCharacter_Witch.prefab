@@ -887,7 +887,7 @@ MonoBehaviour:
   jumpSpeed: 6
   maxAirJumps: 1
   groundCheckRadius: 0.15
-  fastFallSpeed: 14
+  fastFallSpeed: 17
   fastFallAcceleration: 40
   fastFallInputThreshold: -0.5
   wallCheckRadius: 0.4
@@ -943,8 +943,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerCombat
   basicDamage: 10
-  basicAttackOffset: {x: 0.5, y: 1}
-  basicAttackSize: {x: 1.5, y: 1}
+  basicAttackOffset: {x: 0.6, y: 1}
+  basicAttackSize: {x: 1.7, y: 1}
   hurtboxLayer:
     serializedVersion: 2
     m_Bits: 256

@@ -92,6 +92,10 @@ public sealed class FusionSessionController :
     public event Action SceneLoadStarted;
     public event Action SceneLoadCompleted;
 
+    public event Action<
+    PlayerRef,
+    NetworkPlayerData> PlayerLeaving;
+
     // ==================================================
     // Unity
     // ==================================================
@@ -886,9 +890,52 @@ public sealed class FusionSessionController :
     }
 
     public void OnPlayerLeft(
-        NetworkRunner callbackRunner,
-        PlayerRef player)
+    NetworkRunner callbackRunner,
+    PlayerRef player)
     {
+        if (callbackRunner !=
+            runner)
+        {
+            return;
+        }
+
+        if (!callbackRunner.IsServer)
+            return;
+
+        NetworkObject dataObject =
+            null;
+
+        NetworkPlayerData playerData =
+            null;
+
+        if (callbackRunner.TryGetPlayerObject(
+                player,
+                out dataObject))
+        {
+            dataObject.TryGetComponent(
+                out playerData);
+        }
+
+        // PlayerData를 먼저 지우면
+        // CharacterObject 참조까지 잃으므로
+        // Gameplay 정리 기회를 먼저 준다.
+        PlayerLeaving?.Invoke(
+            player,
+            playerData);
+
+        if (dataObject == null)
+            return;
+
+        if (!callbackRunner.Exists(
+                dataObject))
+        {
+            return;
+        }
+
+        // PlayerData는 FSC가 생성했으므로
+        // FSC가 직접 정리.
+        callbackRunner.Despawn(
+            dataObject);
     }
 
     // ==================================================

@@ -16,6 +16,9 @@ public sealed class LobbyUIController :
     [SerializeField]
     private LobbyUI ui;
 
+    [SerializeField]
+    private BuildVersionChecker versionChecker;
+
     private FusionSessionController _network;
     private NetworkGameSession _gameSession;
 
@@ -27,6 +30,8 @@ public sealed class LobbyUIController :
     private bool _nicknameSubmittedForRoom;
     private bool _characterConfirmRequestPending;
     private bool _mapVoteRequestPending;
+
+    private bool _versionAvailable;
 
     // ==================================================
     // Unity
@@ -44,14 +49,23 @@ public sealed class LobbyUIController :
 
         ui.ShowTitle();
 
+        ui.Title.SetVersion(
+            Application.version);
+
+        // 버전 확인이 끝나기 전에는
+        // 타이틀 입력/진입을 모두 잠근다.
+        _versionAvailable =
+            false;
+
+        ui.Title.SetNicknameInteractable(
+            false);
+
+        ui.Title.SetEnterInteractable(
+            false);
+
         RefreshFromCurrentState();
 
-        if (_network.State ==
-            NetworkSessionState.Offline)
-        {
-            _ =
-                _network.ConnectLobbyAsync();
-        }
+        versionChecker.Check();
     }
 
     private void Update()
@@ -92,46 +106,49 @@ public sealed class LobbyUIController :
     private void Bind()
     {
         _network.StateChanged +=
-            OnNetworkStateChanged;
+            HandleNetworkStateChanged;
 
         _network.SessionListChanged +=
-            OnSessionListChanged;
+            HandleSessionListChanged;
 
         _network.OperationFailed +=
-            OnNetworkOperationFailed;
+            HandleNetworkOperationFailed;
 
         _network.GameSessionChanged +=
-            OnGameSessionChanged;
+            HandleGameSessionChanged;
+
+        versionChecker.StateChanged +=
+            HandleVersionStateChanged;
 
         NetworkPlayerData.LocalSpawned +=
-            OnPlayerDataSpawned;
+            HandlePlayerDataSpawned;
 
         NetworkPlayerData.LocalChanged +=
-            OnPlayerDataChanged;
+            HandlePlayerDataChanged;
 
         NetworkPlayerData.LocalDespawned +=
-            OnPlayerDataDespawned;
+            HandlePlayerDataDespawned;
 
         ui.Title.NicknameChanged +=
-            OnNicknameChanged;
+            HandleNicknameChanged;
 
         ui.Title.EnterRequested +=
-            OnTitleEnterRequested;
+            HandleTitleEnterRequested;
 
         ui.Browser.CreateRoomRequested +=
-            OnCreateRoomRequested;
+            HandleCreateRoomRequested;
 
         ui.Browser.JoinRoomRequested +=
-            OnJoinRoomRequested;
+            HandleJoinRoomRequested;
 
         ui.Room.CharacterConfirmRequested +=
-            OnCharacterConfirmRequested;
+            HandleCharacterConfirmRequested;
 
         ui.Room.MapVoteRequested +=
-            OnMapVoteRequested;
+            HandleMapVoteRequested;
 
         ui.Room.LeaveRequested +=
-            OnLeaveRequested;
+            HandleLeaveRequested;
     }
 
     private void Unbind()
@@ -139,57 +156,63 @@ public sealed class LobbyUIController :
         if (_network != null)
         {
             _network.StateChanged -=
-                OnNetworkStateChanged;
+                HandleNetworkStateChanged;
 
             _network.SessionListChanged -=
-                OnSessionListChanged;
+                HandleSessionListChanged;
 
             _network.OperationFailed -=
-                OnNetworkOperationFailed;
+                HandleNetworkOperationFailed;
 
             _network.GameSessionChanged -=
-                OnGameSessionChanged;
+                HandleGameSessionChanged;
+        }
+
+        if (versionChecker != null)
+        {
+            versionChecker.StateChanged -=
+                HandleVersionStateChanged;
         }
 
         NetworkPlayerData.LocalSpawned -=
-            OnPlayerDataSpawned;
+            HandlePlayerDataSpawned;
 
         NetworkPlayerData.LocalChanged -=
-            OnPlayerDataChanged;
+            HandlePlayerDataChanged;
 
         NetworkPlayerData.LocalDespawned -=
-            OnPlayerDataDespawned;
+            HandlePlayerDataDespawned;
 
         if (ui == null)
             return;
 
         ui.Title.NicknameChanged -=
-            OnNicknameChanged;
+            HandleNicknameChanged;
 
         ui.Title.EnterRequested -=
-            OnTitleEnterRequested;
+            HandleTitleEnterRequested;
 
         ui.Browser.CreateRoomRequested -=
-            OnCreateRoomRequested;
+            HandleCreateRoomRequested;
 
         ui.Browser.JoinRoomRequested -=
-            OnJoinRoomRequested;
+            HandleJoinRoomRequested;
 
         ui.Room.CharacterConfirmRequested -=
-            OnCharacterConfirmRequested;
+            HandleCharacterConfirmRequested;
 
         ui.Room.MapVoteRequested -=
-            OnMapVoteRequested;
+            HandleMapVoteRequested;
 
         ui.Room.LeaveRequested -=
-            OnLeaveRequested;
+            HandleLeaveRequested;
     }
 
     // ==================================================
     // Game Session Bind
     // ==================================================
 
-    private void OnGameSessionChanged(
+    private void HandleGameSessionChanged(
         NetworkGameSession session)
     {
         if (session == null)
@@ -241,10 +264,10 @@ public sealed class LobbyUIController :
             session;
 
         _gameSession.PhaseChanged +=
-            OnSelectionPhaseChanged;
+            HandleSelectionPhaseChanged;
 
         _gameSession.SelectionStateChanged +=
-            OnSelectionStateChanged;
+            HandleSelectionStateChanged;
 
         ui.Room.SetCatalogs(
             _gameSession.CharacterCatalog,
@@ -259,10 +282,10 @@ public sealed class LobbyUIController :
             return;
 
         _gameSession.PhaseChanged -=
-            OnSelectionPhaseChanged;
+            HandleSelectionPhaseChanged;
 
         _gameSession.SelectionStateChanged -=
-            OnSelectionStateChanged;
+            HandleSelectionStateChanged;
 
         _gameSession =
             null;
@@ -293,10 +316,100 @@ public sealed class LobbyUIController :
     }
 
     // ==================================================
+    // Build Version
+    // ==================================================
+
+    private void HandleVersionStateChanged(
+        BuildVersionState state)
+    {
+        switch (state)
+        {
+            case BuildVersionState.Checking:
+                _versionAvailable =
+                    false;
+
+                ui.Title.SetNicknameInteractable(
+                    false);
+
+                ui.Title.SetEnterInteractable(
+                    false);
+
+                ui.Title.SetValidationMessage(
+                    string.Empty);
+
+                ui.Title.SetConnectionState(
+                    "버전을 확인하는 중입니다...");
+
+                break;
+
+            case BuildVersionState.Available:
+                _versionAvailable =
+                    true;
+
+                ui.Title.SetNicknameInteractable(
+                    true);
+
+                RefreshNicknameValidation();
+
+                // 이미 Room에 있는 상태로 Lobby Scene에
+                // 돌아온 경우에는 새 연결을 만들지 않는다.
+                if (_network.State ==
+                    NetworkSessionState.Offline)
+                {
+                    _ =
+                        _network.ConnectLobbyAsync();
+                }
+
+                break;
+
+            case BuildVersionState.Outdated:
+                _versionAvailable =
+                    false;
+
+                ui.Title.SetNicknameInteractable(
+                    false);
+
+                ui.Title.SetEnterInteractable(
+                    false);
+
+                ui.Title.SetValidationMessage(
+                    string.Empty);
+
+                ui.Title.SetConnectionState(
+                    "지원되지 않는 버전입니다.\n" +
+                    $"최신 버전: {versionChecker.LatestVersion}");
+
+                break;
+
+            case BuildVersionState.Failed:
+                _versionAvailable =
+                    false;
+
+                ui.Title.SetNicknameInteractable(
+                    false);
+
+                ui.Title.SetEnterInteractable(
+                    false);
+
+                ui.Title.SetValidationMessage(
+                    string.Empty);
+
+                ui.Title.SetConnectionState(
+                    "버전 확인에 실패했습니다.\n" +
+                    "온라인 기능을 사용할 수 없습니다.");
+
+                break;
+
+            case BuildVersionState.None:
+                break;
+        }
+    }
+
+    // ==================================================
     // Title
     // ==================================================
 
-    private void OnNicknameChanged(
+    private void HandleNicknameChanged(
         string value)
     {
         RefreshNicknameValidation();
@@ -304,6 +417,17 @@ public sealed class LobbyUIController :
 
     private void RefreshNicknameValidation()
     {
+        if (!_versionAvailable)
+        {
+            ui.Title.SetValidationMessage(
+                string.Empty);
+
+            ui.Title.SetEnterInteractable(
+                false);
+
+            return;
+        }
+
         string input =
             ui.Title.NicknameInput;
 
@@ -324,6 +448,7 @@ public sealed class LobbyUIController :
         }
 
         bool canEnter =
+            _versionAvailable &&
             nicknameValid &&
             _network.State ==
             NetworkSessionState.LobbyReady;
@@ -332,9 +457,12 @@ public sealed class LobbyUIController :
             canEnter);
     }
 
-    private void OnTitleEnterRequested(
+    private void HandleTitleEnterRequested(
         string nickname)
     {
+        if (!_versionAvailable)
+            return;
+
         if (_network.State !=
             NetworkSessionState.LobbyReady)
         {
@@ -368,7 +496,7 @@ public sealed class LobbyUIController :
     // FSC State
     // ==================================================
 
-    private void OnNetworkStateChanged(
+    private void HandleNetworkStateChanged(
         NetworkSessionState state)
     {
         ApplyNetworkState(
@@ -423,8 +551,11 @@ public sealed class LobbyUIController :
 
         UnbindGameSession();
 
-        ui.Title.SetConnectionState(
-            "온라인 연결 없음");
+        if (_versionAvailable)
+        {
+            ui.Title.SetConnectionState(
+                "온라인 연결 없음");
+        }
 
         if (_currentPage ==
             LobbyPage.Room)
@@ -446,8 +577,11 @@ public sealed class LobbyUIController :
 
     private void HandleLobbyConnectingState()
     {
-        ui.Title.SetConnectionState(
-            "온라인 로비 연결 중...");
+        if (_versionAvailable)
+        {
+            ui.Title.SetConnectionState(
+                "온라인 로비 연결 중...");
+        }
 
         if (_currentPage ==
             LobbyPage.SessionBrowser)
@@ -462,8 +596,11 @@ public sealed class LobbyUIController :
 
     private void HandleLobbyReadyState()
     {
-        ui.Title.SetConnectionState(
-            "온라인 연결 완료");
+        if (_versionAvailable)
+        {
+            ui.Title.SetConnectionState(
+                "온라인 연결 완료");
+        }
 
         ui.HideLoading();
 
@@ -541,7 +678,7 @@ public sealed class LobbyUIController :
     // Session List
     // ==================================================
 
-    private void OnSessionListChanged(
+    private void HandleSessionListChanged(
         IReadOnlyList<SessionInfo> sessions)
     {
         ui.Browser.SetSessions(
@@ -552,7 +689,7 @@ public sealed class LobbyUIController :
     // Browser
     // ==================================================
 
-    private async void OnCreateRoomRequested(
+    private async void HandleCreateRoomRequested(
         string roomName)
     {
         if (_network.State !=
@@ -565,7 +702,7 @@ public sealed class LobbyUIController :
             roomName);
     }
 
-    private async void OnJoinRoomRequested(
+    private async void HandleJoinRoomRequested(
         string sessionName)
     {
         if (_network.State !=
@@ -582,7 +719,7 @@ public sealed class LobbyUIController :
     // NetworkPlayerData
     // ==================================================
 
-    private void OnPlayerDataSpawned(
+    private void HandlePlayerDataSpawned(
         NetworkPlayerData playerData)
     {
         if (!BelongsToCurrentRunner(
@@ -605,7 +742,7 @@ public sealed class LobbyUIController :
         RefreshLocalSelectionState();
     }
 
-    private void OnPlayerDataChanged(
+    private void HandlePlayerDataChanged(
         NetworkPlayerData playerData)
     {
         if (!BelongsToCurrentRunner(
@@ -631,7 +768,7 @@ public sealed class LobbyUIController :
         RefreshLocalSelectionState();
     }
 
-    private void OnPlayerDataDespawned(
+    private void HandlePlayerDataDespawned(
         NetworkRunner sourceRunner,
         PlayerRef player)
     {
@@ -780,7 +917,7 @@ public sealed class LobbyUIController :
     // Character Select
     // ==================================================
 
-    private void OnCharacterConfirmRequested(
+    private void HandleCharacterConfirmRequested(
         int characterId)
     {
         if (_characterConfirmRequestPending)
@@ -820,7 +957,7 @@ public sealed class LobbyUIController :
     // Map Vote
     // ==================================================
 
-    private void OnMapVoteRequested(
+    private void HandleMapVoteRequested(
         int mapId)
     {
         if (_mapVoteRequestPending)
@@ -993,7 +1130,7 @@ public sealed class LobbyUIController :
     // Selection Phase
     // ==================================================
 
-    private void OnSelectionPhaseChanged(
+    private void HandleSelectionPhaseChanged(
         LobbySelectionPhase phase)
     {
         RefreshSelectionUI();
@@ -1013,7 +1150,7 @@ public sealed class LobbyUIController :
             _gameSession.MapRouletteDuration);
     }
 
-    private void OnSelectionStateChanged()
+    private void HandleSelectionStateChanged()
     {
         RefreshSelectionUI();
     }
@@ -1103,7 +1240,7 @@ public sealed class LobbyUIController :
     // Leave
     // ==================================================
 
-    private async void OnLeaveRequested()
+    private async void HandleLeaveRequested()
     {
         _characterConfirmRequestPending =
             false;
@@ -1184,7 +1321,7 @@ public sealed class LobbyUIController :
             "확인");
     }
 
-    private void OnNetworkOperationFailed(
+    private void HandleNetworkOperationFailed(
         NetworkOperationFailure failure)
     {
         _characterConfirmRequestPending =
