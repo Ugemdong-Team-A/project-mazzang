@@ -854,12 +854,14 @@ MonoBehaviour:
   fastFallSpeed: 17
   fastFallAcceleration: 40
   fastFallInputThreshold: -0.5
-  wallCheckSize: {x: 0.2, y: 1.4}
+  wallCheckSize: {x: 0.4, y: 1.7}
   wallSlideSpeed: 3
   wallJumpHorizontalSpeed: 3
   wallJumpVerticalSpeed: 5
   wallJumpControlDelay: 0.1
   wallJumpReadyDelay: 0.08
+  enableWallDebug: 0
+  verboseWallDebug: 0
   _IsGrounded:
     RawValue: 0
   _FacingRight:

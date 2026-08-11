@@ -96,9 +96,22 @@ public sealed class PlayerMovement :
     private float wallJumpReadyDelay = 0.08f;
 
 
+    [Header("Wall Debug")]
+    [SerializeField]
+    private bool enableWallDebug;
+
+    [SerializeField]
+    private bool verboseWallDebug;
+
+
     private IPlayerHealthState _healthState;
 
     private IPlayerCombatState _combatState;
+
+    private bool _debugPreviousTouchingWallLeft;
+    private bool _debugPreviousTouchingWallRight;
+    private bool _debugPreviousWallSliding;
+    private string _debugPreviousBlockReason;
 
 
     // =========================================================
@@ -290,6 +303,9 @@ public sealed class PlayerMovement :
             moveInput.x);
 
         HandleWallSlide(
+            moveInput.x);
+
+        DebugWallState(
             moveInput.x);
 
         HandleFastFall(
@@ -609,12 +625,12 @@ public sealed class PlayerMovement :
         {
             WallJumpReadyTimer =
                 TickTimer.None;
-        }
-
-        IsWallSliding =
-            wallSliding;
+        }       
 
         WasWallSliding =
+            IsWallSliding;
+
+        IsWallSliding =
             wallSliding;
 
         if (!IsWallSliding)
@@ -665,8 +681,8 @@ public sealed class PlayerMovement :
             !IsGrounded &&
             IsTouchingWall &&
             IsPressingTowardWall(
-                inputX) &&
-            rb.linearVelocity.y < 0f;
+                inputX)/* &&
+            rb.linearVelocity.y < 0f*/;
     }
 
 
@@ -676,6 +692,109 @@ public sealed class PlayerMovement :
             IsWallSliding &&
             WallJumpReadyTimer
                 .Expired(Runner);
+    }
+
+
+    // =========================================================
+    // Wall Debug
+    // =========================================================
+
+    private void DebugWallState(
+        float inputX)
+    {
+        if (!enableWallDebug)
+            return;
+
+        bool touchingLeftChanged =
+            _debugPreviousTouchingWallLeft !=
+            IsTouchingWallLeft;
+
+        bool touchingRightChanged =
+            _debugPreviousTouchingWallRight !=
+            IsTouchingWallRight;
+
+        bool slidingChanged =
+            _debugPreviousWallSliding !=
+            IsWallSliding;
+
+        if (touchingLeftChanged ||
+            touchingRightChanged)
+        {
+            Debug.Log(
+                $"[WallDebug] Touch Changed | " +
+                $"Left={IsTouchingWallLeft}, " +
+                $"Right={IsTouchingWallRight}, " +
+                $"Grounded={IsGrounded}, " +
+                $"Pos={rb.position}",
+                this);
+        }
+
+        if (slidingChanged)
+        {
+            Debug.Log(
+                $"[WallDebug] Sliding -> {IsWallSliding} | " +
+                $"InputX={inputX:F2}, " +
+                $"VelocityY={rb.linearVelocity.y:F2}, " +
+                $"Left={IsTouchingWallLeft}, " +
+                $"Right={IsTouchingWallRight}, " +
+                $"Toward={IsPressingTowardWall(inputX)}, " +
+                $"Grounded={IsGrounded}",
+                this);
+        }
+
+        string blockReason =
+            BuildWallSlideBlockReason(
+                inputX);
+
+        if (verboseWallDebug &&
+            blockReason !=
+            _debugPreviousBlockReason)
+        {
+            Debug.Log(
+                $"[WallDebug] Slide Check | {blockReason} | " +
+                $"InputX={inputX:F2}, " +
+                $"Velocity={rb.linearVelocity}, " +
+                $"Left={IsTouchingWallLeft}, " +
+                $"Right={IsTouchingWallRight}",
+                this);
+
+            _debugPreviousBlockReason =
+                blockReason;
+        }
+
+        _debugPreviousTouchingWallLeft =
+            IsTouchingWallLeft;
+
+        _debugPreviousTouchingWallRight =
+            IsTouchingWallRight;
+
+        _debugPreviousWallSliding =
+            IsWallSliding;
+    }
+
+
+    private string BuildWallSlideBlockReason(
+        float inputX)
+    {
+        if (IsWallSliding)
+            return "WallSliding";
+
+        if (IsGrounded)
+            return "Blocked: Grounded";
+
+        if (!IsTouchingWall)
+            return "Blocked: No Wall Contact";
+
+        if (!IsPressingTowardWall(
+                inputX))
+        {
+            return "Blocked: Not Pressing Toward Wall";
+        }
+
+        if (rb.linearVelocity.y >= 0f)
+            return "Blocked: Not Falling";
+
+        return "Blocked: Unknown";
     }
 
 
@@ -786,6 +905,12 @@ public sealed class PlayerMovement :
 
         if (wallCheckLeft != null)
         {
+            Gizmos.color =
+                Application.isPlaying &&
+                IsTouchingWallLeft
+                    ? Color.green
+                    : Color.red;
+
             Gizmos.DrawWireCube(
                 wallCheckLeft.position,
                 wallCheckSize);
@@ -793,10 +918,19 @@ public sealed class PlayerMovement :
 
         if (wallCheckRight != null)
         {
+            Gizmos.color =
+                Application.isPlaying &&
+                IsTouchingWallRight
+                    ? Color.green
+                    : Color.red;
+
             Gizmos.DrawWireCube(
                 wallCheckRight.position,
                 wallCheckSize);
         }
+
+        Gizmos.color =
+            Color.white;
     }
 
 #endif
