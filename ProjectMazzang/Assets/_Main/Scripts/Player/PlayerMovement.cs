@@ -294,7 +294,7 @@ public sealed class PlayerMovement :
         // ==========================================
 
         if (_combatState != null &&
-            _combatState.IsAttacking)
+            _combatState.IsMovementLocked)
         {
             PreviousButtons =
                 input.Buttons;
@@ -893,6 +893,17 @@ public sealed class PlayerMovement :
             false;
     }
 
+    public void SetFacing(
+        bool facingRight)
+    {
+        // 벽타기 중에는 벽 방향 규칙이 우선.
+        if (IsWallSliding)
+            return;
+
+        FacingRight =
+            facingRight;
+    }
+
 
 #if UNITY_EDITOR
 
@@ -934,17 +945,6 @@ public sealed class PlayerMovement :
         Gizmos.color =
             Color.white;
     }
-
-    public void SetFacing(
-        bool facingRight)
-    {
-        // 벽타기 중에는 벽 방향 규칙이 우선.
-        if (IsWallSliding)
-            return;
-
-        FacingRight =
-            facingRight;
-    }
-
+    
 #endif
 }

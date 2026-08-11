@@ -21,7 +21,7 @@ public sealed class NetworkGameManager : NetworkBehaviour
 
     [Header("Match")]
     [SerializeField]
-    private float endingDuration = 1.5f;
+    private float endingDuration = 2.1f;
 
     [SerializeField]
     private float resultDuration = 3f;

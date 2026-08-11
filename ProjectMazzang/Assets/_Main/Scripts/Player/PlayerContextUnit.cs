@@ -51,7 +51,11 @@ public interface IPlayerCombatState :
 {
     PlayerAttackState AttackState { get; }
 
+    int CurrentAttackId { get; }
+
     bool IsAttacking { get; }
+
+    bool IsMovementLocked { get; }
 
     bool IsAttackOnCooldown { get; }
 

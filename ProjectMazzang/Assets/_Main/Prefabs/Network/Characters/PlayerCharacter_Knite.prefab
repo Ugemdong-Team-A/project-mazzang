@@ -941,19 +941,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 324ce644ce6398e44b3a825b871c9bd8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerCombat
-  basicDamage: 10
-  basicAttackOffset: {x: 0.6, y: 1}
-  basicAttackSize: {x: 1.7, y: 1}
+  jabAttack: {fileID: 11400000, guid: 3c4ba3a8ff167ca43a6b7e8f7c6e1194, type: 2}
+  counterAttack: {fileID: 11400000, guid: 89fc7ce7117dbd9438f3616d8645bcd3, type: 2}
+  attackOrigin: {fileID: 405535938307882185}
   hurtboxLayer:
     serializedVersion: 2
     m_Bits: 256
-  basicKnockback: {x: 6, y: 4}
-  basicKnockbackControlLock: 0.12
-  startupDuration: 0.5
-  activeDuration: 0.1
-  recoveryDuration: 0.15
-  basicAttackCooldown: 0.8
   _AttackState: 0
+  _CurrentAttackId: 0
   _AttackSequence: 0
 --- !u!114 &4107694489920312526
 MonoBehaviour:
@@ -992,6 +987,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAim
   aimOrigin: {fileID: 405535938307882185}
   ccdTarget: {fileID: 5349236784287973008}
+  upperBodyAimRig: {fileID: 0}
   ccdTargetRadius: 3
   rigAngleOffset: 90
   maxBodyAimAngle: 80
@@ -999,6 +995,10 @@ MonoBehaviour:
   bodyAimSpeed: 540
   _AimDirection: {x: 0, y: 0}
   _BodyAimAngle: 0
+  _TrackingMode: 0
+  _FacingMode: 0
+  _RigMode: 0
+  _CardinalDirection: 0
 --- !u!1 &3158334327498006070
 GameObject:
   m_ObjectHideFlags: 0
@@ -1732,7 +1732,7 @@ Transform:
   m_GameObject: {fileID: 6175650014978887882}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.4695994, y: -0.0146279335, z: 0}
+  m_LocalPosition: {x: -0.4695994, y: -0.01462793, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2675,7 +2675,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -6402243068667089341, guid: 8f519a0f7487d41cebc10ff177ee1436, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
-      value: 1.9810001
+      value: -2.771
       objectReference: {fileID: 0}
     - target: {fileID: -6397474116315627246, guid: 8f519a0f7487d41cebc10ff177ee1436, type: 3}
       propertyPath: m_Layer
@@ -2759,7 +2759,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -4697217295225161906, guid: 8f519a0f7487d41cebc10ff177ee1436, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
-      value: 3.363
+      value: 2.4
       objectReference: {fileID: 0}
     - target: {fileID: -4568942401503791940, guid: 8f519a0f7487d41cebc10ff177ee1436, type: 3}
       propertyPath: m_Sprite
@@ -3439,7 +3439,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5047923016171589254, guid: 8f519a0f7487d41cebc10ff177ee1436, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
-      value: -0.24100001
+      value: 2.131
       objectReference: {fileID: 0}
     - target: {fileID: 5127685334968598711, guid: 8f519a0f7487d41cebc10ff177ee1436, type: 3}
       propertyPath: m_Layer
@@ -3471,7 +3471,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5283110698140630313, guid: 8f519a0f7487d41cebc10ff177ee1436, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
-      value: -14.339001
+      value: -10.549
       objectReference: {fileID: 0}
     - target: {fileID: 5426781916712734531, guid: 8f519a0f7487d41cebc10ff177ee1436, type: 3}
       propertyPath: m_Bounds.m_Center.x

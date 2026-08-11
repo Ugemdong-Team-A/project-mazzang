@@ -45,7 +45,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f08054ded78970469b37b3cb5713582, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NetworkGameManager
-  defaultPlayerPrefab: {fileID: 4098969700376898355, guid: 4b61eb54b4b975c43acc7b5dd68a035c, type: 3}
+  respawnHeight: 2
+  endingDuration: 2.1
+  resultDuration: 3
+  _State: 0
 --- !u!114 &6792487778061638001
 MonoBehaviour:
   m_ObjectHideFlags: 0

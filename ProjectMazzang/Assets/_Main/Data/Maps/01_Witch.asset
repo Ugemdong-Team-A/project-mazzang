@@ -17,4 +17,4 @@ MonoBehaviour:
   description: "\uB450 \uBC88\uC9F8 \uD14C\uC2A4\uD2B8\uC6A9 \uAE30\uBCF8 \uCE90\uB9AD\uD130
     \uB9C8\uB140"
   portrait: {fileID: 21300000, guid: 23fa3bf7071f46a419246ee23b90f06b, type: 3}
-  playerPrefab: {fileID: 4098969700376898355, guid: 1d5b30653ddde4f41b85cf6b35fd6d2c, type: 3}
+  playerPrefab: {fileID: 4098969700376898355, guid: ddfad5bc575ff1d4b947d9362d79a803, type: 3}

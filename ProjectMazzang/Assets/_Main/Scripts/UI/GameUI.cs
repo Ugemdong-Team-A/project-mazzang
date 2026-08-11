@@ -61,8 +61,8 @@ public sealed class GameUI :
             resultRoot,
             false);
 
-        combatNotice?
-            .HideImmediate();
+        /*combatNotice?
+            .HideImmediate();*/
     }
 
 

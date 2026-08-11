@@ -145,6 +145,10 @@ public sealed class PlayerAnimation :
         _lastAttackSequence =
             _combatState.AttackSequence;
 
+        animator.SetInteger(
+            "AttackId",
+            _combatState.CurrentAttackId);
+
         animator.SetTrigger(
             "Attack");
     }

@@ -16,47 +16,27 @@ public sealed class PlayerCombat :
     IPlayerCombatState,
     IPlayerCombatControl
 {
-    [Header("Basic Attack")]
-    [SerializeField]
-    private int basicDamage = 10;
+    private const int NoneAttackId = 0;
 
-    [SerializeField]
-    private Vector2 basicAttackOffset =
-        new Vector2(1f, 0f);
 
+    [Header("Test Attacks")]
     [SerializeField]
-    private Vector2 basicAttackSize =
-        new Vector2(1.5f, 1f);
+    private PlayerBoxAttackData jabAttack;
 
     [SerializeField]
-    private LayerMask hurtboxLayer;
+    private PlayerBoxAttackData counterAttack;
+
+
+    [Header("Hit")]
+    [SerializeField]
+    private Transform attackOrigin;
 
     [SerializeField]
-    private Vector2 basicKnockback =
-        new Vector2(6f, 4f);
-
-    [SerializeField]
-    private float basicKnockbackControlLock =
-        0.12f;
-
-
-    [Header("Basic Attack Timing")]
-    [SerializeField]
-    private float startupDuration = 0.08f;
-
-    [SerializeField]
-    private float activeDuration = 0.06f;
-
-    [SerializeField]
-    private float recoveryDuration = 0.2f;
-
-    [SerializeField]
-    [Min(0f)]
-    private float basicAttackCooldown = 0.45f;
-
+    private LayerMask hurtboxLayer;   
 
     private readonly HashSet<IDamageable>
         _hitTargets = new();
+
 
     private IPlayerMovementState
         _movementState;
@@ -67,30 +47,68 @@ public sealed class PlayerCombat :
     private IPlayerDamageReceiver
         _selfDamageReceiver;
 
+    private IPlayerAimState
+        _aimState;
+
+    private IPlayerAimControl
+        _aimControl;
+
 
     // =========================================================
     // Network State
     // =========================================================
 
     [Networked]
-    private NetworkButtons PreviousButtons { get; set; }
-
-    [Networked]
-    private TickTimer AttackPhaseTimer { get; set; }
-
-    [Networked]
-    private TickTimer AttackCooldownTimer { get; set; }
-
-    [Networked]
-    private NetworkBool AttackFacingRight { get; set; }
+    private NetworkButtons PreviousButtons
+    {
+        get;
+        set;
+    }
 
 
     [Networked]
-    public PlayerAttackState AttackState { get; private set; }
+    private TickTimer AttackPhaseTimer
+    {
+        get;
+        set;
+    }
+
 
     [Networked]
-    public byte AttackSequence { get; private set; }
+    private TickTimer AttackCooldownTimer
+    {
+        get;
+        set;
+    }
 
+
+    [Networked]
+    public PlayerAttackState AttackState
+    {
+        get;
+        private set;
+    }
+
+
+    [Networked]
+    public int CurrentAttackId
+    {
+        get;
+        private set;
+    }
+
+
+    [Networked]
+    public byte AttackSequence
+    {
+        get;
+        private set;
+    }
+
+
+    // =========================================================
+    // State
+    // =========================================================
 
     public bool IsAttacking =>
         AttackState !=
@@ -99,7 +117,24 @@ public sealed class PlayerCombat :
 
     public bool IsAttackOnCooldown =>
         !AttackCooldownTimer
-            .ExpiredOrNotRunning(Runner);
+            .ExpiredOrNotRunning(
+                Runner);
+
+
+    public bool IsMovementLocked
+    {
+        get
+        {
+            PlayerAttackData attack =
+                GetCurrentAttack();
+
+            return
+                IsAttacking &&
+                attack != null &&
+                attack.MovementMode ==
+                    PlayerAttackMovementMode.Locked;
+        }
+    }
 
 
     // =========================================================
@@ -131,6 +166,14 @@ public sealed class PlayerCombat :
         _selfDamageReceiver =
             Context.Get<
                 IPlayerDamageReceiver>();
+
+        _aimState =
+            Context.Get<
+                IPlayerAimState>();
+
+        _aimControl =
+            Context.Get<
+                IPlayerAimControl>();
     }
 
 
@@ -138,49 +181,84 @@ public sealed class PlayerCombat :
     // Fusion
     // =========================================================
 
+    public override void Spawned()
+    {
+        if (!HasStateAuthority)
+            return;
+
+        CurrentAttackId =
+            NoneAttackId;
+    }
+
+
     public override void FixedUpdateNetwork()
     {
+        bool hasInput =
+            GetInput(
+                out PlayerInputData input);
+
+
         if (_healthState == null)
             return;
+
+
+        // ==========================================
+        // Dead
+        // ==========================================
 
         if (!_healthState.IsAlive)
         {
             CancelAttack();
 
-            if (GetInput(
-                    out PlayerInputData deadInput))
+            if (hasInput)
             {
                 PreviousButtons =
-                    deadInput.Buttons;
+                    input.Buttons;
             }
 
             return;
         }
 
-        // 피격으로 인한 제어락 중에는
-        // 진행 중 공격을 즉시 취소하고 새 공격도 받지 않는다.
+
+        // ==========================================
+        // Control Lock
+        // ==========================================
+
         if (_movementState != null &&
             _movementState.IsControlLocked)
         {
             CancelAttack();
 
-            if (GetInput(
-                    out PlayerInputData lockedInput))
+            if (hasInput)
             {
                 PreviousButtons =
-                    lockedInput.Buttons;
+                    input.Buttons;
             }
 
             return;
         }
 
-        UpdateAttack();
 
-        if (!GetInput(
-                out PlayerInputData input))
-        {
+        // ==========================================
+        // Attack State
+        // ==========================================
+
+        Vector2 currentInputAim =
+            hasInput
+                ? input.AimDirection
+                : Vector2.zero;
+
+        UpdateAttack(
+            currentInputAim);
+
+
+        if (!hasInput)
             return;
-        }
+
+
+        // ==========================================
+        // Attack Input
+        // ==========================================
 
         bool attackPressed =
             input.Buttons.WasPressed(
@@ -190,11 +268,11 @@ public sealed class PlayerCombat :
         PreviousButtons =
             input.Buttons;
 
-        if (attackPressed)
-        {
-            TryAttack(
-                input.Move);
-        }
+        if (!attackPressed)
+            return;
+
+        TryAttack(
+            in input);
     }
 
 
@@ -203,7 +281,7 @@ public sealed class PlayerCombat :
     // =========================================================
 
     private void TryAttack(
-        Vector2 moveInput)
+        in PlayerInputData input)
     {
         if (IsAttacking)
             return;
@@ -217,79 +295,126 @@ public sealed class PlayerCombat :
             return;
         }
 
-        /*
-         * 나중에는 여기서만 분기한다.
-         *
-         * if (HasEquippedWeapon)
-         * {
-         *     StartWeaponAttack(...);
-         *     return;
-         * }
-         */
+        PlayerBoxAttackData attack =
+            SelectTestAttack(
+                input.Move);
 
-        StartBasicAttack(
-            moveInput);
+        if (attack == null)
+            return;
+
+        StartAttack(
+            attack,
+            input.AimDirection);
+    }
+
+
+    /// <summary>
+    /// 현재는 공격 데이터 테스트를 위한 임시 선택 규칙입니다.
+    ///
+    /// 위 입력 + 공격:
+    /// Counter
+    ///
+    /// 그 외:
+    /// Jab
+    ///
+    /// 이후 무기/콤보 시스템이 생기면
+    /// 이 메서드만 실제 공격 선택기로 교체합니다.
+    /// </summary>
+    private PlayerBoxAttackData SelectTestAttack(
+        Vector2 moveInput)
+    {
+        if (moveInput.y > 0.5f &&
+            counterAttack != null)
+        {
+            return counterAttack;
+        }
+
+        return jabAttack;
     }
 
 
     // =========================================================
-    // Basic Attack
+    // Attack Start
     // =========================================================
 
-    private void StartBasicAttack(
-        Vector2 moveInput)
+    private void StartAttack(
+        PlayerAttackData attack,
+        Vector2 sourceAimDirection)
     {
+        if (attack == null)
+            return;
+
+        CurrentAttackId =
+            attack.AttackId;
+
         AttackState =
             PlayerAttackState.Startup;
 
         AttackPhaseTimer =
-            TickTimer.CreateFromSeconds(
-                Runner,
-                startupDuration);
+            CreateTimer(
+                attack.StartupDuration);
 
         AttackCooldownTimer =
-            basicAttackCooldown > 0f
-                ? TickTimer.CreateFromSeconds(
-                    Runner,
-                    basicAttackCooldown)
-                : TickTimer.None;
+            CreateTimer(
+                attack.Cooldown);
 
-        if (moveInput.x > 0.01f)
-        {
-            AttackFacingRight =
-                true;
-        }
-        else if (moveInput.x < -0.01f)
-        {
-            AttackFacingRight =
-                false;
-        }
-        else
-        {
-            AttackFacingRight =
-                _movementState != null
-                    ? _movementState.FacingRight
-                    : true;
-        }
+
+        ApplyAimRule(
+            attack,
+            sourceAimDirection);
 
         AttackSequence++;
     }
 
 
-    private void UpdateAttack()
+    private void ApplyAimRule(
+        PlayerAttackData attack,
+        Vector2 sourceAimDirection)
+    {
+        if (_aimControl == null)
+            return;
+
+        PlayerAttackAimDefinition aimDefinition =
+            attack.Aim;
+
+        if (!aimDefinition.RequiresOverride)
+        {
+            _aimControl.ClearOverride();
+            return;
+        }
+
+        PlayerAimOverride aimOverride =
+            aimDefinition.CreateOverride();
+
+        _aimControl.ApplyOverride(
+            in aimOverride,
+            sourceAimDirection);
+    }
+
+
+    // =========================================================
+    // Attack Update
+    // =========================================================
+
+    private void UpdateAttack(
+        Vector2 currentInputAim)
     {
         switch (AttackState)
         {
             case PlayerAttackState.None:
                 break;
 
+
             case PlayerAttackState.Startup:
-                UpdateStartup();
+                UpdateStartup(
+                    currentInputAim);
                 break;
+
 
             case PlayerAttackState.Active:
                 UpdateActive();
                 break;
+
 
             case PlayerAttackState.Recovery:
                 UpdateRecovery();
@@ -298,7 +423,8 @@ public sealed class PlayerCombat :
     }
 
 
-    private void UpdateStartup()
+    private void UpdateStartup(
+        Vector2 currentInputAim)
     {
         if (!AttackPhaseTimer
                 .Expired(Runner))
@@ -306,21 +432,44 @@ public sealed class PlayerCombat :
             return;
         }
 
-        BeginActive();
+        BeginActive(
+            currentInputAim);
     }
 
 
-    private void BeginActive()
+    private void BeginActive(
+        Vector2 currentInputAim)
     {
+        PlayerAttackData attack =
+            GetCurrentAttack();
+
+        if (attack == null)
+        {
+            CancelAttack();
+            return;
+        }
+
         AttackState =
             PlayerAttackState.Active;
 
-        PerformBasicAttackHit();
+
+        if (attack is
+            PlayerBoxAttackData boxAttack)
+        {
+            Vector2 attackDirection =
+                ResolveHitDirection(
+                    attack,
+                    currentInputAim);
+
+            PerformBoxAttackHit(
+                boxAttack,
+                attackDirection);
+        }
+
 
         AttackPhaseTimer =
-            TickTimer.CreateFromSeconds(
-                Runner,
-                activeDuration);
+            CreateTimer(
+                attack.ActiveDuration);
     }
 
 
@@ -332,13 +481,21 @@ public sealed class PlayerCombat :
             return;
         }
 
+        PlayerAttackData attack =
+            GetCurrentAttack();
+
+        if (attack == null)
+        {
+            CancelAttack();
+            return;
+        }
+
         AttackState =
             PlayerAttackState.Recovery;
 
         AttackPhaseTimer =
-            TickTimer.CreateFromSeconds(
-                Runner,
-                recoveryDuration);
+            CreateTimer(
+                attack.RecoveryDuration);
     }
 
 
@@ -354,47 +511,184 @@ public sealed class PlayerCombat :
     }
 
 
+    // =========================================================
+    // Cancel
+    // =========================================================
+
     public void CancelAttack()
     {
+        if (AttackState ==
+                PlayerAttackState.None &&
+            CurrentAttackId ==
+                NoneAttackId)
+        {
+            return;
+        }
+
         AttackState =
             PlayerAttackState.None;
 
         AttackPhaseTimer =
             TickTimer.None;
+
+        CurrentAttackId =
+            NoneAttackId;
+
+        _aimControl?
+            .ClearOverride();
     }
 
 
     // =========================================================
-    // Hit
+    // Attack Data
     // =========================================================
 
-    private void PerformBasicAttackHit()
+    private PlayerAttackData GetCurrentAttack()
     {
-        float direction =
-            AttackFacingRight
-                ? 1f
-                : -1f;
+        if (CurrentAttackId ==
+            NoneAttackId)
+        {
+            return null;
+        }
 
-        Vector2 offset =
-            basicAttackOffset;
+        if (jabAttack != null &&
+            jabAttack.AttackId ==
+            CurrentAttackId)
+        {
+            return jabAttack;
+        }
 
-        offset.x *=
-            direction;
+        if (counterAttack != null &&
+            counterAttack.AttackId ==
+            CurrentAttackId)
+        {
+            return counterAttack;
+        }
+
+        return null;
+    }
+
+
+    // =========================================================
+    // Aim
+    // =========================================================
+
+    private Vector2 ResolveHitDirection(
+        PlayerAttackData attack,
+        Vector2 currentInputAim)
+    {
+        // Free Aim은 Combat(-200)이 PlayerAim(-90)보다
+        // 먼저 실행되므로 현재 Tick의 Raw Input을 직접 사용한다.
+        if (attack.Aim.AimMode ==
+            PlayerAttackAimMode.Free)
+        {
+            Vector2 freeDirection =
+                NormalizeDirection(
+                    currentInputAim);
+
+            if (freeDirection !=
+                Vector2.zero)
+            {
+                return freeDirection;
+            }
+        }
+
+        // Locked / FourWay는 공격 시작 시
+        // PlayerAim에 확정되어 있는 방향을 사용한다.
+        if (_aimState != null)
+        {
+            Vector2 aimDirection =
+                NormalizeDirection(
+                    _aimState.AimDirection);
+
+            if (aimDirection !=
+                Vector2.zero)
+            {
+                return aimDirection;
+            }
+        }
+
+        if (_movementState != null &&
+            !_movementState.FacingRight)
+        {
+            return Vector2.left;
+        }
+
+        return Vector2.right;
+    }
+
+
+    private static Vector2 NormalizeDirection(
+        Vector2 direction)
+    {
+        if (direction.sqrMagnitude <=
+            0.0001f)
+        {
+            return Vector2.zero;
+        }
+
+        return direction.normalized;
+    }
+
+
+    // =========================================================
+    // Box Hit
+    // =========================================================
+
+    private void PerformBoxAttackHit(
+        PlayerBoxAttackData attack,
+        Vector2 direction)
+    {
+        if (direction.sqrMagnitude <=
+            0.0001f)
+        {
+            return;
+        }
+
+        direction.Normalize();
+
+
+        Vector2 perpendicular =
+            new Vector2(
+                -direction.y,
+                direction.x);
+
+
+        Vector2 localOffset =
+            attack.HitboxOffset;
+
+        Vector2 worldOffset =
+            direction *
+            localOffset.x +
+            perpendicular *
+            localOffset.y;
+
 
         Vector2 center =
-            (Vector2)transform.position +
-            offset;
+            (Vector2)attackOrigin.position +
+            worldOffset;
+
+
+        float angle =
+            Mathf.Atan2(
+                direction.y,
+                direction.x) *
+            Mathf.Rad2Deg;
+
 
         Collider2D[] hits =
             Physics2D.OverlapBoxAll(
                 center,
-                basicAttackSize,
-                0f,
+                attack.HitboxSize,
+                angle,
                 hurtboxLayer);
+
 
         _hitTargets.Clear();
 
-        foreach (Collider2D hit in hits)
+
+        foreach (Collider2D hit
+                 in hits)
         {
             IDamageable damageable =
                 hit.GetComponentInParent<
@@ -403,6 +697,7 @@ public sealed class PlayerCombat :
             if (damageable == null)
                 continue;
 
+
             if (ReferenceEquals(
                     damageable,
                     _selfDamageReceiver))
@@ -410,27 +705,32 @@ public sealed class PlayerCombat :
                 continue;
             }
 
+
             if (!_hitTargets.Add(
                     damageable))
             {
                 continue;
             }
 
+
             if (!damageable.IsAlive)
                 continue;
 
-            Vector2 knockback =
-                basicKnockback;
 
-            knockback.x *=
-                direction;
+            Vector2 knockback =
+                direction *
+                attack.KnockbackForward +
+                Vector2.up *
+                attack.KnockbackUp;
+
 
             DamageInfo info =
                 new DamageInfo(
-                    basicDamage,
+                    attack.Damage,
                     Object.InputAuthority,
                     knockback,
-                    basicKnockbackControlLock);
+                    attack.KnockbackControlLock);
+
 
             damageable.ApplyDamage(
                 in info);
@@ -438,34 +738,94 @@ public sealed class PlayerCombat :
     }
 
 
+    // =========================================================
+    // Timer
+    // =========================================================
+
+    private TickTimer CreateTimer(
+        float duration)
+    {
+        return duration > 0f
+            ? TickTimer.CreateFromSeconds(
+                Runner,
+                duration)
+            : TickTimer.None;
+    }
+
+
 #if UNITY_EDITOR
 
     private void OnDrawGizmosSelected()
     {
-        Vector2 rightOffset =
-            basicAttackOffset;
+        DrawAttackGizmo(
+            jabAttack);
 
-        Vector2 leftOffset =
-            basicAttackOffset;
+        DrawAttackGizmo(
+            counterAttack);
+    }
 
-        leftOffset.x *=
-            -1f;
 
-        Vector2 rightCenter =
-            (Vector2)transform.position +
-            rightOffset;
+    private void DrawAttackGizmo(
+        PlayerBoxAttackData attack)
+    {
+        if (attack == null)
+            return;
 
-        Vector2 leftCenter =
-            (Vector2)transform.position +
-            leftOffset;
+        Vector2 direction =
+            Application.isPlaying &&
+            _aimState != null &&
+            _aimState.AimDirection.sqrMagnitude >
+            0.0001f
+                ? _aimState.AimDirection.normalized
+                : Vector2.right;
+
+
+        Vector2 perpendicular =
+            new Vector2(
+                -direction.y,
+                direction.x);
+
+
+        Vector2 offset =
+            direction *
+            attack.HitboxOffset.x +
+            perpendicular *
+            attack.HitboxOffset.y;
+
+
+        Vector2 center =
+            (Vector2)attackOrigin.position +
+            offset;
+
+
+        float angle =
+            Mathf.Atan2(
+                direction.y,
+                direction.x) *
+            Mathf.Rad2Deg;
+
+
+        Matrix4x4 previousMatrix =
+            Gizmos.matrix;
+
+
+        Gizmos.matrix =
+            Matrix4x4.TRS(
+                center,
+                Quaternion.Euler(
+                    0f,
+                    0f,
+                    angle),
+                Vector3.one);
+
 
         Gizmos.DrawWireCube(
-            rightCenter,
-            basicAttackSize);
+            Vector3.zero,
+            attack.HitboxSize);
 
-        Gizmos.DrawWireCube(
-            leftCenter,
-            basicAttackSize);
+
+        Gizmos.matrix =
+            previousMatrix;
     }
 
 #endif
