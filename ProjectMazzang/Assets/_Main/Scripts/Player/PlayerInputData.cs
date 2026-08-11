@@ -12,5 +12,7 @@ public struct PlayerInputData :
 {
     public Vector2 Move;
 
+    public Vector2 AimDirection;
+
     public NetworkButtons Buttons;
 }

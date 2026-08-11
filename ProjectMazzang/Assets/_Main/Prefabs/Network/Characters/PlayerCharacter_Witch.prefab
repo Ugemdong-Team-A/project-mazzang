@@ -885,13 +885,13 @@ MonoBehaviour:
   groundDeceleration: 60
   airAcceleration: 30
   airDeceleration: 40
-  jumpSpeed: 6
+  jumpSpeed: 8
   maxAirJumps: 1
   groundCheckRadius: 0.15
   fastFallSpeed: 17
   fastFallAcceleration: 40
   fastFallInputThreshold: -0.5
-  wallCheckSize: {x: 0.4, y: 1.7}
+  wallCheckSize: {x: 0.4, y: 1.3}
   wallSlideSpeed: 3
   wallJumpHorizontalSpeed: 3
   wallJumpVerticalSpeed: 5

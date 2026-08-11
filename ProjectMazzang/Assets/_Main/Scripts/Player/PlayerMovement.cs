@@ -13,7 +13,8 @@ public enum JumpType : byte
 public sealed class PlayerMovement :
     PlayerModule,
     IPlayerMovementState,
-    IPlayerKnockbackReceiver
+    IPlayerKnockbackReceiver,
+    IPlayerFacingControl
 {
     [Header("References")]
     [SerializeField]
@@ -217,6 +218,10 @@ public sealed class PlayerMovement :
         Context.Register<
             IPlayerKnockbackReceiver>(
             this);
+
+        Context.Register<
+            IPlayerFacingControl>(
+            this);
     }
 
 
@@ -365,9 +370,6 @@ public sealed class PlayerMovement :
                 inputX,
                 -1f,
                 1f);
-
-        UpdateFacing(
-            inputX);
 
         float targetSpeed =
             inputX *
@@ -681,8 +683,8 @@ public sealed class PlayerMovement :
             !IsGrounded &&
             IsTouchingWall &&
             IsPressingTowardWall(
-                inputX)/* &&
-            rb.linearVelocity.y < 0f*/;
+                inputX) &&
+            rb.linearVelocity.y <= 0f;
     }
 
 
@@ -931,6 +933,17 @@ public sealed class PlayerMovement :
 
         Gizmos.color =
             Color.white;
+    }
+
+    public void SetFacing(
+        bool facingRight)
+    {
+        // 벽타기 중에는 벽 방향 규칙이 우선.
+        if (IsWallSliding)
+            return;
+
+        FacingRight =
+            facingRight;
     }
 
 #endif

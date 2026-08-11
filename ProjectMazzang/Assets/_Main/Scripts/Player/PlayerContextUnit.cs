@@ -100,3 +100,29 @@ public interface IPlayerDamageReceiver :
     IDamageable
 {
 }
+
+// =========================================================
+// Aim
+// =========================================================
+
+public interface IPlayerAimState :
+    IPlayerContextUnit
+{
+    Vector2 AimDirection { get; }
+
+    float AimAngle { get; }
+
+    bool FacingRight { get; }
+}
+
+
+// =========================================================
+// Facing
+// =========================================================
+
+public interface IPlayerFacingControl :
+    IPlayerContextUnit
+{
+    void SetFacing(
+        bool facingRight);
+}

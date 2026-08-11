@@ -134,8 +134,7 @@ public sealed class PlayerInputController :
         InputAction.CallbackContext context)
     {
         _move =
-            context.ReadValue<
-                Vector2>();
+            context.ReadValue<Vector2>();
     }
 
 
@@ -163,6 +162,45 @@ public sealed class PlayerInputController :
     }
 
 
+    private Vector2 GetAimDirection()
+    {
+        if (Mouse.current == null)
+            return Vector2.zero;
+
+        Camera mainCamera =
+            Camera.main;
+
+        if (mainCamera == null)
+            return Vector2.zero;
+
+        Vector2 mouseScreenPosition =
+            Mouse.current.position.ReadValue();
+
+        float depth =
+            transform.position.z -
+            mainCamera.transform.position.z;
+
+        Vector3 mouseWorldPosition =
+            mainCamera.ScreenToWorldPoint(
+                new Vector3(
+                    mouseScreenPosition.x,
+                    mouseScreenPosition.y,
+                    depth));
+
+        Vector2 direction =
+            mouseWorldPosition -
+            transform.position;
+
+        if (direction.sqrMagnitude <=
+            0.0001f)
+        {
+            return Vector2.zero;
+        }
+
+        return direction.normalized;
+    }
+
+
     // =========================================================
     // Runner Input
     // =========================================================
@@ -176,6 +214,9 @@ public sealed class PlayerInputController :
 
         data.Move =
             _move;
+
+        data.AimDirection =
+            GetAimDirection();
 
         data.Buttons =
             _buttons;

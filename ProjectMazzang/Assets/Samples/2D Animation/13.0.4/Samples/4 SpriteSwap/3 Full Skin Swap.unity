@@ -2079,7 +2079,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5283110698140630313, guid: 8f519a0f7487d41cebc10ff177ee1436, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
-      value: -14.339001
+      value: -18.89
       objectReference: {fileID: 0}
     - target: {fileID: 5426781916712734531, guid: 8f519a0f7487d41cebc10ff177ee1436, type: 3}
       propertyPath: m_Bounds.m_Center.x
@@ -2420,6 +2420,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -2738633176036518410, guid: 8f519a0f7487d41cebc10ff177ee1436, type: 3}
       insertIndex: -1
       addedObject: {fileID: 167194131}
+    - targetCorrespondingSourceObject: {fileID: -2738633176036518410, guid: 8f519a0f7487d41cebc10ff177ee1436, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1845529917}
     - targetCorrespondingSourceObject: {fileID: -7237028252756549861, guid: 8f519a0f7487d41cebc10ff177ee1436, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1140525159}
@@ -3069,6 +3072,24 @@ MonoBehaviour:
   m_labelHash: 9.985906e-19
   m_SpriteKey: 0.43750325
   m_SpriteHash: 1054867565
+--- !u!114 &1845529917
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1140525122}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9af1a34e77f35fd408c7e0ee967fc507, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerAimRig
+  aimCamera: {fileID: 1353557383}
+  aimPivot: {fileID: 1334691348}
+  ccdTarget: {fileID: 1675648166}
+  targetRadius: 6
+  smoothTime: 0.08
+  targetRotOffset: 90
 --- !u!1 &1973473259
 GameObject:
   m_ObjectHideFlags: 0
