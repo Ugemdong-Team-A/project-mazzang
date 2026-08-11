@@ -87,7 +87,7 @@ Transform:
   m_GameObject: {fileID: 852644235442246858}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.25, y: 1, z: 0}
+  m_LocalPosition: {x: -0.25, y: 0.7, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
@@ -706,7 +706,7 @@ MonoBehaviour:
   _stateAuthorityChangeErrorCorrectionDelta: 0
   SyncScale: 0
   SyncParent: 1
-  _interpolationTarget: {fileID: 0}
+  _interpolationTarget: {fileID: 3239413066992619661}
 --- !u!114 &4098969700376898355
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -836,6 +836,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
   rb: {fileID: 2139618658155120419}
+  networkRigidbody: {fileID: 0}
   groundCheck: {fileID: 534010410655661832}
   wallCheckLeft: {fileID: 636932328046927157}
   wallCheckRight: {fileID: 2338953937856615650}
@@ -845,15 +846,15 @@ MonoBehaviour:
   maxMoveSpeed: 7
   groundAcceleration: 45
   groundDeceleration: 60
-  airAcceleration: 20
-  airDeceleration: 12
+  airAcceleration: 30
+  airDeceleration: 40
   jumpSpeed: 6
   maxAirJumps: 1
   groundCheckRadius: 0.15
   fastFallSpeed: 17
   fastFallAcceleration: 40
   fastFallInputThreshold: -0.5
-  wallCheckRadius: 0.4
+  wallCheckSize: {x: 0.2, y: 1.4}
   wallSlideSpeed: 3
   wallJumpHorizontalSpeed: 3
   wallJumpVerticalSpeed: 5
@@ -1200,7 +1201,7 @@ Transform:
   m_GameObject: {fileID: 4028193235509719217}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.25, y: 1, z: 0}
+  m_LocalPosition: {x: 0.25, y: 0.7, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []

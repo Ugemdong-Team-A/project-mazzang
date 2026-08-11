@@ -24,6 +24,23 @@ public sealed class BattleCameraController : MonoBehaviour
     [SerializeField]
     private float defaultTargetRadius = 1f;
 
+    [Header("Target Framing")]
+    [SerializeField]
+    private Transform targetWeightCenter;
+
+    [SerializeField]
+    private float fullWeightDistance = 10f;
+
+    [SerializeField]
+    private float farTargetDistance = 16f;
+
+    [SerializeField]
+    [Range(0f, 1f)]
+    private float farTargetWeight = 0.05f;
+
+    [SerializeField]
+    private float targetWeightChangeSpeed = 4f;
+
     [Header("Shake")]
     [SerializeField]
     private CinemachineImpulseSource impulseSource;
@@ -45,6 +62,8 @@ public sealed class BattleCameraController : MonoBehaviour
     private readonly HashSet<Transform> targets =
         new();
 
+    private Vector3 _fallbackTargetWeightCenter;
+
 
     // =========================================================
     // Unity
@@ -61,11 +80,35 @@ public sealed class BattleCameraController : MonoBehaviour
 
         Instance = this;
 
+        if (targetWeightCenter != null)
+        {
+            _fallbackTargetWeightCenter =
+                targetWeightCenter.position;
+        }
+        else if (targetGroup != null)
+        {
+            // TargetGroup이 플레이어를 따라 움직이기 전
+            // 초기 위치를 전투 영역 중심으로 사용한다.
+            _fallbackTargetWeightCenter =
+                targetGroup.transform.position;
+        }
+        else
+        {
+            _fallbackTargetWeightCenter =
+                transform.position;
+        }
+
         // Winner Camera는 평소에는 사용하지 않는다.
         if (winnerCamera != null)
         {
             winnerCamera.enabled = false;
         }
+    }
+
+
+    private void Update()
+    {
+        UpdateTargetWeights();
     }
 
 
@@ -75,6 +118,25 @@ public sealed class BattleCameraController : MonoBehaviour
         {
             Instance = null;
         }
+    }
+
+
+    private void OnValidate()
+    {
+        fullWeightDistance =
+            Mathf.Max(
+                0f,
+                fullWeightDistance);
+
+        farTargetDistance =
+            Mathf.Max(
+                fullWeightDistance + 0.01f,
+                farTargetDistance);
+
+        targetWeightChangeSpeed =
+            Mathf.Max(
+                0f,
+                targetWeightChangeSpeed);
     }
 
 
@@ -133,6 +195,109 @@ public sealed class BattleCameraController : MonoBehaviour
     }
 
 
+    public void SetTargetWeightCenter(
+        Transform center)
+    {
+        targetWeightCenter = center;
+    }
+
+
+    private void UpdateTargetWeights()
+    {
+        if (targetGroup == null ||
+            targets.Count == 0)
+        {
+            return;
+        }
+
+        Vector2 center =
+            GetTargetWeightCenter();
+
+        foreach (Transform target in targets)
+        {
+            if (target == null)
+                continue;
+
+            int index =
+                targetGroup.FindMember(
+                    target);
+
+            if (index < 0 ||
+                index >= targetGroup.Targets.Count)
+            {
+                continue;
+            }
+
+            CinemachineTargetGroup.Target member =
+                targetGroup.Targets[index];
+
+            if (member == null)
+                continue;
+
+            float distance =
+                Vector2.Distance(
+                    center,
+                    target.position);
+
+            float desiredWeight =
+                CalculateTargetWeight(
+                    distance);
+
+            member.Weight =
+                Mathf.MoveTowards(
+                    member.Weight,
+                    desiredWeight,
+                    targetWeightChangeSpeed *
+                    Time.deltaTime);
+        }
+    }
+
+
+    private float CalculateTargetWeight(
+        float distance)
+    {
+        if (distance <= fullWeightDistance)
+        {
+            return defaultTargetWeight;
+        }
+
+        if (distance >= farTargetDistance)
+        {
+            return farTargetWeight;
+        }
+
+        float t =
+            Mathf.InverseLerp(
+                fullWeightDistance,
+                farTargetDistance,
+                distance);
+
+        // 직선 보간보다 경계에서 조금 자연스럽게
+        // Weight가 변하도록 한다.
+        t =
+            Mathf.SmoothStep(
+                0f,
+                1f,
+                t);
+
+        return Mathf.Lerp(
+            defaultTargetWeight,
+            farTargetWeight,
+            t);
+    }
+
+
+    private Vector2 GetTargetWeightCenter()
+    {
+        if (targetWeightCenter != null)
+        {
+            return targetWeightCenter.position;
+        }
+
+        return _fallbackTargetWeightCenter;
+    }
+
+
     // =========================================================
     // Shake
     // =========================================================
@@ -156,6 +321,7 @@ public sealed class BattleCameraController : MonoBehaviour
             deathShakeForce * multiplier);
     }
 
+
     private void PlayShake(
         Vector3 worldPosition,
         float force)
@@ -171,6 +337,7 @@ public sealed class BattleCameraController : MonoBehaviour
             .GenerateImpulseWithForce(
                 force * distanceFactor);
     }
+
 
     private float CalculateDistanceFactor(
         Vector3 worldPosition)

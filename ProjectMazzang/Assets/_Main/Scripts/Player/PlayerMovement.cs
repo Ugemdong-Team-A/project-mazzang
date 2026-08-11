@@ -1,4 +1,5 @@
-using Fusion;
+ï»¿using Fusion;
+using Fusion.Addons.Physics;
 using UnityEngine;
 
 public enum JumpType : byte
@@ -17,6 +18,9 @@ public sealed class PlayerMovement :
     [Header("References")]
     [SerializeField]
     private Rigidbody2D rb;
+
+    [SerializeField]
+    private NetworkRigidbody networkRigidbody;
 
     [SerializeField]
     private Transform groundCheck;
@@ -42,10 +46,10 @@ public sealed class PlayerMovement :
     private float groundDeceleration = 60f;
 
     [SerializeField]
-    private float airAcceleration = 20f;
+    private float airAcceleration = 30f;
 
     [SerializeField]
-    private float airDeceleration = 8f;
+    private float airDeceleration = 40f;
 
 
     [Header("Jump")]
@@ -73,7 +77,8 @@ public sealed class PlayerMovement :
 
     [Header("Wall")]
     [SerializeField]
-    private float wallCheckRadius = 0.15f;
+    private Vector2 wallCheckSize =
+        new Vector2(0.2f, 0.8f);
 
     [SerializeField]
     private float wallSlideSpeed = 3f;
@@ -179,6 +184,10 @@ public sealed class PlayerMovement :
         {
             rb = GetComponent<Rigidbody2D>();
         }
+        if (networkRigidbody == null)
+        {
+            networkRigidbody = GetComponent<NetworkRigidbody>();
+        }
     }
 
 
@@ -214,6 +223,11 @@ public sealed class PlayerMovement :
     // Fusion
     // =========================================================
 
+    public override void Spawned()
+    {
+
+    }
+
     public override void FixedUpdateNetwork()
     {
         UpdateGrounded();
@@ -230,8 +244,8 @@ public sealed class PlayerMovement :
                 input.Move,
                 1f);
 
-        // »ç¸Á Áß¿¡µµ ÇöÀç ¹öÆ° »óÅÂ´Â ¼ÒºñÇØ
-        // ¸®½ºÆù Á÷ÈÄ °ú°Å ÀÔ·ÂÀÌ »õ ÀÔ·ÂÃ³·³ Æ¢¾î³ª¿ÀÁö ¾Ê°Ô ÇÑ´Ù.
+        // ï¿½ï¿½ï¿½ ï¿½ß¿ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Æ° ï¿½ï¿½ï¿½Â´ï¿½ ï¿½Òºï¿½ï¿½ï¿½
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ô·ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½Ô·ï¿½Ã³ï¿½ï¿½ Æ¢ï¿½î³ªï¿½ï¿½ï¿½ï¿½ ï¿½Ê°ï¿½ ï¿½Ñ´ï¿½.
         if (_healthState == null ||
             !_healthState.IsAlive)
         {
@@ -307,8 +321,8 @@ public sealed class PlayerMovement :
         Vector2 velocity =
             rb.linearVelocity;
 
-        // °ø°Ý Áß¿¡´Â ÀÔ·Â ±â¹Ý ¼öÆò ÀÌµ¿À» ¸ØÃá´Ù.
-        // ¼öÁ÷ ¼Óµµ´Â À¯ÁöÇØ °øÁß¿¡¼­´Â Áß·Â/³«ÇÏ°¡ °è¼Ó Àû¿ëµÈ´Ù.
+        // ï¿½ï¿½ï¿½ï¿½ ï¿½ß¿ï¿½ï¿½ï¿½ ï¿½Ô·ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ìµï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½.
+        // ï¿½ï¿½ï¿½ï¿½ ï¿½Óµï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ß¿ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ß·ï¿½/ï¿½ï¿½ï¿½Ï°ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½È´ï¿½.
         velocity.x =
             0f;
 
@@ -560,15 +574,17 @@ public sealed class PlayerMovement :
     private void UpdateWallState()
     {
         IsTouchingWallLeft =
-            Physics2D.OverlapCircle(
+            Physics2D.OverlapBox(
                 wallCheckLeft.position,
-                wallCheckRadius,
+                wallCheckSize,
+                0f,
                 groundLayer) != null;
 
         IsTouchingWallRight =
-            Physics2D.OverlapCircle(
+            Physics2D.OverlapBox(
                 wallCheckRight.position,
-                wallCheckRadius,
+                wallCheckSize,
+                0f,
                 groundLayer) != null;
     }
 
@@ -604,8 +620,8 @@ public sealed class PlayerMovement :
         if (!IsWallSliding)
             return;
 
-        // PresentationÀÌ ·ÎÄÃ Wall Check¸¦ ÀÐÁö ¾Ê¾Æµµ µÇµµ·Ï
-        // º®À» Å¸´Â µ¿¾È ÃÖÁ¾ ¹Ù¶óº¸´Â ¹æÇâÀ» Networked »óÅÂ·Î È®Á¤ÇÑ´Ù.
+        // Presentationï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ Wall Checkï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ê¾Æµï¿½ ï¿½Çµï¿½ï¿½ï¿½
+        // ï¿½ï¿½ï¿½ï¿½ Å¸ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ù¶óº¸´ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Networked ï¿½ï¿½ï¿½Â·ï¿½ È®ï¿½ï¿½ï¿½Ñ´ï¿½.
         if (IsTouchingWallLeft)
         {
             FacingRight =
@@ -770,16 +786,16 @@ public sealed class PlayerMovement :
 
         if (wallCheckLeft != null)
         {
-            Gizmos.DrawWireSphere(
+            Gizmos.DrawWireCube(
                 wallCheckLeft.position,
-                wallCheckRadius);
+                wallCheckSize);
         }
 
         if (wallCheckRight != null)
         {
-            Gizmos.DrawWireSphere(
+            Gizmos.DrawWireCube(
                 wallCheckRight.position,
-                wallCheckRadius);
+                wallCheckSize);
         }
     }
 
