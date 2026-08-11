@@ -16,10 +16,13 @@ public sealed class GameUIController : MonoBehaviour
     private void OnEnable()
     {
         NetworkGameManager.LocalSpawned +=
-            OnGameManagerSpawned;
+            HandleGameManagerSpawned;
 
         NetworkGameManager.LocalDespawned +=
-            OnGameManagerDespawned;
+            HandleGameManagerDespawned;
+
+        PlayerHealth.LocalDeathOccurred +=
+            HandlePlayerDeathOccurred;
 
         if (NetworkGameManager.Instance != null)
         {
@@ -32,10 +35,13 @@ public sealed class GameUIController : MonoBehaviour
     private void OnDisable()
     {
         NetworkGameManager.LocalSpawned -=
-            OnGameManagerSpawned;
+            HandleGameManagerSpawned;
 
         NetworkGameManager.LocalDespawned -=
-            OnGameManagerDespawned;
+            HandleGameManagerDespawned;
+
+        PlayerHealth.LocalDeathOccurred -=
+            HandlePlayerDeathOccurred;
 
         Unbind();
     }
@@ -45,14 +51,14 @@ public sealed class GameUIController : MonoBehaviour
     // Bind
     // =========================================================
 
-    private void OnGameManagerSpawned(
+    private void HandleGameManagerSpawned(
         NetworkGameManager gameManager)
     {
         Bind(gameManager);
     }
 
 
-    private void OnGameManagerDespawned(
+    private void HandleGameManagerDespawned(
         NetworkGameManager gameManager)
     {
         if (_gameManager != gameManager)
@@ -74,7 +80,7 @@ public sealed class GameUIController : MonoBehaviour
             gameManager;
 
         _gameManager.StateChanged +=
-            OnMatchStateChanged;
+            HandleMatchStateChanged;
 
         RefreshFromCurrentState();
     }
@@ -85,7 +91,7 @@ public sealed class GameUIController : MonoBehaviour
         if (_gameManager != null)
         {
             _gameManager.StateChanged -=
-                OnMatchStateChanged;
+                HandleMatchStateChanged;
         }
 
         _gameManager = null;
@@ -110,7 +116,7 @@ public sealed class GameUIController : MonoBehaviour
     // Match State
     // =========================================================
 
-    private void OnMatchStateChanged(
+    private void HandleMatchStateChanged(
         MatchState state)
     {
         ApplyMatchState(state);
@@ -218,6 +224,83 @@ public sealed class GameUIController : MonoBehaviour
         // 실제 SceneLoadStarted를 받아 표시하므로
         // 여기서는 Match UI만 정리.
         ui.HideAll();
+    }
+
+
+    // =========================================================
+    // Combat Notice
+    // =========================================================
+
+    private void HandlePlayerDeathOccurred(
+        PlayerHealth health)
+    {
+        if (health == null ||
+            ui == null)
+        {
+            return;
+        }
+
+        NetworkRunner runner =
+            health.Runner;
+
+        if (runner == null)
+            return;
+
+        string victimName =
+            ResolvePlayerName(
+                runner,
+                health.Object.InputAuthority);
+
+        string attackerName =
+            ResolvePlayerName(
+                runner,
+                health.LastDeathAttacker);
+
+        if (health.Lives <= 0)
+        {
+            ui.ShowEliminatedNotice(
+                attackerName,
+                victimName);
+
+            return;
+        }
+
+        ui.ShowKillNotice(
+            attackerName,
+            victimName);
+    }
+
+
+    private static string ResolvePlayerName(
+        NetworkRunner runner,
+        PlayerRef player)
+    {
+        if (runner == null ||
+            player == PlayerRef.None)
+        {
+            return string.Empty;
+        }
+
+        if (!runner.TryGetPlayerObject(
+                player,
+                out NetworkObject dataObject))
+        {
+            return player.ToString();
+        }
+
+        if (!dataObject.TryGetComponent(
+                out NetworkPlayerData playerData))
+        {
+            return player.ToString();
+        }
+
+        string displayName =
+            playerData.DisplayName;
+
+        return string.IsNullOrWhiteSpace(
+                displayName)
+            ? player.ToString()
+            : displayName;
     }
 
 

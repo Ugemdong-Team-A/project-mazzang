@@ -85,20 +85,14 @@ public sealed class PlayerStatusUI :
             TryResolvePlayerData();
         }
 
-        if (statusRoot != null &&
-            !statusRoot.activeSelf)
-        {
-            return;
-        }
-
         Refresh();
     }
 
 
     private void RefreshVisibility()
     {
-        if (statusRoot == null ||
-            _healthState == null)
+        if (statusRoot == null/* ||
+            _healthState == null*/)
         {
             return;
         }

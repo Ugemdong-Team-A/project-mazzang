@@ -1,11 +1,18 @@
 using TMPro;
 using UnityEngine;
 
-public sealed class GameUI : MonoBehaviour
+public sealed class GameUI :
+    MonoBehaviour
 {
     [Header("HUD")]
     [SerializeField]
     private GameObject hudRoot;
+
+
+    [Header("Combat Notice")]
+    [SerializeField]
+    private CombatNoticeUI combatNotice;
+
 
     [Header("Result")]
     [SerializeField]
@@ -24,7 +31,7 @@ public sealed class GameUI : MonoBehaviour
 
     private void Awake()
     {
-        ShowPlaying();
+        HideAll();
     }
 
 
@@ -46,8 +53,6 @@ public sealed class GameUI : MonoBehaviour
 
     public void ShowEnding()
     {
-        // 마지막 KO와 승자 카메라 연출을
-        // 방해하지 않도록 HUD는 숨긴다.
         SetActive(
             hudRoot,
             false);
@@ -55,6 +60,9 @@ public sealed class GameUI : MonoBehaviour
         SetActive(
             resultRoot,
             false);
+
+        combatNotice?
+            .HideImmediate();
     }
 
 
@@ -69,17 +77,16 @@ public sealed class GameUI : MonoBehaviour
             resultRoot,
             true);
 
-        if (resultTitleText != null)
-        {
-            resultTitleText.text =
-                "승자는..!";
-        }
+        SetText(
+            resultTitleText,
+            "WINNER");
 
-        if (winnerNameText != null)
-        {
-            winnerNameText.text =
-                winnerName;
-        }
+        SetText(
+            winnerNameText,
+            winnerName);
+
+        combatNotice?
+            .HideImmediate();
     }
 
 
@@ -93,17 +100,16 @@ public sealed class GameUI : MonoBehaviour
             resultRoot,
             true);
 
-        if (resultTitleText != null)
-        {
-            resultTitleText.text =
-                "DRAW";
-        }
+        SetText(
+            resultTitleText,
+            "DRAW");
 
-        if (winnerNameText != null)
-        {
-            winnerNameText.text =
-                string.Empty;
-        }
+        SetText(
+            winnerNameText,
+            string.Empty);
+
+        combatNotice?
+            .HideImmediate();
     }
 
 
@@ -116,6 +122,35 @@ public sealed class GameUI : MonoBehaviour
         SetActive(
             resultRoot,
             false);
+
+        combatNotice?
+            .HideImmediate();
+    }
+
+
+    // =========================================================
+    // Combat Notice
+    // =========================================================
+
+    public void ShowKillNotice(
+        string attackerName,
+        string victimName)
+    {
+        combatNotice?
+            .ShowKill(
+                attackerName,
+                victimName);
+    }
+
+
+    public void ShowEliminatedNotice(
+        string attackerName,
+        string victimName)
+    {
+        combatNotice?
+            .ShowEliminated(
+                attackerName,
+                victimName);
     }
 
 
@@ -127,9 +162,22 @@ public sealed class GameUI : MonoBehaviour
         GameObject target,
         bool active)
     {
-        if (target != null)
-        {
-            target.SetActive(active);
-        }
+        if (target == null)
+            return;
+
+        target.SetActive(
+            active);
+    }
+
+
+    private static void SetText(
+        TMP_Text target,
+        string value)
+    {
+        if (target == null)
+            return;
+
+        target.text =
+            value ?? string.Empty;
     }
 }
