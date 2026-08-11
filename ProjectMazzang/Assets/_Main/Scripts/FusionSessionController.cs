@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Fusion;
@@ -26,6 +27,10 @@ public sealed class FusionSessionController :
     [Header("Game Session")]
     [SerializeField]
     private NetworkGameSession networkGameSessionPrefab;
+
+    [Header("Recovery")]
+    [SerializeField]
+    private string fallbackLobbySceneName = "Lobby";
 
     private readonly List<SessionInfo> sessions = new();
 
@@ -93,8 +98,15 @@ public sealed class FusionSessionController :
     public event Action SceneLoadCompleted;
 
     public event Action<
-    PlayerRef,
-    NetworkPlayerData> PlayerLeaving;
+        PlayerRef,
+        NetworkPlayerData> PlayerJoined;
+
+    public event Action<
+        PlayerRef,
+        NetworkPlayerData> PlayerLeaving;
+
+    public event Action<ShutdownReason>
+        UnexpectedShutdown;
 
     // ==================================================
     // Unity
@@ -887,6 +899,21 @@ public sealed class FusionSessionController :
         EnsurePlayerData(
             callbackRunner,
             player);
+
+        NetworkPlayerData playerData =
+            null;
+
+        if (callbackRunner.TryGetPlayerObject(
+                player,
+                out NetworkObject dataObject))
+        {
+            dataObject.TryGetComponent(
+                out playerData);
+        }
+
+        PlayerJoined?.Invoke(
+            player,
+            playerData);
     }
 
     public void OnPlayerLeft(
@@ -1039,6 +1066,16 @@ public sealed class FusionSessionController :
             return;
         }
 
+        NetworkSessionState previousState =
+            state;
+
+        string recoveryLobbySceneName =
+            gameSession != null &&
+            !string.IsNullOrWhiteSpace(
+                gameSession.LobbySceneName)
+                ? gameSession.LobbySceneName
+                : fallbackLobbySceneName;
+
         bool wasUnexpected =
             activeOperation ==
                 NetworkOperation.None &&
@@ -1082,11 +1119,50 @@ public sealed class FusionSessionController :
         // ConnectionLost를 UI에 알린다.
         if (wasUnexpected)
         {
+            UnexpectedShutdown?.Invoke(
+                shutdownReason);
+
             RaiseFailure(
                 NetworkOperation.ConnectionLost,
                 $"네트워크 연결이 종료되었습니다. ({shutdownReason})",
                 shutdownReason);
+
+            if (previousState ==
+                NetworkSessionState.InRoom)
+            {
+                StartCoroutine(
+                    RecoverLobbySceneNextFrame(
+                        recoveryLobbySceneName));
+            }
         }
+    }
+
+
+    private IEnumerator RecoverLobbySceneNextFrame(
+        string lobbySceneName)
+    {
+        // Fusion callback 안에서 즉시 Scene을 갈아엎지 않고
+        // Runner 정리가 끝난 다음 프레임에 로컬 복구한다.
+        yield return null;
+
+        if (string.IsNullOrWhiteSpace(
+                lobbySceneName))
+        {
+            yield break;
+        }
+
+        Scene activeScene =
+            SceneManager.GetActiveScene();
+
+        if (activeScene.name ==
+            lobbySceneName)
+        {
+            yield break;
+        }
+
+        SceneManager.LoadScene(
+            lobbySceneName,
+            LoadSceneMode.Single);
     }
 
     // ==================================================
@@ -1152,11 +1228,11 @@ public sealed class FusionSessionController :
     {
     }
 
-    public void OnUserSimulationMessage(
+    /*public void OnUserSimulationMessage(
         NetworkRunner callbackRunner,
         SimulationMessagePtr message)
     {
-    }
+    }*/
 
     public void OnHostMigration(
         NetworkRunner callbackRunner,

@@ -25,9 +25,6 @@ public sealed class LobbyUIController :
     private LobbyPage _currentPage =
         LobbyPage.Title;
 
-    private string _localNickname;
-
-    private bool _nicknameSubmittedForRoom;
     private bool _characterConfirmRequestPending;
     private bool _mapVoteRequestPending;
 
@@ -51,6 +48,8 @@ public sealed class LobbyUIController :
 
         ui.Title.SetVersion(
             Application.version);
+
+        RestoreLocalNickname();
 
         // 버전 확인이 끝나기 전에는
         // 타이틀 입력/진입을 모두 잠근다.
@@ -310,7 +309,6 @@ public sealed class LobbyUIController :
         {
             TryBindGameSession();
             RefreshRoomPlayers();
-            TrySubmitLocalNickname();
             RefreshSelectionUI();
         }
     }
@@ -477,8 +475,12 @@ public sealed class LobbyUIController :
             return;
         }
 
-        _localNickname =
-            normalized;
+        if (!NetworkPlayerData.TrySetLocalNickname(
+                normalized))
+        {
+            RefreshNicknameValidation();
+            return;
+        }
 
         _currentPage =
             LobbyPage.SessionBrowser;
@@ -491,6 +493,16 @@ public sealed class LobbyUIController :
         ApplyNetworkState(
             _network.State);
     }
+
+    private void RestoreLocalNickname()
+    {
+        if (!NetworkPlayerData.HasLocalNickname)
+            return;
+
+        ui.Title.SetNickname(
+            NetworkPlayerData.LocalNickname);
+    }
+
 
     // ==================================================
     // FSC State
@@ -545,10 +557,6 @@ public sealed class LobbyUIController :
 
         _mapVoteRequestPending =
             false;
-
-        _nicknameSubmittedForRoom =
-            false;
-
         UnbindGameSession();
 
         if (_versionAvailable)
@@ -617,11 +625,8 @@ public sealed class LobbyUIController :
 
     private void HandleRoomConnectingState()
     {
-        _nicknameSubmittedForRoom =
-            false;
-
         _characterConfirmRequestPending =
-            false;
+                    false;
 
         _mapVoteRequestPending =
             false;
@@ -646,19 +651,14 @@ public sealed class LobbyUIController :
 
         ui.Room.SetLeaveInteractable(
             true);
-
-        _nicknameSubmittedForRoom =
-            false;
-
         _characterConfirmRequestPending =
-            false;
+                    false;
 
         _mapVoteRequestPending =
             false;
 
         TryBindGameSession();
         RefreshRoomPlayers();
-        TrySubmitLocalNickname();
         RefreshSelectionUI();
     }
 
@@ -733,8 +733,6 @@ public sealed class LobbyUIController :
 
         if (playerData.IsLocalPlayer)
         {
-            TrySubmitLocalNickname(
-                playerData);
         }
 
         RefreshCharacterSummary();
@@ -866,51 +864,6 @@ public sealed class LobbyUIController :
         ui.Room.SetCharacterSummary(
             confirmedCount,
             playerCount);
-    }
-
-    // ==================================================
-    // Nickname Submit
-    // ==================================================
-
-    private void TrySubmitLocalNickname()
-    {
-        if (_nicknameSubmittedForRoom)
-            return;
-
-        NetworkPlayerData playerData =
-            GetLocalPlayerData();
-
-        if (playerData == null)
-            return;
-
-        TrySubmitLocalNickname(
-            playerData);
-    }
-
-    private void TrySubmitLocalNickname(
-        NetworkPlayerData playerData)
-    {
-        if (_nicknameSubmittedForRoom)
-            return;
-
-        if (!playerData.IsLocalPlayer)
-            return;
-
-        if (string.IsNullOrWhiteSpace(
-                _localNickname))
-        {
-            return;
-        }
-
-        bool requested =
-            playerData.RequestNickname(
-                _localNickname);
-
-        if (requested)
-        {
-            _nicknameSubmittedForRoom =
-                true;
-        }
     }
 
     // ==================================================
@@ -1247,12 +1200,8 @@ public sealed class LobbyUIController :
 
         _mapVoteRequestPending =
             false;
-
-        _nicknameSubmittedForRoom =
-            false;
-
         bool result =
-            await _network.LeaveRoomAsync();
+                    await _network.LeaveRoomAsync();
 
         if (!result)
             return;

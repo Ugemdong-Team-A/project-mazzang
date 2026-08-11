@@ -16,6 +16,9 @@ public sealed class AppRoot : MonoBehaviour
     [SerializeField]
     private SceneLoadingUI sceneLoading;
 
+    [SerializeField]
+    private SystemNoticeUI systemNotice;
+
     public FusionSessionController Network =>
         network;
 
@@ -24,6 +27,9 @@ public sealed class AppRoot : MonoBehaviour
 
     public SceneLoadingUI SceneLoading =>
         sceneLoading;
+
+    public SystemNoticeUI SystemNotice =>
+        systemNotice;
 
     private void Awake()
     {
@@ -59,10 +65,23 @@ public sealed class AppRoot : MonoBehaviour
                 this);
         }
 
+        if (systemNotice == null)
+        {
+            Debug.LogError(
+                $"{nameof(SystemNoticeUI)}가 등록되지 않았습니다.",
+                this);
+        }
+
         if (network != null &&
             sceneLoading != null)
         {
             sceneLoading.Bind(network);
+        }
+
+        if (network != null &&
+            systemNotice != null)
+        {
+            systemNotice.Bind(network);
         }
     }
 
@@ -74,6 +93,11 @@ public sealed class AppRoot : MonoBehaviour
         if (sceneLoading != null)
         {
             sceneLoading.Unbind();
+        }
+
+        if (systemNotice != null)
+        {
+            systemNotice.Unbind();
         }
 
         Instance = null;

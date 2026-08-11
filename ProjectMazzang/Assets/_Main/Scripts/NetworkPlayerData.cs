@@ -5,6 +5,47 @@ using UnityEngine;
 public sealed class NetworkPlayerData :
     NetworkBehaviour
 {
+    private static string _localNickname;
+
+
+    // ==================================================
+    // Local Nickname
+    // ==================================================
+
+    public static string LocalNickname =>
+        _localNickname;
+
+    public static bool HasLocalNickname =>
+        !string.IsNullOrWhiteSpace(
+            _localNickname);
+
+
+    [RuntimeInitializeOnLoadMethod(
+        RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetLocalState()
+    {
+        _localNickname =
+            null;
+    }
+
+
+    public static bool TrySetLocalNickname(
+        string nickname)
+    {
+        if (!PlayerNicknamePolicy.TryNormalize(
+                nickname,
+                out string normalized))
+        {
+            return false;
+        }
+
+        _localNickname =
+            normalized;
+
+        return true;
+    }
+
+
     [Networked,
      OnChangedRender(nameof(OnPlayerDataChanged))]
     public NetworkString<_16> Nickname
@@ -12,6 +53,14 @@ public sealed class NetworkPlayerData :
         get;
         private set;
     }
+
+    [Networked]
+    public NetworkBool HasConfirmedNickname
+    {
+        get;
+        private set;
+    }
+
 
     [Networked,
      OnChangedRender(nameof(OnPlayerDataChanged))]
@@ -66,6 +115,13 @@ public sealed class NetworkPlayerData :
     public static event Action<
         NetworkPlayerData> LocalChanged;
 
+    /// <summary>
+    /// StateAuthority에서 실제 닉네임이 최초 확정된 순간 한 번 발생합니다.
+    /// NPD는 UI를 모르고, 확정 사실만 외부에 알립니다.
+    /// </summary>
+    public static event Action<
+        NetworkPlayerData> NicknameConfirmed;
+
     public static event Action<
         NetworkRunner,
         PlayerRef> LocalDespawned;
@@ -82,6 +138,9 @@ public sealed class NetworkPlayerData :
                 PlayerNicknamePolicy.CreateFallback(
                     PlayerRef);
 
+            HasConfirmedNickname =
+                false;
+
             SelectedCharacterId = -1;
             IsCharacterConfirmed = false;
             VotedMapId = -1;
@@ -89,6 +148,8 @@ public sealed class NetworkPlayerData :
         }
 
         LocalSpawned?.Invoke(this);
+
+        TrySubmitLocalNickname();
     }
 
     public override void Despawned(
@@ -190,6 +251,9 @@ public sealed class NetworkPlayerData :
             return false;
         }
 
+        _localNickname =
+            normalized;
+
         NetworkString<_16> networkName =
             normalized;
 
@@ -206,6 +270,19 @@ public sealed class NetworkPlayerData :
 
         return true;
     }
+
+    private void TrySubmitLocalNickname()
+    {
+        if (!HasInputAuthority)
+            return;
+
+        if (!HasLocalNickname)
+            return;
+
+        RequestNickname(
+            _localNickname);
+    }
+
 
     [Rpc(
         RpcSources.InputAuthority,
@@ -239,8 +316,20 @@ public sealed class NetworkPlayerData :
             ResolveUniqueNickname(
                 normalized);
 
+        bool firstConfirmation =
+            !HasConfirmedNickname;
+
         Nickname =
             normalized;
+
+        HasConfirmedNickname =
+            true;
+
+        if (firstConfirmation)
+        {
+            NicknameConfirmed?
+                .Invoke(this);
+        }
     }
 
     // ==================================================

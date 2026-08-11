@@ -91,6 +91,9 @@ public sealed class NetworkGameSession :
     // Public Data
     // ==================================================
 
+    public string LobbySceneName =>
+        lobbySceneName;
+
     public CharacterCatalog CharacterCatalog =>
         characterCatalog;
 
@@ -134,7 +137,13 @@ public sealed class NetworkGameSession :
         {
             network.SceneLoadCompleted +=
                 OnSceneLoadCompleted;
+
+            network.PlayerLeaving +=
+                HandlePlayerLeaving;
         }
+
+        NetworkPlayerData.NicknameConfirmed +=
+            HandleNicknameConfirmed;
 
         LocalSpawned?.Invoke(this);
     }
@@ -152,7 +161,13 @@ public sealed class NetworkGameSession :
         {
             network.SceneLoadCompleted -=
                 OnSceneLoadCompleted;
+
+            network.PlayerLeaving -=
+                HandlePlayerLeaving;
         }
+
+        NetworkPlayerData.NicknameConfirmed -=
+            HandleNicknameConfirmed;
 
         LocalDespawned?.Invoke(this);
     }
@@ -734,7 +749,12 @@ public sealed class NetworkGameSession :
                 out _);
 
         if (loadStarted)
+        {
+            BroadcastSystemNotice(
+                "게임이 종료되어 로비로 돌아갑니다.");
+
             return true;
+        }
 
         _lobbyLoadRequested = false;
 
@@ -768,6 +788,119 @@ public sealed class NetworkGameSession :
         ResetPlayersForLobby();
         InitializeLobbyState();
     }
+
+    // ==================================================
+    // System Notice
+    // ==================================================
+
+    private void HandleNicknameConfirmed(
+        NetworkPlayerData playerData)
+    {
+        if (!HasStateAuthority)
+            return;
+
+        if (playerData == null ||
+            playerData.Runner != Runner)
+        {
+            return;
+        }
+
+        if (!CanShowPlayerPresenceNotice())
+            return;
+
+        BroadcastSystemNotice(
+            $"{playerData.DisplayName}님이 참가했습니다.");
+    }
+
+
+    private bool CanShowPlayerPresenceNotice()
+    {
+        // Returning 중에는 씬 정리 과정의 입/퇴장 알림을 표시하지 않습니다.
+        // Playing을 포함한 나머지 세션 단계에서는 표시합니다.
+        return Phase !=
+               LobbySelectionPhase.Returning;
+    }
+
+
+    private void HandlePlayerLeaving(
+        PlayerRef player,
+        NetworkPlayerData playerData)
+    {
+        if (!HasStateAuthority)
+            return;
+
+        if (!CanShowPlayerPresenceNotice())
+            return;
+
+        string playerName =
+            ResolvePlayerName(
+                player,
+                playerData);
+
+        BroadcastSystemNotice(
+            $"{playerName}님이 나갔습니다.");
+    }
+
+
+    private void BroadcastSystemNotice(
+        string message)
+    {
+        if (!HasStateAuthority)
+            return;
+
+        if (string.IsNullOrWhiteSpace(
+                message))
+        {
+            return;
+        }
+
+        NetworkString<_64> networkMessage =
+            message;
+
+        RPC_ShowSystemNotice(
+            networkMessage);
+    }
+
+
+    [Rpc(
+        RpcSources.StateAuthority,
+        RpcTargets.All)]
+    private void RPC_ShowSystemNotice(
+        NetworkString<_64> message)
+    {
+        AppRoot appRoot =
+            AppRoot.Instance;
+
+        if (appRoot == null ||
+            appRoot.SystemNotice == null)
+        {
+            return;
+        }
+
+        appRoot.SystemNotice.Show(
+            message.ToString());
+    }
+
+
+    private static string ResolvePlayerName(
+        PlayerRef player,
+        NetworkPlayerData playerData)
+    {
+        if (playerData != null)
+        {
+            string displayName =
+                playerData.DisplayName;
+
+            if (!string.IsNullOrWhiteSpace(
+                    displayName))
+            {
+                return displayName;
+            }
+        }
+
+        return player.ToString();
+    }
+
 
     // ==================================================
     // Reset
