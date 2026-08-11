@@ -4,75 +4,127 @@ using UnityEngine;
 [DefaultExecutionOrder(-90)]
 public sealed class PlayerAim :
     PlayerModule,
-    IPlayerAimState
+    IPlayerAimState,
+    IPlayerAimControl
 {
     [Header("Rig")]
     [SerializeField]
-    private Transform aimPivot;
+    private Transform aimOrigin;
 
     [SerializeField]
     private Transform ccdTarget;
 
+    [Tooltip(
+        "상체 조준을 담당하는 CCD 등의 Behaviour입니다. " +
+        "AnimationDriven 상태에서는 비활성화됩니다.")]
+    [SerializeField]
+    private UnityEngine.Behaviour upperBodyAimRig;
+
     [Min(0.01f)]
     [SerializeField]
-    private float targetRadius = 3f;
+    private float ccdTargetRadius = 3f;
 
     [Tooltip(
-        "캐릭터의 실제 정면과 CCD Effector 본 방향의 각도 차이입니다.")]
+        "캐릭터 정면축과 CCD Effector 본 축 사이의 각도 차이입니다.")]
     [SerializeField]
     private float rigAngleOffset = 90f;
 
 
-    [Header("Aim")]
+    [Header("Body Aim")]
     [Range(0f, 89f)]
     [SerializeField]
-    private float maxAimAngle = 80f;
+    private float maxBodyAimAngle = 80f;
 
-    [Tooltip(
-        "현재 Facing 기준으로 이 각도보다 뒤를 보면 Facing을 반전합니다.")]
     [Range(90f, 179f)]
     [SerializeField]
     private float facingFlipAngle = 100f;
 
     [Min(0f)]
     [SerializeField]
-    private float aimSpeed = 540f;
+    private float bodyAimSpeed = 540f;
 
 
-    private IPlayerMovementState _movementState;
+    private IPlayerMovementState
+        _movementState;
 
-    private IPlayerFacingControl _facingControl;
-
-    private IPlayerHealthState _healthState;
+    private IPlayerFacingControl
+        _facingControl;
 
 
     // =========================================================
     // Network State
     // =========================================================
 
-    /// <summary>
-    /// 현재 Facing 기준 실제 상체 조준 각도입니다.
-    ///
-    /// 0도는 캐릭터 정면이며,
-    /// 양수는 위쪽, 음수는 아래쪽입니다.
-    /// </summary>
     [Networked]
-    public float AimAngle
+    public Vector2 AimDirection
     {
         get;
         private set;
     }
 
 
+    [Networked]
+    public float BodyAimAngle
+    {
+        get;
+        private set;
+    }
+
+
+    [Networked]
+    public PlayerAimTrackingMode TrackingMode
+    {
+        get;
+        private set;
+    }
+
+
+    [Networked]
+    public PlayerAimFacingMode FacingMode
+    {
+        get;
+        private set;
+    }
+
+
+    [Networked]
+    public PlayerAimRigMode RigMode
+    {
+        get;
+        private set;
+    }
+
+
+    [Networked]
+    public PlayerAimCardinalDirection CardinalDirection
+    {
+        get;
+        private set;
+    }
+
+
+    [Networked]
+    private NetworkBool LockedFacingRight
+    {
+        get;
+        set;
+    }
+
+
     // =========================================================
-    // Public State
+    // State
     // =========================================================
 
-    public Vector2 AimDirection =>
-        GetWorldAimDirection(
-            AimAngle);
+    public bool IsAimOverridden =>
+        TrackingMode !=
+            PlayerAimTrackingMode.FollowInput ||
+        FacingMode !=
+            PlayerAimFacingMode.FollowAim ||
+        RigMode !=
+            PlayerAimRigMode.Procedural;
 
-    public bool FacingRight =>
+
+    private bool FacingRight =>
         _movementState == null ||
         _movementState.FacingRight;
 
@@ -86,6 +138,10 @@ public sealed class PlayerAim :
         Context.Register<
             IPlayerAimState>(
             this);
+
+        Context.Register<
+            IPlayerAimControl>(
+            this);
     }
 
 
@@ -98,10 +154,6 @@ public sealed class PlayerAim :
         _facingControl =
             Context.Get<
                 IPlayerFacingControl>();
-
-        _healthState =
-            Context.Get<
-                IPlayerHealthState>();
     }
 
 
@@ -114,60 +166,179 @@ public sealed class PlayerAim :
         if (!IsContextReady)
             return;
 
-        if (_healthState == null ||
-            !_healthState.IsAlive)
-        {
-            return;
-        }
-
         if (!GetInput(
                 out PlayerInputData input))
         {
             return;
         }
 
-        Vector2 desiredDirection =
-            input.AimDirection;
+        Vector2 inputAimDirection =
+            NormalizeDirection(
+                input.AimDirection);
 
-        if (desiredDirection.sqrMagnitude <=
-            0.0001f)
-        {
-            return;
-        }
+        UpdateAimDirection(
+            inputAimDirection);
 
-        desiredDirection.Normalize();
+        UpdateFacing();
 
-        UpdateFacing(
-            desiredDirection);
-
-        float targetAngle =
-            CalculateLocalAimAngle(
-                desiredDirection);
-
-        targetAngle =
-            Mathf.Clamp(
-                targetAngle,
-                -maxAimAngle,
-                maxAimAngle);
-
-        AimAngle =
-            Mathf.MoveTowards(
-                AimAngle,
-                targetAngle,
-                aimSpeed *
-                Runner.DeltaTime);
+        UpdateBodyAim();
     }
 
 
     public override void Render()
     {
-        if (aimPivot == null ||
-            ccdTarget == null)
+        UpdateRigPresentation();
+    }
+
+
+    // =========================================================
+    // Aim Override
+    // =========================================================
+
+    public void ApplyOverride(
+        in PlayerAimOverride aimOverride,
+        Vector2 sourceAimDirection)
+    {
+        Vector2 sourceDirection =
+            ResolveSourceDirection(
+                sourceAimDirection);
+
+        // 방향을 고정하기 전에
+        // 해당 공격 방향에 맞게 Facing을 한 번 확정한다.
+        if (aimOverride.FacingMode ==
+            PlayerAimFacingMode.Locked)
+        {
+            TryUpdateFacingFromDirection(
+                sourceDirection);
+
+            LockedFacingRight =
+                FacingRight;
+        }
+
+        TrackingMode =
+            aimOverride.TrackingMode;
+
+        FacingMode =
+            aimOverride.FacingMode;
+
+        RigMode =
+            aimOverride.RigMode;
+
+        switch (TrackingMode)
+        {
+            case PlayerAimTrackingMode.FollowInput:
+                AimDirection =
+                    sourceDirection;
+
+                CardinalDirection =
+                    PlayerAimCardinalDirection.None;
+                break;
+
+
+            case PlayerAimTrackingMode.LockedDirection:
+                AimDirection =
+                    sourceDirection;
+
+                CardinalDirection =
+                    PlayerAimCardinalDirection.None;
+                break;
+
+
+            case PlayerAimTrackingMode.LockedFourWay:
+                AimDirection =
+                    SnapFourWay(
+                        sourceDirection,
+                        out PlayerAimCardinalDirection cardinal);
+
+                CardinalDirection =
+                    cardinal;
+                break;
+        }
+    }
+
+
+    public void ClearOverride()
+    {
+        TrackingMode =
+            PlayerAimTrackingMode.FollowInput;
+
+        FacingMode =
+            PlayerAimFacingMode.FollowAim;
+
+        RigMode =
+            PlayerAimRigMode.Procedural;
+
+        CardinalDirection =
+            PlayerAimCardinalDirection.None;
+    }
+
+
+    // =========================================================
+    // Input Aim
+    // =========================================================
+
+    private void UpdateAimDirection(
+        Vector2 inputDirection)
+    {
+        if (TrackingMode !=
+            PlayerAimTrackingMode.FollowInput)
         {
             return;
         }
 
-        ApplyRigTarget();
+        if (inputDirection.sqrMagnitude <=
+            0.0001f)
+        {
+            return;
+        }
+
+        AimDirection =
+            inputDirection;
+
+        CardinalDirection =
+            PlayerAimCardinalDirection.None;
+    }
+
+
+    private Vector2 ResolveSourceDirection(
+        Vector2 sourceDirection)
+    {
+        Vector2 normalized =
+            NormalizeDirection(
+                sourceDirection);
+
+        if (normalized.sqrMagnitude >
+            0.0001f)
+        {
+            return normalized;
+        }
+
+        normalized =
+            NormalizeDirection(
+                AimDirection);
+
+        if (normalized.sqrMagnitude >
+            0.0001f)
+        {
+            return normalized;
+        }
+
+        return FacingRight
+            ? Vector2.right
+            : Vector2.left;
+    }
+
+
+    private static Vector2 NormalizeDirection(
+        Vector2 direction)
+    {
+        if (direction.sqrMagnitude <=
+            0.0001f)
+        {
+            return Vector2.zero;
+        }
+
+        return direction.normalized;
     }
 
 
@@ -175,24 +346,58 @@ public sealed class PlayerAim :
     // Facing
     // =========================================================
 
-    private void UpdateFacing(
-        Vector2 desiredDirection)
+    private void UpdateFacing()
     {
-        if (_movementState == null ||
-            _facingControl == null)
+        if (_facingControl == null ||
+            _movementState == null)
+        {
+            return;
+        }
+
+        if (_movementState.IsWallSliding)
+            return;
+
+        if (FacingMode ==
+            PlayerAimFacingMode.Locked)
+        {
+            _facingControl.SetFacing(
+                LockedFacingRight);
+
+            return;
+        }
+
+        TryUpdateFacingFromDirection(
+            AimDirection);
+    }
+
+
+    private void TryUpdateFacingFromDirection(
+        Vector2 direction)
+    {
+        if (_facingControl == null ||
+            _movementState == null)
+        {
+            return;
+        }
+
+        if (_movementState.IsWallSliding)
+            return;
+
+        if (direction.sqrMagnitude <=
+            0.0001f)
         {
             return;
         }
 
         Vector2 facingDirection =
-            _movementState.FacingRight
+            FacingRight
                 ? Vector2.right
                 : Vector2.left;
 
         float angleFromFacing =
             Vector2.Angle(
                 facingDirection,
-                desiredDirection);
+                direction);
 
         if (angleFromFacing <=
             facingFlipAngle)
@@ -201,25 +406,46 @@ public sealed class PlayerAim :
         }
 
         _facingControl.SetFacing(
-            !_movementState.FacingRight);
+            !FacingRight);
     }
 
 
     // =========================================================
-    // Aim
+    // Body Aim
     // =========================================================
+
+    private void UpdateBodyAim()
+    {
+        if (AimDirection.sqrMagnitude <=
+            0.0001f)
+        {
+            return;
+        }
+
+        float targetAngle =
+            CalculateLocalAimAngle(
+                AimDirection);
+
+        targetAngle =
+            Mathf.Clamp(
+                targetAngle,
+                -maxBodyAimAngle,
+                maxBodyAimAngle);
+
+        BodyAimAngle =
+            Mathf.MoveTowardsAngle(
+                BodyAimAngle,
+                targetAngle,
+                bodyAimSpeed *
+                Runner.DeltaTime);
+    }
+
 
     private float CalculateLocalAimAngle(
         Vector2 worldDirection)
     {
-        bool facingRight =
-            _movementState == null ||
-            _movementState.FacingRight;
-
-        // 왼쪽을 볼 때는 World X를 뒤집어
-        // 항상 캐릭터의 로컬 정면을 +X로 취급한다.
         Vector2 localDirection =
-            facingRight
+            FacingRight
                 ? worldDirection
                 : new Vector2(
                     -worldDirection.x,
@@ -233,53 +459,164 @@ public sealed class PlayerAim :
     }
 
 
-    private Vector2 GetWorldAimDirection(
+    private Vector2 GetWorldBodyDirection(
         float localAngle)
     {
         float radians =
             localAngle *
             Mathf.Deg2Rad;
 
-        Vector2 localDirection =
+        Vector2 direction =
             new Vector2(
                 Mathf.Cos(radians),
                 Mathf.Sin(radians));
 
-        if (_movementState != null &&
-            !_movementState.FacingRight)
+        if (!FacingRight)
         {
-            localDirection.x *=
+            direction.x *=
                 -1f;
         }
 
-        return localDirection.normalized;
+        return direction.normalized;
     }
 
 
     // =========================================================
-    // Presentation
+    // Four Way
     // =========================================================
 
-    private void ApplyRigTarget()
+    private static Vector2 SnapFourWay(
+        Vector2 direction,
+        out PlayerAimCardinalDirection cardinal)
     {
-        float targetAngle =
-            AimAngle +
-            rigAngleOffset;
+        direction =
+            NormalizeDirection(
+                direction);
 
-        float radians =
-            targetAngle *
-            Mathf.Deg2Rad;
+        if (direction.sqrMagnitude <=
+            0.0001f)
+        {
+            cardinal =
+                PlayerAimCardinalDirection.Right;
 
-        Vector3 localPosition =
-            new Vector3(
-                Mathf.Cos(radians),
-                Mathf.Sin(radians),
-                0f) *
-            targetRadius;
+            return Vector2.right;
+        }
+
+        if (Mathf.Abs(direction.x) >=
+            Mathf.Abs(direction.y))
+        {
+            if (direction.x >= 0f)
+            {
+                cardinal =
+                    PlayerAimCardinalDirection.Right;
+
+                return Vector2.right;
+            }
+
+            cardinal =
+                PlayerAimCardinalDirection.Left;
+
+            return Vector2.left;
+        }
+
+        if (direction.y >= 0f)
+        {
+            cardinal =
+                PlayerAimCardinalDirection.Up;
+
+            return Vector2.up;
+        }
+
+        cardinal =
+            PlayerAimCardinalDirection.Down;
+
+        return Vector2.down;
+    }
+
+
+    // =========================================================
+    // Rig
+    // =========================================================
+
+    private void UpdateRigPresentation()
+    {
+        bool useProceduralRig =
+            RigMode ==
+            PlayerAimRigMode.Procedural;
+
+        if (!useProceduralRig)
+        {
+            if (upperBodyAimRig != null &&
+                upperBodyAimRig.enabled)
+            {
+                upperBodyAimRig.enabled =
+                    false;
+            }
+
+            return;
+        }
+
+        if (aimOrigin == null ||
+            ccdTarget == null)
+        {
+            return;
+        }
+
+        ApplyCcdTarget();
+
+        if (upperBodyAimRig != null &&
+            !upperBodyAimRig.enabled)
+        {
+            upperBodyAimRig.enabled =
+                true;
+        }
+    }
+
+
+    private void ApplyCcdTarget()
+    {
+        Vector2 bodyDirection =
+            GetWorldBodyDirection(
+                BodyAimAngle);
+
+        float signedRigOffset =
+            FacingRight
+                ? rigAngleOffset
+                : -rigAngleOffset;
+
+        Vector2 rigDirection =
+            RotateDirection(
+                bodyDirection,
+                signedRigOffset);
 
         ccdTarget.position =
-            aimPivot.TransformPoint(
-                localPosition);
+            aimOrigin.position +
+            (Vector3)(
+                rigDirection *
+                ccdTargetRadius);
+    }
+
+
+    private static Vector2 RotateDirection(
+        Vector2 direction,
+        float angle)
+    {
+        float radians =
+            angle *
+            Mathf.Deg2Rad;
+
+        float cos =
+            Mathf.Cos(radians);
+
+        float sin =
+            Mathf.Sin(radians);
+
+        return new Vector2(
+            direction.x * cos -
+            direction.y * sin,
+
+            direction.x * sin +
+            direction.y * cos);
     }
 
 
@@ -287,16 +624,56 @@ public sealed class PlayerAim :
 
     private void OnValidate()
     {
-        // Facing을 뒤집은 직후에도 Aim 제한 안쪽에
-        // 들어올 수 있도록 최소 Flip 각도를 보장한다.
         float minimumFlipAngle =
             180f -
-            maxAimAngle;
+            maxBodyAimAngle;
 
         facingFlipAngle =
             Mathf.Max(
                 facingFlipAngle,
                 minimumFlipAngle);
+    }
+
+
+    private void OnDrawGizmosSelected()
+    {
+        if (aimOrigin == null)
+            return;
+
+        Vector3 origin =
+            aimOrigin.position;
+
+        if (Application.isPlaying &&
+            AimDirection.sqrMagnitude >
+            0.0001f)
+        {
+            Gizmos.color =
+                Color.yellow;
+
+            Gizmos.DrawLine(
+                origin,
+                origin +
+                (Vector3)(
+                    AimDirection.normalized *
+                    ccdTargetRadius));
+        }
+
+        if (ccdTarget != null)
+        {
+            Gizmos.color =
+                Color.cyan;
+
+            Gizmos.DrawLine(
+                origin,
+                ccdTarget.position);
+
+            Gizmos.DrawWireSphere(
+                ccdTarget.position,
+                0.07f);
+        }
+
+        Gizmos.color =
+            Color.white;
     }
 
 #endif

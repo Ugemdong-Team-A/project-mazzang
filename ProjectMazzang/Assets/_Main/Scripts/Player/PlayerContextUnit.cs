@@ -110,9 +110,26 @@ public interface IPlayerAimState :
 {
     Vector2 AimDirection { get; }
 
-    float AimAngle { get; }
+    float BodyAimAngle { get; }
 
-    bool FacingRight { get; }
+    bool IsAimOverridden { get; }
+
+    PlayerAimTrackingMode TrackingMode { get; }
+
+    PlayerAimRigMode RigMode { get; }
+
+    PlayerAimCardinalDirection CardinalDirection { get; }
+}
+
+
+public interface IPlayerAimControl :
+    IPlayerContextUnit
+{
+    void ApplyOverride(
+        in PlayerAimOverride aimOverride,
+        Vector2 sourceAimDirection);
+
+    void ClearOverride();
 }
 
 
