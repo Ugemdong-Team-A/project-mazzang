@@ -1015,6 +1015,7 @@ MonoBehaviour:
   respawnDelay: 2
   respawnInvulnerabilityDuration: 2
   lastAttackerCreditDuration: 5
+  cameraTarget: {fileID: 3239413066992619661}
   _Health: 0
   _Lives: 0
   _IsDead:

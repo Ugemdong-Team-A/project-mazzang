@@ -38,6 +38,10 @@ public sealed class PlayerHealth :
     [SerializeField]
     private float lastAttackerCreditDuration = 5f;
 
+    [Header("Presentation")]
+    [SerializeField]
+    private Transform cameraTarget;
+
 
     private float _lastHealth;
 
@@ -127,6 +131,10 @@ public sealed class PlayerHealth :
     bool IPlayerHealthState.IsDead =>
         IsDead;
 
+    public Transform CameraTarget =>
+        cameraTarget != null
+            ? cameraTarget
+            : transform;
 
     // =========================================================
     // Context
@@ -528,10 +536,10 @@ public sealed class PlayerHealth :
         if (IsDead)
         {
             bcc?.RemoveTarget(
-                transform);
+                cameraTarget);
 
             bcc?.PlayDeathShake(
-                transform.position);
+                cameraTarget.position);
 
             LocalDeathOccurred?
                 .Invoke(this);
@@ -539,7 +547,7 @@ public sealed class PlayerHealth :
         else
         {
             bcc?.AddTarget(
-                transform);
+                cameraTarget);
         }
     }
 }

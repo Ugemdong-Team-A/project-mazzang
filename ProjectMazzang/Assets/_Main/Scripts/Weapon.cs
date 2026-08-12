@@ -205,12 +205,26 @@ public abstract class Weapon :
         Holder =
             holder;
 
+        Vector3 worldScale =
+            transform.lossyScale;
+
+        Transform socket =
+            weaponController.WeaponSocket;
+
         transform.SetParent(
-            weaponController.WeaponSocket,
+            socket,
             false);
 
         transform.localPosition =
             Vector3.zero;
+
+        transform.localRotation =
+            Quaternion.identity;
+
+        transform.localScale =
+            Utility.CalculateLocalScaleForWorldScale(
+                worldScale,
+                socket.lossyScale);
 
         transform.localRotation =
             Quaternion.identity;
@@ -226,7 +240,6 @@ public abstract class Weapon :
 
         return true;
     }
-
 
     public void Drop(
         PlayerRef previousHolder,

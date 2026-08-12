@@ -1,7 +1,7 @@
 using Fusion;
 using UnityEngine;
 
-[DefaultExecutionOrder(-180)]
+[DefaultExecutionOrder(-210)]
 public sealed class PlayerWeaponController :
     PlayerModule,
     IPlayerWeaponState,
@@ -15,6 +15,7 @@ public sealed class PlayerWeaponController :
     [Min(0f)]
     [SerializeField]
     private float repickupBlockDuration = 0.35f;
+
 
     private IPlayerAimState
         _aimState;
@@ -32,6 +33,13 @@ public sealed class PlayerWeaponController :
 
     [Networked]
     public NetworkObject EquippedWeaponObject
+    {
+        get;
+        private set;
+    }
+
+    [Networked]
+    public float WeaponAngle
     {
         get;
         private set;
@@ -59,6 +67,11 @@ public sealed class PlayerWeaponController :
 
     public Transform WeaponSocket =>
         weaponSocket;
+
+    public Vector2 WeaponDirection =>
+        AngleToDirection(
+            WeaponAngle);
+
 
     // =========================================================
     // Context
@@ -104,6 +117,9 @@ public sealed class PlayerWeaponController :
         EquippedWeaponObject =
             null;
 
+        WeaponAngle =
+            0f;
+
         PreviousButtons =
             default;
     }
@@ -111,12 +127,27 @@ public sealed class PlayerWeaponController :
 
     public override void FixedUpdateNetwork()
     {
-        if (!HasStateAuthority)
+        if (!IsContextReady)
             return;
 
         bool hasInput =
             GetInput(
                 out PlayerInputData input);
+
+        // 실제 게임플레이용 WeaponAngle은
+        // StateAuthority가 현재 Tick 입력으로 확정한다.
+        if (HasStateAuthority &&
+            hasInput)
+        {
+            UpdateAuthoritativeWeaponAngle(
+                input.AimWorldPosition);
+
+            ApplyWeaponSocketRotation(
+                WeaponAngle);
+        }
+
+        if (!HasStateAuthority)
+            return;
 
         if (_healthState != null &&
             !_healthState.IsAlive)
@@ -152,10 +183,134 @@ public sealed class PlayerWeaponController :
         PreviousButtons =
             input.Buttons;
 
-        if (!dropPressed)
+        if (dropPressed)
+        {
+            TryDropWeapon();
+        }
+    }
+
+
+    public override void Render()
+    {
+        if (weaponSocket == null ||
+            !HasEquippedWeapon)
+        {
+            return;
+        }
+
+        float visualAngle =
+            WeaponAngle;
+
+        if (HasInputAuthority &&
+            _aimState != null &&
+            _aimState.AimDirection.sqrMagnitude >
+                0.0001f)
+        {
+            visualAngle =
+                DirectionToAngle(
+                    _aimState.AimDirection);
+        }
+
+        ApplyWeaponSocketRotation(
+            visualAngle);
+    }
+
+
+    // =========================================================
+    // Weapon Aim
+    // =========================================================
+
+    private void UpdateAuthoritativeWeaponAngle(
+        Vector2 aimWorldPosition)
+    {
+        if (_aimState == null)
             return;
 
-        TryDropWeapon();
+        Vector2 direction =
+            _aimState.ResolveDirectionTo(
+                aimWorldPosition);
+
+        if (direction.sqrMagnitude <=
+            0.0001f)
+        {
+            return;
+        }
+
+        WeaponAngle =
+            DirectionToAngle(
+                direction);
+    }
+
+    private void ApplyWeaponSocketRotation(
+    float worldAngle)
+    {
+        Vector2 worldDirection =
+            AngleToDirection(
+                worldAngle);
+
+        Transform parent =
+            weaponSocket.parent;
+
+        if (parent == null)
+        {
+            weaponSocket.rotation =
+                Quaternion.Euler(
+                    0f,
+                    0f,
+                    worldAngle);
+
+            return;
+        }
+
+        Vector3 localDirection3 =
+            parent.InverseTransformVector(
+                worldDirection);
+
+        Vector2 localDirection =
+            new Vector2(
+                localDirection3.x,
+                localDirection3.y);
+
+        if (localDirection.sqrMagnitude <=
+            0.0001f)
+        {
+            return;
+        }
+
+        float localAngle =
+            Mathf.Atan2(
+                localDirection.y,
+                localDirection.x) *
+            Mathf.Rad2Deg;
+
+        weaponSocket.localRotation =
+            Quaternion.Euler(
+                0f,
+                0f,
+                localAngle);
+    }
+
+    private static float DirectionToAngle(
+        Vector2 direction)
+    {
+        return
+            Mathf.Atan2(
+                direction.y,
+                direction.x) *
+            Mathf.Rad2Deg;
+    }
+
+
+    private static Vector2 AngleToDirection(
+        float angle)
+    {
+        float radians =
+            angle *
+            Mathf.Deg2Rad;
+
+        return new Vector2(
+            Mathf.Cos(radians),
+            Mathf.Sin(radians));
     }
 
 
@@ -202,8 +357,6 @@ public sealed class PlayerWeaponController :
         if (!HasEquippedWeapon)
             return false;
 
-        // 현재는 "던지기"가 아니라 단순 버리기이므로
-        // 의도적인 추가 속도를 주지 않는다.
         return DropWeapon(
             Vector2.zero);
     }
@@ -245,9 +398,10 @@ public sealed class PlayerWeaponController :
     public bool TryUseWeapon(
         Vector2 aimDirection)
     {
-        // PlayerCombat은 InputAuthority에서도 예측 실행되지만,
-        // 실제 Weapon 상태 변경 / Projectile Spawn은
-        // StateAuthority만 확정한다.
+        // 기존 인터페이스 호환을 위해 인자는 유지하지만,
+        // 실제 판정 방향은 StateAuthority가 확정한 WeaponAngle을 사용한다.
+        _ = aimDirection;
+
         if (!HasStateAuthority)
             return false;
 
@@ -263,10 +417,6 @@ public sealed class PlayerWeaponController :
         if (weapon == null)
             return false;
 
-        Vector2 direction =
-            ResolveAimDirection(
-                aimDirection);
-
         Vector2 origin =
             weaponSocket != null
                 ? weaponSocket.position
@@ -275,59 +425,6 @@ public sealed class PlayerWeaponController :
         return weapon.TryUse(
             Object.InputAuthority,
             origin,
-            direction);
-    }
-
-
-    // =========================================================
-    // Pose
-    // =========================================================
-
-    public bool TryGetWeaponPose(
-        out Vector2 position,
-        out float angle)
-    {
-        position =
-            weaponSocket != null
-                ? weaponSocket.position
-                : transform.position;
-
-        Vector2 direction =
-            ResolveAimDirection(
-                Vector2.zero);
-
-        angle =
-            Mathf.Atan2(
-                direction.y,
-                direction.x) *
-            Mathf.Rad2Deg;
-
-        return true;
-    }
-
-
-    private Vector2 ResolveAimDirection(
-        Vector2 sourceDirection)
-    {
-        if (sourceDirection.sqrMagnitude >
-            0.0001f)
-        {
-            return sourceDirection.normalized;
-        }
-
-        if (_aimState != null &&
-            _aimState.AimDirection.sqrMagnitude >
-            0.0001f)
-        {
-            return _aimState.AimDirection.normalized;
-        }
-
-        if (_movementState != null &&
-            !_movementState.FacingRight)
-        {
-            return Vector2.left;
-        }
-
-        return Vector2.right;
+            WeaponDirection);
     }
 }

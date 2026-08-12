@@ -18,6 +18,24 @@ public static class Utility
         return waitForSeconds;
     }
 
+    public static Vector3 CalculateLocalScaleForWorldScale(
+    Vector3 targetWorldScale,
+    Vector3 parentWorldScale)
+    {
+        return new Vector3(
+            Mathf.Abs(parentWorldScale.x) > 0.0001f
+                ? targetWorldScale.x / parentWorldScale.x
+                : targetWorldScale.x,
+
+            Mathf.Abs(parentWorldScale.y) > 0.0001f
+                ? targetWorldScale.y / parentWorldScale.y
+                : targetWorldScale.y,
+
+            Mathf.Abs(parentWorldScale.z) > 0.0001f
+                ? targetWorldScale.z / parentWorldScale.z
+                : targetWorldScale.z);
+    }
+
     public static string ToHex(
         Color color,
         bool includeAlpha = false)
