@@ -57,6 +57,8 @@ public sealed class PlayerWeaponController :
             ? EquippedWeaponObject.GetComponent<Weapon>()
             : null;
 
+    public Transform WeaponSocket =>
+        weaponSocket;
 
     // =========================================================
     // Context

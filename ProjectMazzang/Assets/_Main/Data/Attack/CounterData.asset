@@ -15,7 +15,7 @@ MonoBehaviour:
   attackId: 2
   displayName: Counter
   aim:
-    aimMode: 1
+    aimMode: 2
     poseMode: 1
   movementMode: 1
   startupDuration: 0.4

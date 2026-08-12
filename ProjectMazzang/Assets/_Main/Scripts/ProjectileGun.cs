@@ -14,6 +14,14 @@ public sealed class ProjectileGun :
     private float fireInterval = 0.2f;
 
 
+    [Header("Muzzle")]
+    [Tooltip(
+        "WeaponRoot 기준 실제 총구 위치입니다. " +
+        "WeaponRoot의 직접 자식으로 두는 것을 권장합니다.")]
+    [SerializeField]
+    private Transform muzzle;
+
+
     [Header("Projectile")]
     [SerializeField]
     private NetworkObject projectilePrefab;
@@ -25,10 +33,6 @@ public sealed class ProjectileGun :
     [Min(0.01f)]
     [SerializeField]
     private float projectileLifetime = 2f;
-
-    [Min(0f)]
-    [SerializeField]
-    private float muzzleDistance = 0.55f;
 
     [Min(0)]
     [SerializeField]
@@ -147,27 +151,20 @@ public sealed class ProjectileGun :
         if (projectilePrefab == null)
             return false;
 
-        if (direction.sqrMagnitude <=
-            0.0001f)
-        {
-            direction =
-                Vector2.right;
-        }
-        else
-        {
-            direction.Normalize();
-        }
-
-        Vector2 spawnPosition =
-            origin +
-            direction *
-            muzzleDistance;
+        direction =
+            ResolveShotDirection(
+                direction);
 
         float angle =
             Mathf.Atan2(
                 direction.y,
                 direction.x) *
             Mathf.Rad2Deg;
+
+        Vector2 spawnPosition =
+            ResolveMuzzlePosition(
+                origin,
+                angle);
 
         Quaternion rotation =
             Quaternion.Euler(
@@ -225,6 +222,71 @@ public sealed class ProjectileGun :
     }
 
 
+    private Vector2 ResolveShotDirection(
+        Vector2 direction)
+    {
+        if (direction.sqrMagnitude <=
+            0.0001f)
+        {
+            return Vector2.right;
+        }
+
+        return direction.normalized;
+    }
+
+
+    private Vector2 ResolveMuzzlePosition(
+        Vector2 weaponPosition,
+        float weaponAngle)
+    {
+        if (muzzle == null)
+        {
+            return weaponPosition;
+        }
+
+        // Muzzle은 WeaponRoot의 자식 Transform으로 직접 배치한다.
+        // 현재 Weapon Transform의 월드 위치를 그대로 읽지 않고,
+        // 에디터에서 설정한 로컬 위치만 사용한다.
+        //
+        // Combat이 Weapon의 FixedUpdateNetwork보다 먼저 실행되더라도
+        // 이번 Tick의 weaponPosition / weaponAngle을 기준으로
+        // 정확한 총구 위치를 얻기 위함이다.
+        Vector2 muzzleOffset =
+            muzzle.localPosition;
+
+        return muzzle.position;
+            /*weaponPosition +
+            RotateVector(
+                muzzleOffset,
+                weaponAngle);*/
+    }
+
+
+    private static Vector2 RotateVector(
+        Vector2 value,
+        float angle)
+    {
+        float radians =
+            angle *
+            Mathf.Deg2Rad;
+
+        float cos =
+            Mathf.Cos(
+                radians);
+
+        float sin =
+            Mathf.Sin(
+                radians);
+
+        return new Vector2(
+            value.x * cos -
+            value.y * sin,
+
+            value.x * sin +
+            value.y * cos);
+    }
+
+
     private Vector2 ResolveKnockback(
         Vector2 direction)
     {
@@ -259,4 +321,24 @@ public sealed class ProjectileGun :
                 fireClip);
         }
     }
+
+
+#if UNITY_EDITOR
+
+    private void OnDrawGizmosSelected()
+    {
+        if (muzzle == null)
+            return;
+
+        Gizmos.DrawWireSphere(
+            muzzle.position,
+            0.05f);
+
+        Gizmos.DrawLine(
+            muzzle.position,
+            muzzle.position +
+            muzzle.right * 0.4f);
+    }
+
+#endif
 }

@@ -904,7 +904,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
   rb: {fileID: 2139618658155120419}
-  networkRigidbody: {fileID: 0}
+  networkRigidbody: {fileID: 363249708900616075}
   groundCheck: {fileID: 534010410655661832}
   wallCheckLeft: {fileID: 636932328046927157}
   wallCheckRight: {fileID: 2338953937856615650}
@@ -1046,6 +1046,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerWeaponController
   weaponSocket: {fileID: 1119498991958727768}
+  repickupBlockDuration: 0.35
   _EquippedWeaponObject: {fileID: 0}
 --- !u!1 &3158334327498006070
 GameObject:

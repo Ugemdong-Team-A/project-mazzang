@@ -117,7 +117,7 @@ public abstract class Weapon :
             return;
         }
 
-        PlayerWeaponController controller =
+        /*PlayerWeaponController controller =
             Holder.GetComponent<
                 PlayerWeaponController>();
 
@@ -135,7 +135,7 @@ public abstract class Weapon :
             position;
 
         rb.rotation =
-            angle;
+            angle;*/
 
         rb.linearVelocity =
             Vector2.zero;
@@ -193,8 +193,27 @@ public abstract class Weapon :
             return false;
         }
 
+        PlayerWeaponController weaponController =
+            holder.GetComponent<PlayerWeaponController>();
+
+        if (weaponController == null ||
+            weaponController.WeaponSocket == null)
+        {
+            return false;
+        }
+
         Holder =
             holder;
+
+        transform.SetParent(
+            weaponController.WeaponSocket,
+            false);
+
+        transform.localPosition =
+            Vector3.zero;
+
+        transform.localRotation =
+            Quaternion.identity;
 
         PickupBlockedPlayer =
             PlayerRef.None;
@@ -216,6 +235,10 @@ public abstract class Weapon :
     {
         if (!HasStateAuthority)
             return;
+
+        transform.SetParent(
+            null,
+            true);
 
         Holder =
             null;
