@@ -147,3 +147,23 @@ public interface IPlayerFacingControl :
     void SetFacing(
         bool facingRight);
 }
+
+// =========================================================
+// Weapon
+// =========================================================
+
+public interface IPlayerWeaponState :
+    IPlayerContextUnit
+{
+    bool HasEquippedWeapon { get; }
+
+    NetworkObject EquippedWeaponObject { get; }
+}
+
+
+public interface IPlayerWeaponControl :
+    IPlayerContextUnit
+{
+    bool TryUseWeapon(
+        Vector2 aimDirection);
+}

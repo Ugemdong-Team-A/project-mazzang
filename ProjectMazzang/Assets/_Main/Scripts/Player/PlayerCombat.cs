@@ -53,6 +53,11 @@ public sealed class PlayerCombat :
     private IPlayerAimControl
         _aimControl;
 
+    private IPlayerWeaponState
+    _weaponState;
+
+    private IPlayerWeaponControl
+        _weaponControl;
 
     // =========================================================
     // Network State
@@ -174,6 +179,14 @@ public sealed class PlayerCombat :
         _aimControl =
             Context.Get<
                 IPlayerAimControl>();
+
+        _weaponState =
+            Context.Get<
+                IPlayerWeaponState>();
+
+        _weaponControl =
+            Context.Get<
+                IPlayerWeaponControl>();
     }
 
 
@@ -281,12 +294,9 @@ public sealed class PlayerCombat :
     // =========================================================
 
     private void TryAttack(
-        in PlayerInputData input)
+    in PlayerInputData input)
     {
         if (IsAttacking)
-            return;
-
-        if (IsAttackOnCooldown)
             return;
 
         if (_movementState != null &&
@@ -294,6 +304,22 @@ public sealed class PlayerCombat :
         {
             return;
         }
+
+        // 무기를 들고 있으면 AttackData 기반 맨손 공격으로
+        // 들어가지 않고 무기에게 현재 조준 방향만 전달한다.
+        // 무기의 연사 간격 / 탄약은 무기 자체가 판단한다.
+        if (_weaponState != null &&
+            _weaponState.HasEquippedWeapon)
+        {
+            _weaponControl?
+                .TryUseWeapon(
+                    input.AimDirection);
+
+            return;
+        }
+
+        if (IsAttackOnCooldown)
+            return;
 
         PlayerBoxAttackData attack =
             SelectTestAttack(
