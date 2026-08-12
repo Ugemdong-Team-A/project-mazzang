@@ -54,6 +54,12 @@ public sealed class WeaponPickupTrigger :
         if (controller == null)
             return;
 
+        if (!weapon.CanBePickedUpBy(
+                controller.Object.InputAuthority))
+        {
+            return;
+        }
+
         controller.TryEquipWeapon(
             weapon);
     }

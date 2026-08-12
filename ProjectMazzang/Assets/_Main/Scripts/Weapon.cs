@@ -18,18 +18,6 @@ public abstract class Weapon :
     [SerializeField]
     private WeaponPickupTrigger pickupTrigger;
 
-    [Header("Hand IK")]
-    [SerializeField]
-    private Transform leftHandGrip;
-
-    [SerializeField]
-    private Transform rightHandGrip;
-
-    public Transform LeftHandGrip =>
-        leftHandGrip;
-
-    public Transform RightHandGrip =>
-        rightHandGrip;
 
     // =========================================================
     // Network State
@@ -41,6 +29,20 @@ public abstract class Weapon :
     {
         get;
         private set;
+    }
+
+    [Networked]
+    private PlayerRef PickupBlockedPlayer
+    {
+        get;
+        set;
+    }
+
+    [Networked]
+    private TickTimer PickupBlockedTimer
+    {
+        get;
+        set;
     }
 
 
@@ -89,6 +91,12 @@ public abstract class Weapon :
 
         if (!HasStateAuthority)
             return;
+
+        PickupBlockedPlayer =
+            PlayerRef.None;
+
+        PickupBlockedTimer =
+            TickTimer.None;
 
         if (!IsEquipped)
         {
@@ -141,6 +149,29 @@ public abstract class Weapon :
     // Equip / Drop
     // =========================================================
 
+    public bool CanBePickedUpBy(
+        PlayerRef player)
+    {
+        if (IsEquipped)
+            return false;
+
+        if (player == PlayerRef.None)
+            return false;
+
+        bool pickupBlocked =
+            !PickupBlockedTimer
+                .ExpiredOrNotRunning(Runner);
+
+        if (pickupBlocked &&
+            player == PickupBlockedPlayer)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+
     public bool TryEquip(
         NetworkObject holder)
     {
@@ -153,8 +184,23 @@ public abstract class Weapon :
             return false;
         }
 
+        PlayerRef holderPlayer =
+            holder.InputAuthority;
+
+        if (!CanBePickedUpBy(
+                holderPlayer))
+        {
+            return false;
+        }
+
         Holder =
             holder;
+
+        PickupBlockedPlayer =
+            PlayerRef.None;
+
+        PickupBlockedTimer =
+            TickTimer.None;
 
         ApplyEquippedAuthorityState();
         ApplyLocalPickupState();
@@ -164,13 +210,35 @@ public abstract class Weapon :
 
 
     public void Drop(
-        Vector2 velocity)
+        PlayerRef previousHolder,
+        Vector2 velocity,
+        float repickupBlockDuration)
     {
         if (!HasStateAuthority)
             return;
 
         Holder =
             null;
+
+        if (previousHolder != PlayerRef.None &&
+            repickupBlockDuration > 0f)
+        {
+            PickupBlockedPlayer =
+                previousHolder;
+
+            PickupBlockedTimer =
+                TickTimer.CreateFromSeconds(
+                    Runner,
+                    repickupBlockDuration);
+        }
+        else
+        {
+            PickupBlockedPlayer =
+                PlayerRef.None;
+
+            PickupBlockedTimer =
+                TickTimer.None;
+        }
 
         ApplyWorldAuthorityState(
             velocity);
@@ -206,6 +274,9 @@ public abstract class Weapon :
 
         rb.linearVelocity =
             velocity;
+
+        rb.angularVelocity =
+            0f;
     }
 
 

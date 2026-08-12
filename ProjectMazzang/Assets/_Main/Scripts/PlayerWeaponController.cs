@@ -11,6 +11,11 @@ public sealed class PlayerWeaponController :
     [SerializeField]
     private Transform weaponSocket;
 
+    [Header("Drop")]
+    [Min(0f)]
+    [SerializeField]
+    private float repickupBlockDuration = 0.35f;
+
     private IPlayerAimState
         _aimState;
 
@@ -30,6 +35,13 @@ public sealed class PlayerWeaponController :
     {
         get;
         private set;
+    }
+
+    [Networked]
+    private NetworkButtons PreviousButtons
+    {
+        get;
+        set;
     }
 
 
@@ -89,6 +101,9 @@ public sealed class PlayerWeaponController :
 
         EquippedWeaponObject =
             null;
+
+        PreviousButtons =
+            default;
     }
 
 
@@ -97,22 +112,48 @@ public sealed class PlayerWeaponController :
         if (!HasStateAuthority)
             return;
 
-        if (!HasEquippedWeapon)
-            return;
+        bool hasInput =
+            GetInput(
+                out PlayerInputData input);
 
         if (_healthState != null &&
-            _healthState.IsAlive)
+            !_healthState.IsAlive)
         {
+            if (HasEquippedWeapon)
+            {
+                Vector2 deathDropVelocity =
+                    _movementState != null
+                        ? _movementState.Velocity
+                        : Vector2.zero;
+
+                DropWeapon(
+                    deathDropVelocity);
+            }
+
+            if (hasInput)
+            {
+                PreviousButtons =
+                    input.Buttons;
+            }
+
             return;
         }
 
-        Vector2 dropVelocity =
-            _movementState != null
-                ? _movementState.Velocity
-                : Vector2.zero;
+        if (!hasInput)
+            return;
 
-        TryDropWeapon(
-            dropVelocity);
+        bool dropPressed =
+            input.Buttons.WasPressed(
+                PreviousButtons,
+                PlayerButton.Drop);
+
+        PreviousButtons =
+            input.Buttons;
+
+        if (!dropPressed)
+            return;
+
+        TryDropWeapon();
     }
 
 
@@ -151,12 +192,24 @@ public sealed class PlayerWeaponController :
     }
 
 
-    public bool TryDropWeapon(
-        Vector2 velocity)
+    public bool TryDropWeapon()
     {
         if (!HasStateAuthority)
             return false;
 
+        if (!HasEquippedWeapon)
+            return false;
+
+        // 현재는 "던지기"가 아니라 단순 버리기이므로
+        // 의도적인 추가 속도를 주지 않는다.
+        return DropWeapon(
+            Vector2.zero);
+    }
+
+
+    private bool DropWeapon(
+        Vector2 velocity)
+    {
         Weapon weapon =
             EquippedWeapon;
 
@@ -168,11 +221,16 @@ public sealed class PlayerWeaponController :
             return false;
         }
 
+        PlayerRef previousHolder =
+            Object.InputAuthority;
+
         EquippedWeaponObject =
             null;
 
         weapon.Drop(
-            velocity);
+            previousHolder,
+            velocity,
+            repickupBlockDuration);
 
         return true;
     }
@@ -203,8 +261,6 @@ public sealed class PlayerWeaponController :
         if (weapon == null)
             return false;
 
-        // 공격 시점의 정확한 방향은 PlayerCombat이
-        // PlayerAim의 AimOrigin 기준으로 해석해 전달한다.
         Vector2 direction =
             ResolveAimDirection(
                 aimDirection);

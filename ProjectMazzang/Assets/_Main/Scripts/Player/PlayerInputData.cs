@@ -5,6 +5,7 @@ public enum PlayerButton
 {
     Jump = 0,
     Attack,
+    Drop,
 }
 
 public struct PlayerInputData :

@@ -49,6 +49,12 @@ public sealed class PlayerInputController :
         _inputActions.Player.Attack.canceled +=
             OnAttack;
 
+        _inputActions.Player.Drop.performed +=
+            OnDrop;
+
+        _inputActions.Player.Drop.canceled +=
+            OnDrop;
+
         _inputActions.Enable();
     }
 
@@ -75,6 +81,12 @@ public sealed class PlayerInputController :
 
         _inputActions.Player.Attack.canceled -=
             OnAttack;
+
+        _inputActions.Player.Drop.performed -=
+            OnDrop;
+
+        _inputActions.Player.Drop.canceled -=
+            OnDrop;
 
         _inputActions.Disable();
         _inputActions.Dispose();
@@ -159,6 +171,18 @@ public sealed class PlayerInputController :
         _buttons.Set(
             PlayerButton.Attack,
             attacked);
+    }
+
+
+    private void OnDrop(
+        InputAction.CallbackContext context)
+    {
+        bool dropped =
+            context.ReadValueAsButton();
+
+        _buttons.Set(
+            PlayerButton.Drop,
+            dropped);
     }
 
 
