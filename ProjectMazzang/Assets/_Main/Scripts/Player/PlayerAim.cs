@@ -7,7 +7,10 @@ public sealed class PlayerAim :
     IPlayerAimState,
     IPlayerAimControl
 {
-    [Header("Rig")]
+    [Header("Aim")]
+    [Tooltip(
+        "정확한 조준 방향의 기준점입니다. " +
+        "Rig/Bone 계층 밖의 상체 위치에 둡니다.")]
     [SerializeField]
     private Transform aimOrigin;
 
@@ -173,8 +176,8 @@ public sealed class PlayerAim :
         }
 
         Vector2 inputAimDirection =
-            NormalizeDirection(
-                input.AimDirection);
+            ResolveDirectionTo(
+                input.AimWorldPosition);
 
         UpdateAimDirection(
             inputAimDirection);
@@ -276,6 +279,40 @@ public sealed class PlayerAim :
     // =========================================================
     // Input Aim
     // =========================================================
+
+    /// <summary>
+    /// AimOrigin에서 월드 타겟까지의 정확한 조준 방향을 계산합니다.
+    /// Input은 월드 좌표만 제공하고, 조준 기준점의 의미는 PlayerAim이 소유합니다.
+    /// </summary>
+    public Vector2 ResolveDirectionTo(
+        Vector2 worldTargetPosition)
+    {
+        if (aimOrigin == null)
+        {
+            return ResolveSourceDirection(
+                Vector2.zero);
+        }
+
+        Vector2 direction =
+            worldTargetPosition -
+            (Vector2)aimOrigin.position;
+
+        Vector2 normalized =
+            NormalizeDirection(
+                direction);
+
+        if (normalized.sqrMagnitude >
+            0.0001f)
+        {
+            return normalized;
+        }
+
+        // 커서가 AimOrigin에 거의 겹친 경우에는
+        // 방향이 순간적으로 0이 되지 않도록 기존 방향을 유지한다.
+        return ResolveSourceDirection(
+            Vector2.zero);
+    }
+
 
     private void UpdateAimDirection(
         Vector2 inputDirection)

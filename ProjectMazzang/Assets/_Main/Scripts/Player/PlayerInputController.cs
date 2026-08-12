@@ -162,16 +162,16 @@ public sealed class PlayerInputController :
     }
 
 
-    private Vector2 GetAimDirection()
+    private Vector2 GetAimWorldPosition()
     {
         if (Mouse.current == null)
-            return Vector2.zero;
+            return transform.position;
 
         Camera mainCamera =
             Camera.main;
 
         if (mainCamera == null)
-            return Vector2.zero;
+            return transform.position;
 
         Vector2 mouseScreenPosition =
             Mouse.current.position.ReadValue();
@@ -187,17 +187,7 @@ public sealed class PlayerInputController :
                     mouseScreenPosition.y,
                     depth));
 
-        Vector2 direction =
-            mouseWorldPosition -
-            transform.position;
-
-        if (direction.sqrMagnitude <=
-            0.0001f)
-        {
-            return Vector2.zero;
-        }
-
-        return direction.normalized;
+        return mouseWorldPosition;
     }
 
 
@@ -215,8 +205,8 @@ public sealed class PlayerInputController :
         data.Move =
             _move;
 
-        data.AimDirection =
-            GetAimDirection();
+        data.AimWorldPosition =
+            GetAimWorldPosition();
 
         data.Buttons =
             _buttons;

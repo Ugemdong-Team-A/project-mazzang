@@ -29,10 +29,8 @@ public sealed class PlayerCombat :
 
     [Header("Hit")]
     [SerializeField]
-    private Transform attackOrigin;
+    private LayerMask hurtboxLayer;
 
-    [SerializeField]
-    private LayerMask hurtboxLayer;   
 
     private readonly HashSet<IDamageable>
         _hitTargets = new();
@@ -54,10 +52,11 @@ public sealed class PlayerCombat :
         _aimControl;
 
     private IPlayerWeaponState
-    _weaponState;
+        _weaponState;
 
     private IPlayerWeaponControl
         _weaponControl;
+
 
     // =========================================================
     // Network State
@@ -253,13 +252,19 @@ public sealed class PlayerCombat :
 
 
         // ==========================================
-        // Attack State
+        // Current Input Aim
         // ==========================================
 
         Vector2 currentInputAim =
             hasInput
-                ? input.AimDirection
+                ? ResolveInputAimDirection(
+                    input.AimWorldPosition)
                 : Vector2.zero;
+
+
+        // ==========================================
+        // Attack State
+        // ==========================================
 
         UpdateAttack(
             currentInputAim);
@@ -285,7 +290,8 @@ public sealed class PlayerCombat :
             return;
 
         TryAttack(
-            in input);
+            in input,
+            currentInputAim);
     }
 
 
@@ -294,7 +300,8 @@ public sealed class PlayerCombat :
     // =========================================================
 
     private void TryAttack(
-    in PlayerInputData input)
+        in PlayerInputData input,
+        Vector2 currentInputAim)
     {
         if (IsAttacking)
             return;
@@ -305,15 +312,14 @@ public sealed class PlayerCombat :
             return;
         }
 
-        // 무기를 들고 있으면 AttackData 기반 맨손 공격으로
-        // 들어가지 않고 무기에게 현재 조준 방향만 전달한다.
-        // 무기의 연사 간격 / 탄약은 무기 자체가 판단한다.
+        // 무기를 들고 있으면 AttackData 기반 기본 공격으로
+        // 내려가지 않고 현재 무기 사용만 요청한다.
         if (_weaponState != null &&
             _weaponState.HasEquippedWeapon)
         {
             _weaponControl?
                 .TryUseWeapon(
-                    input.AimDirection);
+                    currentInputAim);
 
             return;
         }
@@ -330,7 +336,7 @@ public sealed class PlayerCombat :
 
         StartAttack(
             attack,
-            input.AimDirection);
+            currentInputAim);
     }
 
 
@@ -599,12 +605,42 @@ public sealed class PlayerCombat :
     // Aim
     // =========================================================
 
+    private Vector2 ResolveInputAimDirection(
+        Vector2 aimWorldPosition)
+    {
+        if (_aimState != null)
+        {
+            Vector2 direction =
+                _aimState.ResolveDirectionTo(
+                    aimWorldPosition);
+
+            direction =
+                NormalizeDirection(
+                    direction);
+
+            if (direction !=
+                Vector2.zero)
+            {
+                return direction;
+            }
+        }
+
+        if (_movementState != null &&
+            !_movementState.FacingRight)
+        {
+            return Vector2.left;
+        }
+
+        return Vector2.right;
+    }
+
+
     private Vector2 ResolveHitDirection(
         PlayerAttackData attack,
         Vector2 currentInputAim)
     {
-        // Free Aim은 Combat(-200)이 PlayerAim(-90)보다
-        // 먼저 실행되므로 현재 Tick의 Raw Input을 직접 사용한다.
+        // Free Aim은 현재 Tick의 마우스 월드 위치를
+        // PlayerAim 기준으로 해석한 방향을 사용한다.
         if (attack.Aim.AimMode ==
             PlayerAttackAimMode.Free)
         {
@@ -691,7 +727,7 @@ public sealed class PlayerCombat :
 
 
         Vector2 center =
-            (Vector2)attackOrigin.position +
+            (Vector2)transform.position +
             worldOffset;
 
 
@@ -820,7 +856,7 @@ public sealed class PlayerCombat :
 
 
         Vector2 center =
-            (Vector2)attackOrigin.position +
+            (Vector2)transform.position +
             offset;
 
 

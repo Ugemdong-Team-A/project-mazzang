@@ -183,7 +183,7 @@ public sealed class PlayerWeaponController :
     // =========================================================
 
     public bool TryUseWeapon(
-        Vector2 sourceAimDirection)
+        Vector2 aimDirection)
     {
         // PlayerCombat은 InputAuthority에서도 예측 실행되지만,
         // 실제 Weapon 상태 변경 / Projectile Spawn은
@@ -203,9 +203,11 @@ public sealed class PlayerWeaponController :
         if (weapon == null)
             return false;
 
+        // 공격 시점의 정확한 방향은 PlayerCombat이
+        // PlayerAim의 AimOrigin 기준으로 해석해 전달한다.
         Vector2 direction =
             ResolveAimDirection(
-                sourceAimDirection);
+                aimDirection);
 
         Vector2 origin =
             weaponSocket != null

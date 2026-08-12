@@ -123,6 +123,9 @@ public interface IPlayerAimState :
     PlayerAimRigMode RigMode { get; }
 
     PlayerAimCardinalDirection CardinalDirection { get; }
+
+    Vector2 ResolveDirectionTo(
+        Vector2 worldTargetPosition);
 }
 
 
