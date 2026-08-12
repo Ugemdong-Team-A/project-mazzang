@@ -1061,8 +1061,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerWeaponController
   weaponSocket: {fileID: 1119498991958727768}
+  leftHandLimb: {fileID: 3268336011809022708}
+  rightHandLimb: {fileID: 1825635801981400533}
   repickupBlockDuration: 0.35
   _EquippedWeaponObject: {fileID: 0}
+  _WeaponAngle: 0
 --- !u!1 &3158334327498006070
 GameObject:
   m_ObjectHideFlags: 0

@@ -18,6 +18,18 @@ public abstract class Weapon :
     [SerializeField]
     private WeaponPickupTrigger pickupTrigger;
 
+    [Header("Hand Grip")]
+    [SerializeField]
+    private Transform leftHandGrip;
+
+    [SerializeField]
+    private Transform rightHandGrip;
+
+    public Transform LeftHandGrip =>
+        leftHandGrip;
+
+    public Transform RightHandGrip =>
+        rightHandGrip;
 
     // =========================================================
     // Network State

@@ -1,5 +1,6 @@
 using Fusion;
 using UnityEngine;
+using UnityEngine.U2D.IK;
 
 [DefaultExecutionOrder(-210)]
 public sealed class PlayerWeaponController :
@@ -10,6 +11,13 @@ public sealed class PlayerWeaponController :
     [Header("Weapon")]
     [SerializeField]
     private Transform weaponSocket;
+
+    [Header("Weapon IK")]
+    [SerializeField]
+    private LimbSolver2D leftHandLimb;
+
+    [SerializeField]
+    private LimbSolver2D rightHandLimb;
 
     [Header("Drop")]
     [Min(0f)]
@@ -25,6 +33,9 @@ public sealed class PlayerWeaponController :
 
     private IPlayerMovementState
         _movementState;
+
+    private Weapon
+        _boundIkWeapon;
 
 
     // =========================================================
@@ -125,6 +136,14 @@ public sealed class PlayerWeaponController :
     }
 
 
+    public override void Despawned(
+        NetworkRunner runner,
+        bool hasState)
+    {
+        UnbindWeaponIk();
+    }
+
+
     public override void FixedUpdateNetwork()
     {
         if (!IsContextReady)
@@ -192,6 +211,8 @@ public sealed class PlayerWeaponController :
 
     public override void Render()
     {
+        UpdateWeaponIkBinding();
+
         if (weaponSocket == null ||
             !HasEquippedWeapon)
         {
@@ -388,6 +409,106 @@ public sealed class PlayerWeaponController :
             repickupBlockDuration);
 
         return true;
+    }
+
+
+    // =========================================================
+    // Weapon IK
+    // =========================================================
+
+    private void UpdateWeaponIkBinding()
+    {
+        Weapon equippedWeapon =
+            EquippedWeapon;
+
+        if (_boundIkWeapon ==
+            equippedWeapon)
+        {
+            return;
+        }
+
+        UnbindWeaponIk();
+
+        if (equippedWeapon == null)
+            return;
+
+        BindWeaponIk(
+            equippedWeapon);
+    }
+
+
+    private void BindWeaponIk(
+        Weapon weapon)
+    {
+        if (weapon == null)
+            return;
+
+        _boundIkWeapon =
+            weapon;
+
+        BindHandLimb(
+            leftHandLimb,
+            weapon.LeftHandGrip);
+
+        BindHandLimb(
+            rightHandLimb,
+            weapon.RightHandGrip);
+    }
+
+
+    private void UnbindWeaponIk()
+    {
+        UnbindHandLimb(
+            leftHandLimb);
+
+        UnbindHandLimb(
+            rightHandLimb);
+
+        _boundIkWeapon =
+            null;
+    }
+
+
+    private static void BindHandLimb(
+        LimbSolver2D limb,
+        Transform target)
+    {
+        if (limb == null)
+            return;
+
+        IKChain2D chain =
+            limb.GetChain(
+                0);
+
+        if (chain == null)
+            return;
+
+        chain.target =
+            target;
+
+        limb.enabled =
+            target != null;
+    }
+
+
+    private static void UnbindHandLimb(
+        LimbSolver2D limb)
+    {
+        if (limb == null)
+            return;
+
+        IKChain2D chain =
+            limb.GetChain(
+                0);
+
+        if (chain != null)
+        {
+            chain.target =
+                null;
+        }
+
+        limb.enabled =
+            false;
     }
 
 
