@@ -686,6 +686,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1119498991958727768}
+  - component: {fileID: 5348071517637358525}
   m_Layer: 8
   m_Name: WeaponSocket
   m_TagString: Untagged
@@ -708,6 +709,18 @@ Transform:
   m_Children: []
   m_Father: {fileID: 5459021469249167873}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &5348071517637358525
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2938815468716240850}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 456b36f8a1575c6468e65ae911db0507, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponSocket
 --- !u!1 &3070214049785180998
 GameObject:
   m_ObjectHideFlags: 0
@@ -801,6 +814,7 @@ MonoBehaviour:
   - {fileID: 4107694489920312526}
   - {fileID: 2810343903214174856}
   - {fileID: 8265118167150140802}
+  - {fileID: 5348071517637358525}
   - {fileID: 4622243032970250903}
   ForceRemoteRenderTimeframe: 0
 --- !u!70 &8753630296370418075

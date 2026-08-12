@@ -240,6 +240,8 @@ public abstract class Weapon :
             null,
             true);
 
+        transform.localScale = Vector3.one;
+
         Holder =
             null;
 
