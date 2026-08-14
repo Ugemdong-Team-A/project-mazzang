@@ -14,7 +14,8 @@ public sealed class PlayerMovement :
     PlayerModule,
     IPlayerMovementState,
     IPlayerKnockbackReceiver,
-    IPlayerFacingControl
+    IPlayerFacingControl,
+    IPlayerMovementControl
 {
     [Header("References")]
     [SerializeField]
@@ -140,6 +141,8 @@ public sealed class PlayerMovement :
     [Networked]
     private TickTimer KnockbackControlTimer { get; set; }
 
+    [Networked]
+    private TickTimer ControlLockTimer { get; set; }
 
     [Networked]
     public NetworkBool IsGrounded { get; private set; }
@@ -221,6 +224,10 @@ public sealed class PlayerMovement :
 
         Context.Register<
             IPlayerFacingControl>(
+            this);
+
+        Context.Register<
+            IPlayerMovementControl>(
             this);
     }
 
@@ -410,6 +417,28 @@ public sealed class PlayerMovement :
             velocity;
     }
 
+    public void SetHorizontalVelocity(
+    float velocityX,
+    float controlLockDuration)
+    {
+        Vector2 velocity =
+            rb.linearVelocity;
+
+        velocity.x =
+            velocityX;
+
+        rb.linearVelocity =
+            velocity;
+
+        ControlLockTimer =
+            controlLockDuration > 0f
+                ? TickTimer.CreateFromSeconds(
+                    Runner,
+                    controlLockDuration)
+                : TickTimer.None;
+
+        ClearControlDrivenStates();
+    }
 
     private void UpdateFacing(
         float inputX)

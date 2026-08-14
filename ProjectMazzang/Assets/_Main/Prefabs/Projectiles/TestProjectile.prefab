@@ -172,7 +172,10 @@ MonoBehaviour:
   collisionMask:
     serializedVersion: 2
     m_Bits: 320
-  castRadius: 0.08
+  collisionRadius: 0.05
+  maxSimulationStepDistance: 0.08
+  maxSimulationStepsPerTick: 12
+  _Velocity: {x: 0, y: 0}
 --- !u!96 &1124852924467508756
 TrailRenderer:
   serializedVersion: 4

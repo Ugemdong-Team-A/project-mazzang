@@ -743,6 +743,7 @@ GameObject:
   - component: {fileID: 4107694489920312526}
   - component: {fileID: 2810343903214174856}
   - component: {fileID: 8265118167150140802}
+  - component: {fileID: -5442214398763671545}
   m_Layer: 7
   m_Name: PlayerCharacter_Knite
   m_TagString: Untagged
@@ -814,6 +815,7 @@ MonoBehaviour:
   - {fileID: 4107694489920312526}
   - {fileID: 2810343903214174856}
   - {fileID: 8265118167150140802}
+  - {fileID: -5442214398763671545}
   - {fileID: 5348071517637358525}
   - {fileID: 4622243032970250903}
   ForceRemoteRenderTimeframe: 0
@@ -905,6 +907,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d738cbaff356b0548bab71e387239e53, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerInputController
+  dropAction: {fileID: 0}
+  skill1Action: {fileID: 0}
+  skill2Action: {fileID: 0}
 --- !u!114 &6238690141146646799
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1061,11 +1066,28 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerWeaponController
   weaponSocket: {fileID: 1119498991958727768}
+  weaponSortingOrder: 24
   leftHandLimb: {fileID: 3268336011809022708}
   rightHandLimb: {fileID: 1825635801981400533}
+  dropVelocity: {x: 2.5, y: 1.5}
+  inheritedVelocityFactor: 0.5
   repickupBlockDuration: 0.35
   _EquippedWeaponObject: {fileID: 0}
   _WeaponAngle: 0
+--- !u!114 &-5442214398763671545
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3070214049785180998}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2efd521a00f4f02459ff1633a7dddc92, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerSkillController
+  skill1: {fileID: 11400000, guid: d47edf51b4312c14fa9b46f8f5656320, type: 2}
+  skill2: {fileID: 0}
 --- !u!1 &3158334327498006070
 GameObject:
   m_ObjectHideFlags: 0

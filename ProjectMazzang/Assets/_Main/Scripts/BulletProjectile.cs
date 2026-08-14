@@ -10,9 +10,20 @@ public sealed class BulletProjectile :
     [SerializeField]
     private LayerMask collisionMask;
 
-    [Min(0f)]
+    [Min(0.001f)]
     [SerializeField]
-    private float castRadius = 0.05f;
+    private float collisionRadius = 0.05f;
+
+    [Tooltip(
+        "한 번의 시뮬레이션 이동에서 최대 이동 거리입니다. " +
+        "한 Tick 이동량이 이 값보다 크면 여러 단계로 나누어 이동합니다.")]
+    [Min(0.005f)]
+    [SerializeField]
+    private float maxSimulationStepDistance = 0.08f;
+
+    [Min(1)]
+    [SerializeField]
+    private int maxSimulationStepsPerTick = 12;
 
 
     // =========================================================
@@ -20,10 +31,17 @@ public sealed class BulletProjectile :
     // =========================================================
 
     [Networked]
-    private Vector2 Velocity
+    public Vector2 Velocity
     {
         get;
-        set;
+        private set;
+    }
+
+    [Networked]
+    public PlayerRef Owner
+    {
+        get;
+        private set;
     }
 
     [Networked]
@@ -34,7 +52,7 @@ public sealed class BulletProjectile :
     }
 
     [Networked]
-    private Vector2 Knockback
+    private Vector2 LocalKnockback
     {
         get;
         set;
@@ -54,9 +72,16 @@ public sealed class BulletProjectile :
         set;
     }
 
+    [Networked]
+    private NetworkBool IsInitialized
+    {
+        get;
+        set;
+    }
+
 
     // =========================================================
-    // Spawn Initialization
+    // Initialize
     // =========================================================
 
     public void Initialize(
@@ -67,14 +92,37 @@ public sealed class BulletProjectile :
         Vector2 knockback,
         float knockbackControlLock)
     {
+        if (!HasStateAuthority)
+            return;
+
+        Vector2 direction =
+            NormalizeDirection(
+                velocity);
+
+        if (direction ==
+            Vector2.zero)
+        {
+            direction =
+                transform.right;
+        }
+
+        float speed =
+            velocity.magnitude;
+
         Velocity =
-            velocity;
+            direction *
+            speed;
+
+        Owner =
+            Object.InputAuthority;
 
         Damage =
             damage;
 
-        Knockback =
-            knockback;
+        LocalKnockback =
+            ToLocalDirectionSpace(
+                knockback,
+                direction);
 
         KnockbackControlLock =
             knockbackControlLock;
@@ -85,6 +133,12 @@ public sealed class BulletProjectile :
                     runner,
                     lifetime)
                 : TickTimer.None;
+
+        IsInitialized =
+            true;
+
+        ApplyRotation(
+            direction);
     }
 
 
@@ -94,9 +148,11 @@ public sealed class BulletProjectile :
 
     public override void FixedUpdateNetwork()
     {
-        // 실제 충돌 / Damage / Transform 확정은 서버만 한다.
-        if (!HasStateAuthority)
+        if (!HasStateAuthority ||
+            !IsInitialized)
+        {
             return;
+        }
 
         if (LifeTimer.Expired(
                 Runner))
@@ -107,44 +163,86 @@ public sealed class BulletProjectile :
             return;
         }
 
-        Vector2 start =
-            transform.position;
+        SimulateMovement();
+    }
 
-        Vector2 displacement =
-            Velocity *
+
+    // =========================================================
+    // Movement
+    // =========================================================
+
+    private void SimulateMovement()
+    {
+        float totalDistance =
+            Velocity.magnitude *
             Runner.DeltaTime;
 
-        float distance =
-            displacement.magnitude;
-
-        if (distance <= 0.0001f)
+        if (totalDistance <=
+            0.0001f)
+        {
             return;
+        }
 
         Vector2 direction =
-            displacement /
-            distance;
+            Velocity.normalized;
 
-        if (TryFindCollision(
-                start,
-                direction,
-                distance,
-                out RaycastHit2D hit))
+        int stepCount =
+            CalculateStepCount(
+                totalDistance);
+
+        float stepDistance =
+            totalDistance /
+            stepCount;
+
+        for (int i = 0;
+             i < stepCount;
+             i++)
         {
+            Vector2 nextPosition =
+                (Vector2)transform.position +
+                direction *
+                stepDistance;
+
             transform.position =
-                hit.point;
+                nextPosition;
+
+            if (!TryFindCollisionAt(
+                    nextPosition,
+                    out Collider2D hit))
+            {
+                continue;
+            }
 
             ApplyHit(
-                hit.collider);
+                hit);
 
             Runner.Despawn(
                 Object);
 
             return;
         }
+    }
 
-        transform.position =
-            start +
-            displacement;
+
+    private int CalculateStepCount(
+        float totalDistance)
+    {
+        float stepDistance =
+            Mathf.Max(
+                0.005f,
+                maxSimulationStepDistance);
+
+        int stepCount =
+            Mathf.CeilToInt(
+                totalDistance /
+                stepDistance);
+
+        return Mathf.Clamp(
+            stepCount,
+            1,
+            Mathf.Max(
+                1,
+                maxSimulationStepsPerTick));
     }
 
 
@@ -152,76 +250,88 @@ public sealed class BulletProjectile :
     // Collision
     // =========================================================
 
-    private bool TryFindCollision(
-        Vector2 origin,
-        Vector2 direction,
-        float distance,
-        out RaycastHit2D bestHit)
+    private bool TryFindCollisionAt(
+        Vector2 position,
+        out Collider2D hit)
     {
-        RaycastHit2D[] hits =
-            Physics2D.CircleCastAll(
-                origin,
-                castRadius,
-                direction,
-                distance,
+        Collider2D[] hits =
+            Physics2D.OverlapCircleAll(
+                position,
+                collisionRadius,
                 collisionMask);
 
-        bestHit =
-            default;
-
-        float bestDistance =
-            float.PositiveInfinity;
-
-        bool found =
-            false;
-
-        foreach (RaycastHit2D hit
-                 in hits)
+        for (int i = 0;
+             i < hits.Length;
+             i++)
         {
-            if (hit.collider == null)
+            Collider2D candidate =
+                hits[i];
+
+            if (candidate == null)
                 continue;
 
-            NetworkObject hitObject =
-                hit.collider.GetComponentInParent<
-                    NetworkObject>();
-
-            // 발사자 자신의 Player / Hurtbox는 통과한다.
-            if (hitObject != null &&
-                hitObject != Object &&
-                hitObject.InputAuthority ==
-                    Object.InputAuthority)
+            if (ShouldIgnoreCollider(
+                    candidate))
             {
                 continue;
             }
 
-            if (hit.distance >=
-                bestDistance)
-            {
-                continue;
-            }
+            hit =
+                candidate;
 
-            bestDistance =
-                hit.distance;
-
-            bestHit =
-                hit;
-
-            found =
-                true;
+            return true;
         }
 
-        return found;
+        hit =
+            null;
+
+        return false;
     }
 
 
-    private void ApplyHit(
-        Collider2D hitCollider)
+    private bool ShouldIgnoreCollider(
+        Collider2D candidate)
     {
-        if (hitCollider == null)
-            return;
+        if (candidate.transform == transform ||
+            candidate.transform.IsChildOf(
+                transform))
+        {
+            return true;
+        }
 
+        NetworkObject targetObject =
+            candidate.GetComponentInParent<
+                NetworkObject>();
+
+        if (targetObject == null)
+            return false;
+
+        if (targetObject ==
+            Object)
+        {
+            return true;
+        }
+
+        if (Owner != PlayerRef.None &&
+            targetObject.InputAuthority ==
+            Owner)
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+
+    // =========================================================
+    // Hit
+    // =========================================================
+
+    private void ApplyHit(
+        Collider2D hit)
+    {
         IDamageable damageable =
-            hitCollider.GetComponentInParent<
+            hit.GetComponentInParent<
                 IDamageable>();
 
         if (damageable == null ||
@@ -230,15 +340,148 @@ public sealed class BulletProjectile :
             return;
         }
 
+        Vector2 direction =
+            NormalizeDirection(
+                Velocity);
+
+        Vector2 knockback =
+            FromLocalDirectionSpace(
+                LocalKnockback,
+                direction);
+
         DamageInfo info =
             new DamageInfo(
                 Damage,
-                Object.InputAuthority,
-                Knockback,
+                Owner,
+                knockback,
                 KnockbackControlLock);
 
         damageable.ApplyDamage(
             in info);
+    }
+
+
+    // =========================================================
+    // Redirect / Parry Ready
+    // =========================================================
+
+    public bool Reflect(
+        PlayerRef newOwner,
+        Vector2 newDirection)
+    {
+        if (!HasStateAuthority ||
+            !IsInitialized)
+        {
+            return false;
+        }
+
+        newDirection =
+            NormalizeDirection(
+                newDirection);
+
+        if (newDirection ==
+            Vector2.zero)
+        {
+            return false;
+        }
+
+        float speed =
+            Velocity.magnitude;
+
+        Owner =
+            newOwner;
+
+        Velocity =
+            newDirection *
+            speed;
+
+        ApplyRotation(
+            newDirection);
+
+        return true;
+    }
+
+
+    // =========================================================
+    // Direction Utility
+    // =========================================================
+
+    private static Vector2 NormalizeDirection(
+        Vector2 direction)
+    {
+        if (direction.sqrMagnitude <=
+            0.0001f)
+        {
+            return Vector2.zero;
+        }
+
+        return direction.normalized;
+    }
+
+
+    private static Vector2 ToLocalDirectionSpace(
+        Vector2 worldVector,
+        Vector2 forward)
+    {
+        Vector2 perpendicular =
+            new Vector2(
+                -forward.y,
+                forward.x);
+
+        return new Vector2(
+            Vector2.Dot(
+                worldVector,
+                forward),
+
+            Vector2.Dot(
+                worldVector,
+                perpendicular));
+    }
+
+
+    private static Vector2 FromLocalDirectionSpace(
+        Vector2 localVector,
+        Vector2 forward)
+    {
+        if (forward ==
+            Vector2.zero)
+        {
+            return Vector2.zero;
+        }
+
+        Vector2 perpendicular =
+            new Vector2(
+                -forward.y,
+                forward.x);
+
+        return
+            forward *
+            localVector.x +
+            perpendicular *
+            localVector.y;
+    }
+
+
+    private void ApplyRotation(
+        Vector2 direction)
+    {
+        if (direction ==
+            Vector2.zero)
+        {
+            return;
+        }
+
+        float angle =
+            Mathf.Atan2(
+                direction.y,
+                direction.x) *
+            Mathf.Rad2Deg;
+
+        transform.rotation =
+            Quaternion.Euler(
+                0f,
+                0f,
+                angle);
     }
 
 
@@ -248,7 +491,7 @@ public sealed class BulletProjectile :
     {
         Gizmos.DrawWireSphere(
             transform.position,
-            castRadius);
+            collisionRadius);
     }
 
 #endif

@@ -32,6 +32,13 @@ public interface IPlayerMovementState :
     JumpType LastJumpType { get; }
 }
 
+public interface IPlayerMovementControl :
+    IPlayerContextUnit
+{
+    void SetHorizontalVelocity(
+        float velocityX,
+        float controlLockDuration);
+}
 
 public interface IPlayerKnockbackReceiver :
     IPlayerContextUnit

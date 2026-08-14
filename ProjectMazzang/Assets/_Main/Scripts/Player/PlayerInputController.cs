@@ -49,11 +49,32 @@ public sealed class PlayerInputController :
         _inputActions.Player.Attack.canceled +=
             OnAttack;
 
-        _inputActions.Player.Drop.performed +=
+        // ==========================================
+        // Weapon
+        // ==========================================
+
+        _inputActions.Player.Drop.performed += 
             OnDrop;
 
-        _inputActions.Player.Drop.canceled +=
+        _inputActions.Player.Drop.canceled += 
             OnDrop;
+
+        // ==========================================
+        // Skill
+        // ==========================================
+
+        _inputActions.Player.Skill1.performed +=
+            OnSkill1;
+
+        _inputActions.Player.Skill1.canceled +=
+            OnSkill1;
+
+        _inputActions.Player.Skill2.performed +=
+            OnSkill2;
+
+        _inputActions.Player.Skill2.canceled +=
+            OnSkill2;
+
 
         _inputActions.Enable();
     }
@@ -82,11 +103,34 @@ public sealed class PlayerInputController :
         _inputActions.Player.Attack.canceled -=
             OnAttack;
 
-        _inputActions.Player.Drop.performed -=
+
+        // ==========================================
+        // Skill
+        // ==========================================
+
+        _inputActions.Player.Skill1.performed -=
+            OnSkill1;
+
+        _inputActions.Player.Skill1.canceled -=
+            OnSkill1;
+
+        _inputActions.Player.Skill2.performed -=
+            OnSkill2;
+
+        _inputActions.Player.Skill2.canceled -=
+            OnSkill2;
+
+
+        // ==========================================
+        // Weapon
+        // ==========================================
+
+        _inputActions.Player.Drop.performed -= 
             OnDrop;
 
-        _inputActions.Player.Drop.canceled -=
+        _inputActions.Player.Drop.canceled -= 
             OnDrop;
+
 
         _inputActions.Disable();
         _inputActions.Dispose();
@@ -153,36 +197,45 @@ public sealed class PlayerInputController :
     private void OnJump(
         InputAction.CallbackContext context)
     {
-        bool jumped =
-            context.ReadValueAsButton();
-
         _buttons.Set(
             PlayerButton.Jump,
-            jumped);
+            context.ReadValueAsButton());
     }
 
 
     private void OnAttack(
         InputAction.CallbackContext context)
     {
-        bool attacked =
-            context.ReadValueAsButton();
-
         _buttons.Set(
             PlayerButton.Attack,
-            attacked);
+            context.ReadValueAsButton());
     }
 
 
     private void OnDrop(
         InputAction.CallbackContext context)
     {
-        bool dropped =
-            context.ReadValueAsButton();
-
         _buttons.Set(
             PlayerButton.Drop,
-            dropped);
+            context.ReadValueAsButton());
+    }
+
+
+    private void OnSkill1(
+        InputAction.CallbackContext context)
+    {
+        _buttons.Set(
+            PlayerButton.Skill1,
+            context.ReadValueAsButton());
+    }
+
+
+    private void OnSkill2(
+        InputAction.CallbackContext context)
+    {
+        _buttons.Set(
+            PlayerButton.Skill2,
+            context.ReadValueAsButton());
     }
 
 
