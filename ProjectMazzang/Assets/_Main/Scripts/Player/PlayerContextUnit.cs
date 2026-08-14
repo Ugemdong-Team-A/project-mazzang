@@ -35,9 +35,11 @@ public interface IPlayerMovementState :
 public interface IPlayerMovementControl :
     IPlayerContextUnit
 {
-    void SetHorizontalVelocity(
-        float velocityX,
-        float controlLockDuration);
+    void SetVelocity(
+        Vector2 velocity);
+
+    void LockControl(
+        float duration);
 }
 
 public interface IPlayerKnockbackReceiver :

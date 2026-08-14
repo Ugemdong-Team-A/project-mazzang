@@ -12,6 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 72d6cd1899b960048ace9f5884c44cdf, type: 3}
   m_Name: DashSkill
   m_EditorClassIdentifier: Assembly-CSharp::DashSkillData
-  cooldown: 2
-  dashSpeed: 18
-  controlLockDuration: 0.24
+  cooldown: 0
+  maxCharges: 2
+  rechargeDuration: 2
+  startupDuration: 0.08
+  dashDuration: 0.12
+  recoveryDuration: 0.06
+  dashSpeed: 40
+  playerHurtboxLayer:
+    serializedVersion: 2
+    m_Bits: 256
+  collisionAttack: {fileID: 11400000, guid: 2086d463fee19364eb14d1af42fbb0e8, type: 2}

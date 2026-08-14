@@ -87,6 +87,9 @@ public abstract class Skill
     {
     }
 
+    public virtual void OnUseEnded()
+    {
+    }
 
     public virtual void Dispose()
     {

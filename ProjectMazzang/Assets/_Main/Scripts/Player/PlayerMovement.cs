@@ -188,6 +188,8 @@ public sealed class PlayerMovement :
 
     public bool IsControlLocked =>
         !KnockbackControlTimer
+            .ExpiredOrNotRunning(Runner) ||
+        !ControlLockTimer
             .ExpiredOrNotRunning(Runner);
 
 
@@ -269,8 +271,6 @@ public sealed class PlayerMovement :
                 input.Move,
                 1f);
 
-        // ��� �߿��� ���� ��ư ���´� �Һ���
-        // ������ ���� ���� �Է��� �� �Է�ó�� Ƣ����� �ʰ� �Ѵ�.
         if (_healthState == null ||
             !_healthState.IsAlive)
         {
@@ -284,7 +284,7 @@ public sealed class PlayerMovement :
 
 
         // ==========================================
-        // Knockback Control Lock
+        // Control Lock
         // ==========================================
 
         if (IsControlLocked)
@@ -415,29 +415,6 @@ public sealed class PlayerMovement :
 
         rb.linearVelocity =
             velocity;
-    }
-
-    public void SetHorizontalVelocity(
-    float velocityX,
-    float controlLockDuration)
-    {
-        Vector2 velocity =
-            rb.linearVelocity;
-
-        velocity.x =
-            velocityX;
-
-        rb.linearVelocity =
-            velocity;
-
-        ControlLockTimer =
-            controlLockDuration > 0f
-                ? TickTimer.CreateFromSeconds(
-                    Runner,
-                    controlLockDuration)
-                : TickTimer.None;
-
-        ClearControlDrivenStates();
     }
 
     private void UpdateFacing(
@@ -846,6 +823,28 @@ public sealed class PlayerMovement :
     // External Movement Commands
     // =========================================================
 
+    public void SetVelocity(
+        Vector2 velocity)
+    {
+        rb.linearVelocity =
+            velocity;
+    }
+
+
+    public void LockControl(
+        float duration)
+    {
+        ControlLockTimer =
+            duration > 0f
+                ? TickTimer.CreateFromSeconds(
+                    Runner,
+                    duration)
+                : TickTimer.None;
+
+        ClearControlDrivenStates();
+    }
+
+
     public void ApplyKnockback(
         Vector2 velocity,
         float controlLockDuration)
@@ -857,18 +856,13 @@ public sealed class PlayerMovement :
             velocity;
 
         KnockbackControlTimer =
-            TickTimer.CreateFromSeconds(
-                Runner,
-                controlLockDuration);
+            controlLockDuration > 0f
+                ? TickTimer.CreateFromSeconds(
+                    Runner,
+                    controlLockDuration)
+                : TickTimer.None;
 
-        IsWallSliding =
-            false;
-
-        WasWallSliding =
-            false;
-
-        WallJumpReadyTimer =
-            TickTimer.None;
+        ClearControlDrivenStates();
     }
 
 
@@ -904,6 +898,9 @@ public sealed class PlayerMovement :
             TickTimer.None;
 
         KnockbackControlTimer =
+            TickTimer.None;
+
+        ControlLockTimer =
             TickTimer.None;
 
         WasWallSliding =
@@ -974,6 +971,6 @@ public sealed class PlayerMovement :
         Gizmos.color =
             Color.white;
     }
-    
+
 #endif
 }
