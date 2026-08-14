@@ -19,6 +19,6 @@ MonoBehaviour:
   recoveryDuration: 0.2
   cooldown: 0.45
   damage: 10
-  knockbackForward: 6
+  knockbackForward: 10
   knockbackUp: 4
   knockbackControlLock: 0.12

@@ -9,22 +9,18 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 83750e0d944b69b4e86f1b84f785fd0b, type: 3}
-  m_Name: CounterData
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerBoxAttackData
+  m_Script: {fileID: 11500000, guid: 36562608f671f3d46b12e4ef5d316f85, type: 3}
+  m_Name: CounterAttack
+  m_EditorClassIdentifier: Assembly-CSharp::BoxAttackData
   attackId: 2
   displayName: Counter
-  aim:
-    aimMode: 2
-    poseMode: 1
-  movementMode: 1
-  startupDuration: 0.4
-  activeDuration: 0.2
+  startupDuration: 0.3
+  activeDuration: 0.1
   recoveryDuration: 0.2
   cooldown: 0.8
-  damage: 12
-  hitboxOffset: {x: 1, y: 0}
-  hitboxSize: {x: 1.5, y: 0.6}
+  damage: 10
   knockbackForward: 6
   knockbackUp: 4
   knockbackControlLock: 0.12
+  hitboxOffset: {x: 0.57, y: 0}
+  hitboxSize: {x: 1.5, y: 1}

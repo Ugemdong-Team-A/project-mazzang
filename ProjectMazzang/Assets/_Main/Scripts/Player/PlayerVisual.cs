@@ -3,8 +3,37 @@ using UnityEngine;
 public sealed class PlayerVisual :
     PlayerModule
 {
+    [Header("References")]
     [SerializeField]
     private GameObject characterVisualRoot;
+
+
+    [Header("Hit")]
+    [SerializeField]
+    private Color hitColor =
+        new Color(
+            1f,
+            0.35f,
+            0.35f,
+            1f);
+
+    [Min(0f)]
+    [SerializeField]
+    private float hitColorDuration =
+        0.1f;
+
+
+    [Header("Invulnerability")]
+    [Range(0f, 1f)]
+    [SerializeField]
+    private float invulnerableAlpha =
+        0.35f;
+
+    [Min(0.01f)]
+    [SerializeField]
+    private float invulnerableBlinkInterval =
+        0.08f;
+
 
     private IPlayerMovementState
         _movementState;
@@ -12,20 +41,84 @@ public sealed class PlayerVisual :
     private IPlayerHealthState
         _healthState;
 
+
     private Vector3 _defaultScale;
 
+    private SpriteRenderer[]
+        _spriteRenderers;
+
+    private Color[]
+        _defaultColors;
+
+
+    private int _previousHealth;
+
+    private bool _healthPresentationInitialized;
+
+    private bool _wasInvulnerable;
+
+    private bool _invulnerableDimmed;
+
+    private float _invulnerableBlinkTimer;
+
+    private bool _hitColorActive;
+
+    private float _hitColorTimer;
+
+    private bool _facingInitialized;
+
+    private bool _previousFacingRight;
+
+
+    // =========================================================
+    // Unity
+    // =========================================================
 
     private void Awake()
     {
-        if (characterVisualRoot != null)
+        if (characterVisualRoot == null)
+            return;
+
+        _defaultScale =
+            characterVisualRoot
+                .transform
+                .localScale;
+
+        CacheSpriteRenderers();
+    }
+
+
+    private void CacheSpriteRenderers()
+    {
+        _spriteRenderers =
+            characterVisualRoot
+                .GetComponentsInChildren<
+                    SpriteRenderer>(
+                    true);
+
+        _defaultColors =
+            new Color[
+                _spriteRenderers.Length];
+
+        for (int i = 0;
+             i < _spriteRenderers.Length;
+             i++)
         {
-            _defaultScale =
-                characterVisualRoot
-                    .transform
-                    .localScale;
+            SpriteRenderer spriteRenderer =
+                _spriteRenderers[i];
+
+            if (spriteRenderer == null)
+                continue;
+
+            _defaultColors[i] =
+                spriteRenderer.color;
         }
     }
 
+
+    // =========================================================
+    // Context
+    // =========================================================
 
     protected override void OnContextReady()
     {
@@ -39,6 +132,10 @@ public sealed class PlayerVisual :
     }
 
 
+    // =========================================================
+    // Fusion
+    // =========================================================
+
     public override void Render()
     {
         if (characterVisualRoot == null)
@@ -46,8 +143,13 @@ public sealed class PlayerVisual :
 
         UpdateVisibility();
         UpdateFacing();
+        UpdateHealthPresentation();
     }
 
+
+    // =========================================================
+    // Visibility
+    // =========================================================
 
     private void UpdateVisibility()
     {
@@ -68,16 +170,36 @@ public sealed class PlayerVisual :
     }
 
 
+    // =========================================================
+    // Facing
+    // =========================================================
+
     private void UpdateFacing()
     {
         if (_movementState == null)
             return;
 
+        bool facingRight =
+            _movementState.FacingRight;
+
+        if (_facingInitialized &&
+            _previousFacingRight ==
+            facingRight)
+        {
+            return;
+        }
+
+        _facingInitialized =
+            true;
+
+        _previousFacingRight =
+            facingRight;
+
         Vector3 scale =
             _defaultScale;
 
         scale.x *=
-            _movementState.FacingRight
+            facingRight
                 ? 1f
                 : -1f;
 
@@ -85,5 +207,189 @@ public sealed class PlayerVisual :
             .transform
             .localScale =
             scale;
+    }
+
+
+    // =========================================================
+    // Health Presentation
+    // =========================================================
+
+    private void UpdateHealthPresentation()
+    {
+        if (_healthState == null)
+            return;
+
+        if (!_healthPresentationInitialized)
+        {
+            InitializeHealthPresentation();
+            return;
+        }
+
+        DetectHit();
+        UpdateHitColor();
+        UpdateInvulnerability();
+
+        _previousHealth =
+            _healthState.Health;
+    }
+
+
+    private void InitializeHealthPresentation()
+    {
+        _healthPresentationInitialized =
+            true;
+
+        _previousHealth =
+            _healthState.Health;
+
+        _wasInvulnerable =
+            _healthState.IsInvulnerable;
+
+        _invulnerableDimmed =
+            false;
+
+        _invulnerableBlinkTimer =
+            invulnerableBlinkInterval;
+
+        ApplyCurrentColor();
+    }
+
+
+    // =========================================================
+    // Hit
+    // =========================================================
+
+    private void DetectHit()
+    {
+        if (_healthState.IsDead)
+            return;
+
+        if (_healthState.Health >=
+            _previousHealth)
+        {
+            return;
+        }
+
+        _hitColorActive =
+            true;
+
+        _hitColorTimer =
+            hitColorDuration;
+
+        ApplyCurrentColor();
+    }
+
+
+    private void UpdateHitColor()
+    {
+        if (!_hitColorActive)
+            return;
+
+        _hitColorTimer -=
+            Time.deltaTime;
+
+        if (_hitColorTimer > 0f)
+            return;
+
+        _hitColorTimer =
+            0f;
+
+        _hitColorActive =
+            false;
+
+        ApplyCurrentColor();
+    }
+
+
+    // =========================================================
+    // Invulnerability
+    // =========================================================
+
+    private void UpdateInvulnerability()
+    {
+        bool isInvulnerable =
+            _healthState.IsInvulnerable;
+
+        if (_wasInvulnerable !=
+            isInvulnerable)
+        {
+            _wasInvulnerable =
+                isInvulnerable;
+
+            _invulnerableDimmed =
+                false;
+
+            _invulnerableBlinkTimer =
+                invulnerableBlinkInterval;
+
+            ApplyCurrentColor();
+        }
+
+        if (!isInvulnerable)
+            return;
+
+        if (_hitColorActive)
+            return;
+
+        _invulnerableBlinkTimer -=
+            Time.deltaTime;
+
+        if (_invulnerableBlinkTimer > 0f)
+            return;
+
+        _invulnerableBlinkTimer +=
+            invulnerableBlinkInterval;
+
+        _invulnerableDimmed =
+            !_invulnerableDimmed;
+
+        ApplyCurrentColor();
+    }
+
+
+    // =========================================================
+    // Sprite Color
+    // =========================================================
+
+    private void ApplyCurrentColor()
+    {
+        if (_spriteRenderers == null)
+            return;
+
+        for (int i = 0;
+             i < _spriteRenderers.Length;
+             i++)
+        {
+            SpriteRenderer spriteRenderer =
+                _spriteRenderers[i];
+
+            if (spriteRenderer == null)
+                continue;
+
+            Color color =
+                _defaultColors[i];
+
+            if (_hitColorActive)
+            {
+                color.r *=
+                    hitColor.r;
+
+                color.g *=
+                    hitColor.g;
+
+                color.b *=
+                    hitColor.b;
+            }
+
+            if (_wasInvulnerable &&
+                _invulnerableDimmed)
+            {
+                color.a *=
+                    invulnerableAlpha;
+            }
+
+            spriteRenderer.color =
+                color;
+        }
     }
 }

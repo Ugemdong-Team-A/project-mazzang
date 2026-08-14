@@ -907,9 +907,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d738cbaff356b0548bab71e387239e53, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerInputController
-  dropAction: {fileID: 0}
-  skill1Action: {fileID: 0}
-  skill2Action: {fileID: 0}
 --- !u!114 &6238690141146646799
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -970,6 +967,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerVisual
   characterVisualRoot: {fileID: 6588024672171936478}
+  hitColor: {r: 1, g: 0.35, b: 0.35, a: 1}
+  hitColorDuration: 0.1
+  invulnerableAlpha: 0.35
+  invulnerableBlinkInterval: 0.08
 --- !u!114 &7875716468025387495
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -995,8 +996,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 324ce644ce6398e44b3a825b871c9bd8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerCombat
-  jabAttack: {fileID: 11400000, guid: 3c4ba3a8ff167ca43a6b7e8f7c6e1194, type: 2}
-  counterAttack: {fileID: 11400000, guid: 89fc7ce7117dbd9438f3616d8645bcd3, type: 2}
+  jabAttack:
+    attack: {fileID: 11400000, guid: 98ddf7352baec8e4eb60d00b8fc824f1, type: 2}
+    aim:
+      aimMode: 2
+      poseMode: 1
+    movementMode: 1
+  counterAttack:
+    attack: {fileID: 0}
+    aim:
+      aimMode: 0
+      poseMode: 0
+    movementMode: 0
+  attackSocket: {fileID: 1119498991958727768}
   hurtboxLayer:
     serializedVersion: 2
     m_Bits: 256

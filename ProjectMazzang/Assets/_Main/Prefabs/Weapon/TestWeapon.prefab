@@ -389,7 +389,7 @@ MonoBehaviour:
   fireInterval: 0.2
   muzzle: {fileID: 2486731633620674725}
   projectilePrefab: {fileID: 4736335658398493549, guid: a82faefdd5d0cdd429a786b3436bc112, type: 3}
-  projectileSpeed: 20
+  projectileSpeed: 30
   projectileLifetime: 4
   damage: 6
   knockback: {x: 0, y: 0}
