@@ -12,6 +12,10 @@ public sealed class PlayerWeaponController :
     [SerializeField]
     private Transform weaponSocket;
 
+    [Header("Weapon Presentation")]
+    [SerializeField]
+    private int weaponSortingOrder = 24;
+
     [Header("Weapon IK")]
     [SerializeField]
     private LimbSolver2D leftHandLimb;
@@ -20,6 +24,16 @@ public sealed class PlayerWeaponController :
     private LimbSolver2D rightHandLimb;
 
     [Header("Drop")]
+    [SerializeField]
+    private Vector2 dropVelocity =
+        new Vector2(
+            2.5f,
+            1.5f);
+
+    [Range(0f, 1f)]
+    [SerializeField]
+    private float inheritedVelocityFactor = 0.5f;
+
     [Min(0f)]
     [SerializeField]
     private float repickupBlockDuration = 0.35f;
@@ -78,6 +92,9 @@ public sealed class PlayerWeaponController :
 
     public Transform WeaponSocket =>
         weaponSocket;
+
+    public int WeaponSortingOrder =>
+        weaponSortingOrder;
 
     public Vector2 WeaponDirection =>
         AngleToDirection(
@@ -379,7 +396,7 @@ public sealed class PlayerWeaponController :
             return false;
 
         return DropWeapon(
-            Vector2.zero);
+            CalculateDropVelocity());
     }
 
 
@@ -402,6 +419,8 @@ public sealed class PlayerWeaponController :
 
         EquippedWeaponObject =
             null;
+
+        UnbindWeaponIk();
 
         weapon.Drop(
             previousHolder,
@@ -509,6 +528,36 @@ public sealed class PlayerWeaponController :
 
         limb.enabled =
             false;
+    }
+
+
+    // =========================================================
+    // Drop Velocity
+    // =========================================================
+
+    private Vector2 CalculateDropVelocity()
+    {
+        float facingSign =
+            _movementState == null ||
+            _movementState.FacingRight
+                ? 1f
+                : -1f;
+
+        Vector2 tossVelocity =
+            new Vector2(
+                dropVelocity.x *
+                facingSign,
+                dropVelocity.y);
+
+        if (_movementState == null)
+        {
+            return tossVelocity;
+        }
+
+        return
+            tossVelocity +
+            _movementState.Velocity *
+            inheritedVelocityFactor;
     }
 
 

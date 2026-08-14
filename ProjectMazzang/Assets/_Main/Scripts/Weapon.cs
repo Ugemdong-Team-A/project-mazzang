@@ -1,6 +1,7 @@
 using Fusion;
 using Fusion.Addons.Physics;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 [RequireComponent(typeof(NetworkObject))]
 [RequireComponent(typeof(Rigidbody2D))]
@@ -18,6 +19,12 @@ public abstract class Weapon :
     [SerializeField]
     private WeaponPickupTrigger pickupTrigger;
 
+
+    [Header("Presentation")]
+    [SerializeField]
+    private SortingGroup sortingGroup;
+
+
     [Header("Hand Grip")]
     [SerializeField]
     private Transform leftHandGrip;
@@ -25,11 +32,6 @@ public abstract class Weapon :
     [SerializeField]
     private Transform rightHandGrip;
 
-    public Transform LeftHandGrip =>
-        leftHandGrip;
-
-    public Transform RightHandGrip =>
-        rightHandGrip;
 
     // =========================================================
     // Network State
@@ -65,6 +67,15 @@ public abstract class Weapon :
     public bool IsEquipped =>
         Holder != null;
 
+    public Transform LeftHandGrip =>
+        leftHandGrip;
+
+    public Transform RightHandGrip =>
+        rightHandGrip;
+
+
+    private int _worldSortingOrder;
+
 
     // =========================================================
     // Unity
@@ -90,6 +101,19 @@ public abstract class Weapon :
                 GetComponentInChildren<
                     WeaponPickupTrigger>(true);
         }
+
+        if (sortingGroup == null)
+        {
+            sortingGroup =
+                GetComponentInChildren<
+                    SortingGroup>(true);
+        }
+
+        if (sortingGroup != null)
+        {
+            _worldSortingOrder =
+                sortingGroup.sortingOrder;
+        }
     }
 
 
@@ -100,6 +124,7 @@ public abstract class Weapon :
     public override void Spawned()
     {
         ApplyLocalPickupState();
+        ApplyLocalSortingState();
 
         if (!HasStateAuthority)
             return;
@@ -233,13 +258,21 @@ public abstract class Weapon :
         transform.localRotation =
             Quaternion.identity;
 
-        transform.localScale =
+        Vector3 sizeScale =
             Utility.CalculateLocalScaleForWorldScale(
                 worldScale,
                 socket.lossyScale);
 
-        transform.localRotation =
-            Quaternion.identity;
+        // 부모 Socket이 X 반전된 경우,
+        // 무기도 해당 반전 방향을 그대로 따르도록 부호를 복원한다.
+        if (socket.lossyScale.x < 0f)
+        {
+            sizeScale.x *=
+                -1f;
+        }
+
+        transform.localScale =
+            sizeScale;
 
         PickupBlockedPlayer =
             PlayerRef.None;
@@ -249,6 +282,7 @@ public abstract class Weapon :
 
         ApplyEquippedAuthorityState();
         ApplyLocalPickupState();
+        ApplyLocalSortingState();
 
         return true;
     }
@@ -294,6 +328,7 @@ public abstract class Weapon :
             velocity);
 
         ApplyLocalPickupState();
+        ApplyLocalSortingState();
     }
 
 
@@ -337,6 +372,7 @@ public abstract class Weapon :
     private void OnHolderChanged()
     {
         ApplyLocalPickupState();
+        ApplyLocalSortingState();
     }
 
 
@@ -356,6 +392,38 @@ public abstract class Weapon :
             pickupTrigger.SetPickupEnabled(
                 worldState);
         }
+    }
+
+
+    // =========================================================
+    // Presentation / Sorting
+    // =========================================================
+
+    private void ApplyLocalSortingState()
+    {
+        if (sortingGroup == null)
+            return;
+
+        if (!IsEquipped ||
+            Holder == null)
+        {
+            sortingGroup.sortingOrder =
+                _worldSortingOrder;
+
+            return;
+        }
+
+        if (!Holder.TryGetComponent(
+                out PlayerWeaponController weaponController))
+        {
+            sortingGroup.sortingOrder =
+                _worldSortingOrder;
+
+            return;
+        }
+
+        sortingGroup.sortingOrder =
+            weaponController.WeaponSortingOrder;
     }
 
 
