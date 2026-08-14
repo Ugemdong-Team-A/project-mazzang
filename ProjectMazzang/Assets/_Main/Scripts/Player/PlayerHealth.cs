@@ -260,7 +260,7 @@ public sealed class PlayerHealth :
             return;
 
         RegisterLastAttacker(
-            info.Attacker);
+            info.Source.InputAuthority);
 
         Health =
             Mathf.Max(
@@ -287,7 +287,7 @@ public sealed class PlayerHealth :
 
         PlayerRef deathAttacker =
             ResolveDeathAttacker(
-                info.Attacker);
+                info.Source.InputAuthority);
 
         Die(
             deathAttacker,

@@ -432,7 +432,6 @@ public abstract class Weapon :
     // =========================================================
 
     public abstract bool TryUse(
-        PlayerRef attacker,
         Vector2 origin,
         Vector2 direction);
 }

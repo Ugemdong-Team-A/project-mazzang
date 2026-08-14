@@ -593,7 +593,6 @@ public sealed class PlayerWeaponController :
                 : transform.position;
 
         return weapon.TryUse(
-            Object.InputAuthority,
             origin,
             WeaponDirection);
     }

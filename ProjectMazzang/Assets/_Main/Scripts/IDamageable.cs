@@ -3,27 +3,61 @@ using UnityEngine;
 
 public readonly struct DamageInfo
 {
-    public readonly int Damage;
-    public readonly PlayerRef Attacker;
-    public readonly Vector2 Knockback;
-    public readonly float KnockbackControlLock;
+    public int Damage
+    {
+        get;
+    }
+
+    /// <summary>
+    /// 이 Damage를 발생시킨 NetworkObject입니다.
+    ///
+    /// Player, Weapon, Projectile, Turret 등
+    /// 구체적인 타입을 전제로 하지 않습니다.
+    /// </summary>
+    public NetworkObject Source
+    {
+        get;
+    }
+
+    public Vector2 Knockback
+    {
+        get;
+    }
+
+    public float KnockbackControlLock
+    {
+        get;
+    }
+
 
     public DamageInfo(
         int damage,
-        PlayerRef attacker,
+        NetworkObject source,
         Vector2 knockback,
-        float knockbackControlLock = 0.12f)
+        float knockbackControlLock)
     {
-        Damage = damage;
-        Attacker = attacker;
-        Knockback = knockback;
-        KnockbackControlLock = knockbackControlLock;
+        Damage =
+            damage;
+
+        Source =
+            source;
+
+        Knockback =
+            knockback;
+
+        KnockbackControlLock =
+            knockbackControlLock;
     }
 }
 
+
 public interface IDamageable
 {
-    bool IsAlive { get; }
+    bool IsAlive
+    {
+        get;
+    }
 
-    void ApplyDamage(in DamageInfo info);
+    void ApplyDamage(
+        in DamageInfo info);
 }

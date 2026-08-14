@@ -21,13 +21,28 @@ public sealed class PlayerCombat :
 
     [Header("Test Attacks")]
     [SerializeField]
-    private PlayerBoxAttackData jabAttack;
+    private BoxAttackData jabAttack;
 
     [SerializeField]
-    private PlayerBoxAttackData counterAttack;
+    private PlayerAttackAimDefinition jabAim;
+
+    [SerializeField]
+    private PlayerAttackMovementMode jabMovementMode;
 
 
-    [Header("Hit")]
+    [Space]
+
+    [SerializeField]
+    private BoxAttackData counterAttack;
+
+    [SerializeField]
+    private PlayerAttackAimDefinition counterAim;
+
+    [SerializeField]
+    private PlayerAttackMovementMode counterMovementMode;
+
+
+    [Header("Damage")]
     [SerializeField]
     private LayerMask hurtboxLayer;
 
@@ -129,14 +144,18 @@ public sealed class PlayerCombat :
     {
         get
         {
-            PlayerAttackData attack =
+            AttackData attack =
                 GetCurrentAttack();
 
-            return
-                IsAttacking &&
-                attack != null &&
-                attack.MovementMode ==
-                    PlayerAttackMovementMode.Locked;
+            if (!IsAttacking ||
+                attack == null)
+            {
+                return false;
+            }
+
+            return GetMovementMode(
+                    attack) ==
+                PlayerAttackMovementMode.Locked;
         }
     }
 
@@ -312,8 +331,9 @@ public sealed class PlayerCombat :
             return;
         }
 
-        // 무기를 들고 있으면 AttackData 기반 기본 공격으로
-        // 내려가지 않고 현재 무기 사용만 요청한다.
+
+        // 무기를 들고 있다면 Player 기본 공격 대신
+        // 현재 장착 무기의 사용을 요청합니다.
         if (_weaponState != null &&
             _weaponState.HasEquippedWeapon)
         {
@@ -324,15 +344,18 @@ public sealed class PlayerCombat :
             return;
         }
 
+
         if (IsAttackOnCooldown)
             return;
 
-        PlayerBoxAttackData attack =
+
+        BoxAttackData attack =
             SelectTestAttack(
                 input.Move);
 
         if (attack == null)
             return;
+
 
         StartAttack(
             attack,
@@ -341,7 +364,7 @@ public sealed class PlayerCombat :
 
 
     /// <summary>
-    /// 현재는 공격 데이터 테스트를 위한 임시 선택 규칙입니다.
+    /// 현재 테스트용 기본 공격 선택 규칙입니다.
     ///
     /// 위 입력 + 공격:
     /// Counter
@@ -349,10 +372,10 @@ public sealed class PlayerCombat :
     /// 그 외:
     /// Jab
     ///
-    /// 이후 무기/콤보 시스템이 생기면
-    /// 이 메서드만 실제 공격 선택기로 교체합니다.
+    /// 이후 실제 공격 선택 시스템이 생기면
+    /// 이 메서드만 교체합니다.
     /// </summary>
-    private PlayerBoxAttackData SelectTestAttack(
+    private BoxAttackData SelectTestAttack(
         Vector2 moveInput)
     {
         if (moveInput.y > 0.5f &&
@@ -370,17 +393,19 @@ public sealed class PlayerCombat :
     // =========================================================
 
     private void StartAttack(
-        PlayerAttackData attack,
+        AttackData attack,
         Vector2 sourceAimDirection)
     {
         if (attack == null)
             return;
+
 
         CurrentAttackId =
             attack.AttackId;
 
         AttackState =
             PlayerAttackState.Startup;
+
 
         AttackPhaseTimer =
             CreateTimer(
@@ -400,23 +425,29 @@ public sealed class PlayerCombat :
 
 
     private void ApplyAimRule(
-        PlayerAttackData attack,
+        AttackData attack,
         Vector2 sourceAimDirection)
     {
         if (_aimControl == null)
             return;
 
+
         PlayerAttackAimDefinition aimDefinition =
-            attack.Aim;
+            GetAimDefinition(
+                attack);
+
 
         if (!aimDefinition.RequiresOverride)
         {
             _aimControl.ClearOverride();
+
             return;
         }
 
+
         PlayerAimOverride aimOverride =
             aimDefinition.CreateOverride();
+
 
         _aimControl.ApplyOverride(
             in aimOverride,
@@ -464,6 +495,7 @@ public sealed class PlayerCombat :
             return;
         }
 
+
         BeginActive(
             currentInputAim);
     }
@@ -472,26 +504,32 @@ public sealed class PlayerCombat :
     private void BeginActive(
         Vector2 currentInputAim)
     {
-        PlayerAttackData attack =
+        AttackData attack =
             GetCurrentAttack();
+
 
         if (attack == null)
         {
             CancelAttack();
+
             return;
         }
+
 
         AttackState =
             PlayerAttackState.Active;
 
 
+        // PlayerCombat은 현재 Box 공격을 직접 실행합니다.
+        // AttackData 자체는 Player에 종속되지 않습니다.
         if (attack is
-            PlayerBoxAttackData boxAttack)
+            BoxAttackData boxAttack)
         {
             Vector2 attackDirection =
                 ResolveHitDirection(
                     attack,
                     currentInputAim);
+
 
             PerformBoxAttackHit(
                 boxAttack,
@@ -513,17 +551,22 @@ public sealed class PlayerCombat :
             return;
         }
 
-        PlayerAttackData attack =
+
+        AttackData attack =
             GetCurrentAttack();
+
 
         if (attack == null)
         {
             CancelAttack();
+
             return;
         }
 
+
         AttackState =
             PlayerAttackState.Recovery;
+
 
         AttackPhaseTimer =
             CreateTimer(
@@ -538,6 +581,7 @@ public sealed class PlayerCombat :
         {
             return;
         }
+
 
         CancelAttack();
     }
@@ -557,6 +601,7 @@ public sealed class PlayerCombat :
             return;
         }
 
+
         AttackState =
             PlayerAttackState.None;
 
@@ -565,6 +610,7 @@ public sealed class PlayerCombat :
 
         CurrentAttackId =
             NoneAttackId;
+
 
         _aimControl?
             .ClearOverride();
@@ -575,13 +621,14 @@ public sealed class PlayerCombat :
     // Attack Data
     // =========================================================
 
-    private PlayerAttackData GetCurrentAttack()
+    private AttackData GetCurrentAttack()
     {
         if (CurrentAttackId ==
             NoneAttackId)
         {
             return null;
         }
+
 
         if (jabAttack != null &&
             jabAttack.AttackId ==
@@ -590,6 +637,7 @@ public sealed class PlayerCombat :
             return jabAttack;
         }
 
+
         if (counterAttack != null &&
             counterAttack.AttackId ==
             CurrentAttackId)
@@ -597,7 +645,53 @@ public sealed class PlayerCombat :
             return counterAttack;
         }
 
+
         return null;
+    }
+
+
+    // =========================================================
+    // Player Attack Rules
+    // =========================================================
+
+    private PlayerAttackAimDefinition
+        GetAimDefinition(
+            AttackData attack)
+    {
+        if (attack == jabAttack)
+        {
+            return jabAim;
+        }
+
+
+        if (attack == counterAttack)
+        {
+            return counterAim;
+        }
+
+
+        return default;
+    }
+
+
+    private PlayerAttackMovementMode
+        GetMovementMode(
+            AttackData attack)
+    {
+        if (attack == jabAttack)
+        {
+            return jabMovementMode;
+        }
+
+
+        if (attack == counterAttack)
+        {
+            return counterMovementMode;
+        }
+
+
+        return
+            PlayerAttackMovementMode.Free;
     }
 
 
@@ -614,9 +708,11 @@ public sealed class PlayerCombat :
                 _aimState.ResolveDirectionTo(
                     aimWorldPosition);
 
+
             direction =
                 NormalizeDirection(
                     direction);
+
 
             if (direction !=
                 Vector2.zero)
@@ -625,28 +721,35 @@ public sealed class PlayerCombat :
             }
         }
 
+
         if (_movementState != null &&
             !_movementState.FacingRight)
         {
             return Vector2.left;
         }
 
+
         return Vector2.right;
     }
 
 
     private Vector2 ResolveHitDirection(
-        PlayerAttackData attack,
+        AttackData attack,
         Vector2 currentInputAim)
     {
-        // Free Aim은 현재 Tick의 마우스 월드 위치를
-        // PlayerAim 기준으로 해석한 방향을 사용한다.
-        if (attack.Aim.AimMode ==
+        PlayerAttackAimDefinition aim =
+            GetAimDefinition(
+                attack);
+
+
+        // Free Aim은 현재 Tick의 입력 방향을 사용합니다.
+        if (aim.AimMode ==
             PlayerAttackAimMode.Free)
         {
             Vector2 freeDirection =
                 NormalizeDirection(
                     currentInputAim);
+
 
             if (freeDirection !=
                 Vector2.zero)
@@ -655,13 +758,15 @@ public sealed class PlayerCombat :
             }
         }
 
+
         // Locked / FourWay는 공격 시작 시
-        // PlayerAim에 확정되어 있는 방향을 사용한다.
+        // PlayerAim에 확정된 방향을 사용합니다.
         if (_aimState != null)
         {
             Vector2 aimDirection =
                 NormalizeDirection(
                     _aimState.AimDirection);
+
 
             if (aimDirection !=
                 Vector2.zero)
@@ -670,11 +775,13 @@ public sealed class PlayerCombat :
             }
         }
 
+
         if (_movementState != null &&
             !_movementState.FacingRight)
         {
             return Vector2.left;
         }
+
 
         return Vector2.right;
     }
@@ -689,16 +796,17 @@ public sealed class PlayerCombat :
             return Vector2.zero;
         }
 
+
         return direction.normalized;
     }
 
 
     // =========================================================
-    // Box Hit
+    // Box Damage
     // =========================================================
 
     private void PerformBoxAttackHit(
-        PlayerBoxAttackData attack,
+        BoxAttackData attack,
         Vector2 direction)
     {
         if (direction.sqrMagnitude <=
@@ -706,6 +814,7 @@ public sealed class PlayerCombat :
         {
             return;
         }
+
 
         direction.Normalize();
 
@@ -719,11 +828,12 @@ public sealed class PlayerCombat :
         Vector2 localOffset =
             attack.HitboxOffset;
 
+
         Vector2 worldOffset =
             direction *
-            localOffset.x +
+                localOffset.x +
             perpendicular *
-            localOffset.y;
+                localOffset.y;
 
 
         Vector2 center =
@@ -756,10 +866,12 @@ public sealed class PlayerCombat :
                 hit.GetComponentInParent<
                     IDamageable>();
 
+
             if (damageable == null)
                 continue;
 
 
+            // 자기 자신 제외.
             if (ReferenceEquals(
                     damageable,
                     _selfDamageReceiver))
@@ -768,6 +880,8 @@ public sealed class PlayerCombat :
             }
 
 
+            // 하나의 Damageable이 여러 Hurtbox Collider를
+            // 가지고 있어도 한 공격에서는 한 번만 적용합니다.
             if (!_hitTargets.Add(
                     damageable))
             {
@@ -781,15 +895,15 @@ public sealed class PlayerCombat :
 
             Vector2 knockback =
                 direction *
-                attack.KnockbackForward +
+                    attack.KnockbackForward +
                 Vector2.up *
-                attack.KnockbackUp;
+                    attack.KnockbackUp;
 
 
             DamageInfo info =
                 new DamageInfo(
                     attack.Damage,
-                    Object.InputAuthority,
+                    Object,
                     knockback,
                     attack.KnockbackControlLock);
 
@@ -828,16 +942,17 @@ public sealed class PlayerCombat :
 
 
     private void DrawAttackGizmo(
-        PlayerBoxAttackData attack)
+        BoxAttackData attack)
     {
         if (attack == null)
             return;
+
 
         Vector2 direction =
             Application.isPlaying &&
             _aimState != null &&
             _aimState.AimDirection.sqrMagnitude >
-            0.0001f
+                0.0001f
                 ? _aimState.AimDirection.normalized
                 : Vector2.right;
 
@@ -850,9 +965,9 @@ public sealed class PlayerCombat :
 
         Vector2 offset =
             direction *
-            attack.HitboxOffset.x +
+                attack.HitboxOffset.x +
             perpendicular *
-            attack.HitboxOffset.y;
+                attack.HitboxOffset.y;
 
 
         Vector2 center =

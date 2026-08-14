@@ -128,14 +128,16 @@ public sealed class ProjectileGun :
     // =========================================================
 
     public override bool TryUse(
-        PlayerRef attacker,
-        Vector2 origin,
-        Vector2 direction)
+    Vector2 origin,
+    Vector2 direction)
     {
         if (!HasStateAuthority)
             return false;
 
         if (!IsEquipped)
+            return false;
+
+        if (Holder == null)
             return false;
 
         if (Ammo <= 0)
@@ -150,6 +152,11 @@ public sealed class ProjectileGun :
 
         if (projectilePrefab == null)
             return false;
+
+
+        NetworkObject source =
+            Holder;
+
 
         direction =
             ResolveShotDirection(
@@ -180,23 +187,25 @@ public sealed class ProjectileGun :
             ResolveKnockback(
                 direction);
 
+
         NetworkObject spawned =
             Runner.Spawn(
                 projectilePrefab,
                 spawnPosition,
                 rotation,
-                attacker,
+                source.InputAuthority,
                 (runner, obj) =>
                 {
-                    BulletProjectile projectile =
+                    Projectile projectile =
                         obj.GetComponent<
-                            BulletProjectile>();
+                            Projectile>();
 
                     if (projectile == null)
                         return;
 
                     projectile.Initialize(
                         runner,
+                        source,
                         projectileVelocity,
                         projectileLifetime,
                         damage,
@@ -204,10 +213,13 @@ public sealed class ProjectileGun :
                         knockbackControlLock);
                 });
 
+
         if (spawned == null)
             return false;
 
+
         Ammo--;
+
 
         FireCooldown =
             fireInterval > 0f
@@ -215,6 +227,7 @@ public sealed class ProjectileGun :
                     Runner,
                     fireInterval)
                 : TickTimer.None;
+
 
         FireSequence++;
 
