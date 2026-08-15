@@ -19,6 +19,11 @@ public sealed class PlayerController :
 
     private IPlayerTickModule[] _tickModules;
 
+    private IPlayerTickStateSource[] _tickStateSources;
+
+    private readonly PlayerTickState _tickState =
+        new();
+
     private bool _initialized;
 
     private bool _tickPipelineEnabled;
@@ -61,13 +66,22 @@ public sealed class PlayerController :
 
         PlayerTick tick =
             new(
-                Runner);
+                Runner,
+                _tickState);
+
+        CaptureInitialTickState();
 
         foreach (IPlayerTickModule module
                  in _tickModules)
         {
             module.Simulate(
                 in tick);
+
+            if (module is IPlayerTickStateSource stateSource)
+            {
+                stateSource.CaptureTickState(
+                    _tickState);
+            }
         }
     }
 
@@ -163,6 +177,22 @@ public sealed class PlayerController :
         _tickModules =
             tickModules.ToArray();
 
+        List<IPlayerTickStateSource> stateSources =
+            new();
+
+        foreach (PlayerModule module
+                 in _modules)
+        {
+            if (module is IPlayerTickStateSource stateSource)
+            {
+                stateSources.Add(
+                    stateSource);
+            }
+        }
+
+        _tickStateSources =
+            stateSources.ToArray();
+
         foreach (PlayerModule module
                  in _modules)
         {
@@ -175,6 +205,19 @@ public sealed class PlayerController :
 
         _tickPipelineEnabled =
             true;
+    }
+
+
+    private void CaptureInitialTickState()
+    {
+        _tickState.Reset();
+
+        foreach (IPlayerTickStateSource stateSource
+                 in _tickStateSources)
+        {
+            stateSource.CaptureTickState(
+                _tickState);
+        }
     }
 
 

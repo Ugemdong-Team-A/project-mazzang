@@ -14,7 +14,8 @@ public sealed class PlayerHealth :
     PlayerModule,
     IPlayerHealthState,
     IPlayerDamageReceiver,
-    IPlayerTickModule
+    IPlayerTickModule,
+    IPlayerTickStateSource
 {
     [Header("Health")]
     [SerializeField]
@@ -231,6 +232,14 @@ public sealed class PlayerHealth :
         in PlayerTick tick)
     {
         TickBegin();
+    }
+
+
+    void IPlayerTickStateSource.CaptureTickState(
+        PlayerTickState state)
+    {
+        state.HasHealth = true;
+        state.IsAlive = IsAlive;
     }
 
 

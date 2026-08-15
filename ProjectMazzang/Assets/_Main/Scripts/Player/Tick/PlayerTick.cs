@@ -13,10 +13,17 @@ public readonly struct PlayerTick
     public float DeltaTime =>
         Runner.DeltaTime;
 
+    public PlayerTickState State
+    {
+        get;
+    }
+
 
     public PlayerTick(
-        NetworkRunner runner)
+        NetworkRunner runner,
+        PlayerTickState state)
     {
         Runner = runner;
+        State = state;
     }
 }
