@@ -269,6 +269,9 @@ public sealed class PlayerMovement :
 
     public override void FixedUpdateNetwork()
     {
+        if (IsTickControlled)
+            return;
+
         TickMotion();
     }
 

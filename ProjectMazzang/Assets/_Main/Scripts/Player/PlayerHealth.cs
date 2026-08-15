@@ -236,6 +236,9 @@ public sealed class PlayerHealth :
 
     public override void FixedUpdateNetwork()
     {
+        if (IsTickControlled)
+            return;
+
         TickBegin();
     }
 

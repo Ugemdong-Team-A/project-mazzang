@@ -12,6 +12,8 @@ public abstract class PlayerModule :
 {
     private bool _contextCompleted;
 
+    private bool _tickControlled;
+
 
     protected PlayerContext Context
     {
@@ -23,6 +25,18 @@ public abstract class PlayerModule :
     public bool IsContextReady =>
         Context != null &&
         _contextCompleted;
+
+
+    protected bool IsTickControlled =>
+        _tickControlled;
+
+
+    internal void SetTickControlled(
+        bool controlled)
+    {
+        _tickControlled =
+            controlled;
+    }
 
 
     internal void InitializeContext(

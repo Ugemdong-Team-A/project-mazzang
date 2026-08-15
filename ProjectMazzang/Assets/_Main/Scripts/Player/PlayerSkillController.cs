@@ -13,7 +13,8 @@ using UnityEngine;
 /// </summary>
 [DefaultExecutionOrder(-80)]
 public sealed class PlayerSkillController :
-    PlayerModule
+    PlayerModule,
+    IPlayerTickModule
 {
     [Header("Default Skills")]
     [SerializeField]
@@ -182,7 +183,27 @@ public sealed class PlayerSkillController :
     }
 
 
+    PlayerTickStage IPlayerTickModule.Stage =>
+        PlayerTickStage.LateAction;
+
+
+    void IPlayerTickModule.Simulate(
+        in PlayerTick tick)
+    {
+        TickLateAction();
+    }
+
+
     public override void FixedUpdateNetwork()
+    {
+        if (IsTickControlled)
+            return;
+
+        TickLateAction();
+    }
+
+
+    internal void TickLateAction()
     {
         if (!IsContextReady)
             return;

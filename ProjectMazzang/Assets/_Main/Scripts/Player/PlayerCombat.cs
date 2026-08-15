@@ -236,6 +236,9 @@ public sealed class PlayerCombat :
 
     public override void FixedUpdateNetwork()
     {
+        if (IsTickControlled)
+            return;
+
         TickAction();
     }
 

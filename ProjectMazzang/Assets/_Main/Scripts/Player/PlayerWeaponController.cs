@@ -6,7 +6,8 @@ using UnityEngine.U2D.IK;
 public sealed class PlayerWeaponController :
     PlayerModule,
     IPlayerWeaponState,
-    IPlayerWeaponControl
+    IPlayerWeaponControl,
+    IPlayerTickModule
 {
     [Header("Weapon")]
     [SerializeField]
@@ -161,7 +162,27 @@ public sealed class PlayerWeaponController :
     }
 
 
+    PlayerTickStage IPlayerTickModule.Stage =>
+        PlayerTickStage.PrepareAction;
+
+
+    void IPlayerTickModule.Simulate(
+        in PlayerTick tick)
+    {
+        TickPrepareAction();
+    }
+
+
     public override void FixedUpdateNetwork()
+    {
+        if (IsTickControlled)
+            return;
+
+        TickPrepareAction();
+    }
+
+
+    internal void TickPrepareAction()
     {
         if (!IsContextReady)
             return;

@@ -178,6 +178,9 @@ public sealed class PlayerAim :
 
     public override void FixedUpdateNetwork()
     {
+        if (IsTickControlled)
+            return;
+
         TickAim();
     }
 
