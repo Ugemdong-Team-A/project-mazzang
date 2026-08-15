@@ -5,7 +5,8 @@ using UnityEngine;
 public sealed class PlayerAim :
     PlayerModule,
     IPlayerAimState,
-    IPlayerAimControl
+    IPlayerAimControl,
+    IPlayerTickModule
 {
     [Header("Aim")]
     [Tooltip(
@@ -163,6 +164,17 @@ public sealed class PlayerAim :
     // =========================================================
     // Fusion
     // =========================================================
+
+    PlayerTickStage IPlayerTickModule.Stage =>
+        PlayerTickStage.Aim;
+
+
+    void IPlayerTickModule.Simulate(
+        in PlayerTick tick)
+    {
+        TickAim();
+    }
+
 
     public override void FixedUpdateNetwork()
     {

@@ -14,7 +14,8 @@ public enum PlayerAttackState : byte
 public sealed class PlayerCombat :
     PlayerModule,
     IPlayerCombatState,
-    IPlayerCombatControl
+    IPlayerCombatControl,
+    IPlayerTickModule
 {
     private const int NoneAttackId = 0;
 
@@ -219,6 +220,17 @@ public sealed class PlayerCombat :
 
         AttackCooldownTimer =
             TickTimer.None;
+    }
+
+
+    PlayerTickStage IPlayerTickModule.Stage =>
+        PlayerTickStage.Action;
+
+
+    void IPlayerTickModule.Simulate(
+        in PlayerTick tick)
+    {
+        TickAction();
     }
 
 

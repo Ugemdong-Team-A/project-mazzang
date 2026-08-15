@@ -13,7 +13,8 @@ public enum DeathCause : byte
 public sealed class PlayerHealth :
     PlayerModule,
     IPlayerHealthState,
-    IPlayerDamageReceiver
+    IPlayerDamageReceiver,
+    IPlayerTickModule
 {
     [Header("Health")]
     [SerializeField]
@@ -219,6 +220,17 @@ public sealed class PlayerHealth :
         BattleCameraController.Instance?
             .RemoveTarget(
                 transform);
+    }
+
+
+    PlayerTickStage IPlayerTickModule.Stage =>
+        PlayerTickStage.Begin;
+
+
+    void IPlayerTickModule.Simulate(
+        in PlayerTick tick)
+    {
+        TickBegin();
     }
 
 

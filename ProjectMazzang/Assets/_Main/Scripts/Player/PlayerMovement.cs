@@ -15,7 +15,8 @@ public sealed class PlayerMovement :
     IPlayerMovementState,
     IPlayerKnockbackReceiver,
     IPlayerFacingControl,
-    IPlayerMovementControl
+    IPlayerMovementControl,
+    IPlayerTickModule
 {
     [Header("References")]
     [SerializeField]
@@ -254,6 +255,17 @@ public sealed class PlayerMovement :
     {
 
     }
+
+    PlayerTickStage IPlayerTickModule.Stage =>
+        PlayerTickStage.Motion;
+
+
+    void IPlayerTickModule.Simulate(
+        in PlayerTick tick)
+    {
+        TickMotion();
+    }
+
 
     public override void FixedUpdateNetwork()
     {
