@@ -300,16 +300,14 @@ public sealed class PlayerHealth :
 
         // 유효한 피격이 들어오는 즉시 현재 공격을 끊는다.
         // 이후 Movement의 control lock 동안 새 공격도 차단된다.
-        _combatControl?
-            .CancelAttack();
+        RequestCancelAttack();
 
         if (info.Knockback
                 .sqrMagnitude > 0f)
         {
-            _knockbackReceiver?
-                .ApplyKnockback(
-                    info.Knockback,
-                    info.KnockbackControlLock);
+            RequestKnockback(
+                info.Knockback,
+                info.KnockbackControlLock);
         }
 
         if (Health > 0)
@@ -322,6 +320,39 @@ public sealed class PlayerHealth :
         Die(
             deathAttacker,
             DeathCause.Damage);
+    }
+
+
+    private void RequestCancelAttack()
+    {
+        if (TickCommands != null)
+        {
+            TickCommands.RequestCancelAttack();
+            return;
+        }
+
+        _combatControl?
+            .CancelAttack();
+    }
+
+
+    private void RequestKnockback(
+        Vector2 velocity,
+        float controlLockDuration)
+    {
+        if (TickCommands != null)
+        {
+            TickCommands.RequestKnockback(
+                velocity,
+                controlLockDuration);
+
+            return;
+        }
+
+        _knockbackReceiver?
+            .ApplyKnockback(
+                velocity,
+                controlLockDuration);
     }
 
 
@@ -457,8 +488,7 @@ public sealed class PlayerHealth :
         DeathSequence++;
 
         // 사망한 틱에 이미 진행 중인 공격도 즉시 취소한다.
-        _combatControl?
-            .CancelAttack();
+        RequestCancelAttack();
 
         LoseLife();
 

@@ -7,12 +7,17 @@ using UnityEngine;
 /// 같은 NetworkObject 소속 PlayerModule들에게 동일한 Context를 연결합니다.
 ///
 /// 개별 모듈의 구체 타입과 시뮬레이션 로직은 알지 않습니다.
-/// IPlayerTickModule의 Stage 순서만 해석해 네트워크 Tick을 실행합니다.
+/// Tick 단계, 상태 제공자, 명령 소비자 계약만 해석해
+/// 네트워크 Tick을 실행합니다.
 /// </summary>
 [DefaultExecutionOrder(-1000)]
 public sealed class PlayerController :
-    NetworkBehaviour
+    NetworkBehaviour,
+    IPlayerTickCommandDispatcher
 {
+    private const int MaxCommandResolvePasses = 8;
+
+
     private PlayerContext _context;
 
     private PlayerModule[] _modules;
@@ -21,12 +26,19 @@ public sealed class PlayerController :
 
     private IPlayerTickStateSource[] _tickStateSources;
 
+    private IPlayerTickCommandSink[] _tickCommandSinks;
+
     private readonly PlayerTickState _tickState =
+        new();
+
+    private readonly PlayerTickCommands _tickCommands =
         new();
 
     private bool _initialized;
 
     private bool _tickPipelineEnabled;
+
+    private bool _resolvingCommands;
 
 
     public PlayerContext Context =>
@@ -67,9 +79,15 @@ public sealed class PlayerController :
         PlayerTick tick =
             new(
                 Runner,
-                _tickState);
+                _tickState,
+                _tickCommands);
 
         CaptureInitialTickState();
+
+        if (DispatchPendingCommands())
+        {
+            CaptureCurrentTickState();
+        }
 
         foreach (IPlayerTickModule module
                  in _tickModules)
@@ -77,10 +95,11 @@ public sealed class PlayerController :
             module.Simulate(
                 in tick);
 
-            if (module is IPlayerTickStateSource stateSource)
+            CaptureCurrentTickState();
+
+            if (DispatchPendingCommands())
             {
-                stateSource.CaptureTickState(
-                    _tickState);
+                CaptureCurrentTickState();
             }
         }
     }
@@ -193,6 +212,28 @@ public sealed class PlayerController :
         _tickStateSources =
             stateSources.ToArray();
 
+        List<IPlayerTickCommandSink> commandSinks =
+            new();
+
+        foreach (PlayerModule module
+                 in _modules)
+        {
+            module.SetTickCommands(
+                _tickCommands);
+
+            if (module is IPlayerTickCommandSink commandSink)
+            {
+                commandSinks.Add(
+                    commandSink);
+            }
+        }
+
+        _tickCommandSinks =
+            commandSinks.ToArray();
+
+        _tickCommands.SetDispatcher(
+            this);
+
         foreach (PlayerModule module
                  in _modules)
         {
@@ -212,12 +253,90 @@ public sealed class PlayerController :
     {
         _tickState.Reset();
 
+        CaptureCurrentTickState();
+    }
+
+
+    private void CaptureCurrentTickState()
+    {
         foreach (IPlayerTickStateSource stateSource
                  in _tickStateSources)
         {
             stateSource.CaptureTickState(
                 _tickState);
         }
+    }
+
+
+    private bool ResolvePendingCommands()
+    {
+        bool resolvedAny = false;
+
+        for (int pass = 0;
+             pass < MaxCommandResolvePasses &&
+             _tickCommands.HasPending;
+             pass++)
+        {
+            bool resolvedThisPass = false;
+
+            foreach (IPlayerTickCommandSink commandSink
+                     in _tickCommandSinks)
+            {
+                resolvedThisPass |=
+                    commandSink.ResolveTickCommands(
+                        _tickCommands,
+                        _tickState);
+            }
+
+            if (!resolvedThisPass)
+                break;
+
+            resolvedAny = true;
+        }
+
+        if (_tickCommands.HasPending)
+        {
+            Debug.LogError(
+                "처리되지 않은 Player Tick 명령이 있습니다.",
+                this);
+        }
+
+        return resolvedAny;
+    }
+
+
+    private bool DispatchPendingCommands()
+    {
+        if (_resolvingCommands ||
+            !_tickPipelineEnabled)
+        {
+            return false;
+        }
+
+        _resolvingCommands = true;
+
+        try
+        {
+            return ResolvePendingCommands();
+        }
+        finally
+        {
+            _resolvingCommands = false;
+        }
+    }
+
+
+    void IPlayerTickCommandDispatcher.DispatchTickCommands()
+    {
+        if (_resolvingCommands ||
+            !_tickPipelineEnabled)
+        {
+            return;
+        }
+
+        CaptureCurrentTickState();
+        DispatchPendingCommands();
+        CaptureCurrentTickState();
     }
 
 

@@ -7,7 +7,9 @@ public sealed class PlayerWeaponController :
     PlayerModule,
     IPlayerWeaponState,
     IPlayerWeaponControl,
-    IPlayerTickModule
+    IPlayerTickModule,
+    IPlayerTickCommandSink,
+    IPlayerTickStateSource
 {
     [Header("Weapon")]
     [SerializeField]
@@ -169,7 +171,36 @@ public sealed class PlayerWeaponController :
     void IPlayerTickModule.Simulate(
         in PlayerTick tick)
     {
-        TickPrepareAction();
+        TickPrepareAction(
+            tick.State,
+            false);
+    }
+
+
+    void IPlayerTickStateSource.CaptureTickState(
+        PlayerTickState state)
+    {
+        state.HasWeapon = true;
+        state.HasEquippedWeapon = HasEquippedWeapon;
+    }
+
+
+    bool IPlayerTickCommandSink.ResolveTickCommands(
+        PlayerTickCommands commands,
+        PlayerTickState state)
+    {
+        if (!commands.TryConsumeWeaponUse(
+                out Vector2 aimDirection))
+        {
+            return false;
+        }
+
+        TryUseWeapon(
+            aimDirection,
+            !state.HasHealth ||
+            state.IsAlive);
+
+        return true;
     }
 
 
@@ -184,8 +215,40 @@ public sealed class PlayerWeaponController :
 
     internal void TickPrepareAction()
     {
-        if (!IsContextReady)
-            return;
+        PlayerTickState fallbackState =
+            new();
+
+        fallbackState.HasHealth =
+            _healthState != null;
+        fallbackState.IsAlive =
+            _healthState != null &&
+            _healthState.IsAlive;
+        fallbackState.HasMovement =
+            _movementState != null;
+        fallbackState.MovementVelocity =
+            _movementState != null
+                ? _movementState.Velocity
+                : Vector2.zero;
+        fallbackState.FacingRight =
+            _movementState == null ||
+            _movementState.FacingRight;
+        fallbackState.HasAim =
+            _aimState != null;
+        fallbackState.AimDirection =
+            _aimState != null
+                ? _aimState.AimDirection
+                : Vector2.zero;
+
+        TickPrepareAction(
+            fallbackState,
+            true);
+    }
+
+
+    private void TickPrepareAction(
+        PlayerTickState state,
+        bool useLegacyAim)
+    {
 
         bool hasInput =
             GetInput(
@@ -197,7 +260,9 @@ public sealed class PlayerWeaponController :
             hasInput)
         {
             UpdateAuthoritativeWeaponAngle(
-                input.AimWorldPosition);
+                input.AimWorldPosition,
+                state,
+                useLegacyAim);
 
             ApplyWeaponSocketRotation(
                 WeaponAngle);
@@ -206,14 +271,14 @@ public sealed class PlayerWeaponController :
         if (!HasStateAuthority)
             return;
 
-        if (_healthState != null &&
-            !_healthState.IsAlive)
+        if (state.HasHealth &&
+            !state.IsAlive)
         {
             if (HasEquippedWeapon)
             {
                 Vector2 deathDropVelocity =
-                    _movementState != null
-                        ? _movementState.Velocity
+                    state.HasMovement
+                        ? state.MovementVelocity
                         : Vector2.zero;
 
                 DropWeapon(
@@ -242,7 +307,9 @@ public sealed class PlayerWeaponController :
 
         if (dropPressed)
         {
-            TryDropWeapon();
+            DropWeapon(
+                CalculateDropVelocity(
+                    state));
         }
     }
 
@@ -280,14 +347,17 @@ public sealed class PlayerWeaponController :
     // =========================================================
 
     private void UpdateAuthoritativeWeaponAngle(
-        Vector2 aimWorldPosition)
+        Vector2 aimWorldPosition,
+        PlayerTickState state,
+        bool useLegacyAim)
     {
-        if (_aimState == null)
-            return;
-
         Vector2 direction =
-            _aimState.ResolveDirectionTo(
-                aimWorldPosition);
+            useLegacyAim &&
+            _aimState != null
+                ? _aimState.ResolveDirectionTo(
+                    aimWorldPosition)
+                : state.ResolveAimDirectionTo(
+                    aimWorldPosition);
 
         if (direction.sqrMagnitude <=
             0.0001f)
@@ -582,12 +652,46 @@ public sealed class PlayerWeaponController :
     }
 
 
+    private Vector2 CalculateDropVelocity(
+        PlayerTickState state)
+    {
+        float facingSign =
+            !state.HasMovement ||
+            state.FacingRight
+                ? 1f
+                : -1f;
+
+        Vector2 tossVelocity =
+            new Vector2(
+                dropVelocity.x *
+                facingSign,
+                dropVelocity.y);
+
+        return state.HasMovement
+            ? tossVelocity +
+              state.MovementVelocity *
+              inheritedVelocityFactor
+            : tossVelocity;
+    }
+
+
     // =========================================================
     // Use
     // =========================================================
 
     public bool TryUseWeapon(
         Vector2 aimDirection)
+    {
+        return TryUseWeapon(
+            aimDirection,
+            _healthState == null ||
+            _healthState.IsAlive);
+    }
+
+
+    private bool TryUseWeapon(
+        Vector2 aimDirection,
+        bool isAlive)
     {
         // 기존 인터페이스 호환을 위해 인자는 유지하지만,
         // 실제 판정 방향은 StateAuthority가 확정한 WeaponAngle을 사용한다.
@@ -596,11 +700,8 @@ public sealed class PlayerWeaponController :
         if (!HasStateAuthority)
             return false;
 
-        if (_healthState != null &&
-            !_healthState.IsAlive)
-        {
+        if (!isAlive)
             return false;
-        }
 
         Weapon weapon =
             EquippedWeapon;

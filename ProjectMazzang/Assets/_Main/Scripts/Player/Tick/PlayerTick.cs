@@ -18,12 +18,19 @@ public readonly struct PlayerTick
         get;
     }
 
+    public PlayerTickCommands Commands
+    {
+        get;
+    }
+
 
     public PlayerTick(
         NetworkRunner runner,
-        PlayerTickState state)
+        PlayerTickState state,
+        PlayerTickCommands commands)
     {
         Runner = runner;
         State = state;
+        Commands = commands;
     }
 }

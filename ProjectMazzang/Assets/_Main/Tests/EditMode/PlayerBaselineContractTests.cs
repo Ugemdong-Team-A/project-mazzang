@@ -61,33 +61,6 @@ namespace ProjectMazzang.Tests
 
 
         [Test]
-        public void CoreModules_KeepCurrentContextContracts()
-        {
-            AssertInterfaces(
-                "PlayerMovement",
-                "IPlayerMovementState",
-                "IPlayerMovementControl",
-                "IPlayerKnockbackReceiver",
-                "IPlayerFacingControl");
-
-            AssertInterfaces(
-                "PlayerAim",
-                "IPlayerAimState",
-                "IPlayerAimControl");
-
-            AssertInterfaces(
-                "PlayerCombat",
-                "IPlayerCombatState",
-                "IPlayerCombatControl");
-
-            AssertInterfaces(
-                "PlayerHealth",
-                "IPlayerHealthState",
-                "IPlayerDamageReceiver");
-        }
-
-
-        [Test]
         public void OrderedStateModules_ProvideTickStateSources()
         {
             AssertInterfaces(
@@ -101,11 +74,86 @@ namespace ProjectMazzang.Tests
             AssertInterfaces(
                 "PlayerMovement",
                 "IPlayerTickStateSource");
+
+            AssertInterfaces(
+                "PlayerAim",
+                "IPlayerTickStateSource");
+
+            AssertInterfaces(
+                "PlayerWeaponController",
+                "IPlayerTickStateSource");
         }
 
 
         [Test]
-        public void PlayerTickState_ContainsMovementAndCombatSnapshot()
+        public void CommandModules_ProvideTickCommandSinks()
+        {
+            AssertInterfaces(
+                "PlayerCombat",
+                "IPlayerTickCommandSink");
+
+            AssertInterfaces(
+                "PlayerMovement",
+                "IPlayerTickCommandSink");
+
+            AssertInterfaces(
+                "PlayerAim",
+                "IPlayerTickCommandSink");
+
+            AssertInterfaces(
+                "PlayerWeaponController",
+                "IPlayerTickCommandSink");
+        }
+
+
+        [Test]
+        public void PlayerTickCommands_TracksAndConsumesPendingRequest()
+        {
+            Type commandsType =
+                GetRuntimeType(
+                    "PlayerTickCommands");
+
+            object commands =
+                Activator.CreateInstance(
+                    commandsType);
+
+            AssertProperty(
+                commands,
+                "HasPending",
+                false);
+
+            commandsType
+                .GetMethod("RequestCancelAttack")
+                .Invoke(commands, null);
+
+            AssertProperty(
+                commands,
+                "HasPending",
+                true);
+
+            MethodInfo consume =
+                commandsType.GetMethod(
+                    "TryConsumeCancelAttack",
+                    BindingFlags.Instance |
+                    BindingFlags.NonPublic);
+
+            Assert.That(
+                consume,
+                Is.Not.Null);
+
+            Assert.That(
+                consume.Invoke(commands, null),
+                Is.EqualTo(true));
+
+            AssertProperty(
+                commands,
+                "HasPending",
+                false);
+        }
+
+
+        [Test]
+        public void PlayerTickState_ContainsModuleSnapshotContracts()
         {
             Type tickStateType =
                 GetRuntimeType(
@@ -139,6 +187,26 @@ namespace ProjectMazzang.Tests
             AssertPropertyType(
                 tickStateType,
                 "IsCombatMovementLocked",
+                typeof(bool));
+
+            AssertPropertyType(
+                tickStateType,
+                "HasAim",
+                typeof(bool));
+
+            AssertPropertyType(
+                tickStateType,
+                "AimDirection",
+                typeof(Vector2));
+
+            AssertPropertyType(
+                tickStateType,
+                "HasWeapon",
+                typeof(bool));
+
+            AssertPropertyType(
+                tickStateType,
+                "HasEquippedWeapon",
                 typeof(bool));
         }
 
@@ -176,6 +244,18 @@ namespace ProjectMazzang.Tests
 
             tickStateType
                 .GetProperty("IsCombatMovementLocked")
+                .SetValue(tickState, true);
+
+            tickStateType
+                .GetProperty("HasAim")
+                .SetValue(tickState, true);
+
+            tickStateType
+                .GetProperty("HasWeapon")
+                .SetValue(tickState, true);
+
+            tickStateType
+                .GetProperty("HasEquippedWeapon")
                 .SetValue(tickState, true);
 
             MethodInfo reset =
@@ -221,26 +301,62 @@ namespace ProjectMazzang.Tests
                 tickState,
                 "IsCombatMovementLocked",
                 false);
+
+            AssertProperty(
+                tickState,
+                "HasAim",
+                false);
+
+            AssertProperty(
+                tickState,
+                "HasWeapon",
+                false);
+
+            AssertProperty(
+                tickState,
+                "HasEquippedWeapon",
+                false);
         }
 
 
         [Test]
-        public void CoreModules_KeepCurrentConsumedContextFields()
+        public void PlayerTickState_ResolvesAimFromCapturedOrigin()
         {
-            AssertFieldTypes(
-                "PlayerMovement",
-                ("_healthState", "IPlayerHealthState"),
-                ("_combatState", "IPlayerCombatState"));
+            Type tickStateType =
+                GetRuntimeType(
+                    "PlayerTickState");
 
-            AssertFieldTypes(
-                "PlayerAim",
-                ("_movementState", "IPlayerMovementState"),
-                ("_facingControl", "IPlayerFacingControl"));
+            object tickState =
+                Activator.CreateInstance(
+                    tickStateType);
 
-            AssertFieldTypes(
-                "PlayerHealth",
-                ("_knockbackReceiver", "IPlayerKnockbackReceiver"),
-                ("_combatControl", "IPlayerCombatControl"));
+            tickStateType
+                .GetProperty("HasAim")
+                .SetValue(tickState, true);
+
+            tickStateType
+                .GetProperty("HasAimOrigin")
+                .SetValue(tickState, true);
+
+            tickStateType
+                .GetProperty("AimOriginPosition")
+                .SetValue(
+                    tickState,
+                    new Vector2(2f, 3f));
+
+            Vector2 direction =
+                (Vector2)tickStateType
+                    .GetMethod("ResolveAimDirectionTo")
+                    .Invoke(
+                        tickState,
+                        new object[]
+                        {
+                            new Vector2(5f, 7f)
+                        });
+
+            Assert.That(
+                direction,
+                Is.EqualTo(new Vector2(0.6f, 0.8f)));
         }
 
 
@@ -341,36 +457,6 @@ namespace ProjectMazzang.Tests
                     actualInterfaces,
                     Does.Contain(expected),
                     $"{typeName}이 {expected} 계약을 더 이상 제공하지 않습니다.");
-            }
-        }
-
-
-        private static void AssertFieldTypes(
-            string typeName,
-            params (string FieldName, string FieldType)[] fields)
-        {
-            Type type =
-                GetRuntimeType(
-                    typeName);
-
-            foreach ((string fieldName, string fieldType)
-                     in fields)
-            {
-                FieldInfo field =
-                    type.GetField(
-                        fieldName,
-                        BindingFlags.Instance |
-                        BindingFlags.NonPublic);
-
-                Assert.That(
-                    field,
-                    Is.Not.Null,
-                    $"{typeName}.{fieldName} 필드를 찾을 수 없습니다.");
-
-                Assert.That(
-                    field.FieldType.Name,
-                    Is.EqualTo(fieldType),
-                    $"{typeName}.{fieldName}의 계약 타입이 달라졌습니다.");
             }
         }
 

@@ -17,7 +17,8 @@ public sealed class PlayerMovement :
     IPlayerFacingControl,
     IPlayerMovementControl,
     IPlayerTickModule,
-    IPlayerTickStateSource
+    IPlayerTickStateSource,
+    IPlayerTickCommandSink
 {
     [Header("References")]
     [SerializeField]
@@ -279,6 +280,37 @@ public sealed class PlayerMovement :
         state.FacingRight = FacingRight;
         state.IsWallSliding = IsWallSliding;
         state.IsMovementControlLocked = IsControlLocked;
+        state.MovementVelocity = Velocity;
+    }
+
+
+    bool IPlayerTickCommandSink.ResolveTickCommands(
+        PlayerTickCommands commands,
+        PlayerTickState state)
+    {
+        bool resolved = false;
+
+        if (commands.TryConsumeKnockback(
+                out Vector2 velocity,
+                out float controlLockDuration))
+        {
+            ApplyKnockback(
+                velocity,
+                controlLockDuration);
+
+            resolved = true;
+        }
+
+        if (commands.TryConsumeFacing(
+                out bool facingRight))
+        {
+            SetFacing(
+                facingRight);
+
+            resolved = true;
+        }
+
+        return resolved;
     }
 
 

@@ -2,8 +2,8 @@ using Fusion;
 using UnityEngine;
 
 /// <summary>
-/// PlayerContext에 등록할 수 있는 플레이어 내부 계약의 공통 단위입니다.
-/// 상태 조회와 즉시 명령 모두 이 인터페이스를 기반으로 등록합니다.
+/// 기존 UI, Render, fallback 경로가 PlayerContext에 등록하는 호환 계약입니다.
+/// 새 네트워크 Tick 모듈 통신에는 사용하지 않습니다.
 /// </summary>
 public interface IPlayerContextUnit
 {

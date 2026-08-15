@@ -11,16 +11,15 @@
 
 ## Tick 순서 기준
 
-현재 스크립트 실행 순서는 다음과 같다.
+현재 PlayerController가 보장하는 Tick 단계 순서는 다음과 같다.
 
-1. PlayerController (-1000)
-2. PlayerHealth (-300)
-3. PlayerWeaponController (-210)
-4. PlayerCombat (-200)
-5. PlayerMovement (-100)
-6. PlayerAim (-90)
-7. PlayerSkillController (-80)
-8. PlayerAnimation (0)
+1. PlayerHealth (Begin)
+2. PlayerWeaponController (PrepareAction)
+3. PlayerCombat (Action)
+4. PlayerMovement (Motion)
+5. PlayerAim (Aim)
+6. PlayerSkillController (LateAction)
+7. PlayerAnimation (Render)
 
 ## 검증 항목
 
@@ -36,6 +35,7 @@
 - 유효한 피해는 Health를 정확히 한 번 감소시킨다.
 - 피해가 적용된 Tick에 진행 중인 공격이 취소된다.
 - Knockback이 0이 아니면 동일한 피해 정보의 속도가 Movement에 적용된다.
+- 공격 취소와 Knockback 명령이 다음 Tick까지 남지 않고 요청된 시뮬레이션 호출에서 처리된다.
 - KnockbackControlLock 동안 이동 및 일반 공격 입력이 적용되지 않는다.
 - Timer 만료 뒤 다음 유효 Tick부터 이동과 일반 공격이 가능하다.
 
@@ -51,6 +51,7 @@
 - Movement에서 확정된 Facing을 Aim이 같은 Tick에 읽는다.
 - Aim에서 확정된 방향과 각도를 Animation이 같은 Tick에 읽는다.
 - Aim override가 끝난 뒤 일반 입력 Aim으로 복귀한다.
+- 공격의 Aim override와 Weapon 사용 요청이 요청된 Tick 안에서 처리된다.
 
 ### 예측과 권위 상태
 

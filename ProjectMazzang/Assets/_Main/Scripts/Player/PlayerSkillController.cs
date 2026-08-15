@@ -192,7 +192,8 @@ public sealed class PlayerSkillController :
     {
         TickLateAction(
             tick.State.HasHealth &&
-            tick.State.IsAlive);
+            tick.State.IsAlive,
+            false);
     }
 
 
@@ -209,14 +210,17 @@ public sealed class PlayerSkillController :
     {
         TickLateAction(
             _healthState != null &&
-            _healthState.IsAlive);
+            _healthState.IsAlive,
+            true);
     }
 
 
     private void TickLateAction(
-        bool isAlive)
+        bool isAlive,
+        bool requireContext)
     {
-        if (!IsContextReady)
+        if (requireContext &&
+            !IsContextReady)
             return;
 
 

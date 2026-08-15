@@ -6,7 +6,9 @@ public sealed class PlayerAim :
     PlayerModule,
     IPlayerAimState,
     IPlayerAimControl,
-    IPlayerTickModule
+    IPlayerTickModule,
+    IPlayerTickCommandSink,
+    IPlayerTickStateSource
 {
     [Header("Aim")]
     [Tooltip(
@@ -180,6 +182,50 @@ public sealed class PlayerAim :
     }
 
 
+    void IPlayerTickStateSource.CaptureTickState(
+        PlayerTickState state)
+    {
+        state.HasAim = true;
+        state.HasAimOrigin = aimOrigin != null;
+        state.AimOriginPosition =
+            aimOrigin != null
+                ? (Vector2)aimOrigin.position
+                : Vector2.zero;
+        state.AimDirection = AimDirection;
+    }
+
+
+    bool IPlayerTickCommandSink.ResolveTickCommands(
+        PlayerTickCommands commands,
+        PlayerTickState state)
+    {
+        if (!commands.TryConsumeAimCommand(
+                out bool clearOverride,
+                out PlayerAimOverride aimOverride,
+                out Vector2 sourceAimDirection))
+        {
+            return false;
+        }
+
+        if (clearOverride)
+        {
+            ClearOverride();
+        }
+        else
+        {
+            ApplyOverride(
+                in aimOverride,
+                sourceAimDirection,
+                !state.HasMovement ||
+                state.FacingRight,
+                state.HasMovement &&
+                state.IsWallSliding);
+        }
+
+        return true;
+    }
+
+
     public override void FixedUpdateNetwork()
     {
         if (IsTickControlled)
@@ -202,9 +248,6 @@ public sealed class PlayerAim :
         bool facingRight,
         bool isWallSliding)
     {
-        if (!IsContextReady)
-            return;
-
         if (!GetInput(
                 out PlayerInputData input))
         {
@@ -220,7 +263,8 @@ public sealed class PlayerAim :
             inputAimDirection);
 
         UpdateFacing(
-            isWallSliding);
+            isWallSliding,
+            facingRight);
 
         UpdateBodyAim();
     }
@@ -240,6 +284,21 @@ public sealed class PlayerAim :
         in PlayerAimOverride aimOverride,
         Vector2 sourceAimDirection)
     {
+        ApplyOverride(
+            in aimOverride,
+            sourceAimDirection,
+            FacingRight,
+            _movementState != null &&
+            _movementState.IsWallSliding);
+    }
+
+
+    private void ApplyOverride(
+        in PlayerAimOverride aimOverride,
+        Vector2 sourceAimDirection,
+        bool facingRight,
+        bool isWallSliding)
+    {
         Vector2 sourceDirection =
             ResolveSourceDirection(
                 sourceAimDirection);
@@ -249,11 +308,11 @@ public sealed class PlayerAim :
         if (aimOverride.FacingMode ==
             PlayerAimFacingMode.Locked)
         {
-            TryUpdateFacingFromDirection(
-                sourceDirection);
-
             LockedFacingRight =
-                FacingRight;
+                TryUpdateFacingFromDirection(
+                    sourceDirection,
+                    isWallSliding,
+                    facingRight);
         }
 
         TrackingMode =
@@ -441,9 +500,11 @@ public sealed class PlayerAim :
     // =========================================================
 
     private void UpdateFacing(
-        bool isWallSliding)
+        bool isWallSliding,
+        bool facingRight)
     {
-        if (_facingControl == null)
+        if (TickCommands == null &&
+            _facingControl == null)
         {
             return;
         }
@@ -454,7 +515,7 @@ public sealed class PlayerAim :
         if (FacingMode ==
             PlayerAimFacingMode.Locked)
         {
-            _facingControl.SetFacing(
+            RequestFacing(
                 LockedFacingRight);
 
             return;
@@ -462,7 +523,8 @@ public sealed class PlayerAim :
 
         TryUpdateFacingFromDirection(
             AimDirection,
-            isWallSliding);
+            isWallSliding,
+            facingRight);
     }
 
 
@@ -472,30 +534,33 @@ public sealed class PlayerAim :
         TryUpdateFacingFromDirection(
             direction,
             _movementState != null &&
-            _movementState.IsWallSliding);
+            _movementState.IsWallSliding,
+            FacingRight);
     }
 
 
-    private void TryUpdateFacingFromDirection(
+    private bool TryUpdateFacingFromDirection(
         Vector2 direction,
-        bool isWallSliding)
+        bool isWallSliding,
+        bool facingRight)
     {
-        if (_facingControl == null)
+        if (TickCommands == null &&
+            _facingControl == null)
         {
-            return;
+            return facingRight;
         }
 
         if (isWallSliding)
-            return;
+            return facingRight;
 
         if (direction.sqrMagnitude <=
             0.0001f)
         {
-            return;
+            return facingRight;
         }
 
         Vector2 facingDirection =
-            FacingRight
+            facingRight
                 ? Vector2.right
                 : Vector2.left;
 
@@ -507,11 +572,33 @@ public sealed class PlayerAim :
         if (angleFromFacing <=
             facingFlipAngle)
         {
+            return facingRight;
+        }
+
+        bool nextFacingRight =
+            !facingRight;
+
+        RequestFacing(
+            nextFacingRight);
+
+        return nextFacingRight;
+    }
+
+
+    private void RequestFacing(
+        bool facingRight)
+    {
+        if (TickCommands != null)
+        {
+            TickCommands.RequestFacing(
+                facingRight);
+
             return;
         }
 
-        _facingControl.SetFacing(
-            !FacingRight);
+        _facingControl?
+            .SetFacing(
+                facingRight);
     }
 
 
