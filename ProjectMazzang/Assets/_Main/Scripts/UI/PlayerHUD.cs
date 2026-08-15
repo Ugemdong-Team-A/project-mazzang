@@ -1,4 +1,4 @@
-/*using UnityEngine;
+using UnityEngine;
 
 public sealed class PlayerHUD :
     MonoBehaviour
@@ -43,4 +43,4 @@ public sealed class PlayerHUD :
         gameObject.SetActive(
             false);
     }
-}*/
+}

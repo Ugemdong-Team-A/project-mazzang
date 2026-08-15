@@ -8,8 +8,14 @@ public abstract class SkillData :
     [SerializeField]
     private float cooldown;
 
+    [SerializeField] 
+    Sprite icon;
+
     public float Cooldown =>
         cooldown;
+
+    public Sprite Icon
+        => icon;
 
     public abstract Skill CreateSkill();
 }

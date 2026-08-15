@@ -8,6 +8,9 @@ public sealed class GameUIController : MonoBehaviour
 
     private NetworkGameManager _gameManager;
 
+    private NetworkPlayerData _localPlayerData;
+    private NetworkObject _localCharacter;
+
 
     // =========================================================
     // Unity
@@ -24,11 +27,22 @@ public sealed class GameUIController : MonoBehaviour
         PlayerHealth.LocalDeathOccurred +=
             HandlePlayerDeathOccurred;
 
+        NetworkPlayerData.LocalSpawned +=
+            HandlePlayerDataSpawned;
+
+        NetworkPlayerData.LocalChanged +=
+            HandlePlayerDataChanged;
+
+        NetworkPlayerData.LocalDespawned +=
+            HandlePlayerDataDespawned;
+
         if (NetworkGameManager.Instance != null)
         {
             Bind(
                 NetworkGameManager.Instance);
         }
+
+        TryBindLocalPlayerDataFromGameManager();
     }
 
 
@@ -43,6 +57,16 @@ public sealed class GameUIController : MonoBehaviour
         PlayerHealth.LocalDeathOccurred -=
             HandlePlayerDeathOccurred;
 
+        NetworkPlayerData.LocalSpawned -=
+            HandlePlayerDataSpawned;
+
+        NetworkPlayerData.LocalChanged -=
+            HandlePlayerDataChanged;
+
+        NetworkPlayerData.LocalDespawned -=
+            HandlePlayerDataDespawned;
+
+        UnbindLocalPlayerData();
         Unbind();
     }
 
@@ -83,6 +107,7 @@ public sealed class GameUIController : MonoBehaviour
             HandleMatchStateChanged;
 
         RefreshFromCurrentState();
+        TryBindLocalPlayerDataFromGameManager();
     }
 
 
@@ -95,6 +120,165 @@ public sealed class GameUIController : MonoBehaviour
         }
 
         _gameManager = null;
+    }
+
+
+    // =========================================================
+    // Local Player Bind
+    // =========================================================
+
+    private void HandlePlayerDataSpawned(
+        NetworkPlayerData playerData)
+    {
+        TryBindLocalPlayerData(
+            playerData);
+    }
+
+
+    private void HandlePlayerDataChanged(
+        NetworkPlayerData playerData)
+    {
+        if (playerData == null ||
+            !playerData.IsLocalPlayer)
+        {
+            return;
+        }
+
+        if (_localPlayerData !=
+            playerData)
+        {
+            BindLocalPlayerData(
+                playerData);
+
+            return;
+        }
+
+        RefreshLocalCharacter();
+    }
+
+
+    private void HandlePlayerDataDespawned(
+        NetworkRunner runner,
+        PlayerRef player)
+    {
+        if (_localPlayerData == null)
+            return;
+
+        if (_localPlayerData.PlayerRef !=
+            player)
+        {
+            return;
+        }
+
+        UnbindLocalPlayerData();
+    }
+
+
+    private void TryBindLocalPlayerData(
+        NetworkPlayerData playerData)
+    {
+        if (playerData == null ||
+            !playerData.IsLocalPlayer)
+        {
+            return;
+        }
+
+        BindLocalPlayerData(
+            playerData);
+    }
+
+
+    private void TryBindLocalPlayerDataFromGameManager()
+    {
+        if (_gameManager == null)
+            return;
+
+        NetworkRunner runner =
+            _gameManager.Runner;
+
+        if (runner == null)
+            return;
+
+        PlayerRef localPlayer =
+            runner.LocalPlayer;
+
+        if (localPlayer ==
+            PlayerRef.None)
+        {
+            return;
+        }
+
+        if (!runner.TryGetPlayerObject(
+                localPlayer,
+                out NetworkObject dataObject))
+        {
+            return;
+        }
+
+        if (!dataObject.TryGetComponent(
+                out NetworkPlayerData playerData))
+        {
+            return;
+        }
+
+        BindLocalPlayerData(
+            playerData);
+    }
+
+
+    private void BindLocalPlayerData(
+        NetworkPlayerData playerData)
+    {
+        if (_localPlayerData ==
+            playerData)
+        {
+            RefreshLocalCharacter();
+            return;
+        }
+
+        _localPlayerData =
+            playerData;
+
+        RefreshLocalCharacter();
+    }
+
+
+    private void RefreshLocalCharacter()
+    {
+        NetworkObject character =
+            _localPlayerData != null
+                ? _localPlayerData.CharacterObject
+                : null;
+
+        if (_localCharacter == character)
+            return;
+
+        _localCharacter =
+            character;
+
+        if (_localCharacter == null)
+            return;
+
+        PlayerSkillController skillController =
+            _localCharacter.GetComponent<
+                PlayerSkillController>();
+
+        /*PlayerWeaponController weaponController =
+            _localCharacter.GetComponent<
+                PlayerWeaponController>();*/
+
+        ui.BindPlayerHUD(
+            skillController);
+    }
+
+
+    private void UnbindLocalPlayerData()
+    {
+        _localCharacter =
+            null;
+
+        _localPlayerData =
+            null;
     }
 
 
