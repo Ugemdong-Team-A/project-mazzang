@@ -224,6 +224,12 @@ public sealed class PlayerCombat :
 
     public override void FixedUpdateNetwork()
     {
+        TickAction();
+    }
+
+
+    internal void TickAction()
+    {
         if (!IsContextReady)
             return;
 

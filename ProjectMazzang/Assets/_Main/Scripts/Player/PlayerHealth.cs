@@ -224,6 +224,12 @@ public sealed class PlayerHealth :
 
     public override void FixedUpdateNetwork()
     {
+        TickBegin();
+    }
+
+
+    internal void TickBegin()
+    {
         if (!HasStateAuthority)
             return;
 

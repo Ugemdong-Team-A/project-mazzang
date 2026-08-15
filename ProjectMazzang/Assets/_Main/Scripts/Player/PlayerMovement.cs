@@ -257,6 +257,12 @@ public sealed class PlayerMovement :
 
     public override void FixedUpdateNetwork()
     {
+        TickMotion();
+    }
+
+
+    internal void TickMotion()
+    {
         UpdateGrounded();
         UpdateWallState();
 

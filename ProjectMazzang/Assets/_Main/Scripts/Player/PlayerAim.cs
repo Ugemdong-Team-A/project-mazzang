@@ -166,6 +166,12 @@ public sealed class PlayerAim :
 
     public override void FixedUpdateNetwork()
     {
+        TickAim();
+    }
+
+
+    internal void TickAim()
+    {
         if (!IsContextReady)
             return;
 
