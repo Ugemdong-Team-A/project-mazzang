@@ -16,7 +16,8 @@ public sealed class PlayerMovement :
     IPlayerKnockbackReceiver,
     IPlayerFacingControl,
     IPlayerMovementControl,
-    IPlayerTickModule
+    IPlayerTickModule,
+    IPlayerTickStateSource
 {
     [Header("References")]
     [SerializeField]
@@ -265,7 +266,19 @@ public sealed class PlayerMovement :
     {
         TickMotion(
             tick.State.HasHealth &&
-            tick.State.IsAlive);
+            tick.State.IsAlive,
+            tick.State.HasCombat &&
+            tick.State.IsCombatMovementLocked);
+    }
+
+
+    void IPlayerTickStateSource.CaptureTickState(
+        PlayerTickState state)
+    {
+        state.HasMovement = true;
+        state.FacingRight = FacingRight;
+        state.IsWallSliding = IsWallSliding;
+        state.IsMovementControlLocked = IsControlLocked;
     }
 
 
@@ -282,12 +295,15 @@ public sealed class PlayerMovement :
     {
         TickMotion(
             _healthState != null &&
-            _healthState.IsAlive);
+            _healthState.IsAlive,
+            _combatState != null &&
+            _combatState.IsMovementLocked);
     }
 
 
     private void TickMotion(
-        bool isAlive)
+        bool isAlive,
+        bool isCombatMovementLocked)
     {
         UpdateGrounded();
         UpdateWallState();
@@ -331,8 +347,7 @@ public sealed class PlayerMovement :
         // Attack Control Lock
         // ==========================================
 
-        if (_combatState != null &&
-            _combatState.IsMovementLocked)
+        if (isCombatMovementLocked)
         {
             PreviousButtons =
                 input.Buttons;

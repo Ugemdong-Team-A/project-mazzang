@@ -8,10 +8,28 @@ public sealed class PlayerTickState
 
     public bool IsAlive { get; internal set; }
 
+    public bool HasMovement { get; internal set; }
+
+    public bool FacingRight { get; internal set; }
+
+    public bool IsWallSliding { get; internal set; }
+
+    public bool IsMovementControlLocked { get; internal set; }
+
+    public bool HasCombat { get; internal set; }
+
+    public bool IsCombatMovementLocked { get; internal set; }
+
 
     internal void Reset()
     {
         HasHealth = false;
         IsAlive = false;
+        HasMovement = false;
+        FacingRight = true;
+        IsWallSliding = false;
+        IsMovementControlLocked = false;
+        HasCombat = false;
+        IsCombatMovementLocked = false;
     }
 }

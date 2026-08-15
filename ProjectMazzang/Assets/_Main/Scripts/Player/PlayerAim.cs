@@ -172,7 +172,11 @@ public sealed class PlayerAim :
     void IPlayerTickModule.Simulate(
         in PlayerTick tick)
     {
-        TickAim();
+        TickAim(
+            !tick.State.HasMovement ||
+            tick.State.FacingRight,
+            tick.State.HasMovement &&
+            tick.State.IsWallSliding);
     }
 
 
@@ -187,6 +191,17 @@ public sealed class PlayerAim :
 
     internal void TickAim()
     {
+        TickAim(
+            FacingRight,
+            _movementState != null &&
+            _movementState.IsWallSliding);
+    }
+
+
+    private void TickAim(
+        bool facingRight,
+        bool isWallSliding)
+    {
         if (!IsContextReady)
             return;
 
@@ -198,12 +213,14 @@ public sealed class PlayerAim :
 
         Vector2 inputAimDirection =
             ResolveDirectionTo(
-                input.AimWorldPosition);
+                input.AimWorldPosition,
+                facingRight);
 
         UpdateAimDirection(
             inputAimDirection);
 
-        UpdateFacing();
+        UpdateFacing(
+            isWallSliding);
 
         UpdateBodyAim();
     }
@@ -308,10 +325,21 @@ public sealed class PlayerAim :
     public Vector2 ResolveDirectionTo(
         Vector2 worldTargetPosition)
     {
+        return ResolveDirectionTo(
+            worldTargetPosition,
+            FacingRight);
+    }
+
+
+    private Vector2 ResolveDirectionTo(
+        Vector2 worldTargetPosition,
+        bool facingRight)
+    {
         if (aimOrigin == null)
         {
             return ResolveSourceDirection(
-                Vector2.zero);
+                Vector2.zero,
+                facingRight);
         }
 
         Vector2 direction =
@@ -328,12 +356,40 @@ public sealed class PlayerAim :
             return normalized;
         }
 
-        // 커서가 AimOrigin에 거의 겹친 경우에는
-        // 방향이 순간적으로 0이 되지 않도록 기존 방향을 유지한다.
         return ResolveSourceDirection(
-            Vector2.zero);
+            Vector2.zero,
+            facingRight);
     }
 
+
+    private Vector2 ResolveSourceDirection(
+        Vector2 sourceDirection,
+        bool facingRight)
+    {
+        Vector2 normalized =
+            NormalizeDirection(
+                sourceDirection);
+
+        if (normalized.sqrMagnitude >
+            0.0001f)
+        {
+            return normalized;
+        }
+
+        normalized =
+            NormalizeDirection(
+                AimDirection);
+
+        if (normalized.sqrMagnitude >
+            0.0001f)
+        {
+            return normalized;
+        }
+
+        return facingRight
+            ? Vector2.right
+            : Vector2.left;
+    }
 
     private void UpdateAimDirection(
         Vector2 inputDirection)
@@ -361,29 +417,9 @@ public sealed class PlayerAim :
     private Vector2 ResolveSourceDirection(
         Vector2 sourceDirection)
     {
-        Vector2 normalized =
-            NormalizeDirection(
-                sourceDirection);
-
-        if (normalized.sqrMagnitude >
-            0.0001f)
-        {
-            return normalized;
-        }
-
-        normalized =
-            NormalizeDirection(
-                AimDirection);
-
-        if (normalized.sqrMagnitude >
-            0.0001f)
-        {
-            return normalized;
-        }
-
-        return FacingRight
-            ? Vector2.right
-            : Vector2.left;
+        return ResolveSourceDirection(
+            sourceDirection,
+            FacingRight);
     }
 
 
@@ -404,15 +440,15 @@ public sealed class PlayerAim :
     // Facing
     // =========================================================
 
-    private void UpdateFacing()
+    private void UpdateFacing(
+        bool isWallSliding)
     {
-        if (_facingControl == null ||
-            _movementState == null)
+        if (_facingControl == null)
         {
             return;
         }
 
-        if (_movementState.IsWallSliding)
+        if (isWallSliding)
             return;
 
         if (FacingMode ==
@@ -425,20 +461,31 @@ public sealed class PlayerAim :
         }
 
         TryUpdateFacingFromDirection(
-            AimDirection);
+            AimDirection,
+            isWallSliding);
     }
 
 
     private void TryUpdateFacingFromDirection(
         Vector2 direction)
     {
-        if (_facingControl == null ||
-            _movementState == null)
+        TryUpdateFacingFromDirection(
+            direction,
+            _movementState != null &&
+            _movementState.IsWallSliding);
+    }
+
+
+    private void TryUpdateFacingFromDirection(
+        Vector2 direction,
+        bool isWallSliding)
+    {
+        if (_facingControl == null)
         {
             return;
         }
 
-        if (_movementState.IsWallSliding)
+        if (isWallSliding)
             return;
 
         if (direction.sqrMagnitude <=

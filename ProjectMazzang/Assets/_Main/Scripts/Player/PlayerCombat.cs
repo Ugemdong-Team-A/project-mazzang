@@ -15,7 +15,8 @@ public sealed class PlayerCombat :
     PlayerModule,
     IPlayerCombatState,
     IPlayerCombatControl,
-    IPlayerTickModule
+    IPlayerTickModule,
+    IPlayerTickStateSource
 {
     private const int NoneAttackId = 0;
 
@@ -232,7 +233,19 @@ public sealed class PlayerCombat :
     {
         TickAction(
             tick.State.HasHealth &&
-            tick.State.IsAlive);
+            tick.State.IsAlive,
+            tick.State.HasMovement &&
+            tick.State.IsMovementControlLocked,
+            !tick.State.HasMovement ||
+            tick.State.FacingRight);
+    }
+
+
+    void IPlayerTickStateSource.CaptureTickState(
+        PlayerTickState state)
+    {
+        state.HasCombat = true;
+        state.IsCombatMovementLocked = IsMovementLocked;
     }
 
 
@@ -249,12 +262,17 @@ public sealed class PlayerCombat :
     {
         TickAction(
             _healthState != null &&
-            _healthState.IsAlive);
+            _healthState.IsAlive,
+            _movementState != null &&
+            _movementState.IsControlLocked,
+            ResolveFacingRight());
     }
 
 
     private void TickAction(
-        bool isAlive)
+        bool isAlive,
+        bool isMovementControlLocked,
+        bool facingRight)
     {
         if (!IsContextReady)
             return;
@@ -286,8 +304,7 @@ public sealed class PlayerCombat :
         // Control Lock
         // ==========================================
 
-        if (_movementState != null &&
-            _movementState.IsControlLocked)
+        if (isMovementControlLocked)
         {
             CancelAttack();
 
@@ -305,7 +322,8 @@ public sealed class PlayerCombat :
         // Attack State
         // ==========================================
 
-        UpdateAttack();
+        UpdateAttack(
+            facingRight);
 
 
         if (!hasInput)
@@ -329,7 +347,9 @@ public sealed class PlayerCombat :
 
 
         TryAttack(
-            in input);
+            in input,
+            isMovementControlLocked,
+            facingRight);
     }
 
 
@@ -338,13 +358,14 @@ public sealed class PlayerCombat :
     // =========================================================
 
     private void TryAttack(
-        in PlayerInputData input)
+        in PlayerInputData input,
+        bool isMovementControlLocked,
+        bool facingRight)
     {
         if (IsAttacking)
             return;
 
-        if (_movementState != null &&
-            _movementState.IsControlLocked)
+        if (isMovementControlLocked)
         {
             return;
         }
@@ -355,7 +376,8 @@ public sealed class PlayerCombat :
         {
             Vector2 aimDirection =
                 ResolveInputAimDirection(
-                    input.AimWorldPosition);
+                    input.AimWorldPosition,
+                    facingRight);
 
             _weaponControl?
                 .TryUseWeapon(
@@ -379,7 +401,8 @@ public sealed class PlayerCombat :
 
         Vector2 sourceAimDirection =
             ResolveInputAimDirection(
-                input.AimWorldPosition);
+                input.AimWorldPosition,
+                facingRight);
 
 
         StartAttack(
@@ -477,7 +500,8 @@ public sealed class PlayerCombat :
     // Attack Update
     // =========================================================
 
-    private void UpdateAttack()
+    private void UpdateAttack(
+        bool facingRight)
     {
         switch (AttackState)
         {
@@ -486,7 +510,8 @@ public sealed class PlayerCombat :
 
 
             case PlayerAttackState.Startup:
-                UpdateStartup();
+                UpdateStartup(
+                    facingRight);
                 break;
 
 
@@ -502,7 +527,8 @@ public sealed class PlayerCombat :
     }
 
 
-    private void UpdateStartup()
+    private void UpdateStartup(
+        bool facingRight)
     {
         if (!AttackPhaseTimer
                 .Expired(Runner))
@@ -511,11 +537,13 @@ public sealed class PlayerCombat :
         }
 
 
-        BeginActive();
+        BeginActive(
+            facingRight);
     }
 
 
-    private void BeginActive()
+    private void BeginActive(
+        bool facingRight)
     {
         if (!TryGetCurrentAttackDefinition(
                 out PlayerAttackDefinition definition))
@@ -538,7 +566,8 @@ public sealed class PlayerCombat :
             BoxAttackData boxAttack)
         {
             PerformBoxAttackHit(
-                boxAttack);
+                boxAttack,
+                facingRight);
         }
 
 
@@ -678,7 +707,8 @@ public sealed class PlayerCombat :
     // =========================================================
 
     private Vector2 ResolveInputAimDirection(
-        Vector2 aimWorldPosition)
+        Vector2 aimWorldPosition,
+        bool facingRight)
     {
         if (_aimState != null)
         {
@@ -697,7 +727,7 @@ public sealed class PlayerCombat :
 
 
         return
-            ResolveFacingRight()
+            facingRight
                 ? Vector2.right
                 : Vector2.left;
     }
@@ -708,14 +738,11 @@ public sealed class PlayerCombat :
     // =========================================================
 
     private void PerformBoxAttackHit(
-        BoxAttackData attack)
+        BoxAttackData attack,
+        bool facingRight)
     {
         if (attack == null)
             return;
-
-
-        bool facingRight =
-            ResolveFacingRight();
 
 
         float facingSign =
