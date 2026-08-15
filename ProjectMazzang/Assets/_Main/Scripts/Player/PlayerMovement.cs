@@ -263,7 +263,9 @@ public sealed class PlayerMovement :
     void IPlayerTickModule.Simulate(
         in PlayerTick tick)
     {
-        TickMotion();
+        TickMotion(
+            tick.State.HasHealth &&
+            tick.State.IsAlive);
     }
 
 
@@ -277,6 +279,15 @@ public sealed class PlayerMovement :
 
 
     internal void TickMotion()
+    {
+        TickMotion(
+            _healthState != null &&
+            _healthState.IsAlive);
+    }
+
+
+    private void TickMotion(
+        bool isAlive)
     {
         UpdateGrounded();
         UpdateWallState();
@@ -292,8 +303,7 @@ public sealed class PlayerMovement :
                 input.Move,
                 1f);
 
-        if (_healthState == null ||
-            !_healthState.IsAlive)
+        if (!isAlive)
         {
             PreviousButtons =
                 input.Buttons;

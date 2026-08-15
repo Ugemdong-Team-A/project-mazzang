@@ -190,7 +190,9 @@ public sealed class PlayerSkillController :
     void IPlayerTickModule.Simulate(
         in PlayerTick tick)
     {
-        TickLateAction();
+        TickLateAction(
+            tick.State.HasHealth &&
+            tick.State.IsAlive);
     }
 
 
@@ -204,6 +206,15 @@ public sealed class PlayerSkillController :
 
 
     internal void TickLateAction()
+    {
+        TickLateAction(
+            _healthState != null &&
+            _healthState.IsAlive);
+    }
+
+
+    private void TickLateAction(
+        bool isAlive)
     {
         if (!IsContextReady)
             return;
@@ -237,8 +248,7 @@ public sealed class PlayerSkillController :
         // Dead
         // ==========================================
 
-        if (_healthState == null ||
-            !_healthState.IsAlive)
+        if (!isAlive)
         {
             CancelAll();
 

@@ -230,7 +230,9 @@ public sealed class PlayerCombat :
     void IPlayerTickModule.Simulate(
         in PlayerTick tick)
     {
-        TickAction();
+        TickAction(
+            tick.State.HasHealth &&
+            tick.State.IsAlive);
     }
 
 
@@ -245,6 +247,15 @@ public sealed class PlayerCombat :
 
     internal void TickAction()
     {
+        TickAction(
+            _healthState != null &&
+            _healthState.IsAlive);
+    }
+
+
+    private void TickAction(
+        bool isAlive)
+    {
         if (!IsContextReady)
             return;
 
@@ -257,8 +268,7 @@ public sealed class PlayerCombat :
         // Dead
         // ==========================================
 
-        if (_healthState == null ||
-            !_healthState.IsAlive)
+        if (!isAlive)
         {
             CancelAttack();
 
