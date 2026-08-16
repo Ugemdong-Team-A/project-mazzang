@@ -197,6 +197,20 @@ public sealed class PlayerSkillController :
             false);
     }
 
+    [Networked]
+    private Vector2 Skill1AimDirection
+    {
+        get;
+        set;
+    }
+
+    [Networked]
+    private Vector2 Skill2AimDirection
+    {
+        get;
+        set;
+    }
+
 
     void IPlayerTickStateSource.CaptureTickState(
         PlayerTickState state)
@@ -886,6 +900,43 @@ public sealed class PlayerSkillController :
     }
 
 
+    internal void SetSkillAimDirection(
+        SkillSlot slot,
+        Vector2 direction)
+    {
+        if (!HasStateAuthority)
+            return;
+
+        direction =
+            direction.sqrMagnitude > 0.0001f
+                ? direction.normalized
+                : Vector2.zero;
+
+        switch (slot)
+        {
+            case SkillSlot.Skill1:
+                Skill1AimDirection = direction;
+                break;
+
+            case SkillSlot.Skill2:
+                Skill2AimDirection = direction;
+                break;
+        }
+    }
+
+
+    internal Vector2 GetSkillAimDirection(
+        SkillSlot slot)
+    {
+        return slot switch
+        {
+            SkillSlot.Skill1 => Skill1AimDirection,
+            SkillSlot.Skill2 => Skill2AimDirection,
+            _ => Vector2.zero
+        };
+    }
+
+
     public PlayerStatModifiers GetActiveStatModifiers()
     {
         PlayerStatModifiers result =
@@ -1054,6 +1105,10 @@ public sealed class PlayerSkillController :
         SetPhaseTimer(
             slot,
             TickTimer.None);
+
+        SetSkillAimDirection(
+            slot,
+            Vector2.zero);
     }
 
 
@@ -1090,6 +1145,11 @@ public sealed class PlayerSkillController :
         SetPhaseTimer(
             slot,
             TickTimer.None);
+
+
+        SetSkillAimDirection(
+            slot,
+            Vector2.zero);
 
 
         int charges =

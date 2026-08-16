@@ -91,9 +91,15 @@ public sealed class FireballSkill :
                   CastDuration;
 
         Vector2 direction =
-            _aimDirection.sqrMagnitude > 0.0001f
-                ? _aimDirection
-                : (Vector2)Controller.transform.right;
+            Controller.GetSkillAimDirection(Slot);
+
+        if (direction.sqrMagnitude <= 0.0001f)
+        {
+            direction =
+                _aimDirection.sqrMagnitude > 0.0001f
+                    ? _aimDirection
+                    : (Vector2)Controller.transform.right;
+        }
 
         _presentation.SetPose(
             ResolveSpawnPosition(direction),
@@ -137,6 +143,10 @@ public sealed class FireballSkill :
                 originToAim.sqrMagnitude > 0.0001f
                     ? originToAim.normalized
                     : direction;
+
+            Controller.SetSkillAimDirection(
+                Slot,
+                _aimDirection);
         }
     }
 
