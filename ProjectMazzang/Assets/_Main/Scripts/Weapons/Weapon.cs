@@ -375,7 +375,11 @@ public abstract class Weapon :
 
         transform.SetPositionAndRotation(
             socket.position,
-            socket.rotation);
+            Quaternion.Euler(
+                0f,
+                0f,
+                ResolveSocketWorldAngle(
+                    socket)));
 
         transform.localScale =
             _worldScale;
@@ -409,7 +413,27 @@ public abstract class Weapon :
             socket.position;
 
         rb.rotation =
-            socket.eulerAngles.z;
+            ResolveSocketWorldAngle(
+                socket);
+    }
+
+
+    private static float ResolveSocketWorldAngle(
+        Transform socket)
+    {
+        Vector3 forward =
+            socket.TransformVector(
+                Vector3.right);
+
+        if (forward.sqrMagnitude <= 0.0001f)
+        {
+            return socket.eulerAngles.z;
+        }
+
+        return Mathf.Atan2(
+                   forward.y,
+                   forward.x) *
+               Mathf.Rad2Deg;
     }
 
 
