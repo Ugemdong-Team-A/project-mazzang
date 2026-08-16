@@ -21,4 +21,4 @@ MonoBehaviour:
   damage: 10
   knockbackForward: 10
   knockbackUp: 4
-  knockbackControlLock: 0.12
+  knockbackControlLock: 1.01
