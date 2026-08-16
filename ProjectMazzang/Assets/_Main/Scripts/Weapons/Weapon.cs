@@ -76,6 +76,8 @@ public abstract class Weapon :
 
     private int _worldSortingOrder;
 
+    private Vector3 _worldScale;
+
 
     // =========================================================
     // Unity
@@ -83,6 +85,14 @@ public abstract class Weapon :
 
     protected virtual void Awake()
     {
+        NetworkRigidbody networkRigidbody =
+            GetComponent<NetworkRigidbody>();
+
+        if (networkRigidbody != null)
+        {
+            networkRigidbody.SyncParent = false;
+        }
+
         if (rb == null)
         {
             rb =
@@ -114,6 +124,9 @@ public abstract class Weapon :
             _worldSortingOrder =
                 sortingGroup.sortingOrder;
         }
+
+        _worldScale =
+            transform.lossyScale;
     }
 
 
@@ -123,6 +136,7 @@ public abstract class Weapon :
 
     public override void Spawned()
     {
+        ApplyLocalHolderState();
         ApplyLocalPickupState();
         ApplyLocalSortingState();
 
@@ -154,31 +168,21 @@ public abstract class Weapon :
             return;
         }
 
-        /*PlayerWeaponController controller =
-            Holder.GetComponent<
-                PlayerWeaponController>();
-
-        if (controller == null)
-            return;
-
-        if (!controller.TryGetWeaponPose(
-                out Vector2 position,
-                out float angle))
-        {
-            return;
-        }
-
-        rb.position =
-            position;
-
-        rb.rotation =
-            angle;*/
+        ApplyEquippedAuthorityPose();
 
         rb.linearVelocity =
             Vector2.zero;
 
         rb.angularVelocity =
             0f;
+    }
+
+    private void LateUpdate()
+    {
+        if (IsEquipped)
+        {
+            ApplyEquippedPresentation();
+        }
     }
 
 
@@ -242,37 +246,7 @@ public abstract class Weapon :
         Holder =
             holder;
 
-        Vector3 worldScale =
-            transform.lossyScale;
-
-        Transform socket =
-            weaponController.WeaponSocket;
-
-        transform.SetParent(
-            socket,
-            false);
-
-        transform.localPosition =
-            Vector3.zero;
-
-        transform.localRotation =
-            Quaternion.identity;
-
-        Vector3 sizeScale =
-            Utility.CalculateLocalScaleForWorldScale(
-                worldScale,
-                socket.lossyScale);
-
-        // 부모 Socket이 X 반전된 경우,
-        // 무기도 해당 반전 방향을 그대로 따르도록 부호를 복원한다.
-        if (socket.lossyScale.x < 0f)
-        {
-            sizeScale.x *=
-                -1f;
-        }
-
-        transform.localScale =
-            sizeScale;
+        ApplyEquippedPresentation();
 
         PickupBlockedPlayer =
             PlayerRef.None;
@@ -295,11 +269,7 @@ public abstract class Weapon :
         if (!HasStateAuthority)
             return;
 
-        transform.SetParent(
-            null,
-            true);
-
-        transform.localScale = Vector3.one;
+        ApplyWorldPresentation();
 
         Holder =
             null;
@@ -371,8 +341,103 @@ public abstract class Weapon :
 
     private void OnHolderChanged()
     {
+        ApplyLocalHolderState();
         ApplyLocalPickupState();
         ApplyLocalSortingState();
+    }
+
+
+    private void ApplyLocalHolderState()
+    {
+        if (IsEquipped)
+        {
+            ApplyEquippedPresentation();
+        }
+        else
+        {
+            ApplyWorldPresentation();
+        }
+    }
+
+
+    private void ApplyEquippedPresentation()
+    {
+        if (Holder == null ||
+            !Holder.TryGetComponent(
+                out PlayerWeaponController controller))
+        {
+            return;
+        }
+
+        Transform socket =
+            controller.WeaponSocket;
+
+        if (socket == null)
+            return;
+
+        if (transform.parent != null)
+        {
+            transform.SetParent(
+                null,
+                true);
+        }
+
+        transform.SetPositionAndRotation(
+            socket.position,
+            socket.rotation);
+
+        Vector3 sizeScale =
+            _worldScale;
+
+        if (socket.lossyScale.x < 0f)
+        {
+            sizeScale.x =
+                -Mathf.Abs(sizeScale.x);
+        }
+        else
+        {
+            sizeScale.x =
+                Mathf.Abs(sizeScale.x);
+        }
+
+        transform.localScale =
+            sizeScale;
+    }
+
+
+    private void ApplyEquippedAuthorityPose()
+    {
+        if (rb == null ||
+            Holder == null ||
+            !Holder.TryGetComponent(
+                out PlayerWeaponController controller) ||
+            controller.WeaponSocket == null)
+        {
+            return;
+        }
+
+        Transform socket =
+            controller.WeaponSocket;
+
+        rb.position =
+            socket.position;
+
+        rb.rotation =
+            socket.eulerAngles.z;
+    }
+
+
+    private void ApplyWorldPresentation()
+    {
+        if (transform.parent != null)
+        {
+            transform.SetParent(
+                null,
+                true);
+        }
+
+        transform.localScale =
+            _worldScale;
     }
 
 

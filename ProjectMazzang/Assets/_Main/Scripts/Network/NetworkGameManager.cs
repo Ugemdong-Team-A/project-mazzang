@@ -464,6 +464,12 @@ public sealed class NetworkGameManager : NetworkBehaviour
             if (character != null &&
                 Runner.Exists(character))
             {
+                if (character.TryGetComponent(
+                        out PlayerWeaponController weaponController))
+                {
+                    weaponController.TryDropWeapon();
+                }
+
                 Runner.Despawn(
                     character);
             }
