@@ -276,6 +276,17 @@ public sealed class PlayerInputController :
         NetworkRunner runner,
         NetworkInput input)
     {
+        if (SettingsMenuUI.IsInputBlocked)
+        {
+            _move = Vector2.zero;
+            _buttons = default;
+
+            input.Set(
+                new PlayerInputData());
+
+            return;
+        }
+
         PlayerInputData data =
             new();
 

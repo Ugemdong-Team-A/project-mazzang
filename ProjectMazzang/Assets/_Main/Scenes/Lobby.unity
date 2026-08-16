@@ -155,8 +155,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -5.6500244, y: -391.653}
-  m_SizeDelta: {x: 232.7996, y: 43.6499}
+  m_AnchoredPosition: {x: 0, y: -385}
+  m_SizeDelta: {x: 310.2291, y: 110.8913}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &3321126
 MonoBehaviour:
@@ -7554,6 +7554,7 @@ GameObject:
   m_Component:
   - component: {fileID: 798332370}
   - component: {fileID: 798332371}
+  - component: {fileID: 798332372}
   m_Layer: 0
   m_Name: AppRoot
   m_TagString: Untagged
@@ -7594,6 +7595,19 @@ MonoBehaviour:
   popup: {fileID: 1544769150}
   sceneLoading: {fileID: 1055306246}
   systemNotice: {fileID: 564446089}
+--- !u!114 &798332372
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 798332369}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 16f52a7c9d1b4e2598800123456789ab, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::SettingsMenuUI
+  fontAsset: {fileID: 11400000, guid: e0c6fe70d7d704845b1a2c331de11e1e, type: 2}
 --- !u!1 &849658463
 GameObject:
   m_ObjectHideFlags: 0
