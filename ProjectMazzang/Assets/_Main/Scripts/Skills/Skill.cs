@@ -83,6 +83,11 @@ public abstract class Skill
     }
 
 
+    public virtual void Render()
+    {
+    }
+
+
     public virtual void Cancel()
     {
     }

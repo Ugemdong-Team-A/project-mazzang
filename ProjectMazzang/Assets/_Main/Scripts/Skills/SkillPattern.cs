@@ -47,3 +47,14 @@ public interface IRecoverySkill
 {
     float RecoveryDuration { get; }
 }
+
+
+/// <summary>
+/// 사용 단계 동안 기본 공격과 무기 조작을 막는 스킬입니다.
+/// 이동과 조준은 별도로 유지됩니다.
+/// </summary>
+public interface IActionLockSkill
+{
+    bool IsActionLocked(
+        SkillUsePhase phase);
+}

@@ -297,6 +297,15 @@ public sealed class PlayerWeaponController :
         if (!hasInput)
             return;
 
+        if (state.HasSkill &&
+            state.IsSkillActionLocked)
+        {
+            PreviousButtons =
+                input.Buttons;
+
+            return;
+        }
+
         bool dropPressed =
             input.Buttons.WasPressed(
                 PreviousButtons,

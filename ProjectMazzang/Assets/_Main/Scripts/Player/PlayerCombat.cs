@@ -230,6 +230,8 @@ public sealed class PlayerCombat :
             tick.State.IsAlive,
             tick.State.HasMovement &&
             tick.State.IsMovementControlLocked,
+            tick.State.HasSkill &&
+            tick.State.IsSkillActionLocked,
             !tick.State.HasMovement ||
             tick.State.FacingRight,
             tick.State);
@@ -272,6 +274,7 @@ public sealed class PlayerCombat :
             _healthState.IsAlive,
             _movementState != null &&
             _movementState.IsControlLocked,
+            false,
             ResolveFacingRight(),
             null);
     }
@@ -280,6 +283,7 @@ public sealed class PlayerCombat :
     private void TickAction(
         bool isAlive,
         bool isMovementControlLocked,
+        bool isSkillActionLocked,
         bool facingRight,
         PlayerTickState tickState)
     {
@@ -315,6 +319,20 @@ public sealed class PlayerCombat :
         // ==========================================
 
         if (isMovementControlLocked)
+        {
+            CancelAttack();
+
+            if (hasInput)
+            {
+                PreviousButtons =
+                    input.Buttons;
+            }
+
+            return;
+        }
+
+
+        if (isSkillActionLocked)
         {
             CancelAttack();
 

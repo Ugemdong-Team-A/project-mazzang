@@ -1099,7 +1099,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerSkillController
   skill1: {fileID: 11400000, guid: d47edf51b4312c14fa9b46f8f5656320, type: 2}
-  skill2: {fileID: 0}
+  skill2: {fileID: 11400000, guid: 3096fde69c3544369cbec685ac688d20, type: 2}
 --- !u!1 &3158334327498006070
 GameObject:
   m_ObjectHideFlags: 0

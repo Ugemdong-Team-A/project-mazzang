@@ -14,7 +14,8 @@ using UnityEngine;
 [DefaultExecutionOrder(-80)]
 public sealed class PlayerSkillController :
     PlayerModule,
-    IPlayerTickModule
+    IPlayerTickModule,
+    IPlayerTickStateSource
 {
     [Header("Default Skills")]
     [SerializeField]
@@ -184,7 +185,7 @@ public sealed class PlayerSkillController :
 
 
     PlayerTickStage IPlayerTickModule.Stage =>
-        PlayerTickStage.LateAction;
+        PlayerTickStage.SkillIntent;
 
 
     void IPlayerTickModule.Simulate(
@@ -197,12 +198,41 @@ public sealed class PlayerSkillController :
     }
 
 
+    void IPlayerTickStateSource.CaptureTickState(
+        PlayerTickState state)
+    {
+        state.HasSkill = true;
+        state.IsSkillActionLocked =
+            IsActionLocked(
+                SkillSlot.Skill1,
+                _skill1) ||
+            IsActionLocked(
+                SkillSlot.Skill2,
+                _skill2);
+    }
+
+
     public override void FixedUpdateNetwork()
     {
         if (IsTickControlled)
             return;
 
         TickLateAction();
+    }
+
+
+    public override void Render()
+    {
+        _skill1?.Render();
+        _skill2?.Render();
+    }
+
+
+    internal bool TryGetCurrentInput(
+        out PlayerInputData input)
+    {
+        return GetInput(
+            out input);
     }
 
 
@@ -853,6 +883,19 @@ public sealed class PlayerSkillController :
         return GetUsePhase(
                    slot) !=
                SkillUsePhase.None;
+    }
+
+
+    private bool IsActionLocked(
+        SkillSlot slot,
+        Skill skill)
+    {
+        SkillUsePhase phase =
+            GetUsePhase(slot);
+
+        return skill is IActionLockSkill actionLockSkill &&
+               phase != SkillUsePhase.None &&
+               actionLockSkill.IsActionLocked(phase);
     }
 
 

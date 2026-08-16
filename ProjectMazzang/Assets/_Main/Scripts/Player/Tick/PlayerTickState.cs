@@ -22,6 +22,10 @@ public sealed class PlayerTickState
 
     public bool HasCombat { get; internal set; }
 
+    public bool HasSkill { get; internal set; }
+
+    public bool IsSkillActionLocked { get; internal set; }
+
     public bool IsCombatMovementLocked { get; internal set; }
 
     public bool HasAim { get; internal set; }
@@ -47,6 +51,8 @@ public sealed class PlayerTickState
         IsMovementControlLocked = false;
         MovementVelocity = Vector2.zero;
         HasCombat = false;
+        HasSkill = false;
+        IsSkillActionLocked = false;
         IsCombatMovementLocked = false;
         HasAim = false;
         HasAimOrigin = false;
