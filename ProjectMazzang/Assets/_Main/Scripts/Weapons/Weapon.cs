@@ -377,22 +377,8 @@ public abstract class Weapon :
             socket.position,
             socket.rotation);
 
-        Vector3 sizeScale =
-            _worldScale;
-
-        if (socket.lossyScale.x < 0f)
-        {
-            sizeScale.x =
-                -Mathf.Abs(sizeScale.x);
-        }
-        else
-        {
-            sizeScale.x =
-                Mathf.Abs(sizeScale.x);
-        }
-
         transform.localScale =
-            sizeScale;
+            _worldScale;
     }
 
 
