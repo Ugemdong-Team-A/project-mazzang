@@ -16,8 +16,8 @@ public sealed class ProjectileGun :
 
     [Header("Muzzle")]
     [Tooltip(
-        "WeaponRoot ±âÁØ ½ÇÁ¦ ÃÑ±¸ À§Ä¡ÀÔ´Ï´Ù. " +
-        "WeaponRootÀÇ Á÷Á¢ ÀÚ½ÄÀ¸·Î µÎ´Â °ÍÀ» ±ÇÀåÇÕ´Ï´Ù.")]
+        "WeaponRoot ê¸°ì¤€ ì‹¤ì œ ì´êµ¬ ìœ„ì¹˜ì…ë‹ˆë‹¤. " +
+        "WeaponRootì˜ ì§ì ‘ ìì‹ìœ¼ë¡œ ë‘ëŠ” ê²ƒì„ ê¶Œì¥í•©ë‹ˆë‹¤.")]
     [SerializeField]
     private Transform muzzle;
 
@@ -60,7 +60,10 @@ public sealed class ProjectileGun :
     private int _visibleFireSequence;
 
     public Vector2 PresentationMuzzlePosition =>
-        muzzle != null
+        HeldView != null &&
+        HeldView.Muzzle != null
+            ? HeldView.Muzzle.position
+            : muzzle != null
             ? muzzle.position
             : transform.position;
 
@@ -147,8 +150,9 @@ public sealed class ProjectileGun :
     // =========================================================
 
     public override bool TryUse(
-    Vector2 origin,
-    Vector2 direction)
+        Vector2 origin,
+        Vector2 direction,
+        bool mirrored)
     {
         if (!HasStateAuthority)
             return false;
@@ -190,7 +194,8 @@ public sealed class ProjectileGun :
         Vector2 spawnPosition =
             ResolveMuzzlePosition(
                 origin,
-                angle);
+                angle,
+                mirrored);
 
         LastAuthoritativeFireOrigin =
             spawnPosition;
@@ -275,22 +280,29 @@ public sealed class ProjectileGun :
 
     private Vector2 ResolveMuzzlePosition(
         Vector2 weaponPosition,
-        float weaponAngle)
+        float weaponAngle,
+        bool mirrored)
     {
         if (muzzle == null)
         {
             return weaponPosition;
         }
 
-        // MuzzleÀº WeaponRootÀÇ ÀÚ½Ä TransformÀ¸·Î Á÷Á¢ ¹èÄ¡ÇÑ´Ù.
-        // ÇöÀç Weapon TransformÀÇ ¿ùµå À§Ä¡¸¦ ±×´ë·Î ÀĞÁö ¾Ê°í,
-        // ¿¡µğÅÍ¿¡¼­ ¼³Á¤ÇÑ ·ÎÄÃ À§Ä¡¸¸ »ç¿ëÇÑ´Ù.
+        // Muzzleì€ WeaponRootì˜ ìì‹ Transformìœ¼ë¡œ ì§ì ‘ ë°°ì¹˜í•œë‹¤.
+        // í˜„ì¬ Weapon Transformì˜ ì›”ë“œ ìœ„ì¹˜ë¥¼ ê·¸ëŒ€ë¡œ ì½ì§€ ì•Šê³ ,
+        // ì—ë””í„°ì—ì„œ ì„¤ì •í•œ ë¡œì»¬ ìœ„ì¹˜ë§Œ ì‚¬ìš©í•œë‹¤.
         //
-        // CombatÀÌ WeaponÀÇ FixedUpdateNetworkº¸´Ù ¸ÕÀú ½ÇÇàµÇ´õ¶óµµ
-        // ÀÌ¹ø TickÀÇ weaponPosition / weaponAngleÀ» ±âÁØÀ¸·Î
-        // Á¤È®ÇÑ ÃÑ±¸ À§Ä¡¸¦ ¾ò±â À§ÇÔÀÌ´Ù.
+        // Combatì´ Weaponì˜ FixedUpdateNetworkë³´ë‹¤ ë¨¼ì € ì‹¤í–‰ë˜ë”ë¼ë„
+        // ì´ë²ˆ Tickì˜ weaponPosition / weaponAngleì„ ê¸°ì¤€ìœ¼ë¡œ
+        // ì •í™•í•œ ì´êµ¬ ìœ„ì¹˜ë¥¼ ì–»ê¸° ìœ„í•¨ì´ë‹¤.
         Vector2 muzzleOffset =
             muzzle.localPosition;
+
+        if (mirrored)
+        {
+            muzzleOffset.y =
+                -muzzleOffset.y;
+        }
 
         return
             weaponPosition +

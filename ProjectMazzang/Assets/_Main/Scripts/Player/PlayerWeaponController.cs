@@ -51,8 +51,8 @@ public sealed class PlayerWeaponController :
     private IPlayerMovementState
         _movementState;
 
-    private Weapon
-        _boundIkWeapon;
+    private HeldWeaponView
+        _boundIkView;
 
 
     // =========================================================
@@ -142,8 +142,10 @@ public sealed class PlayerWeaponController :
 
     public override void Spawned()
     {
-        // Prefab¿¡ ÀúÀåµÈ IK target/enable »óÅÂ°¡ Ã¹ Render±îÁö ÆÈÀ»
-        // °íÁ¤ÇÏÁö ¾Êµµ·Ï ±ÇÇÑ°ú °ü°è¾øÀÌ ÃÊ±â ¹ÙÀÎµùÀ» ÇØÁ¦ÇÑ´Ù.
+        StabilizeWeaponSocket();
+
+        // Prefabì— ì €ì¥ëœ IK target/enable ìƒíƒœê°€ ì²« Renderê¹Œì§€ íŒ”ì„
+        // ê³ ì •í•˜ì§€ ì•Šë„ë¡ ê¶Œí•œê³¼ ê´€ê³„ì—†ì´ ì´ˆê¸° ë°”ì¸ë”©ì„ í•´ì œí•œë‹¤.
         UnbindWeaponIk();
 
         if (!HasStateAuthority)
@@ -202,7 +204,9 @@ public sealed class PlayerWeaponController :
         TryUseWeapon(
             aimDirection,
             !state.HasHealth ||
-            state.IsAlive);
+            state.IsAlive,
+            state.HasMovement &&
+            !state.FacingRight);
 
         return true;
     }
@@ -258,8 +262,8 @@ public sealed class PlayerWeaponController :
             GetInput(
                 out PlayerInputData input);
 
-        // ?¤ì œ ê²Œì„?Œë ˆ?´ìš© WeaponAngle?€
-        // StateAuthorityê°€ ?„ì¬ Tick ?…ë ¥?¼ë¡œ ?•ì •?œë‹¤.
+        // ì‹¤ì œ ê²Œì„í”Œë ˆì´ìš© WeaponAngleì€
+        // StateAuthorityê°€ í˜„ì¬ Tick ì…ë ¥ìœ¼ë¡œ í™•ì •í•œë‹¤.
         if (HasStateAuthority &&
             hasInput)
         {
@@ -358,7 +362,9 @@ public sealed class PlayerWeaponController :
         if (equippedWeapon != null)
         {
             equippedWeapon
-                .RefreshEquippedPresentation();
+                .RefreshHeldPresentation(
+                    _movementState != null &&
+                    !_movementState.FacingRight);
         }
 
         UpdateWeaponIkBinding();
@@ -368,6 +374,20 @@ public sealed class PlayerWeaponController :
     // =========================================================
     // Weapon Aim
     // =========================================================
+
+    private void StabilizeWeaponSocket()
+    {
+        if (weaponSocket == null ||
+            weaponSocket.parent == transform)
+        {
+            return;
+        }
+
+        weaponSocket.SetParent(
+            transform,
+            true);
+    }
+
 
     private void UpdateAuthoritativeWeaponAngle(
         Vector2 aimWorldPosition,
@@ -394,7 +414,7 @@ public sealed class PlayerWeaponController :
     }
 
     private void ApplyWeaponSocketRotation(
-    float worldAngle)
+        float worldAngle)
     {
         Vector2 worldDirection =
             AngleToDirection(
@@ -538,6 +558,10 @@ public sealed class PlayerWeaponController :
 
         weapon.Drop(
             previousHolder,
+            weaponSocket != null
+                ? (Vector2)weaponSocket.position
+                : (Vector2)transform.position,
+            WeaponAngle,
             velocity,
             repickupBlockDuration);
 
@@ -554,38 +578,43 @@ public sealed class PlayerWeaponController :
         Weapon equippedWeapon =
             EquippedWeapon;
 
-        if (_boundIkWeapon ==
-            equippedWeapon)
+        HeldWeaponView heldView =
+            equippedWeapon != null
+                ? equippedWeapon.HeldView
+                : null;
+
+        if (_boundIkView ==
+            heldView)
         {
             return;
         }
 
         UnbindWeaponIk();
 
-        if (equippedWeapon == null)
+        if (heldView == null)
             return;
 
         BindWeaponIk(
-            equippedWeapon);
+            heldView);
     }
 
 
     private void BindWeaponIk(
-        Weapon weapon)
+        HeldWeaponView heldView)
     {
-        if (weapon == null)
+        if (heldView == null)
             return;
 
-        _boundIkWeapon =
-            weapon;
+        _boundIkView =
+            heldView;
 
         BindHandLimb(
             leftHandLimb,
-            weapon.LeftHandGrip);
+            heldView.LeftHandGrip);
 
         BindHandLimb(
             rightHandLimb,
-            weapon.RightHandGrip);
+            heldView.RightHandGrip);
     }
 
 
@@ -597,7 +626,7 @@ public sealed class PlayerWeaponController :
         UnbindHandLimb(
             rightHandLimb);
 
-        _boundIkWeapon =
+        _boundIkView =
             null;
     }
 
@@ -708,16 +737,19 @@ public sealed class PlayerWeaponController :
         return TryUseWeapon(
             aimDirection,
             _healthState == null ||
-            _healthState.IsAlive);
+            _healthState.IsAlive,
+            _movementState != null &&
+            !_movementState.FacingRight);
     }
 
 
     private bool TryUseWeapon(
         Vector2 aimDirection,
-        bool isAlive)
+        bool isAlive,
+        bool mirrored)
     {
-        // ê¸°ì¡´ ?¸í„°?˜ì´???¸í™˜???„í•´ ?¸ì??? ì??˜ì?ë§?
-        // ?¤ì œ ?ì • ë°©í–¥?€ StateAuthorityê°€ ?•ì •??WeaponAngle???¬ìš©?œë‹¤.
+        // ê¸°ì¡´ aimDirection ì¸ìëŠ” í˜¸ì¶œ í˜¸í™˜ì„±ì„ ìœ„í•´ ìœ ì§€í•˜ì§€ë§Œ,
+        // ì‹¤ì œ íŒì • ë°©í–¥ì€ StateAuthorityê°€ í™•ì •í•œ WeaponAngleì„ ì‚¬ìš©í•œë‹¤.
         _ = aimDirection;
 
         if (!HasStateAuthority)
@@ -739,6 +771,7 @@ public sealed class PlayerWeaponController :
 
         return weapon.TryUse(
             origin,
-            WeaponDirection);
+            WeaponDirection,
+            mirrored);
     }
 }

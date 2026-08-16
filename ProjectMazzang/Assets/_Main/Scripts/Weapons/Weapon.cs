@@ -24,13 +24,8 @@ public abstract class Weapon :
     [SerializeField]
     private SortingGroup sortingGroup;
 
-
-    [Header("Hand Grip")]
     [SerializeField]
-    private Transform leftHandGrip;
-
-    [SerializeField]
-    private Transform rightHandGrip;
+    private HeldWeaponView presentationTemplate;
 
 
     // =========================================================
@@ -67,16 +62,15 @@ public abstract class Weapon :
     public bool IsEquipped =>
         Holder != null;
 
-    public Transform LeftHandGrip =>
-        leftHandGrip;
-
-    public Transform RightHandGrip =>
-        rightHandGrip;
+    public HeldWeaponView HeldView =>
+        _heldView;
 
 
     private int _worldSortingOrder;
 
-    private Vector3 _worldScale;
+    private HeldWeaponView _heldView;
+
+    private NetworkRigidbody _networkRigidbody;
 
 
     // =========================================================
@@ -85,12 +79,12 @@ public abstract class Weapon :
 
     protected virtual void Awake()
     {
-        NetworkRigidbody networkRigidbody =
+        _networkRigidbody =
             GetComponent<NetworkRigidbody>();
 
-        if (networkRigidbody != null)
+        if (_networkRigidbody != null)
         {
-            networkRigidbody.SyncParent = false;
+            _networkRigidbody.SyncParent = false;
         }
 
         if (rb == null)
@@ -124,9 +118,6 @@ public abstract class Weapon :
             _worldSortingOrder =
                 sortingGroup.sortingOrder;
         }
-
-        _worldScale =
-            transform.lossyScale;
     }
 
 
@@ -153,29 +144,25 @@ public abstract class Weapon :
         {
             ApplyWorldAuthorityState(
                 rb != null
+                    ? rb.position
+                    : (Vector2)transform.position,
+                rb != null
+                    ? rb.rotation
+                    : transform.eulerAngles.z,
+                rb != null
                     ? rb.linearVelocity
                     : Vector2.zero);
         }
     }
 
 
-    public override void FixedUpdateNetwork()
+    public override void Despawned(
+        NetworkRunner runner,
+        bool hasState)
     {
-        if (!HasStateAuthority ||
-            !IsEquipped ||
-            rb == null)
-        {
-            return;
-        }
-
-        ApplyEquippedAuthorityPose();
-
-        rb.linearVelocity =
-            Vector2.zero;
-
-        rb.angularVelocity =
-            0f;
+        DestroyHeldView();
     }
+
 
     // =========================================================
     // Equip / Drop
@@ -237,7 +224,7 @@ public abstract class Weapon :
         Holder =
             holder;
 
-        ApplyEquippedPresentation();
+        ApplyLocalHolderState();
 
         PickupBlockedPlayer =
             PlayerRef.None;
@@ -254,13 +241,13 @@ public abstract class Weapon :
 
     public void Drop(
         PlayerRef previousHolder,
+        Vector2 position,
+        float angle,
         Vector2 velocity,
         float repickupBlockDuration)
     {
         if (!HasStateAuthority)
             return;
-
-        ApplyWorldPresentation();
 
         Holder =
             null;
@@ -286,8 +273,11 @@ public abstract class Weapon :
         }
 
         ApplyWorldAuthorityState(
+            position,
+            angle,
             velocity);
 
+        ApplyLocalHolderState();
         ApplyLocalPickupState();
         ApplyLocalSortingState();
     }
@@ -310,6 +300,8 @@ public abstract class Weapon :
 
 
     private void ApplyWorldAuthorityState(
+        Vector2 position,
+        float angle,
         Vector2 velocity)
     {
         if (rb == null)
@@ -317,6 +309,28 @@ public abstract class Weapon :
 
         rb.bodyType =
             RigidbodyType2D.Dynamic;
+
+        if (_networkRigidbody != null &&
+            Object != null)
+        {
+            _networkRigidbody.Teleport(
+                new Vector3(
+                    position.x,
+                    position.y,
+                    transform.position.z),
+                Quaternion.Euler(
+                    0f,
+                    0f,
+                    angle));
+        }
+        else
+        {
+            rb.position =
+                position;
+
+            rb.rotation =
+                angle;
+        }
 
         rb.linearVelocity =
             velocity;
@@ -342,17 +356,34 @@ public abstract class Weapon :
     {
         if (IsEquipped)
         {
-            ApplyEquippedPresentation();
+            EnsureHeldView();
+
+            if (presentationTemplate != null)
+            {
+                presentationTemplate.gameObject
+                    .SetActive(
+                        false);
+            }
         }
         else
         {
-            ApplyWorldPresentation();
+            DestroyHeldView();
+
+            if (presentationTemplate != null)
+            {
+                presentationTemplate.gameObject
+                    .SetActive(
+                        true);
+            }
         }
     }
 
 
-    private void ApplyEquippedPresentation()
+    private void EnsureHeldView()
     {
+        if (_heldView != null)
+            return;
+
         if (Holder == null ||
             !Holder.TryGetComponent(
                 out PlayerWeaponController controller))
@@ -360,94 +391,59 @@ public abstract class Weapon :
             return;
         }
 
-        Transform socket =
-            controller.WeaponSocket;
-
-        if (socket == null)
-            return;
-
-        if (transform.parent != null)
+        if (controller.WeaponSocket == null ||
+            presentationTemplate == null)
         {
-            transform.SetParent(
-                null,
-                true);
+            return;
         }
 
-        transform.SetPositionAndRotation(
-            socket.position,
-            Quaternion.Euler(
-                0f,
-                0f,
-                ResolveSocketWorldAngle(
-                    socket)));
+        _heldView =
+            Instantiate(
+                presentationTemplate);
 
-        transform.localScale =
-            _worldScale;
+        _heldView.name =
+            $"{name} Held View";
+
+        _heldView.gameObject
+            .SetActive(
+                true);
+
+        _heldView.Initialize(
+            controller.WeaponSocket,
+            controller.WeaponSortingOrder);
     }
 
 
-    public void RefreshEquippedPresentation()
+    public void RefreshHeldPresentation(
+        bool mirrored)
     {
         if (!IsEquipped)
             return;
 
-        ApplyEquippedPresentation();
+        EnsureHeldView();
+
+        if (_heldView != null)
+        {
+            _heldView.SetMirrored(
+                mirrored);
+        }
     }
 
 
-    private void ApplyEquippedAuthorityPose()
+    private void DestroyHeldView()
     {
-        if (rb == null ||
-            Holder == null ||
-            !Holder.TryGetComponent(
-                out PlayerWeaponController controller) ||
-            controller.WeaponSocket == null)
-        {
+        if (_heldView == null)
             return;
-        }
 
-        Transform socket =
-            controller.WeaponSocket;
+        _heldView.gameObject
+            .SetActive(
+                false);
 
-        rb.position =
-            socket.position;
+        Destroy(
+            _heldView.gameObject);
 
-        rb.rotation =
-            ResolveSocketWorldAngle(
-                socket);
-    }
-
-
-    private static float ResolveSocketWorldAngle(
-        Transform socket)
-    {
-        Vector3 forward =
-            socket.TransformVector(
-                Vector3.right);
-
-        if (forward.sqrMagnitude <= 0.0001f)
-        {
-            return socket.eulerAngles.z;
-        }
-
-        return Mathf.Atan2(
-                   forward.y,
-                   forward.x) *
-               Mathf.Rad2Deg;
-    }
-
-
-    private void ApplyWorldPresentation()
-    {
-        if (transform.parent != null)
-        {
-            transform.SetParent(
-                null,
-                true);
-        }
-
-        transform.localScale =
-            _worldScale;
+        _heldView =
+            null;
     }
 
 
@@ -479,26 +475,8 @@ public abstract class Weapon :
         if (sortingGroup == null)
             return;
 
-        if (!IsEquipped ||
-            Holder == null)
-        {
-            sortingGroup.sortingOrder =
-                _worldSortingOrder;
-
-            return;
-        }
-
-        if (!Holder.TryGetComponent(
-                out PlayerWeaponController weaponController))
-        {
-            sortingGroup.sortingOrder =
-                _worldSortingOrder;
-
-            return;
-        }
-
         sortingGroup.sortingOrder =
-            weaponController.WeaponSortingOrder;
+            _worldSortingOrder;
     }
 
 
@@ -508,5 +486,6 @@ public abstract class Weapon :
 
     public abstract bool TryUse(
         Vector2 origin,
-        Vector2 direction);
+        Vector2 direction,
+        bool mirrored);
 }

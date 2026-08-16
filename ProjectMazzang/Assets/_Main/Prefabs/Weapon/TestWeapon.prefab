@@ -29,7 +29,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
-  m_Father: {fileID: 5814568478303250347}
+  m_Father: {fileID: 3085864403559333889}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2211222481828127667
 GameObject:
@@ -291,7 +291,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
-  m_Father: {fileID: 5814568478303250347}
+  m_Father: {fileID: 3085864403559333889}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &3008137956220480268
 GameObject:
@@ -302,6 +302,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3085864403559333889}
+  - component: {fileID: 6732957340894770001}
   m_Layer: 0
   m_Name: Visaul
   m_TagString: Untagged
@@ -323,8 +324,26 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 564011938357162093}
+  - {fileID: 2486731633620674725}
+  - {fileID: 8819009657638847448}
+  - {fileID: 7883919693575876065}
   m_Father: {fileID: 5814568478303250347}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6732957340894770001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3008137956220480268}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 94a87ccf12f94f33a79375ed7636d338, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::HeldWeaponView
+  muzzle: {fileID: 2486731633620674725}
+  leftHandGrip: {fileID: 8819009657638847448}
+  rightHandGrip: {fileID: 7883919693575876065}
 --- !u!1 &6975233142488579268
 GameObject:
   m_ObjectHideFlags: 0
@@ -361,9 +380,6 @@ Transform:
   m_Children:
   - {fileID: 3085864403559333889}
   - {fileID: 4992443038341677902}
-  - {fileID: 2486731633620674725}
-  - {fileID: 8819009657638847448}
-  - {fileID: 7883919693575876065}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &2946767431234189517
@@ -382,8 +398,7 @@ MonoBehaviour:
   worldCollider: {fileID: 2778920603820171767}
   pickupTrigger: {fileID: 7881194972578852804}
   sortingGroup: {fileID: 2623011332169258659}
-  leftHandGrip: {fileID: 8819009657638847448}
-  rightHandGrip: {fileID: 7883919693575876065}
+  presentationTemplate: {fileID: 6732957340894770001}
   _Holder: {fileID: 0}
   magazineSize: 5959
   fireInterval: 0.2
@@ -504,5 +519,5 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
-  m_Father: {fileID: 5814568478303250347}
+  m_Father: {fileID: 3085864403559333889}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
