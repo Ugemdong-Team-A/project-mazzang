@@ -41,24 +41,6 @@ public sealed class BattleCameraController : MonoBehaviour
     [SerializeField]
     private float targetWeightChangeSpeed = 4f;
 
-    [Header("Shake")]
-    [SerializeField]
-    private CinemachineImpulseSource impulseSource;
-
-    [SerializeField]
-    private float hitShakeForce = 0.2f;
-
-    [SerializeField]
-    private float deathShakeForce = 0.65f;
-
-    [SerializeField]
-    private float maxShakeDistance = 15f;
-
-    [SerializeField]
-    [Range(0f, 1f)]
-    private float minimumDistanceFactor = 0.25f;
-
-
     private readonly HashSet<Transform> targets =
         new();
 
@@ -87,8 +69,8 @@ public sealed class BattleCameraController : MonoBehaviour
         }
         else if (targetGroup != null)
         {
-            // TargetGroupÀÌ ÇÃ·¹ÀÌ¾î¸¦ µû¶ó ¿òÁ÷ÀÌ±â Àü
-            // ÃÊ±â À§Ä¡¸¦ ÀüÅõ ¿µ¿ª Áß½ÉÀ¸·Î »ç¿ëÇÑ´Ù.
+            // TargetGroupì´ í”Œë ˆì´ì–´ë¥¼ ë”°ë¼ ì›€ì§ì´ê¸° ì „
+            // ì´ˆê¸° ìœ„ì¹˜ë¥¼ ì „íˆ¬ ì˜ì—­ ì¤‘ì‹¬ìœ¼ë¡œ ì‚¬ìš©í•œë‹¤.
             _fallbackTargetWeightCenter =
                 targetGroup.transform.position;
         }
@@ -98,7 +80,7 @@ public sealed class BattleCameraController : MonoBehaviour
                 transform.position;
         }
 
-        // Winner Camera´Â Æò¼Ò¿¡´Â »ç¿ëÇÏÁö ¾Ê´Â´Ù.
+        // Winner CameraëŠ” í‰ì†Œì—ëŠ” ì‚¬ìš©í•˜ì§€ ì•ŠëŠ”ë‹¤.
         if (winnerCamera != null)
         {
             winnerCamera.enabled = false;
@@ -272,8 +254,8 @@ public sealed class BattleCameraController : MonoBehaviour
                 farTargetDistance,
                 distance);
 
-        // Á÷¼± º¸°£º¸´Ù °æ°è¿¡¼­ Á¶±İ ÀÚ¿¬½º·´°Ô
-        // Weight°¡ º¯ÇÏµµ·Ï ÇÑ´Ù.
+        // ì§ì„  ë³´ê°„ë³´ë‹¤ ê²½ê³„ì—ì„œ ì¡°ê¸ˆ ìì—°ìŠ¤ëŸ½ê²Œ
+        // Weightê°€ ë³€í•˜ë„ë¡ í•œë‹¤.
         t =
             Mathf.SmoothStep(
                 0f,
@@ -295,80 +277,6 @@ public sealed class BattleCameraController : MonoBehaviour
         }
 
         return _fallbackTargetWeightCenter;
-    }
-
-
-    // =========================================================
-    // Shake
-    // =========================================================
-
-    public void PlayHitShake(
-        Vector3 worldPosition,
-        float multiplier = 1f)
-    {
-        PlayShake(
-            worldPosition,
-            hitShakeForce * multiplier);
-    }
-
-
-    public void PlayDeathShake(
-        Vector3 worldPosition,
-        float multiplier = 1f)
-    {
-        PlayShake(
-            worldPosition,
-            deathShakeForce * multiplier);
-    }
-
-
-    private void PlayShake(
-        Vector3 worldPosition,
-        float force)
-    {
-        if (impulseSource == null)
-            return;
-
-        float distanceFactor =
-            CalculateDistanceFactor(
-                worldPosition);
-
-        impulseSource
-            .GenerateImpulseWithForce(
-                force * distanceFactor);
-    }
-
-
-    private float CalculateDistanceFactor(
-        Vector3 worldPosition)
-    {
-        if (Camera.main == null ||
-            maxShakeDistance <= 0f)
-        {
-            return 1f;
-        }
-
-        Vector2 cameraPosition =
-            Camera.main.transform.position;
-
-        Vector2 impactPosition =
-            worldPosition;
-
-        float distance =
-            Vector2.Distance(
-                cameraPosition,
-                impactPosition);
-
-        float factor =
-            1f -
-            Mathf.Clamp01(
-                distance /
-                maxShakeDistance);
-
-        return Mathf.Lerp(
-            minimumDistanceFactor,
-            1f,
-            factor);
     }
 
 

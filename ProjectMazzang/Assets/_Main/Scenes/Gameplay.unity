@@ -1637,6 +1637,7 @@ GameObject:
   - component: {fileID: 1156076516}
   - component: {fileID: 1156076515}
   - component: {fileID: 1156076517}
+  - component: {fileID: 1156076518}
   m_Layer: 0
   m_Name: BattleCameraController
   m_TagString: Untagged
@@ -1666,11 +1667,23 @@ MonoBehaviour:
   farTargetDistance: 18.01
   farTargetWeight: 0.05
   targetWeightChangeSpeed: 4
+--- !u!114 &1156076518
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1156076514}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e77132191cc492a907f9bd396c5f2fc, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::CameraShakeService
   impulseSource: {fileID: 1156076517}
-  hitShakeForce: 0.2
-  deathShakeForce: 0.9
-  maxShakeDistance: 15
-  minimumDistanceFactor: 0.25
+  defaultHitProfile: {fileID: 11400000, guid: 020205b612304d22b1e00dd1c7382ffb, type: 2}
+  defaultDeathProfile: {fileID: 11400000, guid: 50b8d8b0b1954fd6bf331f82a4f8c612, type: 2}
+  globalIntensity: 1
+  maximumForce: 1.25
 --- !u!4 &1156076516
 Transform:
   m_ObjectHideFlags: 0

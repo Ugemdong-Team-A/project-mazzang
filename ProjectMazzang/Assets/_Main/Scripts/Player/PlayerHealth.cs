@@ -36,7 +36,7 @@ public sealed class PlayerHealth :
 
 
     [Header("Kill Credit")]
-    [Tooltip("¸¶Áö¸·À¸·Î °ø°İÇÑ ÇÃ·¹ÀÌ¾î¿¡°Ô MapOut KO¸¦ ÀÎÁ¤ÇÏ´Â ½Ã°£ÀÔ´Ï´Ù.")]
+    [Tooltip("ë§ˆì§€ë§‰ìœ¼ë¡œ ê³µê²©í•œ í”Œë ˆì´ì–´ì—ê²Œ MapOut KOë¥¼ ì¸ì •í•˜ëŠ” ì‹œê°„ì…ë‹ˆë‹¤.")]
     [SerializeField]
     private float lastAttackerCreditDuration = 5f;
 
@@ -318,8 +318,8 @@ public sealed class PlayerHealth :
                 Health -
                 effectiveDamage);
 
-        // À¯È¿ÇÑ ÇÇ°İÀÌ µé¾î¿À´Â Áï½Ã ÇöÀç °ø°İÀ» ²÷´Â´Ù.
-        // ÀÌÈÄ MovementÀÇ control lock µ¿¾È »õ °ø°İµµ Â÷´ÜµÈ´Ù.
+        // ìœ íš¨í•œ í”¼ê²©ì´ ë“¤ì–´ì˜¤ëŠ” ì¦‰ì‹œ í˜„ì¬ ê³µê²©ì„ ëŠëŠ”ë‹¤.
+        // ì´í›„ Movementì˜ control lock ë™ì•ˆ ìƒˆ ê³µê²©ë„ ì°¨ë‹¨ëœë‹¤.
         RequestCancelAttack();
 
         if (info.Knockback
@@ -507,7 +507,7 @@ public sealed class PlayerHealth :
 
         DeathSequence++;
 
-        // »ç¸ÁÇÑ Æ½¿¡ ÀÌ¹Ì ÁøÇà ÁßÀÎ °ø°İµµ Áï½Ã Ãë¼ÒÇÑ´Ù.
+        // ì‚¬ë§í•œ í‹±ì— ì´ë¯¸ ì§„í–‰ ì¤‘ì¸ ê³µê²©ë„ ì¦‰ì‹œ ì·¨ì†Œí•œë‹¤.
         RequestCancelAttack();
 
         LoseLife();
@@ -675,9 +675,8 @@ public sealed class PlayerHealth :
                 Health &&
             !IsDead)
         {
-            BattleCameraController.Instance?
-                .PlayHitShake(
-                    transform.position);
+            CameraShakeService.PlayDefaultHit(
+                transform.position);
         }
 
         _lastHealth =
@@ -695,7 +694,7 @@ public sealed class PlayerHealth :
             bcc?.RemoveTarget(
                 cameraTarget);
 
-            bcc?.PlayDeathShake(
+            CameraShakeService.PlayDefaultDeath(
                 cameraTarget.position);
 
             LocalDeathOccurred?
