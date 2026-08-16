@@ -409,6 +409,7 @@ MonoBehaviour:
   damage: 6
   knockback: {x: 0, y: 0}
   knockbackControlLock: 0.03
+  fireShakeProfile: {fileID: 11400000, guid: f739317905b94175b317689597d4f39e, type: 2}
   muzzleFlash: {fileID: 0}
   audioSource: {fileID: 0}
   fireClip: {fileID: 0}

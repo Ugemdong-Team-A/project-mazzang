@@ -49,6 +49,9 @@ public sealed class ProjectileGun :
 
     [Header("Presentation")]
     [SerializeField]
+    private CameraShakeProfile fireShakeProfile;
+
+    [SerializeField]
     private ParticleSystem muzzleFlash;
 
     [SerializeField]
@@ -359,6 +362,10 @@ public sealed class ProjectileGun :
 
     private void PlayFirePresentation()
     {
+        CameraShakeService.Play(
+            fireShakeProfile,
+            LastAuthoritativeFireOrigin);
+
         if (muzzleFlash != null)
         {
             muzzleFlash.Play();
