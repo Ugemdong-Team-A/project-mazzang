@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: AwakeningSkill
   m_EditorClassIdentifier: Assembly-CSharp::AwakeningSkillData
   cooldown: 18
-  icon: {fileID: 21300000, guid: 2e4baa8aeaae3754b9db22d264842a2f, type: 3}
+  icon: {fileID: 21300000, guid: 5e534de90d594a459dd6fe65cef42d89, type: 3}
   duration: 8
   moveSpeedMultiplier: 1.25
   attackDamageMultiplier: 1.5
