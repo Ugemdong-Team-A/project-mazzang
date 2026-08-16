@@ -886,6 +886,45 @@ public sealed class PlayerSkillController :
     }
 
 
+    public PlayerStatModifiers GetActiveStatModifiers()
+    {
+        PlayerStatModifiers result =
+            PlayerStatModifiers.Identity;
+
+        CombineActiveStatModifiers(
+            SkillSlot.Skill1,
+            _skill1,
+            ref result);
+
+        CombineActiveStatModifiers(
+            SkillSlot.Skill2,
+            _skill2,
+            ref result);
+
+        return result;
+    }
+
+
+    private void CombineActiveStatModifiers(
+        SkillSlot slot,
+        Skill skill,
+        ref PlayerStatModifiers result)
+    {
+        if (GetUsePhase(slot) !=
+                SkillUsePhase.Active ||
+            skill is not IPlayerStatModifierSkill modifierSkill)
+        {
+            return;
+        }
+
+        PlayerStatModifiers modifiers =
+            modifierSkill.StatModifiers;
+
+        result =
+            result.Combine(in modifiers);
+    }
+
+
     private bool IsActionLocked(
         SkillSlot slot,
         Skill skill)

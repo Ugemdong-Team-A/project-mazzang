@@ -113,6 +113,8 @@ public sealed class PlayerMovement :
 
     private IPlayerCombatState _combatState;
 
+    private PlayerSkillController _skillController;
+
     private bool _debugPreviousTouchingWallLeft;
     private bool _debugPreviousTouchingWallRight;
     private bool _debugPreviousWallSliding;
@@ -255,7 +257,8 @@ public sealed class PlayerMovement :
 
     public override void Spawned()
     {
-
+        _skillController =
+            GetComponent<PlayerSkillController>();
     }
 
     PlayerTickStage IPlayerTickModule.Stage =>
@@ -427,8 +430,8 @@ public sealed class PlayerMovement :
         Vector2 velocity =
             rb.linearVelocity;
 
-        // ���� �߿��� �Է� ��� ���� �̵��� �����.
-        // ���� �ӵ��� ������ ���߿����� �߷�/���ϰ� ��� ����ȴ�.
+        // 공격 중에는 입력으로 인한 수평 이동을 잠근다.
+        // 기존 수직 속도는 유지해 공중에서도 중력과 낙하는 계속 적용된다.
         velocity.x =
             0f;
 
@@ -458,7 +461,8 @@ public sealed class PlayerMovement :
 
         float targetSpeed =
             inputX *
-            maxMoveSpeed;
+            maxMoveSpeed *
+            ResolveMoveSpeedMultiplier();
 
         bool hasInput =
             Mathf.Abs(inputX) >
@@ -493,6 +497,16 @@ public sealed class PlayerMovement :
 
         rb.linearVelocity =
             velocity;
+    }
+
+
+    private float ResolveMoveSpeedMultiplier()
+    {
+        return _skillController != null
+            ? _skillController
+                .GetActiveStatModifiers()
+                .MoveSpeed
+            : 1f;
     }
 
     private void UpdateFacing(
@@ -722,8 +736,8 @@ public sealed class PlayerMovement :
         if (!IsWallSliding)
             return;
 
-        // Presentation�� ���� Wall Check�� ���� �ʾƵ� �ǵ���
-        // ���� Ÿ�� ���� ���� �ٶ󺸴� ������ Networked ���·� Ȯ���Ѵ�.
+        // Presentation은 별도의 Wall Check를 하지 않아도 되도록
+        // 현재 닿은 벽을 바라보는 방향을 Networked 상태로 확정한다.
         if (IsTouchingWallLeft)
         {
             FacingRight =

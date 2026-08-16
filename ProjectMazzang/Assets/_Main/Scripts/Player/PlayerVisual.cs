@@ -41,6 +41,9 @@ public sealed class PlayerVisual :
     private IPlayerHealthState
         _healthState;
 
+    private PlayerSkillController
+        _skillController;
+
 
     private Vector3 _defaultScale;
 
@@ -69,6 +72,8 @@ public sealed class PlayerVisual :
 
     private bool _previousFacingRight;
 
+    private float _previousStatScale = 1f;
+
 
     // =========================================================
     // Unity
@@ -76,6 +81,9 @@ public sealed class PlayerVisual :
 
     private void Awake()
     {
+        _skillController =
+            GetComponent<PlayerSkillController>();
+
         if (characterVisualRoot == null)
             return;
 
@@ -182,9 +190,19 @@ public sealed class PlayerVisual :
         bool facingRight =
             _movementState.FacingRight;
 
+        float statScale =
+            _skillController != null
+                ? _skillController
+                    .GetActiveStatModifiers()
+                    .VisualScale
+                : 1f;
+
         if (_facingInitialized &&
             _previousFacingRight ==
-            facingRight)
+            facingRight &&
+            Mathf.Approximately(
+                _previousStatScale,
+                statScale))
         {
             return;
         }
@@ -195,6 +213,9 @@ public sealed class PlayerVisual :
         _previousFacingRight =
             facingRight;
 
+        _previousStatScale =
+            statScale;
+
         Vector3 scale =
             _defaultScale;
 
@@ -202,6 +223,9 @@ public sealed class PlayerVisual :
             facingRight
                 ? 1f
                 : -1f;
+
+        scale.x *= statScale;
+        scale.y *= statScale;
 
         characterVisualRoot
             .transform

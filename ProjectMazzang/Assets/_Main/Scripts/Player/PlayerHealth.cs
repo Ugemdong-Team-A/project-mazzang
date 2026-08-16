@@ -53,6 +53,9 @@ public sealed class PlayerHealth :
     private IPlayerCombatControl
         _combatControl;
 
+    private PlayerSkillController
+        _skillController;
+
 
     // =========================================================
     // Network State
@@ -99,6 +102,9 @@ public sealed class PlayerHealth :
     [Networked]
     private TickTimer InvulnerabilityTimer { get; set; }
 
+    [Networked]
+    private int AppliedMaxHealth { get; set; }
+
 
     // =========================================================
     // Local Presentation Events
@@ -113,7 +119,9 @@ public sealed class PlayerHealth :
     // =========================================================
 
     public int MaxHealth =>
-        maxHealth;
+        AppliedMaxHealth > 0
+            ? AppliedMaxHealth
+            : maxHealth;
 
 
     public int MaxLives =>
@@ -172,6 +180,9 @@ public sealed class PlayerHealth :
 
     public override void Spawned()
     {
+        _skillController =
+            GetComponent<PlayerSkillController>();
+
         _lastHealth =
             Health;
 
@@ -182,8 +193,11 @@ public sealed class PlayerHealth :
         if (!HasStateAuthority)
             return;
 
-        Health =
+        AppliedMaxHealth =
             maxHealth;
+
+        Health =
+            MaxHealth;
 
         Lives =
             startingLives;
@@ -257,6 +271,8 @@ public sealed class PlayerHealth :
         if (!HasStateAuthority)
             return;
 
+        RefreshMaxHealthModifier();
+
         if (!IsDead)
             return;
 
@@ -292,11 +308,15 @@ public sealed class PlayerHealth :
         RegisterLastAttacker(
             info.Source.InputAuthority);
 
+        int effectiveDamage =
+            ResolveEffectiveDamage(
+                in info);
+
         Health =
             Mathf.Max(
                 0,
                 Health -
-                info.Damage);
+                effectiveDamage);
 
         // 유효한 피격이 들어오는 즉시 현재 공격을 끊는다.
         // 이후 Movement의 control lock 동안 새 공격도 차단된다.
@@ -538,7 +558,7 @@ public sealed class PlayerHealth :
     private void CompleteRespawn()
     {
         Health =
-            maxHealth;
+            MaxHealth;
 
         RespawnTimer =
             TickTimer.None;
@@ -552,6 +572,83 @@ public sealed class PlayerHealth :
 
         IsDead =
             false;
+    }
+
+
+    private void RefreshMaxHealthModifier()
+    {
+        int previousMaximum =
+            MaxHealth;
+
+        float multiplier =
+            _skillController != null
+                ? _skillController
+                    .GetActiveStatModifiers()
+                    .MaxHealth
+                : 1f;
+
+        int nextMaximum =
+            Mathf.Max(
+                1,
+                Mathf.RoundToInt(
+                    maxHealth * multiplier));
+
+        if (previousMaximum == nextMaximum)
+            return;
+
+        AppliedMaxHealth =
+            nextMaximum;
+
+        if (!IsAlive)
+            return;
+
+        if (nextMaximum > previousMaximum)
+        {
+            Health =
+                Mathf.Min(
+                    nextMaximum,
+                    Health +
+                    nextMaximum -
+                    previousMaximum);
+        }
+        else
+        {
+            Health =
+                Mathf.Min(
+                    Health,
+                    nextMaximum);
+        }
+    }
+
+
+    private int ResolveEffectiveDamage(
+        in DamageInfo info)
+    {
+        float attackMultiplier = 1f;
+
+        if (info.Source != null &&
+            info.Source.TryGetComponent(
+                out PlayerSkillController sourceSkills))
+        {
+            attackMultiplier =
+                sourceSkills
+                    .GetActiveStatModifiers()
+                    .AttackDamage;
+        }
+
+        float damageTakenMultiplier =
+            _skillController != null
+                ? _skillController
+                    .GetActiveStatModifiers()
+                    .DamageTaken
+                : 1f;
+
+        return Mathf.Max(
+            0,
+            Mathf.RoundToInt(
+                info.Damage *
+                attackMultiplier *
+                damageTakenMultiplier));
     }
 
 
