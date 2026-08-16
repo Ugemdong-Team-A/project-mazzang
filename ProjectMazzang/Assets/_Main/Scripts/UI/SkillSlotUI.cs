@@ -13,6 +13,9 @@ public sealed class SkillSlotUI :
     [SerializeField]
     private Image iconImage;
 
+    [SerializeField]
+    private TMP_Text shortcutText;
+
 
     [Header("Cooldown")]
     [SerializeField]
@@ -126,6 +129,8 @@ public sealed class SkillSlotUI :
         _slot =
             slot;
 
+        RefreshShortcut();
+
         RefreshSkillReference(
             true);
     }
@@ -161,6 +166,10 @@ public sealed class SkillSlotUI :
 
         SetActive(
             durationRoot,
+            false);
+
+        SetActive(
+            shortcutText?.gameObject,
             false);
     }
 
@@ -198,6 +207,10 @@ public sealed class SkillSlotUI :
 
         SetActive(
             contentRoot,
+            hasSkill);
+
+        SetActive(
+            shortcutText?.gameObject,
             hasSkill);
 
 
@@ -279,6 +292,10 @@ public sealed class SkillSlotUI :
                 Mathf.Clamp01(
                     remaining /
                     duration);
+
+            SetVerticalProgress(
+                cooldownFill,
+                cooldownFill.fillAmount);
         }
 
 
@@ -413,6 +430,10 @@ public sealed class SkillSlotUI :
                 _controller
                     .GetRechargeNormalized(
                         _slot);
+
+            SetHorizontalProgress(
+                rechargeFill,
+                rechargeFill.fillAmount);
         }
 
 
@@ -460,6 +481,9 @@ public sealed class SkillSlotUI :
                 Instantiate(
                     chargePipPrefab,
                     chargePipRoot);
+
+            pip.raycastTarget =
+                false;
 
             pip.gameObject
                 .SetActive(
@@ -534,6 +558,10 @@ public sealed class SkillSlotUI :
                 Mathf.Clamp01(
                     remaining /
                     duration);
+
+            SetHorizontalProgress(
+                durationFill,
+                durationFill.fillAmount);
         }
 
 
@@ -546,6 +574,58 @@ public sealed class SkillSlotUI :
     // =========================================================
     // Utility
     // =========================================================
+
+    private void RefreshShortcut()
+    {
+        if (shortcutText == null)
+            return;
+
+        shortcutText.text =
+            _slot == SkillSlot.Skill1
+                ? "LSHIFT"
+                : "Q";
+    }
+
+
+    private static void SetHorizontalProgress(
+        Graphic graphic,
+        float normalized)
+    {
+        SetProgressScale(
+            graphic,
+            Mathf.Clamp01(normalized),
+            1f);
+    }
+
+
+    private static void SetVerticalProgress(
+        Graphic graphic,
+        float normalized)
+    {
+        SetProgressScale(
+            graphic,
+            1f,
+            Mathf.Clamp01(normalized));
+    }
+
+
+    private static void SetProgressScale(
+        Graphic graphic,
+        float x,
+        float y)
+    {
+        if (graphic == null)
+            return;
+
+        RectTransform rectTransform =
+            graphic.rectTransform;
+
+        rectTransform.localScale =
+            new Vector3(
+                x,
+                y,
+                1f);
+    }
 
     private static void SetTimeText(
         TMP_Text text,
