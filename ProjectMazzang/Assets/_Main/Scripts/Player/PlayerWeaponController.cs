@@ -142,6 +142,10 @@ public sealed class PlayerWeaponController :
 
     public override void Spawned()
     {
+        // Prefab에 저장된 IK target/enable 상태가 첫 Render까지 팔을
+        // 고정하지 않도록 권한과 관계없이 초기 바인딩을 해제한다.
+        UnbindWeaponIk();
+
         if (!HasStateAuthority)
             return;
 

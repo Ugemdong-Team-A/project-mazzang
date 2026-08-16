@@ -23,5 +23,5 @@ MonoBehaviour:
   knockback: {x: 6, y: 1.5}
   knockbackControlLock: 0.1
   spawnForward: 0.65
-  spawnUp: 0.25
+  spawnUp: 0.9
   castVfxPrefab: {fileID: 0}

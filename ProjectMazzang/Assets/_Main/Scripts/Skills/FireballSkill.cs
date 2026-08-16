@@ -8,6 +8,7 @@ public sealed class FireballSkill :
     IActionLockSkill
 {
     private Vector2 _aimDirection = Vector2.right;
+    private Vector2 _aimWorldPosition;
     private bool _waitingToFire;
     private FireballCastPresentation _presentation;
 
@@ -34,6 +35,8 @@ public sealed class FireballSkill :
         in SkillUseContext useContext)
     {
         _waitingToFire = true;
+        _aimWorldPosition =
+            useContext.AimWorldPosition;
         UpdateAimDirection(
             useContext.AimWorldPosition);
     }
@@ -46,6 +49,8 @@ public sealed class FireballSkill :
         if (Controller.TryGetCurrentInput(
                 out PlayerInputData input))
         {
+            _aimWorldPosition =
+                input.AimWorldPosition;
             UpdateAimDirection(
                 input.AimWorldPosition);
         }
@@ -109,14 +114,29 @@ public sealed class FireballSkill :
     private void UpdateAimDirection(
         Vector2 aimWorldPosition)
     {
+        Vector2 pivot =
+            (Vector2)Controller.transform.position +
+            Vector2.up * FireballData.SpawnUp;
+
         Vector2 direction =
             aimWorldPosition -
-            (Vector2)Controller.transform.position;
+            pivot;
 
         if (direction.sqrMagnitude > 0.0001f)
         {
+            direction.Normalize();
+
+            Vector2 origin =
+                pivot +
+                direction * FireballData.SpawnForward;
+
+            Vector2 originToAim =
+                aimWorldPosition - origin;
+
             _aimDirection =
-                direction.normalized;
+                originToAim.sqrMagnitude > 0.0001f
+                    ? originToAim.normalized
+                    : direction;
         }
     }
 
@@ -132,6 +152,14 @@ public sealed class FireballSkill :
             _aimDirection.sqrMagnitude > 0.0001f
                 ? _aimDirection.normalized
                 : Vector2.right;
+
+        UpdateAimDirection(
+            _aimWorldPosition);
+
+        direction =
+            _aimDirection.sqrMagnitude > 0.0001f
+                ? _aimDirection.normalized
+                : direction;
 
         Vector2 origin =
             ResolveSpawnPosition(direction);

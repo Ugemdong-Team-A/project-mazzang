@@ -19,8 +19,10 @@ public sealed class FireballSkillData : SkillData
     [Min(0f)] [SerializeField] private float knockbackControlLock = 0.1f;
 
     [Header("Spawn")]
+    [Tooltip("플레이어 루트에서 조준 방향으로 떨어진 생성 거리입니다.")]
     [Min(0f)] [SerializeField] private float spawnForward = 0.65f;
-    [SerializeField] private float spawnUp = 0.25f;
+    [Tooltip("플레이어 루트에서 위쪽으로 떨어진 생성 높이입니다.")]
+    [SerializeField] private float spawnUp = 0.9f;
 
     [Header("Presentation")]
     [Tooltip("비워두면 코드 기반 임시 시전 연출을 사용합니다.")]
