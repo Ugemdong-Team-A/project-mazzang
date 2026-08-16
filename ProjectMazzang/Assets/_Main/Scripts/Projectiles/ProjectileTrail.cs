@@ -20,11 +20,10 @@ public sealed class ProjectileTrail : MonoBehaviour
 
     [Min(0f)]
     [SerializeField]
-    private float endWidth = 0f;
+    private float endWidth;
 
     [SerializeField]
     private Gradient colorOverTrail;
-
 
     [Header("Rendering")]
     [SerializeField]
@@ -36,146 +35,161 @@ public sealed class ProjectileTrail : MonoBehaviour
     [SerializeField]
     private int sortingOrder;
 
-
-    private TrailRenderer _trail;
-
+    private TrailRenderer _sourceTrail;
+    private TrailRenderer _visualTrail;
+    private GameObject _visualObject;
+    private Transform _followTarget;
+    private bool _completed;
 
     private void Awake()
     {
-        ResolveTrail();
-        ApplySettings();
+        ResolveSourceTrail();
+
+        if (_sourceTrail != null)
+        {
+            _sourceTrail.emitting = false;
+            _sourceTrail.Clear();
+            _sourceTrail.enabled = false;
+        }
     }
 
-
-    private void OnEnable()
+    public void Begin(
+        Vector3 presentationOrigin,
+        Transform followTarget)
     {
-        ResolveTrail();
-
-        _trail.emitting =
-            false;
-
-        _trail.Clear();
-    }
-
-
-    public void Begin()
-    {
-        ResolveTrail();
-
-        _trail.emitting =
-            false;
-
-        _trail.Clear();
-
-        _trail.emitting =
-            true;
-    }
-
-
-    private void OnDisable()
-    {
-        if (_trail == null)
+        if (_visualTrail != null)
             return;
 
-        _trail.emitting =
-            false;
+        _completed = false;
+        _followTarget = followTarget;
 
-        _trail.Clear();
+        _visualObject =
+            new GameObject(
+                "[Local] Projectile Trail");
+        _visualObject.layer =
+            gameObject.layer;
+        _visualObject.transform.position =
+            presentationOrigin;
+
+        _visualTrail =
+            _visualObject.AddComponent<
+                TrailRenderer>();
+
+        ApplySettings(
+            _visualTrail);
+
+        _visualTrail.emitting = false;
+        _visualTrail.Clear();
+        _visualTrail.emitting = true;
     }
 
-    private void Start()
+    private void LateUpdate()
     {
-        Begin();
+        if (_completed ||
+            _visualObject == null)
+        {
+            return;
+        }
+
+        if (_followTarget == null)
+        {
+            Complete();
+            return;
+        }
+
+        _visualObject.transform.SetPositionAndRotation(
+            _followTarget.position,
+            _followTarget.rotation);
     }
 
-    public void Clear()
+    public void Complete()
     {
-        ResolveTrail();
-
-        _trail.Clear();
-    }
-
-
-    public void SetEmitting(
-        bool emitting)
-    {
-        ResolveTrail();
-
-        _trail.emitting =
-            emitting;
-    }
-
-
-    private void ResolveTrail()
-    {
-        if (_trail != null)
+        if (_completed)
             return;
 
-        _trail =
-            GetComponent<TrailRenderer>();
+        _completed = true;
+
+        if (_visualObject != null &&
+            _followTarget != null)
+        {
+            _visualObject.transform.SetPositionAndRotation(
+                _followTarget.position,
+                _followTarget.rotation);
+        }
+
+        _followTarget = null;
+
+        if (_visualTrail != null)
+        {
+            _visualTrail.emitting = false;
+        }
+
+        if (_visualObject != null)
+        {
+            Destroy(
+                _visualObject,
+                Mathf.Max(0.01f, lifetime));
+        }
+
+        _visualTrail = null;
+        _visualObject = null;
     }
 
-
-    private void ApplySettings()
+    private void OnDestroy()
     {
-        if (_trail == null)
+        Complete();
+    }
+
+    private void ResolveSourceTrail()
+    {
+        if (_sourceTrail == null)
+        {
+            _sourceTrail =
+                GetComponent<TrailRenderer>();
+        }
+    }
+
+    private void ApplySettings(
+        TrailRenderer trail)
+    {
+        if (trail == null)
             return;
 
-        _trail.time =
-            lifetime;
-
-        _trail.minVertexDistance =
+        trail.time = lifetime;
+        trail.minVertexDistance =
             minVertexDistance;
-
-        _trail.widthMultiplier =
-            1f;
-
-        _trail.widthCurve =
+        trail.widthMultiplier = 1f;
+        trail.widthCurve =
             new AnimationCurve(
-                new Keyframe(
-                    0f,
-                    startWidth),
-                new Keyframe(
-                    1f,
-                    endWidth));
+                new Keyframe(0f, startWidth),
+                new Keyframe(1f, endWidth));
 
         if (colorOverTrail != null)
         {
-            _trail.colorGradient =
+            trail.colorGradient =
                 colorOverTrail;
         }
 
         if (trailMaterial != null)
         {
-            _trail.sharedMaterial =
+            trail.sharedMaterial =
                 trailMaterial;
         }
 
-        _trail.alignment =
+        trail.alignment =
             LineAlignment.View;
-
-        _trail.textureMode =
+        trail.textureMode =
             LineTextureMode.Stretch;
-
-        _trail.autodestruct =
-            false;
-
-        _trail.generateLightingData =
-            false;
-
-        _trail.shadowCastingMode =
+        trail.autodestruct = false;
+        trail.generateLightingData = false;
+        trail.shadowCastingMode =
             ShadowCastingMode.Off;
-
-        _trail.receiveShadows =
-            false;
-
-        _trail.sortingLayerName =
+        trail.receiveShadows = false;
+        trail.sortingLayerName =
             sortingLayerName;
-
-        _trail.sortingOrder =
+        trail.sortingOrder =
             sortingOrder;
     }
-
 
 #if UNITY_EDITOR
 
@@ -204,15 +218,16 @@ public sealed class ProjectileTrail : MonoBehaviour
                     1f)
             });
 
-        ResolveTrail();
-        ApplySettings();
+        ResolveSourceTrail();
+        ApplySettings(
+            _sourceTrail);
     }
-
 
     private void OnValidate()
     {
-        ResolveTrail();
-        ApplySettings();
+        ResolveSourceTrail();
+        ApplySettings(
+            _sourceTrail);
     }
 
 #endif

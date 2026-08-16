@@ -59,6 +59,11 @@ public sealed class ProjectileGun :
 
     private int _visibleFireSequence;
 
+    public Vector2 PresentationMuzzlePosition =>
+        muzzle != null
+            ? muzzle.position
+            : transform.position;
+
 
     // =========================================================
     // Network State
@@ -80,6 +85,20 @@ public sealed class ProjectileGun :
 
     [Networked]
     private int FireSequence
+    {
+        get;
+        set;
+    }
+
+    [Networked]
+    private Vector2 LastAuthoritativeFireOrigin
+    {
+        get;
+        set;
+    }
+
+    [Networked]
+    private Vector2 LastAuthoritativeFireDirection
     {
         get;
         set;
@@ -172,6 +191,12 @@ public sealed class ProjectileGun :
             ResolveMuzzlePosition(
                 origin,
                 angle);
+
+        LastAuthoritativeFireOrigin =
+            spawnPosition;
+
+        LastAuthoritativeFireDirection =
+            direction;
 
         Quaternion rotation =
             Quaternion.Euler(
@@ -267,11 +292,11 @@ public sealed class ProjectileGun :
         Vector2 muzzleOffset =
             muzzle.localPosition;
 
-        return muzzle.position;
-            /*weaponPosition +
+        return
+            weaponPosition +
             RotateVector(
                 muzzleOffset,
-                weaponAngle);*/
+                weaponAngle);
     }
 
 
@@ -343,6 +368,9 @@ public sealed class ProjectileGun :
         if (muzzle == null)
             return;
 
+        Gizmos.color =
+            Color.cyan;
+
         Gizmos.DrawWireSphere(
             muzzle.position,
             0.05f);
@@ -351,6 +379,37 @@ public sealed class ProjectileGun :
             muzzle.position,
             muzzle.position +
             muzzle.right * 0.4f);
+
+        if (!Application.isPlaying ||
+            Object == null)
+        {
+            return;
+        }
+
+        if (LastAuthoritativeFireDirection.sqrMagnitude <=
+            0.0001f)
+        {
+            return;
+        }
+
+        Gizmos.color =
+            Color.red;
+
+        Gizmos.DrawWireSphere(
+            LastAuthoritativeFireOrigin,
+            0.07f);
+
+        Gizmos.DrawLine(
+            LastAuthoritativeFireOrigin,
+            LastAuthoritativeFireOrigin +
+            LastAuthoritativeFireDirection * 0.6f);
+
+        Gizmos.color =
+            Color.yellow;
+
+        Gizmos.DrawLine(
+            muzzle.position,
+            LastAuthoritativeFireOrigin);
     }
 
 #endif

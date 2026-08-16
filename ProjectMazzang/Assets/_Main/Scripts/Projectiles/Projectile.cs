@@ -15,8 +15,8 @@ public class Projectile :
     private float collisionRadius = 0.05f;
 
     [Tooltip(
-        "한 번의 Substep에서 허용할 최대 이동 거리입니다. " +
-        "한 Tick의 이동량이 더 크면 여러 단계로 나눠 시뮬레이션합니다.")]
+        "??번의 Substep?�서 ?�용??최�? ?�동 거리?�니?? " +
+        "??Tick???�동?�이 ???�면 ?�러 ?�계�??�눠 ?��??�이?�합?�다.")]
     [Min(0.005f)]
     [SerializeField]
     private float maxSimulationStepDistance = 0.08f;
@@ -28,8 +28,8 @@ public class Projectile :
 
     [Header("Ballistics")]
     [Tooltip(
-        "월드 아래 방향 중력 배율입니다. " +
-        "0이면 직선 탄도, 1이면 gravityAcceleration을 그대로 사용합니다.")]
+        "?�드 ?�래 방향 중력 배율?�니?? " +
+        "0?�면 직선 ?�도, 1?�면 gravityAcceleration??그�?�??�용?�니??")]
     [Min(0f)]
     [SerializeField]
     private float gravityScale = 0f;
@@ -39,15 +39,21 @@ public class Projectile :
     private float gravityAcceleration = 9.81f;
 
     [Tooltip(
-        "속도 감쇠 계수입니다. 0이면 공기 저항을 적용하지 않습니다.")]
+        "?�도 감쇠 계수?�니?? 0?�면 공기 ?�??�� ?�용?��? ?�습?�다.")]
     [Min(0f)]
     [SerializeField]
     private float linearDrag = 0f;
 
     [Tooltip(
-        "진행 방향에 맞춰 Projectile의 +X 축을 회전시킵니다.")]
+        "진행 방향??맞춰 Projectile??+X 축을 ?�전?�킵?�다.")]
     [SerializeField]
     private bool alignRotationToVelocity = true;
+
+    [Header("Presentation")]
+    [SerializeField]
+    private ProjectileTrail projectileTrail;
+
+    private bool _trailStarted;
 
 
     [Networked]
@@ -97,6 +103,39 @@ public class Projectile :
     {
         get;
         set;
+    }
+
+
+    protected virtual void Awake()
+    {
+        if (projectileTrail == null)
+        {
+            projectileTrail =
+                GetComponent<ProjectileTrail>();
+        }
+    }
+
+
+    public override void Spawned()
+    {
+        TryStartTrailPresentation();
+    }
+
+
+    public override void Render()
+    {
+        TryStartTrailPresentation();
+    }
+
+
+    public override void Despawned(
+        NetworkRunner runner,
+        bool hasState)
+    {
+        if (projectileTrail != null)
+        {
+            projectileTrail.Complete();
+        }
     }
 
 
@@ -152,6 +191,45 @@ public class Projectile :
             true;
 
         ApplyRotationFromVelocity();
+        TryStartTrailPresentation();
+    }
+
+
+    private void TryStartTrailPresentation()
+    {
+        if (_trailStarted ||
+            !IsInitialized ||
+            projectileTrail == null)
+        {
+            return;
+        }
+
+        _trailStarted = true;
+
+        projectileTrail.Begin(
+            ResolvePresentationOrigin(),
+            transform);
+    }
+
+
+    private Vector2 ResolvePresentationOrigin()
+    {
+        if (Source == null ||
+            !Source.TryGetComponent(
+                out PlayerWeaponController controller))
+        {
+            return transform.position;
+        }
+
+        if (controller.EquippedWeapon is
+            ProjectileGun gun)
+        {
+            return gun.PresentationMuzzlePosition;
+        }
+
+        return controller.WeaponSocket != null
+            ? controller.WeaponSocket.position
+            : transform.position;
     }
 
 

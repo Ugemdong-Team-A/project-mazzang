@@ -254,8 +254,8 @@ public sealed class PlayerWeaponController :
             GetInput(
                 out PlayerInputData input);
 
-        // 실제 게임플레이용 WeaponAngle은
-        // StateAuthority가 현재 Tick 입력으로 확정한다.
+        // ?�제 게임?�레?�용 WeaponAngle?�
+        // StateAuthority가 ?�재 Tick ?�력?�로 ?�정?�다.
         if (HasStateAuthority &&
             hasInput)
         {
@@ -316,11 +316,10 @@ public sealed class PlayerWeaponController :
 
     public override void Render()
     {
-        UpdateWeaponIkBinding();
-
         if (weaponSocket == null ||
             !HasEquippedWeapon)
         {
+            UpdateWeaponIkBinding();
             return;
         }
 
@@ -339,6 +338,17 @@ public sealed class PlayerWeaponController :
 
         ApplyWeaponSocketRotation(
             visualAngle);
+
+        Weapon equippedWeapon =
+            EquippedWeapon;
+
+        if (equippedWeapon != null)
+        {
+            equippedWeapon
+                .RefreshEquippedPresentation();
+        }
+
+        UpdateWeaponIkBinding();
     }
 
 
@@ -693,8 +703,8 @@ public sealed class PlayerWeaponController :
         Vector2 aimDirection,
         bool isAlive)
     {
-        // 기존 인터페이스 호환을 위해 인자는 유지하지만,
-        // 실제 판정 방향은 StateAuthority가 확정한 WeaponAngle을 사용한다.
+        // 기존 ?�터?�이???�환???�해 ?�자???��??��?�?
+        // ?�제 ?�정 방향?� StateAuthority가 ?�정??WeaponAngle???�용?�다.
         _ = aimDirection;
 
         if (!HasStateAuthority)

@@ -177,15 +177,6 @@ public abstract class Weapon :
             0f;
     }
 
-    private void LateUpdate()
-    {
-        if (IsEquipped)
-        {
-            ApplyEquippedPresentation();
-        }
-    }
-
-
     // =========================================================
     // Equip / Drop
     // =========================================================
@@ -402,6 +393,15 @@ public abstract class Weapon :
 
         transform.localScale =
             sizeScale;
+    }
+
+
+    public void RefreshEquippedPresentation()
+    {
+        if (!IsEquipped)
+            return;
+
+        ApplyEquippedPresentation();
     }
 
 
