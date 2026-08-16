@@ -143,6 +143,9 @@ public sealed class LobbyUIController :
         ui.Room.CharacterConfirmRequested +=
             HandleCharacterConfirmRequested;
 
+        ui.Room.MapVoteStartRequested +=
+            HandleMapVoteStartRequested;
+
         ui.Room.MapVoteRequested +=
             HandleMapVoteRequested;
 
@@ -199,6 +202,9 @@ public sealed class LobbyUIController :
 
         ui.Room.CharacterConfirmRequested -=
             HandleCharacterConfirmRequested;
+
+        ui.Room.MapVoteStartRequested -=
+            HandleMapVoteStartRequested;
 
         ui.Room.MapVoteRequested -=
             HandleMapVoteRequested;
@@ -864,6 +870,20 @@ public sealed class LobbyUIController :
         ui.Room.SetCharacterSummary(
             confirmedCount,
             playerCount);
+
+        bool isCharacterSelect =
+            _gameSession != null &&
+            _gameSession.Phase ==
+                LobbySelectionPhase.CharacterSelect;
+
+        ui.Room.SetMapVoteStartState(
+            isCharacterSelect,
+            _gameSession != null &&
+            _gameSession.HasStateAuthority,
+            playerCount > 0 &&
+            confirmedCount == playerCount,
+            confirmedCount,
+            playerCount);
     }
 
     // ==================================================
@@ -886,9 +906,21 @@ public sealed class LobbyUIController :
         NetworkPlayerData localPlayer =
             GetLocalPlayerData();
 
-        if (localPlayer == null ||
-            localPlayer.CharacterConfirmed)
+        if (localPlayer == null)
         {
+            return;
+        }
+
+        if (localPlayer.CharacterConfirmed)
+        {
+            bool cancelRequested =
+                _gameSession.RequestCharacterCancel();
+
+            if (!cancelRequested)
+                return;
+
+            _characterConfirmRequestPending = true;
+            ui.Room.SetCharacterConfirmPending(true);
             return;
         }
 
@@ -904,6 +936,17 @@ public sealed class LobbyUIController :
 
         ui.Room.SetCharacterConfirmPending(
             true);
+    }
+
+    private void HandleMapVoteStartRequested()
+    {
+        if (_gameSession == null ||
+            !_gameSession.HasStateAuthority)
+        {
+            return;
+        }
+
+        _gameSession.RequestBeginMapVote();
     }
 
     // ==================================================
@@ -1126,10 +1169,18 @@ public sealed class LobbyUIController :
                 ui.Room.SetMapVoteStatus(
                     string.Empty);
 
+                RefreshCharacterSummary();
                 RefreshLocalSelectionState();
                 break;
 
             case LobbySelectionPhase.MapVote:
+                ui.Room.SetMapVoteStartState(
+                    false,
+                    false,
+                    false,
+                    0,
+                    0);
+
                 ui.Room.SetMapVoteStatus(
                     "맵에 투표하세요");
 

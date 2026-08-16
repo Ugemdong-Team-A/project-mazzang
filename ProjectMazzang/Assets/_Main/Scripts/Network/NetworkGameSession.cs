@@ -180,7 +180,6 @@ public sealed class NetworkGameSession :
         switch (Phase)
         {
             case LobbySelectionPhase.CharacterSelect:
-                UpdateCharacterSelect();
                 break;
 
             case LobbySelectionPhase.MapVote:
@@ -247,6 +246,22 @@ public sealed class NetworkGameSession :
         return true;
     }
 
+    public bool RequestCharacterCancel()
+    {
+        if (!IsCharacterSelectionOpen)
+            return false;
+
+        if (HasStateAuthority)
+        {
+            return ApplyCharacterCancel(
+                Runner.LocalPlayer);
+        }
+
+        RPC_RequestCharacterCancel();
+
+        return true;
+    }
+
     [Rpc(
         RpcSources.All,
         RpcTargets.StateAuthority)]
@@ -257,6 +272,16 @@ public sealed class NetworkGameSession :
         ApplyCharacterConfirm(
             info.Source,
             characterId);
+    }
+
+    [Rpc(
+        RpcSources.All,
+        RpcTargets.StateAuthority)]
+    private void RPC_RequestCharacterCancel(
+        RpcInfo info = default)
+    {
+        ApplyCharacterCancel(
+            info.Source);
     }
 
     private bool ApplyCharacterConfirm(
@@ -295,16 +320,44 @@ public sealed class NetworkGameSession :
         return true;
     }
 
+    private bool ApplyCharacterCancel(
+        PlayerRef player)
+    {
+        if (!HasStateAuthority ||
+            Phase != LobbySelectionPhase.CharacterSelect)
+        {
+            return false;
+        }
+
+        if (!TryGetPlayerData(
+                player,
+                out NetworkPlayerData playerData) ||
+            !playerData.CharacterConfirmed)
+        {
+            return false;
+        }
+
+        playerData.SetCharacterSelection(
+            playerData.SelectedCharacterId,
+            false);
+
+        return true;
+    }
+
     // ==================================================
     // Character Select Phase
     // ==================================================
 
-    private void UpdateCharacterSelect()
+    public bool RequestBeginMapVote()
     {
-        if (!AreAllCharactersConfirmed())
-            return;
+        if (!HasStateAuthority ||
+            Phase != LobbySelectionPhase.CharacterSelect ||
+            !AreAllCharactersConfirmed())
+        {
+            return false;
+        }
 
-        BeginMapVote();
+        return BeginMapVote();
     }
 
     private bool AreAllCharactersConfirmed()
@@ -336,12 +389,12 @@ public sealed class NetworkGameSession :
         return playerCount > 0;
     }
 
-    private void BeginMapVote()
+    private bool BeginMapVote()
     {
         if (Phase !=
             LobbySelectionPhase.CharacterSelect)
         {
-            return;
+            return false;
         }
 
         if (mapCatalog == null ||
@@ -352,7 +405,7 @@ public sealed class NetworkGameSession :
                 "[NGS] MapCatalog에 맵이 없습니다.",
                 this);
 
-            return;
+            return false;
         }
 
         ClearPlayerVotes();
@@ -366,6 +419,8 @@ public sealed class NetworkGameSession :
 
         Phase =
             LobbySelectionPhase.MapVote;
+
+        return true;
     }
 
     // ==================================================
