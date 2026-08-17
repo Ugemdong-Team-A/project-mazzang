@@ -922,6 +922,7 @@ GameObject:
   - component: {fileID: 5108523914516887572}
   - component: {fileID: 4063117724476512186}
   - component: {fileID: 9200000000000000001}
+  - component: {fileID: 8200000000000000201}
   m_Layer: 0
   m_Name: Map_3
   m_TagString: Untagged
@@ -1019,6 +1020,25 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MapWeaponSpawner
   weaponPrefab: {fileID: 4150836910798701016, guid: e7386491ca9242a479c860a637502822, type: 3}
   spawnPoint: {fileID: 9200000000000000003}
+--- !u!114 &8200000000000000201
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5946116039999150827}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 728fb1f54fcb4d8fa561b6f39f2716ac, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::MagicCliffsArenaVisual
+  skySprite: {fileID: 3836954968553550457, guid: d733cf66f8ddf074684fbbcce02c4609, type: 3}
+  cloudsSprite: {fileID: 8287873616420496286, guid: 576790fad10ba0344b41f89b416777b4, type: 3}
+  farGroundsSprite: {fileID: -2722503770247739202, guid: aa9732376a1ebe441912a08d66f12a28, type: 3}
+  seaSprite: {fileID: 697817598604000450, guid: e028fca4c682de741a80fd80188076d1, type: 3}
+  platformSprite: {fileID: -538331831730588137, guid: 7a64171fd5a7df549a075b68a9b99152, type: 3}
+  treeSprite: {fileID: -7486092956772349302, guid: 7a64171fd5a7df549a075b68a9b99152, type: 3}
+  floatingIslandSprite: {fileID: 6007627129536956325, guid: 7a64171fd5a7df549a075b68a9b99152, type: 3}
 --- !u!1 &6882495643875308819
 GameObject:
   m_ObjectHideFlags: 0
