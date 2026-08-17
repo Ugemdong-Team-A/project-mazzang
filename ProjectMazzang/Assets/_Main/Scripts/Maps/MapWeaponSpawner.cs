@@ -160,11 +160,37 @@ public sealed class MapWeaponSpawner :
             return;
         }
 
+        Vector3 spawnPosition =
+            point.position;
+
+        Quaternion spawnRotation =
+            point.rotation;
+
         NetworkObject spawned =
             _runner.Spawn(
                 prefab,
-                point.position,
-                point.rotation);
+                spawnPosition,
+                spawnRotation,
+                PlayerRef.None,
+                (_, spawnedObject) =>
+                {
+                    spawnedObject.transform
+                        .SetPositionAndRotation(
+                            spawnPosition,
+                            spawnRotation);
+
+                    Rigidbody2D body =
+                        spawnedObject.GetComponent<
+                            Rigidbody2D>();
+
+                    if (body == null)
+                        return;
+
+                    body.position =
+                        spawnPosition;
+                    body.rotation =
+                        spawnRotation.eulerAngles.z;
+                });
 
         if (spawned != null)
         {

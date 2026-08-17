@@ -283,7 +283,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: cbab8fe6683be87419b1ec86540b5317, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::MapOutZone
 --- !u!1 &1221417198702600097
 GameObject:
@@ -575,6 +575,37 @@ MonoBehaviour:
   travelDuration: 2
   endpointPause: 0.45
   phaseOffset: 0
+--- !u!1 &4057118973774088255
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 327865592293431926}
+  m_Layer: 0
+  m_Name: WeaponSpawnPoint (1)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &327865592293431926
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4057118973774088255}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -3.65, y: 8.9, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 1
+  m_Children: []
+  m_Father: {fileID: 6713867300338029067}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &4102496661000642344
 GameObject:
   m_ObjectHideFlags: 0
@@ -929,6 +960,7 @@ Transform:
   - {fileID: 7270317956295928471}
   - {fileID: 9100000000000000008}
   - {fileID: 9200000000000000003}
+  - {fileID: 327865592293431926}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &5108523914516887572
@@ -1001,6 +1033,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MapWeaponSpawner
   weaponPrefab: {fileID: 4150836910798701016, guid: e7386491ca9242a479c860a637502822, type: 3}
   spawnPoint: {fileID: 9200000000000000003}
+  spawnDelay: 0
+  additionalSpawns:
+  - weaponPrefab: {fileID: 4150836910798701016, guid: 4f85c3dc9b0e4befa4598ef4e2c15b74, type: 3}
+    spawnPoint: {fileID: 327865592293431926}
+    spawnDelay: 10
 --- !u!114 &8200000000000000201
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1011,7 +1048,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 728fb1f54fcb4d8fa561b6f39f2716ac, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MagicCliffsArenaVisual
   skySprite: {fileID: 3836954968553550457, guid: d733cf66f8ddf074684fbbcce02c4609, type: 3}
   cloudsSprite: {fileID: 8287873616420496286, guid: 576790fad10ba0344b41f89b416777b4, type: 3}
