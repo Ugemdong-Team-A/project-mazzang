@@ -813,7 +813,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c2b0fa5373e54bd288816a8c2cf0ab61, type: 3}
   m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::MapWeaponSpawner
-  weaponPrefab: {fileID: 4150836910798701016, guid: e7386491ca9242a479c860a637502822, type: 3}
+  weaponPrefab: {fileID: 4150836910798701016, guid: 4f85c3dc9b0e4befa4598ef4e2c15b74, type: 3}
   spawnPoint: {fileID: 9200000000000000003}
 --- !u!114 &8200000000000000201
 MonoBehaviour:

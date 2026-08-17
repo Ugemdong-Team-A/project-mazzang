@@ -169,6 +169,8 @@ public interface IPlayerWeaponState :
 {
     bool HasEquippedWeapon { get; }
 
+    bool ConsumesParryInput { get; }
+
     NetworkObject EquippedWeaponObject { get; }
 }
 

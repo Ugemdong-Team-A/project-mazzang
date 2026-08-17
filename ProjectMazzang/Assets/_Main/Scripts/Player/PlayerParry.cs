@@ -20,6 +20,7 @@ public sealed class PlayerParry :
 
     private byte _visibleSuccessSequence;
     private ParryPresentation _presentation;
+    private IPlayerWeaponState _weaponState;
 
     public bool IsParryActive =>
         data != null && !ActiveTimer.ExpiredOrNotRunning(Runner);
@@ -49,6 +50,12 @@ public sealed class PlayerParry :
 
     PlayerTickStage IPlayerTickModule.Stage => PlayerTickStage.DefenseIntent;
 
+    protected override void OnContextReady()
+    {
+        _weaponState =
+            Context.Get<IPlayerWeaponState>();
+    }
+
     public override void Spawned()
     {
         _visibleSuccessSequence = SuccessSequence;
@@ -72,7 +79,9 @@ public sealed class PlayerParry :
             PlayerButton.Parry);
         PreviousButtons = input.Buttons;
 
-        if (!pressed ||
+        if ((_weaponState != null &&
+             _weaponState.ConsumesParryInput) ||
+            !pressed ||
             !CooldownTimer.ExpiredOrNotRunning(Runner) ||
             (tick.State.HasHealth && !tick.State.IsAlive))
         {

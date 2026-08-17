@@ -65,6 +65,9 @@ public abstract class Weapon :
     public HeldWeaponView HeldView =>
         _heldView;
 
+    public virtual bool ConsumesParryInput =>
+        false;
+
 
     private int _worldSortingOrder;
 
@@ -488,4 +491,12 @@ public abstract class Weapon :
         Vector2 origin,
         Vector2 direction,
         bool mirrored);
+
+    public virtual bool TryUseSecondary(
+        Vector2 origin,
+        Vector2 direction,
+        bool mirrored)
+    {
+        return false;
+    }
 }

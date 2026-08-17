@@ -88,6 +88,10 @@ public sealed class PlayerWeaponController :
     public bool HasEquippedWeapon =>
         EquippedWeaponObject != null;
 
+    public bool ConsumesParryInput =>
+        EquippedWeapon != null &&
+        EquippedWeapon.ConsumesParryInput;
+
     public Weapon EquippedWeapon =>
         EquippedWeaponObject != null
             ? EquippedWeaponObject.GetComponent<Weapon>()
@@ -319,6 +323,11 @@ public sealed class PlayerWeaponController :
                 PreviousButtons,
                 PlayerButton.Drop);
 
+        bool secondaryPressed =
+            input.Buttons.WasPressed(
+                PreviousButtons,
+                PlayerButton.Parry);
+
         PreviousButtons =
             input.Buttons;
 
@@ -327,6 +336,16 @@ public sealed class PlayerWeaponController :
             DropWeapon(
                 CalculateDropVelocity(
                     state));
+
+            return;
+        }
+
+        if (secondaryPressed &&
+            ConsumesParryInput)
+        {
+            TryUseSecondaryWeapon(
+                state.HasMovement &&
+                !state.FacingRight);
         }
     }
 
@@ -740,6 +759,33 @@ public sealed class PlayerWeaponController :
             _healthState.IsAlive,
             _movementState != null &&
             !_movementState.FacingRight);
+    }
+
+
+    private bool TryUseSecondaryWeapon(
+        bool mirrored)
+    {
+        if (!HasStateAuthority)
+            return false;
+
+        Weapon weapon =
+            EquippedWeapon;
+
+        if (weapon == null ||
+            !weapon.ConsumesParryInput)
+        {
+            return false;
+        }
+
+        Vector2 origin =
+            weaponSocket != null
+                ? weaponSocket.position
+                : transform.position;
+
+        return weapon.TryUseSecondary(
+            origin,
+            WeaponDirection,
+            mirrored);
     }
 
 
