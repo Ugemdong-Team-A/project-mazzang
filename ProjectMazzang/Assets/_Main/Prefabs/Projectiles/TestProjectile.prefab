@@ -180,6 +180,8 @@ MonoBehaviour:
   linearDrag: 0.1
   alignRotationToVelocity: 1
   projectileTrail: {fileID: 0}
+  remotePresentationSharpness: 30
+  remotePresentationSnapDistance: 1.5
   _Velocity: {x: 0, y: 0}
   _Source: {fileID: 0}
 --- !u!96 &1124852924467508756

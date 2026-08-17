@@ -7,7 +7,8 @@ public enum PlayerButton
     Attack,
     Drop,
     Skill1,
-    Skill2
+    Skill2,
+    Parry
 }
 
 public struct PlayerInputData :

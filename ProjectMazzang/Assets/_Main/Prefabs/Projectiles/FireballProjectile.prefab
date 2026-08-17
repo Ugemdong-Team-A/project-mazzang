@@ -180,10 +180,12 @@ MonoBehaviour:
   linearDrag: 0
   alignRotationToVelocity: 1
   projectileTrail: {fileID: 0}
-  impactShakeProfile: {fileID: 11400000, guid: 35dd6d2a16e64815be4a5c64a1d21f3b, type: 2}
-  impactPresentationDuration: 0.15
+  remotePresentationSharpness: 30
+  remotePresentationSnapDistance: 1.5
   _Velocity: {x: 0, y: 0}
   _Source: {fileID: 0}
+  impactShakeProfile: {fileID: 11400000, guid: 35dd6d2a16e64815be4a5c64a1d21f3b, type: 2}
+  impactPresentationDuration: 0.15
 --- !u!96 &1124852924467508756
 TrailRenderer:
   serializedVersion: 4

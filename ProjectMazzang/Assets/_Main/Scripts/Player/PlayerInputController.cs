@@ -299,6 +299,11 @@ public sealed class PlayerInputController :
         data.Buttons =
             _buttons;
 
+        data.Buttons.Set(
+            PlayerButton.Parry,
+            Mouse.current != null &&
+            Mouse.current.rightButton.isPressed);
+
         input.Set(
             data);
     }

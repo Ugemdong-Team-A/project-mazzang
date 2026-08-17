@@ -21,6 +21,7 @@ namespace ProjectMazzang.Tests
                     ["PlayerMovement"] = -100,
                     ["PlayerAim"] = -90,
                     ["PlayerSkillController"] = -80,
+                    ["PlayerParry"] = -75,
                     ["PlayerAnimation"] = 0
                 };
 
