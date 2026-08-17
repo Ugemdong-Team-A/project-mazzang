@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a64ad25e53bd4f4186d7076912b44cb8, type: 3}
   m_Name: FireballImpactCameraShake
   m_EditorClassIdentifier: Assembly-CSharp::CameraShakeProfile
-  force: 0.45
-  duration: 0.22
+  force: 0.32
+  duration: 0.16
   maxDistance: 18
   minimumDistanceFactor: 0.2
   minimumInterval: 0.05

@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a64ad25e53bd4f4186d7076912b44cb8, type: 3}
   m_Name: HitCameraShake
   m_EditorClassIdentifier: Assembly-CSharp::CameraShakeProfile
-  force: 0.2
-  duration: 0.2
+  force: 0.12
+  duration: 0.12
   maxDistance: 15
   minimumDistanceFactor: 0.25
   minimumInterval: 0.03

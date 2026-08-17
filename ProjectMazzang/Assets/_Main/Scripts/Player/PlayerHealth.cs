@@ -188,7 +188,7 @@ public sealed class PlayerHealth :
 
         BattleCameraController.Instance?
             .AddTarget(
-                transform);
+                CameraTarget);
 
         if (!HasStateAuthority)
             return;
@@ -234,7 +234,7 @@ public sealed class PlayerHealth :
     {
         BattleCameraController.Instance?
             .RemoveTarget(
-                transform);
+                CameraTarget);
     }
 
 
@@ -692,10 +692,10 @@ public sealed class PlayerHealth :
         if (IsDead)
         {
             bcc?.RemoveTarget(
-                cameraTarget);
+                CameraTarget);
 
             CameraShakeService.PlayDefaultDeath(
-                cameraTarget.position);
+                CameraTarget.position);
 
             LocalDeathOccurred?
                 .Invoke(this);
@@ -703,7 +703,7 @@ public sealed class PlayerHealth :
         else
         {
             bcc?.AddTarget(
-                cameraTarget);
+                CameraTarget);
         }
     }
 }

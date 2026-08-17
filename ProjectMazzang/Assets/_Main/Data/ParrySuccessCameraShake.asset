@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a64ad25e53bd4f4186d7076912b44cb8, type: 3}
   m_Name: ParrySuccessCameraShake
   m_EditorClassIdentifier: Assembly-CSharp::CameraShakeProfile
-  force: 0.34
-  duration: 0.14
+  force: 0.28
+  duration: 0.12
   maxDistance: 16
   minimumDistanceFactor: 0.18
   minimumInterval: 0.04

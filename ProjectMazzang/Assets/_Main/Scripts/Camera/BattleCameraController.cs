@@ -29,22 +29,26 @@ public sealed class BattleCameraController : MonoBehaviour
     private Transform targetWeightCenter;
 
     [SerializeField]
-    private float fullWeightDistance = 10f;
+    private float fullWeightDistance = 12f;
 
     [SerializeField]
-    private float farTargetDistance = 16f;
+    private float farTargetDistance = 18f;
 
     [SerializeField]
     [Range(0f, 1f)]
-    private float farTargetWeight = 0.05f;
+    private float farTargetWeight;
 
     [SerializeField]
-    private float targetWeightChangeSpeed = 4f;
+    private float targetWeightChangeSpeed = 3f;
 
     private readonly HashSet<Transform> targets =
         new();
 
     private Vector3 _fallbackTargetWeightCenter;
+
+    private CinemachineGroupFraming _groupFraming;
+
+    private CinemachineFollow _cameraFollow;
 
 
     // =========================================================
@@ -61,6 +65,8 @@ public sealed class BattleCameraController : MonoBehaviour
         }
 
         Instance = this;
+
+        ResolveBattleCameraComponents();
 
         if (targetWeightCenter != null)
         {
@@ -181,6 +187,69 @@ public sealed class BattleCameraController : MonoBehaviour
         Transform center)
     {
         targetWeightCenter = center;
+    }
+
+
+    public void ApplyMapSettings(
+        MapRuntime map)
+    {
+        if (map == null)
+            return;
+
+        targetWeightCenter =
+            map.CameraAnchor;
+
+        _fallbackTargetWeightCenter =
+            map.CameraAnchor.position;
+
+        fullWeightDistance =
+            map.FullWeightDistance;
+
+        farTargetDistance =
+            map.FarTargetDistance;
+
+        farTargetWeight =
+            map.FarTargetWeight;
+
+        ResolveBattleCameraComponents();
+
+        if (_groupFraming != null)
+        {
+            _groupFraming.OrthoSizeRange =
+                new Vector2(
+                    map.MinimumOrthoSize,
+                    map.MaximumOrthoSize);
+        }
+
+        if (_cameraFollow != null)
+        {
+            Vector3 followOffset =
+                _cameraFollow.FollowOffset;
+
+            followOffset.x =
+                map.CameraFollowOffset.x;
+
+            followOffset.y =
+                map.CameraFollowOffset.y;
+
+            _cameraFollow.FollowOffset =
+                followOffset;
+        }
+    }
+
+
+    private void ResolveBattleCameraComponents()
+    {
+        if (battleCamera == null)
+            return;
+
+        _groupFraming ??=
+            battleCamera.GetComponent<
+                CinemachineGroupFraming>();
+
+        _cameraFollow ??=
+            battleCamera.GetComponent<
+                CinemachineFollow>();
     }
 
 
