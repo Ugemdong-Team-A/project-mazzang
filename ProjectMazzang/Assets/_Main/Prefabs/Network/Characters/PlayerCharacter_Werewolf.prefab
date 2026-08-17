@@ -929,13 +929,13 @@ MonoBehaviour:
   groundLayer:
     serializedVersion: 2
     m_Bits: 64
-  maxMoveSpeed: 7
+  maxMoveSpeed: 9
   groundAcceleration: 45
   groundDeceleration: 60
   airAcceleration: 30
   airDeceleration: 40
-  jumpSpeed: 6
-  maxAirJumps: 1
+  jumpSpeed: 7
+  maxAirJumps: 2
   groundCheckRadius: 0.15
   fastFallSpeed: 17
   fastFallAcceleration: 40
@@ -1061,6 +1061,7 @@ MonoBehaviour:
   maxBodyAimAngle: 80
   facingFlipAngle: 100
   bodyAimSpeed: 540
+  bodyAimPresentationSharpness: 24
   _AimDirection: {x: 0, y: 0}
   _BodyAimAngle: 0
   _TrackingMode: 0
@@ -1102,6 +1103,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerSkillController
   skill1: {fileID: 11400000, guid: 0409ee4cf8d34d5a9aaf27a16d0b95c6, type: 2}
   skill2: {fileID: 0}
+  _SkillAnimationSequence: 0
+  _LastSkillAnimation: 0
 --- !u!114 &700000000000000001
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1112,7 +1115,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f9078c419aa14d00a53d3022190a8d67, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerParry
   data: {fileID: 11400000, guid: c48b830f40244f729f86a3b2ddb52c09, type: 2}
   weaponSocket: {fileID: 1119498991958727768}

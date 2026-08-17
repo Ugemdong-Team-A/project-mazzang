@@ -283,7 +283,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: cbab8fe6683be87419b1ec86540b5317, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::MapOutZone
 --- !u!1 &9100000000000000001
 GameObject:
@@ -310,7 +310,7 @@ Transform:
   m_GameObject: {fileID: 9100000000000000001}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -3.75, y: -1.76, z: 0}
+  m_LocalPosition: {x: -4.5, y: -1.76, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
@@ -341,7 +341,7 @@ Transform:
   m_GameObject: {fileID: 9100000000000000003}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 3.75, y: -1.76, z: 0}
+  m_LocalPosition: {x: 4.5, y: -1.76, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
@@ -372,7 +372,7 @@ Transform:
   m_GameObject: {fileID: 9100000000000000005}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -5, y: 7.24, z: 0}
+  m_LocalPosition: {x: -3.5, y: 1.8, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
@@ -403,7 +403,38 @@ Transform:
   m_GameObject: {fileID: 9100000000000000007}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 2, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 1
+  m_Children: []
+  m_Father: {fileID: 6713867300338029067}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &9200000000000000002
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 9200000000000000003}
+  m_Layer: 0
+  m_Name: WeaponSpawnPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &9200000000000000003
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9200000000000000002}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: -1.35, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
@@ -526,8 +557,9 @@ GameObject:
   - component: {fileID: 2114742590613939152}
   - component: {fileID: 7511232296985033980}
   - component: {fileID: 157156866959464096}
+  - component: {fileID: 9300000000000000101}
   m_Layer: 6
-  m_Name: Static Sprite (1)
+  m_Name: MovingPlatform
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -542,8 +574,8 @@ Transform:
   m_GameObject: {fileID: 4028303706791276932}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 2.53, y: 1.79, z: 0}
-  m_LocalScale: {x: 10.626179, y: 1, z: 1}
+  m_LocalPosition: {x: 3, y: -1.2, z: 0}
+  m_LocalScale: {x: 5, y: 0.7, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 5975217270133491723}
@@ -661,14 +693,14 @@ Rigidbody2D:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4028303706791276932}
-  m_BodyType: 2
+  m_BodyType: 1
   m_Simulated: 1
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
   m_Mass: 1
   m_LinearDamping: 0
   m_AngularDamping: 0.05
-  m_GravityScale: 1
+  m_GravityScale: 0
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -676,10 +708,28 @@ Rigidbody2D:
   m_ExcludeLayers:
     serializedVersion: 2
     m_Bits: 0
-  m_Interpolate: 0
+  m_Interpolate: 1
   m_SleepingMode: 1
-  m_CollisionDetection: 0
+  m_CollisionDetection: 1
   m_Constraints: 0
+--- !u!114 &9300000000000000101
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4028303706791276932}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2e815e996ab94aac89afe808441fd156, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::NetworkMovingPlatform
+  body: {fileID: 157156866959464096}
+  pointA: {x: 3, y: -1.2}
+  pointB: {x: 3, y: 0.2}
+  travelDuration: 2.8
+  endpointPause: 0.45
+  phaseOffset: 0
 --- !u!1 &4102496661000642344
 GameObject:
   m_ObjectHideFlags: 0
@@ -693,7 +743,7 @@ GameObject:
   - component: {fileID: 670472458096530700}
   - component: {fileID: 8592312962738938952}
   m_Layer: 6
-  m_Name: Static Sprite (2)
+  m_Name: StaticPlatform
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -708,8 +758,8 @@ Transform:
   m_GameObject: {fileID: 4102496661000642344}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -5.06, y: 6.26, z: 0}
-  m_LocalScale: {x: 10.626179, y: 1, z: 1}
+  m_LocalPosition: {x: -3.5, y: 0.9, z: 0}
+  m_LocalScale: {x: 7, y: 0.8, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 5975217270133491723}
@@ -1007,6 +1057,7 @@ GameObject:
   - component: {fileID: 6713867300338029067}
   - component: {fileID: 5108523914516887572}
   - component: {fileID: 4063117724476512186}
+  - component: {fileID: 9200000000000000001}
   m_Layer: 0
   m_Name: Map_2
   m_TagString: Untagged
@@ -1031,6 +1082,7 @@ Transform:
   - {fileID: 7423058890902828543}
   - {fileID: 7270317956295928471}
   - {fileID: 9100000000000000008}
+  - {fileID: 9200000000000000003}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &5108523914516887572
@@ -1076,7 +1128,7 @@ MonoBehaviour:
     x: -11.25
     y: -3.25
     width: 22.5
-    height: 10.25
+    height: 5.5
   outZoneBounds:
     serializedVersion: 2
     x: -34
@@ -1089,6 +1141,20 @@ MonoBehaviour:
   farTargetWeight: 0
   minimumOrthoSize: 6.5
   maximumOrthoSize: 10.5
+--- !u!114 &9200000000000000001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5946116039999150827}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c2b0fa5373e54bd288816a8c2cf0ab61, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::MapWeaponSpawner
+  weaponPrefab: {fileID: 4150836910798701016, guid: e7386491ca9242a479c860a637502822, type: 3}
+  spawnPoint: {fileID: 9200000000000000003}
 --- !u!1 &6882495643875308819
 GameObject:
   m_ObjectHideFlags: 0
