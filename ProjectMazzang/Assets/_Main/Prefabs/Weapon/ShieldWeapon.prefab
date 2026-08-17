@@ -113,12 +113,12 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 60
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 4827461123901234567, guid: 3e74d1cb8a9f4adca2376ce2c0af3952, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 3e74d1cb8a9f4adca2376ce2c0af3952, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_FlipX: 0
+  m_FlipX: 1
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 1.45, y: 1.45}
+  m_Size: {x: 1.5675, y: 1.5675}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
@@ -161,8 +161,8 @@ BoxCollider2D:
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0.5, y: 0.5}
-    oldSize: {x: 1, y: 1}
-    newSize: {x: 1, y: 1}
+    oldSize: {x: 1.5675, y: 1.5675}
+    newSize: {x: 1.5675, y: 1.5675}
     adaptiveTilingThreshold: 0.5
     drawMode: 0
     adaptiveTiling: 0
@@ -339,7 +339,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 94a87ccf12f94f33a79375ed7636d338, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HeldWeaponView
   muzzle: {fileID: 2486731633620674725}
   leftHandGrip: {fileID: 8819009657638847448}
@@ -418,6 +418,7 @@ MonoBehaviour:
   parryAimInfluence: 0.95
   parrySpeedMultiplier: 1.25
   parryForwardOffset: 0.52
+  bashEffectForwardOffset: 0.68
   bashShakeProfile: {fileID: 11400000, guid: 020205b612304d22b1e00dd1c7382ffb, type: 2}
   parrySuccessShakeProfile: {fileID: 11400000, guid: fdf65936ba5844708f91f6dc02bbf986, type: 2}
 --- !u!114 &4498004678548388021
@@ -475,7 +476,7 @@ MonoBehaviour:
   m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
-  SortKey: 1468362917
+  SortKey: 23417269
   SendPriority: 1
   EnableInterpolation: 1
   Flags: 262402

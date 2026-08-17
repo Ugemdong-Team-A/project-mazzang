@@ -72,6 +72,10 @@ public sealed class ShieldWeapon :
     private float parryForwardOffset = 0.52f;
 
     [Header("Presentation")]
+    [Min(0f)]
+    [SerializeField]
+    private float bashEffectForwardOffset = 0.68f;
+
     [SerializeField]
     private CameraShakeProfile bashShakeProfile;
 
@@ -242,7 +246,9 @@ public sealed class ShieldWeapon :
         {
             _visibleBashSequence = BashSequence;
             _presentation.PlayBash(
-                ActionOrigin,
+                ActionOrigin +
+                ActionDirection *
+                bashEffectForwardOffset,
                 ActionDirection);
             CameraShakeService.Play(
                 bashShakeProfile,

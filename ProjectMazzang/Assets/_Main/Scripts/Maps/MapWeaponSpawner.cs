@@ -1,3 +1,4 @@
+using System.Collections;
 using Fusion;
 using UnityEngine;
 
@@ -11,6 +12,11 @@ public sealed class MapWeaponSpawner :
 
     [SerializeField]
     private Transform spawnPoint;
+
+    [Header("Spawn Timing")]
+    [Min(0f)]
+    [SerializeField]
+    private float spawnDelay;
 
     private NetworkObject _mapObject;
 
@@ -32,6 +38,22 @@ public sealed class MapWeaponSpawner :
 
     private void Start()
     {
+        if (spawnDelay <= 0f)
+        {
+            TrySpawnWeapon();
+            return;
+        }
+
+        StartCoroutine(
+            SpawnWeaponAfterDelay());
+    }
+
+
+    private IEnumerator SpawnWeaponAfterDelay()
+    {
+        yield return new WaitForSeconds(
+            spawnDelay);
+
         TrySpawnWeapon();
     }
 
