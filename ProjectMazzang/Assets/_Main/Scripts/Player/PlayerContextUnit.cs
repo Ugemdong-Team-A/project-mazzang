@@ -179,3 +179,15 @@ public interface IPlayerWeaponControl :
     bool TryUseWeapon(
         Vector2 aimDirection);
 }
+
+// =========================================================
+// Skill
+// =========================================================
+
+public interface IPlayerSkillAnimationState :
+    IPlayerContextUnit
+{
+    byte SkillAnimationSequence { get; }
+
+    PlayerSkillAnimationId LastSkillAnimation { get; }
+}

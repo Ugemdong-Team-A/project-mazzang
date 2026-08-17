@@ -14,6 +14,7 @@ using UnityEngine;
 [DefaultExecutionOrder(-80)]
 public sealed class PlayerSkillController :
     PlayerModule,
+    IPlayerSkillAnimationState,
     IPlayerTickModule,
     IPlayerTickStateSource
 {
@@ -30,6 +31,21 @@ public sealed class PlayerSkillController :
 
     private IPlayerHealthState
         _healthState;
+
+
+    [Networked]
+    public byte SkillAnimationSequence
+    {
+        get;
+        private set;
+    }
+
+    [Networked]
+    public PlayerSkillAnimationId LastSkillAnimation
+    {
+        get;
+        private set;
+    }
 
 
     // =========================================================
@@ -143,6 +159,13 @@ public sealed class PlayerSkillController :
     // =========================================================
     // Context
     // =========================================================
+
+    protected override void RegisterContextUnits()
+    {
+        Context.Register<IPlayerSkillAnimationState>(
+            this);
+    }
+
 
     protected override void OnContextReady()
     {
@@ -416,11 +439,32 @@ public sealed class PlayerSkillController :
             slot,
             skill);
 
+        PlayerSkillAnimationId animationId =
+            ResolveAnimationId(skill);
+
+        if (animationId != PlayerSkillAnimationId.None)
+        {
+            LastSkillAnimation = animationId;
+            SkillAnimationSequence++;
+        }
+
 
         skill.Activate(
             in useContext);
 
         return true;
+    }
+
+
+    private static PlayerSkillAnimationId ResolveAnimationId(
+        Skill skill)
+    {
+        return skill switch
+        {
+            FireballSkill => PlayerSkillAnimationId.Fireball,
+            AwakeningSkill => PlayerSkillAnimationId.Awakening,
+            _ => PlayerSkillAnimationId.None
+        };
     }
 
 

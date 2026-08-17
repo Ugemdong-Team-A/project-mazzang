@@ -49,6 +49,16 @@ public sealed class PlayerAim :
     [SerializeField]
     private float bodyAimSpeed = 540f;
 
+    [Tooltip(
+        "Smooths the networked body aim angle between render frames.")]
+    [Min(0f)]
+    [SerializeField]
+    private float bodyAimPresentationSharpness = 24f;
+
+    private float _presentedBodyAimAngle;
+    private bool _hasPresentedBodyAimAngle;
+    private bool _presentedFacingRight;
+
 
     private IPlayerMovementState
         _movementState;
@@ -272,7 +282,31 @@ public sealed class PlayerAim :
 
     public override void Render()
     {
+        UpdateBodyAimPresentation();
         UpdateRigPresentation();
+    }
+
+
+    private void UpdateBodyAimPresentation()
+    {
+        if (!_hasPresentedBodyAimAngle ||
+            _presentedFacingRight != FacingRight)
+        {
+            _presentedBodyAimAngle = BodyAimAngle;
+            _hasPresentedBodyAimAngle = true;
+            _presentedFacingRight = FacingRight;
+            return;
+        }
+
+        float blend = bodyAimPresentationSharpness <= 0f
+            ? 1f
+            : 1f - Mathf.Exp(
+                -bodyAimPresentationSharpness * Time.deltaTime);
+
+        _presentedBodyAimAngle = Mathf.LerpAngle(
+            _presentedBodyAimAngle,
+            BodyAimAngle,
+            blend);
     }
 
 
@@ -769,7 +803,9 @@ public sealed class PlayerAim :
     {
         Vector2 bodyDirection =
             GetWorldBodyDirection(
-                BodyAimAngle);
+                _hasPresentedBodyAimAngle
+                    ? _presentedBodyAimAngle
+                    : BodyAimAngle);
 
         float signedRigOffset =
             FacingRight

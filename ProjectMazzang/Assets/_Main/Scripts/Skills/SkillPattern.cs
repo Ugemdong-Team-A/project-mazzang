@@ -1,3 +1,11 @@
+public enum PlayerSkillAnimationId : byte
+{
+    None = 0,
+    Fireball = 1,
+    Awakening = 2
+}
+
+
 public enum SkillUsePhase : byte
 {
     None = 0,

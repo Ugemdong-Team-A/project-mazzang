@@ -53,7 +53,22 @@ public class Projectile :
     [SerializeField]
     private ProjectileTrail projectileTrail;
 
+    [Tooltip(
+        "Smooths NetworkTransform presentation on remote peers.")]
+    [Min(0f)]
+    [SerializeField]
+    private float remotePresentationSharpness = 30f;
+
+    [Tooltip(
+        "Corrections beyond this distance snap immediately.")]
+    [Min(0f)]
+    [SerializeField]
+    private float remotePresentationSnapDistance = 1.5f;
+
     private bool _trailStarted;
+    private Vector3 _remotePresentationPosition;
+    private Quaternion _remotePresentationRotation;
+    private bool _hasRemotePresentationPose;
 
 
     [Networked]
@@ -118,13 +133,66 @@ public class Projectile :
 
     public override void Spawned()
     {
+        ResetRemotePresentationPose();
         TryStartTrailPresentation();
     }
 
 
     public override void Render()
     {
+        SmoothRemotePresentation();
         TryStartTrailPresentation();
+    }
+
+
+    private void ResetRemotePresentationPose()
+    {
+        _remotePresentationPosition = transform.position;
+        _remotePresentationRotation = transform.rotation;
+        _hasRemotePresentationPose = true;
+    }
+
+
+    private void SmoothRemotePresentation()
+    {
+        if (HasStateAuthority)
+        {
+            ResetRemotePresentationPose();
+            return;
+        }
+
+        Vector3 targetPosition = transform.position;
+        Quaternion targetRotation = transform.rotation;
+
+        if (!_hasRemotePresentationPose ||
+            Vector3.Distance(
+                _remotePresentationPosition,
+                targetPosition) >= remotePresentationSnapDistance)
+        {
+            _remotePresentationPosition = targetPosition;
+            _remotePresentationRotation = targetRotation;
+            _hasRemotePresentationPose = true;
+            return;
+        }
+
+        float blend = remotePresentationSharpness <= 0f
+            ? 1f
+            : 1f - Mathf.Exp(
+                -remotePresentationSharpness * Time.deltaTime);
+
+        _remotePresentationPosition = Vector3.Lerp(
+            _remotePresentationPosition,
+            targetPosition,
+            blend);
+
+        _remotePresentationRotation = Quaternion.Slerp(
+            _remotePresentationRotation,
+            targetRotation,
+            blend);
+
+        transform.SetPositionAndRotation(
+            _remotePresentationPosition,
+            _remotePresentationRotation);
     }
 
 
