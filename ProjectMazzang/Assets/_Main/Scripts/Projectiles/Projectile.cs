@@ -4,7 +4,8 @@ using UnityEngine;
 [RequireComponent(typeof(NetworkObject))]
 [RequireComponent(typeof(NetworkTransform))]
 public class Projectile :
-    NetworkBehaviour
+    NetworkBehaviour,
+    IParryable
 {
     [Header("Collision")]
     [SerializeField]
@@ -69,6 +70,11 @@ public class Projectile :
     private Vector3 _remotePresentationPosition;
     private Quaternion _remotePresentationRotation;
     private bool _hasRemotePresentationPose;
+
+
+    public Vector2 ParryVelocity => Velocity;
+
+    public NetworkObject ParrySource => Source;
 
 
     [Networked]
@@ -412,6 +418,15 @@ public class Projectile :
         Vector2 start =
             transform.position;
 
+        if (ParryRegistry.TryParry(
+                this,
+                start,
+                start + displacement))
+        {
+            ApplyRotationFromVelocity();
+            return true;
+        }
+
         if (TryFindCollision(
                 start,
                 direction,
@@ -606,6 +621,27 @@ public class Projectile :
         damageable.ApplyDamage(
             in info);
 
+        return true;
+    }
+
+
+    public bool TryParry(in ParryHit hit)
+    {
+        if (!HasStateAuthority ||
+            !IsInitialized ||
+            hit.Owner == null ||
+            hit.Direction.sqrMagnitude <= 0.0001f)
+        {
+            return false;
+        }
+
+        Source = hit.Owner;
+        Velocity = hit.Direction.normalized *
+                   Velocity.magnitude *
+                   Mathf.Max(0f, hit.SpeedMultiplier);
+
+        transform.position = hit.Point;
+        ApplyRotationFromVelocity();
         return true;
     }
 
