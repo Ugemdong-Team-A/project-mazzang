@@ -1,11 +1,11 @@
+using System;
 using System.Collections;
+using System.Collections.Generic;
 using Fusion;
 using UnityEngine;
 
-[DisallowMultipleComponent]
-[RequireComponent(typeof(NetworkObject))]
-public sealed class MapWeaponSpawner :
-    MonoBehaviour
+[Serializable]
+public sealed class MapWeaponSpawnEntry
 {
     [SerializeField]
     private NetworkObject weaponPrefab;
@@ -13,20 +13,47 @@ public sealed class MapWeaponSpawner :
     [SerializeField]
     private Transform spawnPoint;
 
-    [Header("Spawn Timing")]
     [Min(0f)]
     [SerializeField]
     private float spawnDelay;
 
+    public NetworkObject WeaponPrefab =>
+        weaponPrefab;
+
+    public Transform SpawnPoint =>
+        spawnPoint;
+
+    public float SpawnDelay =>
+        spawnDelay;
+}
+
+
+[DisallowMultipleComponent]
+[RequireComponent(typeof(NetworkObject))]
+public sealed class MapWeaponSpawner :
+    MonoBehaviour
+{
+    [Header("Primary Spawn")]
+    [SerializeField]
+    private NetworkObject weaponPrefab;
+
+    [SerializeField]
+    private Transform spawnPoint;
+
+    [Min(0f)]
+    [SerializeField]
+    private float spawnDelay;
+
+    [Header("Additional Weapon Spawns")]
+    [SerializeField]
+    private List<MapWeaponSpawnEntry>
+        additionalSpawns = new();
+
+    private readonly List<NetworkObject>
+        _spawnedWeapons = new();
+
     private NetworkObject _mapObject;
-
-    private NetworkObject _spawnedWeapon;
-
     private NetworkRunner _runner;
-
-    private bool _spawnAttempted;
-
-    private bool _ownsSpawnedWeapon;
 
 
     private void Awake()
@@ -38,54 +65,8 @@ public sealed class MapWeaponSpawner :
 
     private void Start()
     {
-        if (spawnDelay <= 0f)
-        {
-            TrySpawnWeapon();
-            return;
-        }
-
-        StartCoroutine(
-            SpawnWeaponAfterDelay());
-    }
-
-
-    private IEnumerator SpawnWeaponAfterDelay()
-    {
-        yield return new WaitForSeconds(
-            spawnDelay);
-
-        TrySpawnWeapon();
-    }
-
-
-    private void OnDestroy()
-    {
-        if (_runner == null ||
-            _spawnedWeapon == null ||
-            !_runner.Exists(_spawnedWeapon))
-        {
-            return;
-        }
-
-        if (_ownsSpawnedWeapon)
-        {
-            _runner.Despawn(
-                _spawnedWeapon);
-        }
-    }
-
-
-    private void TrySpawnWeapon()
-    {
-        if (_spawnAttempted)
-            return;
-
-        _spawnAttempted = true;
-
         if (_mapObject == null ||
-            !_mapObject.HasStateAuthority ||
-            weaponPrefab == null ||
-            spawnPoint == null)
+            !_mapObject.HasStateAuthority)
         {
             return;
         }
@@ -104,14 +85,111 @@ public sealed class MapWeaponSpawner :
             return;
         }
 
-        _spawnedWeapon =
-            _runner.Spawn(
-                weaponPrefab,
-                spawnPoint.position,
-                spawnPoint.rotation);
+        ScheduleSpawn(
+            weaponPrefab,
+            spawnPoint,
+            spawnDelay);
 
-        _ownsSpawnedWeapon =
-            _spawnedWeapon != null;
+        if (additionalSpawns == null)
+            return;
+
+        foreach (MapWeaponSpawnEntry entry
+                 in additionalSpawns)
+        {
+            if (entry == null)
+                continue;
+
+            ScheduleSpawn(
+                entry.WeaponPrefab,
+                entry.SpawnPoint,
+                entry.SpawnDelay);
+        }
+    }
+
+
+    private void ScheduleSpawn(
+        NetworkObject prefab,
+        Transform point,
+        float delay)
+    {
+        if (prefab == null ||
+            point == null)
+        {
+            return;
+        }
+
+        if (delay <= 0f)
+        {
+            SpawnWeapon(
+                prefab,
+                point);
+
+            return;
+        }
+
+        StartCoroutine(
+            SpawnWeaponAfterDelay(
+                prefab,
+                point,
+                delay));
+    }
+
+
+    private IEnumerator SpawnWeaponAfterDelay(
+        NetworkObject prefab,
+        Transform point,
+        float delay)
+    {
+        yield return new WaitForSeconds(
+            delay);
+
+        SpawnWeapon(
+            prefab,
+            point);
+    }
+
+
+    private void SpawnWeapon(
+        NetworkObject prefab,
+        Transform point)
+    {
+        if (_runner == null ||
+            prefab == null ||
+            point == null)
+        {
+            return;
+        }
+
+        NetworkObject spawned =
+            _runner.Spawn(
+                prefab,
+                point.position,
+                point.rotation);
+
+        if (spawned != null)
+        {
+            _spawnedWeapons.Add(
+                spawned);
+        }
+    }
+
+
+    private void OnDestroy()
+    {
+        if (_runner == null)
+            return;
+
+        foreach (NetworkObject weapon
+                 in _spawnedWeapons)
+        {
+            if (weapon != null &&
+                _runner.Exists(weapon))
+            {
+                _runner.Despawn(weapon);
+            }
+        }
+
+        _spawnedWeapons.Clear();
     }
 
 
@@ -119,18 +197,44 @@ public sealed class MapWeaponSpawner :
 
     private void OnDrawGizmosSelected()
     {
-        if (spawnPoint == null)
-            return;
-
-        Gizmos.color =
+        DrawSpawnGizmo(
+            spawnPoint,
             new Color(
                 1f,
                 0.75f,
                 0.1f,
-                1f);
+                1f));
 
+        if (additionalSpawns == null)
+            return;
+
+        foreach (MapWeaponSpawnEntry entry
+                 in additionalSpawns)
+        {
+            if (entry == null)
+                continue;
+
+            DrawSpawnGizmo(
+                entry.SpawnPoint,
+                new Color(
+                    0.3f,
+                    0.9f,
+                    1f,
+                    1f));
+        }
+    }
+
+
+    private static void DrawSpawnGizmo(
+        Transform point,
+        Color color)
+    {
+        if (point == null)
+            return;
+
+        Gizmos.color = color;
         Gizmos.DrawWireSphere(
-            spawnPoint.position,
+            point.position,
             0.35f);
     }
 
