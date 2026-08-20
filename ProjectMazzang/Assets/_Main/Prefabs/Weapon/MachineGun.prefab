@@ -25,7 +25,7 @@ Transform:
   m_GameObject: {fileID: 1038075775799467391}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.04, y: 0.078, z: 0}
+  m_LocalPosition: {x: -0.421, y: -0.243, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
@@ -58,8 +58,8 @@ Transform:
   m_GameObject: {fileID: 2211222481828127667}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.3, y: 0.149, z: 0}
-  m_LocalScale: {x: 1, y: 0.15, z: 1}
+  m_LocalPosition: {x: 0, y: 0.35, z: 0}
+  m_LocalScale: {x: 1.4, y: 0.4, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 3085864403559333889}
@@ -196,9 +196,9 @@ Transform:
   m_GameObject: {fileID: 2662674113400603324}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.27, y: -0.35, z: 0}
-  m_LocalScale: {x: 1.36, y: 1.36, z: 1.36}
-  m_ConstrainProportionsScale: 1
+  m_LocalPosition: {x: 0.329, y: -0.593, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 5814568478303250347}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -246,7 +246,7 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 1, y: 0.27144897}
+  m_Size: {x: 1.56, y: 0.66}
   m_EdgeRadius: 0
 --- !u!114 &7881194972578852804
 MonoBehaviour:
@@ -260,7 +260,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d1cbd98f32e3782478fcc700bf8c6067, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WeaponPickupTrigger
-  weapon: {fileID: 2946767431234189517}
+  weapon: {fileID: -1397261331782384034}
   triggerCollider: {fileID: 4345762851702734750}
 --- !u!1 &2717315961084138251
 GameObject:
@@ -287,7 +287,7 @@ Transform:
   m_GameObject: {fileID: 2717315961084138251}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.543, y: 0.069, z: 0}
+  m_LocalPosition: {x: 0.589, y: -0.042999983, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
@@ -318,7 +318,7 @@ Transform:
   m_GameObject: {fileID: 3008137956220480268}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0.329, y: -0.593, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -334,12 +334,12 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5814568478303250347}
-  - component: {fileID: 2946767431234189517}
+  - component: {fileID: -1397261331782384034}
   - component: {fileID: 4498004678548388021}
   - component: {fileID: 9023140553725785208}
   - component: {fileID: 4150836910798701016}
   m_Layer: 0
-  m_Name: TestWeapon
+  m_Name: MachineGun
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -365,7 +365,7 @@ Transform:
   - {fileID: 7883919693575876065}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2946767431234189517
+--- !u!114 &-1397261331782384034
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -374,24 +374,24 @@ MonoBehaviour:
   m_GameObject: {fileID: 6975233142488579268}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4388df14a7a1894458b46c6707ddc11c, type: 3}
+  m_Script: {fileID: 11500000, guid: 811a6caae9bf366428f3a06d2ff0b775, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ProjectileGun
+  m_EditorClassIdentifier: Assembly-CSharp::MachineGun
   rb: {fileID: 9023140553725785208}
   worldCollider: {fileID: 2778920603820171767}
   pickupTrigger: {fileID: 7881194972578852804}
   leftHandGrip: {fileID: 8819009657638847448}
   rightHandGrip: {fileID: 7883919693575876065}
   _Holder: {fileID: 0}
-  magazineSize: 5959
-  fireInterval: 1.28
+  magazineSize: 30
+  fireInterval: 0.08
   muzzle: {fileID: 2486731633620674725}
   projectilePrefab: {fileID: 4736335658398493549, guid: a82faefdd5d0cdd429a786b3436bc112, type: 3}
   projectileSpeed: 35
   projectileLifetime: 2
-  damage: 12
-  knockback: {x: 5, y: 1.5}
-  knockbackControlLock: 0.08
+  damage: 8
+  knockback: {x: 3, y: 1}
+  knockbackControlLock: 0.05
   muzzleFlash: {fileID: 0}
   audioSource: {fileID: 0}
   fireClip: {fileID: 0}
@@ -451,14 +451,14 @@ MonoBehaviour:
   m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
-  SortKey: 1854792803
+  SortKey: 2045230358
   SendPriority: 1
   EnableInterpolation: 1
   Flags: 262402
   NestedObjects: []
   NetworkedBehaviours:
   - {fileID: 4498004678548388021}
-  - {fileID: 2946767431234189517}
+  - {fileID: -1397261331782384034}
   ForceRemoteRenderTimeframe: 0
 --- !u!1 &8981142756307359045
 GameObject:
@@ -485,7 +485,7 @@ Transform:
   m_GameObject: {fileID: 8981142756307359045}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.782, y: 0.151, z: 0}
+  m_LocalPosition: {x: 0.959, y: -0.23299998, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []

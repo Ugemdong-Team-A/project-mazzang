@@ -283,9 +283,31 @@ public sealed class PlayerCombat :
                 PreviousButtons,
                 PlayerButton.Attack);
 
+        bool attackHeld =
+            input.Buttons.IsSet(
+                PlayerButton.Attack);
+
         PreviousButtons =
             input.Buttons;
 
+
+        // 무기를 들고 있으면 공격 버튼을 누르고 있는 동안
+        // 계속 무기 사용을 요청한다.
+        if (_weaponState != null &&
+            _weaponState.HasEquippedWeapon)
+        {
+            if (attackHeld)
+            {
+                _weaponControl?
+                    .TryUseWeapon(
+                        currentInputAim);
+            }
+
+            return;
+        }
+
+
+        // 무기가 없으면 기존 근접 공격 방식 그대로 사용한다.
         if (!attackPressed)
             return;
 
@@ -299,9 +321,7 @@ public sealed class PlayerCombat :
     // Attack Request
     // =========================================================
 
-    private void TryAttack(
-        in PlayerInputData input,
-        Vector2 currentInputAim)
+    private void TryAttack(in PlayerInputData input,Vector2 currentInputAim)
     {
         if (IsAttacking)
             return;
@@ -309,18 +329,6 @@ public sealed class PlayerCombat :
         if (_movementState != null &&
             _movementState.IsControlLocked)
         {
-            return;
-        }
-
-        // 무기를 들고 있으면 AttackData 기반 기본 공격으로
-        // 내려가지 않고 현재 무기 사용만 요청한다.
-        if (_weaponState != null &&
-            _weaponState.HasEquippedWeapon)
-        {
-            _weaponControl?
-                .TryUseWeapon(
-                    currentInputAim);
-
             return;
         }
 
