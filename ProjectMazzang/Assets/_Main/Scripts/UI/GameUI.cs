@@ -6,7 +6,7 @@ public sealed class GameUI :
 {
     [Header("HUD")]
     [SerializeField]
-    private GameObject hudRoot;
+    private PlayerHUD playerHUD;
 
 
     [Header("Combat Notice")]
@@ -25,13 +25,27 @@ public sealed class GameUI :
     private TMP_Text winnerNameText;
 
 
-    // =========================================================
-    // Unity
-    // =========================================================
-
     private void Awake()
     {
         HideAll();
+    }
+
+
+    // =========================================================
+    // Player HUD
+    // =========================================================
+
+    public void BindPlayerHUD(
+        PlayerSkillController skillController)
+    {
+        playerHUD?.Bind(
+            skillController);
+    }
+
+
+    public void UnbindPlayerHUD()
+    {
+        playerHUD?.Unbind();
     }
 
 
@@ -41,9 +55,7 @@ public sealed class GameUI :
 
     public void ShowPlaying()
     {
-        SetActive(
-            hudRoot,
-            true);
+        playerHUD?.Show();
 
         SetActive(
             resultRoot,
@@ -53,25 +65,18 @@ public sealed class GameUI :
 
     public void ShowEnding()
     {
-        SetActive(
-            hudRoot,
-            false);
+        playerHUD?.Hide();
 
         SetActive(
             resultRoot,
             false);
-
-        /*combatNotice?
-            .HideImmediate();*/
     }
 
 
     public void ShowWinner(
         string winnerName)
     {
-        SetActive(
-            hudRoot,
-            false);
+        playerHUD?.Hide();
 
         SetActive(
             resultRoot,
@@ -92,9 +97,7 @@ public sealed class GameUI :
 
     public void ShowDraw()
     {
-        SetActive(
-            hudRoot,
-            false);
+        playerHUD?.Hide();
 
         SetActive(
             resultRoot,
@@ -115,9 +118,7 @@ public sealed class GameUI :
 
     public void HideAll()
     {
-        SetActive(
-            hudRoot,
-            false);
+        playerHUD?.Hide();
 
         SetActive(
             resultRoot,

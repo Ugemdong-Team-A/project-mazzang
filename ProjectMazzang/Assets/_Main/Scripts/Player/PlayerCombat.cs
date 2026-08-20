@@ -14,20 +14,26 @@ public enum PlayerAttackState : byte
 public sealed class PlayerCombat :
     PlayerModule,
     IPlayerCombatState,
-    IPlayerCombatControl
+    IPlayerCombatControl,
+    IPlayerTickModule,
+    IPlayerTickStateSource,
+    IPlayerTickCommandSink
 {
     private const int NoneAttackId = 0;
 
 
     [Header("Test Attacks")]
     [SerializeField]
-    private PlayerBoxAttackData jabAttack;
+    private PlayerAttackDefinition jabAttack;
 
     [SerializeField]
-    private PlayerBoxAttackData counterAttack;
+    private PlayerAttackDefinition counterAttack;
 
 
     [Header("Hit")]
+    [SerializeField]
+    private Transform attackSocket;
+
     [SerializeField]
     private LayerMask hurtboxLayer;
 
@@ -41,9 +47,6 @@ public sealed class PlayerCombat :
 
     private IPlayerHealthState
         _healthState;
-
-    private IPlayerDamageReceiver
-        _selfDamageReceiver;
 
     private IPlayerAimState
         _aimState;
@@ -129,14 +132,18 @@ public sealed class PlayerCombat :
     {
         get
         {
-            PlayerAttackData attack =
-                GetCurrentAttack();
+            if (!IsAttacking)
+                return false;
+
+            if (!TryGetCurrentAttackDefinition(
+                    out PlayerAttackDefinition definition))
+            {
+                return false;
+            }
 
             return
-                IsAttacking &&
-                attack != null &&
-                attack.MovementMode ==
-                    PlayerAttackMovementMode.Locked;
+                definition.MovementMode ==
+                PlayerAttackMovementMode.Locked;
         }
     }
 
@@ -167,10 +174,6 @@ public sealed class PlayerCombat :
             Context.Get<
                 IPlayerHealthState>();
 
-        _selfDamageReceiver =
-            Context.Get<
-                IPlayerDamageReceiver>();
-
         _aimState =
             Context.Get<
                 IPlayerAimState>();
@@ -198,27 +201,106 @@ public sealed class PlayerCombat :
         if (!HasStateAuthority)
             return;
 
+        PreviousButtons =
+            default;
+
+        AttackState =
+            PlayerAttackState.None;
+
         CurrentAttackId =
             NoneAttackId;
+
+        AttackPhaseTimer =
+            TickTimer.None;
+
+        AttackCooldownTimer =
+            TickTimer.None;
+    }
+
+
+    PlayerTickStage IPlayerTickModule.Stage =>
+        PlayerTickStage.Action;
+
+
+    void IPlayerTickModule.Simulate(
+        in PlayerTick tick)
+    {
+        TickAction(
+            tick.State.HasHealth &&
+            tick.State.IsAlive,
+            tick.State.HasMovement &&
+            tick.State.IsMovementControlLocked,
+            tick.State.HasSkill &&
+            tick.State.IsSkillActionLocked,
+            !tick.State.HasMovement ||
+            tick.State.FacingRight,
+            tick.State);
+    }
+
+
+    void IPlayerTickStateSource.CaptureTickState(
+        PlayerTickState state)
+    {
+        state.HasCombat = true;
+        state.IsCombatMovementLocked = IsMovementLocked;
+    }
+
+
+    bool IPlayerTickCommandSink.ResolveTickCommands(
+        PlayerTickCommands commands,
+        PlayerTickState state)
+    {
+        if (!commands.TryConsumeCancelAttack())
+            return false;
+
+        CancelAttack();
+        return true;
     }
 
 
     public override void FixedUpdateNetwork()
     {
+        if (IsTickControlled)
+            return;
+
+        TickAction();
+    }
+
+
+    internal void TickAction()
+    {
+        TickAction(
+            _healthState != null &&
+            _healthState.IsAlive,
+            _movementState != null &&
+            _movementState.IsControlLocked,
+            false,
+            ResolveFacingRight(),
+            null);
+    }
+
+
+    private void TickAction(
+        bool isAlive,
+        bool isMovementControlLocked,
+        bool isSkillActionLocked,
+        bool facingRight,
+        PlayerTickState tickState)
+    {
+        if (tickState == null &&
+            !IsContextReady)
+            return;
+
         bool hasInput =
             GetInput(
                 out PlayerInputData input);
-
-
-        if (_healthState == null)
-            return;
 
 
         // ==========================================
         // Dead
         // ==========================================
 
-        if (!_healthState.IsAlive)
+        if (!isAlive)
         {
             CancelAttack();
 
@@ -236,8 +318,21 @@ public sealed class PlayerCombat :
         // Control Lock
         // ==========================================
 
-        if (_movementState != null &&
-            _movementState.IsControlLocked)
+        if (isMovementControlLocked)
+        {
+            CancelAttack();
+
+            if (hasInput)
+            {
+                PreviousButtons =
+                    input.Buttons;
+            }
+
+            return;
+        }
+
+
+        if (isSkillActionLocked)
         {
             CancelAttack();
 
@@ -252,22 +347,11 @@ public sealed class PlayerCombat :
 
 
         // ==========================================
-        // Current Input Aim
-        // ==========================================
-
-        Vector2 currentInputAim =
-            hasInput
-                ? ResolveInputAimDirection(
-                    input.AimWorldPosition)
-                : Vector2.zero;
-
-
-        // ==========================================
         // Attack State
         // ==========================================
 
         UpdateAttack(
-            currentInputAim);
+            facingRight);
 
 
         if (!hasInput)
@@ -283,37 +367,18 @@ public sealed class PlayerCombat :
                 PreviousButtons,
                 PlayerButton.Attack);
 
-        bool attackHeld =
-            input.Buttons.IsSet(
-                PlayerButton.Attack);
-
         PreviousButtons =
             input.Buttons;
 
-
-        // 무기를 들고 있으면 공격 버튼을 누르고 있는 동안
-        // 계속 무기 사용을 요청한다.
-        if (_weaponState != null &&
-            _weaponState.HasEquippedWeapon)
-        {
-            if (attackHeld)
-            {
-                _weaponControl?
-                    .TryUseWeapon(
-                        currentInputAim);
-            }
-
-            return;
-        }
-
-
-        // 무기가 없으면 기존 근접 공격 방식 그대로 사용한다.
         if (!attackPressed)
             return;
 
+
         TryAttack(
             in input,
-            currentInputAim);
+            isMovementControlLocked,
+            facingRight,
+            tickState);
     }
 
 
@@ -321,50 +386,82 @@ public sealed class PlayerCombat :
     // Attack Request
     // =========================================================
 
-    private void TryAttack(in PlayerInputData input,Vector2 currentInputAim)
+    private void TryAttack(
+        in PlayerInputData input,
+        bool isMovementControlLocked,
+        bool facingRight,
+        PlayerTickState tickState)
     {
         if (IsAttacking)
             return;
 
-        if (_movementState != null &&
-            _movementState.IsControlLocked)
+        if (isMovementControlLocked)
         {
             return;
         }
 
+
+        bool hasEquippedWeapon =
+            tickState != null
+                ? tickState.HasWeapon &&
+                  tickState.HasEquippedWeapon
+                : _weaponState != null &&
+                  _weaponState.HasEquippedWeapon;
+
+        if (hasEquippedWeapon)
+        {
+            Vector2 aimDirection =
+                ResolveInputAimDirection(
+                    input.AimWorldPosition,
+                    facingRight,
+                    tickState);
+
+            if (TickCommands != null)
+            {
+                TickCommands.RequestWeaponUse(
+                    aimDirection);
+            }
+            else
+            {
+                _weaponControl?
+                    .TryUseWeapon(
+                        aimDirection);
+            }
+
+            return;
+        }
+
+
         if (IsAttackOnCooldown)
             return;
 
-        PlayerBoxAttackData attack =
+
+        PlayerAttackDefinition definition =
             SelectTestAttack(
                 input.Move);
 
-        if (attack == null)
+        if (!definition.IsValid)
             return;
 
+
+        Vector2 sourceAimDirection =
+            ResolveInputAimDirection(
+                input.AimWorldPosition,
+                facingRight,
+                tickState);
+
+
         StartAttack(
-            attack,
-            currentInputAim);
+            in definition,
+            sourceAimDirection);
     }
 
 
-    /// <summary>
-    /// 현재는 공격 데이터 테스트를 위한 임시 선택 규칙입니다.
-    ///
-    /// 위 입력 + 공격:
-    /// Counter
-    ///
-    /// 그 외:
-    /// Jab
-    ///
-    /// 이후 무기/콤보 시스템이 생기면
-    /// 이 메서드만 실제 공격 선택기로 교체합니다.
-    /// </summary>
-    private PlayerBoxAttackData SelectTestAttack(
+    private PlayerAttackDefinition SelectTestAttack(
         Vector2 moveInput)
     {
         if (moveInput.y > 0.5f &&
-            counterAttack != null)
+            counterAttack.IsValid)
         {
             return counterAttack;
         }
@@ -378,21 +475,28 @@ public sealed class PlayerCombat :
     // =========================================================
 
     private void StartAttack(
-        PlayerAttackData attack,
+        in PlayerAttackDefinition definition,
         Vector2 sourceAimDirection)
     {
+        AttackData attack =
+            definition.Attack;
+
         if (attack == null)
             return;
+
 
         CurrentAttackId =
             attack.AttackId;
 
+
         AttackState =
             PlayerAttackState.Startup;
+
 
         AttackPhaseTimer =
             CreateTimer(
                 attack.StartupDuration);
+
 
         AttackCooldownTimer =
             CreateTimer(
@@ -400,35 +504,47 @@ public sealed class PlayerCombat :
 
 
         ApplyAimRule(
-            attack,
+            in definition,
             sourceAimDirection);
+
 
         AttackSequence++;
     }
 
 
     private void ApplyAimRule(
-        PlayerAttackData attack,
+        in PlayerAttackDefinition definition,
         Vector2 sourceAimDirection)
     {
-        if (_aimControl == null)
-            return;
-
         PlayerAttackAimDefinition aimDefinition =
-            attack.Aim;
+            definition.Aim;
+
 
         if (!aimDefinition.RequiresOverride)
         {
-            _aimControl.ClearOverride();
+            RequestClearAimOverride();
+
             return;
         }
+
 
         PlayerAimOverride aimOverride =
             aimDefinition.CreateOverride();
 
-        _aimControl.ApplyOverride(
-            in aimOverride,
-            sourceAimDirection);
+
+        if (TickCommands != null)
+        {
+            TickCommands.RequestAimOverride(
+                in aimOverride,
+                sourceAimDirection);
+        }
+        else
+        {
+            _aimControl?
+                .ApplyOverride(
+                    in aimOverride,
+                    sourceAimDirection);
+        }
     }
 
 
@@ -437,7 +553,7 @@ public sealed class PlayerCombat :
     // =========================================================
 
     private void UpdateAttack(
-        Vector2 currentInputAim)
+        bool facingRight)
     {
         switch (AttackState)
         {
@@ -447,7 +563,7 @@ public sealed class PlayerCombat :
 
             case PlayerAttackState.Startup:
                 UpdateStartup(
-                    currentInputAim);
+                    facingRight);
                 break;
 
 
@@ -464,7 +580,7 @@ public sealed class PlayerCombat :
 
 
     private void UpdateStartup(
-        Vector2 currentInputAim)
+        bool facingRight)
     {
         if (!AttackPhaseTimer
                 .Expired(Runner))
@@ -472,38 +588,38 @@ public sealed class PlayerCombat :
             return;
         }
 
+
         BeginActive(
-            currentInputAim);
+            facingRight);
     }
 
 
     private void BeginActive(
-        Vector2 currentInputAim)
+        bool facingRight)
     {
-        PlayerAttackData attack =
-            GetCurrentAttack();
-
-        if (attack == null)
+        if (!TryGetCurrentAttackDefinition(
+                out PlayerAttackDefinition definition))
         {
             CancelAttack();
+
             return;
         }
+
+
+        AttackData attack =
+            definition.Attack;
+
 
         AttackState =
             PlayerAttackState.Active;
 
 
         if (attack is
-            PlayerBoxAttackData boxAttack)
+            BoxAttackData boxAttack)
         {
-            Vector2 attackDirection =
-                ResolveHitDirection(
-                    attack,
-                    currentInputAim);
-
             PerformBoxAttackHit(
                 boxAttack,
-                attackDirection);
+                facingRight);
         }
 
 
@@ -521,17 +637,21 @@ public sealed class PlayerCombat :
             return;
         }
 
-        PlayerAttackData attack =
+
+        AttackData attack =
             GetCurrentAttack();
 
         if (attack == null)
         {
             CancelAttack();
+
             return;
         }
 
+
         AttackState =
             PlayerAttackState.Recovery;
+
 
         AttackPhaseTimer =
             CreateTimer(
@@ -546,6 +666,7 @@ public sealed class PlayerCombat :
         {
             return;
         }
+
 
         CancelAttack();
     }
@@ -565,14 +686,30 @@ public sealed class PlayerCombat :
             return;
         }
 
+
         AttackState =
             PlayerAttackState.None;
+
 
         AttackPhaseTimer =
             TickTimer.None;
 
+
         CurrentAttackId =
             NoneAttackId;
+
+
+        RequestClearAimOverride();
+    }
+
+
+    private void RequestClearAimOverride()
+    {
+        if (TickCommands != null)
+        {
+            TickCommands.RequestClearAimOverride();
+            return;
+        }
 
         _aimControl?
             .ClearOverride();
@@ -580,32 +717,52 @@ public sealed class PlayerCombat :
 
 
     // =========================================================
-    // Attack Data
+    // Attack Definition
     // =========================================================
 
-    private PlayerAttackData GetCurrentAttack()
+    private bool TryGetCurrentAttackDefinition(
+        out PlayerAttackDefinition definition)
     {
-        if (CurrentAttackId ==
-            NoneAttackId)
+        if (CurrentAttackId !=
+                NoneAttackId &&
+            jabAttack.IsValid &&
+            jabAttack.Attack.AttackId ==
+                CurrentAttackId)
         {
-            return null;
+            definition =
+                jabAttack;
+
+            return true;
         }
 
-        if (jabAttack != null &&
-            jabAttack.AttackId ==
-            CurrentAttackId)
+
+        if (CurrentAttackId !=
+                NoneAttackId &&
+            counterAttack.IsValid &&
+            counterAttack.Attack.AttackId ==
+                CurrentAttackId)
         {
-            return jabAttack;
+            definition =
+                counterAttack;
+
+            return true;
         }
 
-        if (counterAttack != null &&
-            counterAttack.AttackId ==
-            CurrentAttackId)
-        {
-            return counterAttack;
-        }
 
-        return null;
+        definition =
+            default;
+
+        return false;
+    }
+
+
+    private AttackData GetCurrentAttack()
+    {
+        return
+            TryGetCurrentAttackDefinition(
+                out PlayerAttackDefinition definition)
+                ? definition.Attack
+                : null;
     }
 
 
@@ -614,90 +771,42 @@ public sealed class PlayerCombat :
     // =========================================================
 
     private Vector2 ResolveInputAimDirection(
-        Vector2 aimWorldPosition)
+        Vector2 aimWorldPosition,
+        bool facingRight,
+        PlayerTickState tickState)
     {
-        if (_aimState != null)
+        if (tickState != null)
+        {
+            Vector2 direction =
+                tickState.ResolveAimDirectionTo(
+                    aimWorldPosition);
+
+            if (direction.sqrMagnitude >
+                0.0001f)
+            {
+                return direction.normalized;
+            }
+        }
+        else if (_aimState != null)
         {
             Vector2 direction =
                 _aimState.ResolveDirectionTo(
                     aimWorldPosition);
 
-            direction =
-                NormalizeDirection(
-                    direction);
 
-            if (direction !=
-                Vector2.zero)
+            if (direction.sqrMagnitude >
+                0.0001f)
             {
-                return direction;
+                return
+                    direction.normalized;
             }
         }
 
-        if (_movementState != null &&
-            !_movementState.FacingRight)
-        {
-            return Vector2.left;
-        }
 
-        return Vector2.right;
-    }
-
-
-    private Vector2 ResolveHitDirection(
-        PlayerAttackData attack,
-        Vector2 currentInputAim)
-    {
-        // Free Aim은 현재 Tick의 마우스 월드 위치를
-        // PlayerAim 기준으로 해석한 방향을 사용한다.
-        if (attack.Aim.AimMode ==
-            PlayerAttackAimMode.Free)
-        {
-            Vector2 freeDirection =
-                NormalizeDirection(
-                    currentInputAim);
-
-            if (freeDirection !=
-                Vector2.zero)
-            {
-                return freeDirection;
-            }
-        }
-
-        // Locked / FourWay는 공격 시작 시
-        // PlayerAim에 확정되어 있는 방향을 사용한다.
-        if (_aimState != null)
-        {
-            Vector2 aimDirection =
-                NormalizeDirection(
-                    _aimState.AimDirection);
-
-            if (aimDirection !=
-                Vector2.zero)
-            {
-                return aimDirection;
-            }
-        }
-
-        if (_movementState != null &&
-            !_movementState.FacingRight)
-        {
-            return Vector2.left;
-        }
-
-        return Vector2.right;
-    }
-
-
-    private static Vector2 NormalizeDirection(
-        Vector2 direction)
-    {
-        if (direction.sqrMagnitude <=
-            0.0001f)
-        {
-            return Vector2.zero;
-        }
-
-        return direction.normalized;
+        return
+            facingRight
+                ? Vector2.right
+                : Vector2.left;
     }
 
 
@@ -706,51 +815,30 @@ public sealed class PlayerCombat :
     // =========================================================
 
     private void PerformBoxAttackHit(
-        PlayerBoxAttackData attack,
-        Vector2 direction)
+        BoxAttackData attack,
+        bool facingRight)
     {
-        if (direction.sqrMagnitude <=
-            0.0001f)
-        {
+        if (attack == null)
             return;
-        }
-
-        direction.Normalize();
 
 
-        Vector2 perpendicular =
-            new Vector2(
-                -direction.y,
-                direction.x);
-
-
-        Vector2 localOffset =
-            attack.HitboxOffset;
-
-        Vector2 worldOffset =
-            direction *
-            localOffset.x +
-            perpendicular *
-            localOffset.y;
+        float facingSign =
+            facingRight
+                ? 1f
+                : -1f;
 
 
         Vector2 center =
-            (Vector2)transform.position +
-            worldOffset;
-
-
-        float angle =
-            Mathf.Atan2(
-                direction.y,
-                direction.x) *
-            Mathf.Rad2Deg;
+            CalculateBoxCenter(
+                attack,
+                facingRight);
 
 
         Collider2D[] hits =
             Physics2D.OverlapBoxAll(
                 center,
                 attack.HitboxSize,
-                angle,
+                0f,
                 hurtboxLayer);
 
 
@@ -764,16 +852,17 @@ public sealed class PlayerCombat :
                 hit.GetComponentInParent<
                     IDamageable>();
 
+
             if (damageable == null)
                 continue;
 
 
-            if (ReferenceEquals(
-                    damageable,
-                    _selfDamageReceiver))
-            {
+            NetworkObject damageableObject =
+                hit.GetComponentInParent<
+                    NetworkObject>();
+
+            if (damageableObject == Object)
                 continue;
-            }
 
 
             if (!_hitTargets.Add(
@@ -788,16 +877,16 @@ public sealed class PlayerCombat :
 
 
             Vector2 knockback =
-                direction *
-                attack.KnockbackForward +
-                Vector2.up *
-                attack.KnockbackUp;
+                new Vector2(
+                    attack.KnockbackForward *
+                    facingSign,
+                    attack.KnockbackUp);
 
 
             DamageInfo info =
                 new DamageInfo(
                     attack.Damage,
-                    Object.InputAuthority,
+                    Object,
                     knockback,
                     attack.KnockbackControlLock);
 
@@ -805,6 +894,44 @@ public sealed class PlayerCombat :
             damageable.ApplyDamage(
                 in info);
         }
+    }
+
+
+    private Vector2 CalculateBoxCenter(
+        BoxAttackData attack,
+        bool facingRight)
+    {
+        Vector2 offset =
+            attack.HitboxOffset;
+
+
+        if (!facingRight)
+        {
+            offset.x *=
+                -1f;
+        }
+
+
+        return
+            GetAttackOriginPosition() +
+            offset;
+    }
+
+
+    private Vector2 GetAttackOriginPosition()
+    {
+        return
+            attackSocket != null
+                ? attackSocket.position
+                : transform.position;
+    }
+
+
+    private bool ResolveFacingRight()
+    {
+        return
+            _movementState == null ||
+            _movementState.FacingRight;
     }
 
 
@@ -827,75 +954,80 @@ public sealed class PlayerCombat :
 
     private void OnDrawGizmosSelected()
     {
-        DrawAttackGizmo(
-            jabAttack);
+        Vector2 origin =
+            GetAttackOriginPosition();
+
+
+        Gizmos.DrawWireSphere(
+            origin,
+            0.06f);
+
+
+        if (Application.isPlaying)
+        {
+            bool facingRight =
+                ResolveFacingRight();
+
+
+            DrawAttackGizmo(
+                jabAttack,
+                facingRight);
+
+
+            DrawAttackGizmo(
+                counterAttack,
+                facingRight);
+
+
+            return;
+        }
+
 
         DrawAttackGizmo(
-            counterAttack);
+            jabAttack,
+            true);
+
+
+        DrawAttackGizmo(
+            jabAttack,
+            false);
+
+
+        DrawAttackGizmo(
+            counterAttack,
+            true);
+
+
+        DrawAttackGizmo(
+            counterAttack,
+            false);
     }
 
 
     private void DrawAttackGizmo(
-        PlayerBoxAttackData attack)
+        PlayerAttackDefinition definition,
+        bool facingRight)
     {
-        if (attack == null)
+        if (!definition.IsValid)
             return;
 
-        Vector2 direction =
-            Application.isPlaying &&
-            _aimState != null &&
-            _aimState.AimDirection.sqrMagnitude >
-            0.0001f
-                ? _aimState.AimDirection.normalized
-                : Vector2.right;
 
-
-        Vector2 perpendicular =
-            new Vector2(
-                -direction.y,
-                direction.x);
-
-
-        Vector2 offset =
-            direction *
-            attack.HitboxOffset.x +
-            perpendicular *
-            attack.HitboxOffset.y;
+        if (definition.Attack is not
+            BoxAttackData boxAttack)
+        {
+            return;
+        }
 
 
         Vector2 center =
-            (Vector2)transform.position +
-            offset;
-
-
-        float angle =
-            Mathf.Atan2(
-                direction.y,
-                direction.x) *
-            Mathf.Rad2Deg;
-
-
-        Matrix4x4 previousMatrix =
-            Gizmos.matrix;
-
-
-        Gizmos.matrix =
-            Matrix4x4.TRS(
-                center,
-                Quaternion.Euler(
-                    0f,
-                    0f,
-                    angle),
-                Vector3.one);
+            CalculateBoxCenter(
+                boxAttack,
+                facingRight);
 
 
         Gizmos.DrawWireCube(
-            Vector3.zero,
-            attack.HitboxSize);
-
-
-        Gizmos.matrix =
-            previousMatrix;
+            center,
+            boxAttack.HitboxSize);
     }
 
 #endif

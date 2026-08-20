@@ -14,7 +14,11 @@ public sealed class PlayerMovement :
     PlayerModule,
     IPlayerMovementState,
     IPlayerKnockbackReceiver,
-    IPlayerFacingControl
+    IPlayerFacingControl,
+    IPlayerMovementControl,
+    IPlayerTickModule,
+    IPlayerTickStateSource,
+    IPlayerTickCommandSink
 {
     [Header("References")]
     [SerializeField]
@@ -109,6 +113,8 @@ public sealed class PlayerMovement :
 
     private IPlayerCombatState _combatState;
 
+    private PlayerSkillController _skillController;
+
     private bool _debugPreviousTouchingWallLeft;
     private bool _debugPreviousTouchingWallRight;
     private bool _debugPreviousWallSliding;
@@ -140,6 +146,8 @@ public sealed class PlayerMovement :
     [Networked]
     private TickTimer KnockbackControlTimer { get; set; }
 
+    [Networked]
+    private TickTimer ControlLockTimer { get; set; }
 
     [Networked]
     public NetworkBool IsGrounded { get; private set; }
@@ -185,6 +193,8 @@ public sealed class PlayerMovement :
 
     public bool IsControlLocked =>
         !KnockbackControlTimer
+            .ExpiredOrNotRunning(Runner) ||
+        !ControlLockTimer
             .ExpiredOrNotRunning(Runner);
 
 
@@ -222,6 +232,10 @@ public sealed class PlayerMovement :
         Context.Register<
             IPlayerFacingControl>(
             this);
+
+        Context.Register<
+            IPlayerMovementControl>(
+            this);
     }
 
 
@@ -243,10 +257,88 @@ public sealed class PlayerMovement :
 
     public override void Spawned()
     {
-
+        _skillController =
+            GetComponent<PlayerSkillController>();
     }
 
+    PlayerTickStage IPlayerTickModule.Stage =>
+        PlayerTickStage.Motion;
+
+
+    void IPlayerTickModule.Simulate(
+        in PlayerTick tick)
+    {
+        TickMotion(
+            tick.State.HasHealth &&
+            tick.State.IsAlive,
+            tick.State.HasCombat &&
+            tick.State.IsCombatMovementLocked);
+    }
+
+
+    void IPlayerTickStateSource.CaptureTickState(
+        PlayerTickState state)
+    {
+        state.HasMovement = true;
+        state.FacingRight = FacingRight;
+        state.IsWallSliding = IsWallSliding;
+        state.IsMovementControlLocked = IsControlLocked;
+        state.MovementVelocity = Velocity;
+    }
+
+
+    bool IPlayerTickCommandSink.ResolveTickCommands(
+        PlayerTickCommands commands,
+        PlayerTickState state)
+    {
+        bool resolved = false;
+
+        if (commands.TryConsumeKnockback(
+                out Vector2 velocity,
+                out float controlLockDuration))
+        {
+            ApplyKnockback(
+                velocity,
+                controlLockDuration);
+
+            resolved = true;
+        }
+
+        if (commands.TryConsumeFacing(
+                out bool facingRight))
+        {
+            SetFacing(
+                facingRight);
+
+            resolved = true;
+        }
+
+        return resolved;
+    }
+
+
     public override void FixedUpdateNetwork()
+    {
+        if (IsTickControlled)
+            return;
+
+        TickMotion();
+    }
+
+
+    internal void TickMotion()
+    {
+        TickMotion(
+            _healthState != null &&
+            _healthState.IsAlive,
+            _combatState != null &&
+            _combatState.IsMovementLocked);
+    }
+
+
+    private void TickMotion(
+        bool isAlive,
+        bool isCombatMovementLocked)
     {
         UpdateGrounded();
         UpdateWallState();
@@ -262,10 +354,7 @@ public sealed class PlayerMovement :
                 input.Move,
                 1f);
 
-        // ��� �߿��� ���� ��ư ���´� �Һ���
-        // ������ ���� ���� �Է��� �� �Է�ó�� Ƣ����� �ʰ� �Ѵ�.
-        if (_healthState == null ||
-            !_healthState.IsAlive)
+        if (!isAlive)
         {
             PreviousButtons =
                 input.Buttons;
@@ -277,7 +366,7 @@ public sealed class PlayerMovement :
 
 
         // ==========================================
-        // Knockback Control Lock
+        // Control Lock
         // ==========================================
 
         if (IsControlLocked)
@@ -293,8 +382,7 @@ public sealed class PlayerMovement :
         // Attack Control Lock
         // ==========================================
 
-        if (_combatState != null &&
-            _combatState.IsMovementLocked)
+        if (isCombatMovementLocked)
         {
             PreviousButtons =
                 input.Buttons;
@@ -342,8 +430,8 @@ public sealed class PlayerMovement :
         Vector2 velocity =
             rb.linearVelocity;
 
-        // ���� �߿��� �Է� ��� ���� �̵��� �����.
-        // ���� �ӵ��� ������ ���߿����� �߷�/���ϰ� ��� ����ȴ�.
+        // 공격 중에는 입력으로 인한 수평 이동을 잠근다.
+        // 기존 수직 속도는 유지해 공중에서도 중력과 낙하는 계속 적용된다.
         velocity.x =
             0f;
 
@@ -373,7 +461,8 @@ public sealed class PlayerMovement :
 
         float targetSpeed =
             inputX *
-            maxMoveSpeed;
+            maxMoveSpeed *
+            ResolveMoveSpeedMultiplier();
 
         bool hasInput =
             Mathf.Abs(inputX) >
@@ -410,6 +499,15 @@ public sealed class PlayerMovement :
             velocity;
     }
 
+
+    private float ResolveMoveSpeedMultiplier()
+    {
+        return _skillController != null
+            ? _skillController
+                .GetActiveStatModifiers()
+                .MoveSpeed
+            : 1f;
+    }
 
     private void UpdateFacing(
         float inputX)
@@ -638,8 +736,8 @@ public sealed class PlayerMovement :
         if (!IsWallSliding)
             return;
 
-        // Presentation�� ���� Wall Check�� ���� �ʾƵ� �ǵ���
-        // ���� Ÿ�� ���� ���� �ٶ󺸴� ������ Networked ���·� Ȯ���Ѵ�.
+        // Presentation은 별도의 Wall Check를 하지 않아도 되도록
+        // 현재 닿은 벽을 바라보는 방향을 Networked 상태로 확정한다.
         if (IsTouchingWallLeft)
         {
             FacingRight =
@@ -817,6 +915,28 @@ public sealed class PlayerMovement :
     // External Movement Commands
     // =========================================================
 
+    public void SetVelocity(
+        Vector2 velocity)
+    {
+        rb.linearVelocity =
+            velocity;
+    }
+
+
+    public void LockControl(
+        float duration)
+    {
+        ControlLockTimer =
+            duration > 0f
+                ? TickTimer.CreateFromSeconds(
+                    Runner,
+                    duration)
+                : TickTimer.None;
+
+        ClearControlDrivenStates();
+    }
+
+
     public void ApplyKnockback(
         Vector2 velocity,
         float controlLockDuration)
@@ -828,18 +948,13 @@ public sealed class PlayerMovement :
             velocity;
 
         KnockbackControlTimer =
-            TickTimer.CreateFromSeconds(
-                Runner,
-                controlLockDuration);
+            controlLockDuration > 0f
+                ? TickTimer.CreateFromSeconds(
+                    Runner,
+                    controlLockDuration)
+                : TickTimer.None;
 
-        IsWallSliding =
-            false;
-
-        WasWallSliding =
-            false;
-
-        WallJumpReadyTimer =
-            TickTimer.None;
+        ClearControlDrivenStates();
     }
 
 
@@ -875,6 +990,9 @@ public sealed class PlayerMovement :
             TickTimer.None;
 
         KnockbackControlTimer =
+            TickTimer.None;
+
+        ControlLockTimer =
             TickTimer.None;
 
         WasWallSliding =
@@ -945,6 +1063,6 @@ public sealed class PlayerMovement :
         Gizmos.color =
             Color.white;
     }
-    
+
 #endif
 }
