@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 
 public sealed class PlayerStatusUI :
-    PlayerModule
+    PlayerTickModule
 {
     [Header("Root")]
     [SerializeField]
@@ -32,6 +32,8 @@ public sealed class PlayerStatusUI :
 
     private NetworkPlayerData
         _playerData;
+
+    public override PlayerTickStage Stage => PlayerTickStage.Finalize;
 
 
     // =========================================================
@@ -196,5 +198,10 @@ public sealed class PlayerStatusUI :
 
         livesText.text =
             $"x{_healthState.Lives}";*/
+    }
+
+    public override void Simulate(in PlayerTick tick)
+    {
+
     }
 }

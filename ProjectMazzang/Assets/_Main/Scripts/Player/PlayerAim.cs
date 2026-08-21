@@ -3,8 +3,7 @@ using UnityEngine;
 
 [DefaultExecutionOrder(-90)]
 public sealed class PlayerAim :
-    PlayerModule,
-    IPlayerTickModule,
+    PlayerTickModule,
     IPlayerTickCommandSink,
     IPlayerTickStateSource
 {
@@ -165,11 +164,11 @@ public sealed class PlayerAim :
     // Fusion
     // =========================================================
 
-    PlayerTickStage IPlayerTickModule.Stage =>
+    public override PlayerTickStage Stage =>
         PlayerTickStage.Aim;
 
 
-    void IPlayerTickModule.Simulate(
+    public override void Simulate(
         in PlayerTick tick)
     {
         TickAim(
@@ -224,13 +223,13 @@ public sealed class PlayerAim :
     }
 
 
-    public override void FixedUpdateNetwork()
+    /*public override void FixedUpdateNetwork()
     {
         if (IsTickControlled)
             return;
 
         TickAim();
-    }
+    }*/
 
 
     internal void TickAim()
@@ -610,13 +609,13 @@ public sealed class PlayerAim :
     private void RequestFacing(
         bool facingRight)
     {
-        if (TickCommands != null)
+        /*if (TickCommands != null)
         {
             TickCommands.RequestFacing(
                 facingRight);
 
             return;
-        }
+        }*/
 
         /*_facingControl?
             .SetFacing(

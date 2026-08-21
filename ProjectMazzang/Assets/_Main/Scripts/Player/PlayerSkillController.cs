@@ -13,8 +13,7 @@ using UnityEngine;
 /// </summary>
 [DefaultExecutionOrder(-80)]
 public sealed class PlayerSkillController :
-    PlayerModule,
-    IPlayerTickModule,
+    PlayerTickModule,
     IPlayerTickStateSource
 {
     [Header("Default Skills")]
@@ -203,11 +202,11 @@ public sealed class PlayerSkillController :
     }
 
 
-    PlayerTickStage IPlayerTickModule.Stage =>
+    public override PlayerTickStage Stage =>
         PlayerTickStage.SkillIntent;
 
 
-    void IPlayerTickModule.Simulate(
+    public override void Simulate(
         in PlayerTick tick)
     {
         TickLateAction(
@@ -242,15 +241,6 @@ public sealed class PlayerSkillController :
             IsActionLocked(
                 SkillSlot.Skill2,
                 _skill2);
-    }
-
-
-    public override void FixedUpdateNetwork()
-    {
-        if (IsTickControlled)
-            return;
-
-        TickLateAction();
     }
 
 

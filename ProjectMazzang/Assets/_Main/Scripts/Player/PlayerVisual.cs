@@ -1,7 +1,7 @@
 using UnityEngine;
 
 public sealed class PlayerVisual :
-    PlayerModule
+    PlayerTickModule
 {
     [Header("References")]
     [SerializeField]
@@ -67,6 +67,8 @@ public sealed class PlayerVisual :
     private bool _previousFacingRight;
 
     private float _previousStatScale = 1f;
+
+    public override PlayerTickStage Stage => PlayerTickStage.Finalize;
 
 
     // =========================================================
@@ -392,5 +394,10 @@ public sealed class PlayerVisual :
             spriteRenderer.color =
                 color;
         }
+    }
+
+    public override void Simulate(in PlayerTick tick)
+    {
+
     }
 }

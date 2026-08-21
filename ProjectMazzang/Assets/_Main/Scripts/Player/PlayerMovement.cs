@@ -11,8 +11,7 @@ public enum JumpType : byte
 
 [DefaultExecutionOrder(-100)]
 public sealed class PlayerMovement :
-    PlayerModule,
-    IPlayerTickModule,
+    PlayerTickModule,
     IPlayerTickStateSource,
     IPlayerTickCommandSink
 {
@@ -241,11 +240,11 @@ public sealed class PlayerMovement :
             GetComponent<PlayerSkillController>();
     }
 
-    PlayerTickStage IPlayerTickModule.Stage =>
+    public override PlayerTickStage Stage =>
         PlayerTickStage.Motion;
 
 
-    void IPlayerTickModule.Simulate(
+    public override void Simulate(
         in PlayerTick tick)
     {
         TickMotion(
@@ -297,13 +296,13 @@ public sealed class PlayerMovement :
     }
 
 
-    public override void FixedUpdateNetwork()
+    /*public override void FixedUpdateNetwork()
     {
         if (IsTickControlled)
             return;
 
         TickMotion();
-    }
+    }*/
 
 
     internal void TickMotion()

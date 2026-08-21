@@ -3,8 +3,7 @@ using UnityEngine;
 
 [DefaultExecutionOrder(-75)]
 public sealed class PlayerParry :
-    PlayerModule,
-    IPlayerTickModule,
+    PlayerTickModule,
     IParryVolume
 {
     [SerializeField] private ParryData data;
@@ -48,13 +47,7 @@ public sealed class PlayerParry :
     public float ParryAimInfluence => data != null ? data.AimInfluence : 0f;
     public float ParrySpeedMultiplier => data != null ? data.SpeedMultiplier : 1f;
 
-    PlayerTickStage IPlayerTickModule.Stage => PlayerTickStage.DefenseIntent;
-
-    /*protected override void OnContextReady()
-    {
-        _weaponState =
-            Context.Get<IPlayerWeaponState>();
-    }*/
+    public override PlayerTickStage Stage => PlayerTickStage.DefenseIntent;
 
     public override void Spawned()
     {
@@ -69,7 +62,7 @@ public sealed class PlayerParry :
             Destroy(_presentation);
     }
 
-    void IPlayerTickModule.Simulate(in PlayerTick tick)
+    public override void Simulate(in PlayerTick tick)
     {
         if (data == null || !GetInput(out PlayerInputData input))
             return;

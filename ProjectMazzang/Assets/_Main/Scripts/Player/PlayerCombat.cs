@@ -12,8 +12,7 @@ public enum PlayerAttackState : byte
 
 [DefaultExecutionOrder(-200)]
 public sealed class PlayerCombat :
-    PlayerModule,
-    IPlayerTickModule,
+    PlayerTickModule,
     IPlayerTickStateSource,
     IPlayerTickCommandSink
 {
@@ -197,11 +196,11 @@ public sealed class PlayerCombat :
     }
 
 
-    PlayerTickStage IPlayerTickModule.Stage =>
+    public override PlayerTickStage Stage =>
         PlayerTickStage.Action;
 
 
-    void IPlayerTickModule.Simulate(
+    public override void Simulate(
         in PlayerTick tick)
     {
         TickAction(
@@ -237,13 +236,13 @@ public sealed class PlayerCombat :
     }
 
 
-    public override void FixedUpdateNetwork()
+    /*public override void FixedUpdateNetwork()
     {
         if (IsTickControlled)
             return;
 
         TickAction();
-    }
+    }*/
 
 
     internal void TickAction()
@@ -395,17 +394,17 @@ public sealed class PlayerCombat :
                     facingRight,
                     tickState);
 
-            if (TickCommands != null)
+            /*if (TickCommands != null)
             {
                 TickCommands.RequestWeaponUse(
                     aimDirection);
             }
             else
             {
-                /*_weaponControl?
+                *//*_weaponControl?
                     .TryUseWeapon(
-                        aimDirection);*/
-            }
+                        aimDirection);*//*
+            }*/
 
             return;
         }
@@ -511,7 +510,7 @@ public sealed class PlayerCombat :
             aimDefinition.CreateOverride();
 
 
-        if (TickCommands != null)
+        /*if (TickCommands != null)
         {
             TickCommands.RequestAimOverride(
                 in aimOverride,
@@ -519,11 +518,11 @@ public sealed class PlayerCombat :
         }
         else
         {
-            /*_aimControl?
+            *//*_aimControl?
                 .ApplyOverride(
                     in aimOverride,
-                    sourceAimDirection);*/
-        }
+                    sourceAimDirection);*//*
+        }*/
     }
 
 
@@ -684,12 +683,12 @@ public sealed class PlayerCombat :
 
     private void RequestClearAimOverride()
     {
-        if (TickCommands != null)
+        /*if (TickCommands != null)
         {
             TickCommands.RequestClearAimOverride();
             return;
         }
-
+*/
         /*_aimControl?
             .ClearOverride();*/
     }

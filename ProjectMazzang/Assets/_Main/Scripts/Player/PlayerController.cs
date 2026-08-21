@@ -20,9 +20,7 @@ public sealed class PlayerController :
 
     // private PlayerContext _context;
 
-    private PlayerModule[] _modules;
-
-    private IPlayerTickModule[] _tickModules;
+    private PlayerTickModule[] _modules;
 
     private IPlayerTickStateSource[] _tickStateSources;
 
@@ -89,8 +87,8 @@ public sealed class PlayerController :
             CaptureCurrentTickState();
         }
 
-        foreach (IPlayerTickModule module
-                 in _tickModules)
+        foreach (PlayerTickModule module
+                 in _modules)
         {
             module.Simulate(
                 in tick);
@@ -114,16 +112,16 @@ public sealed class PlayerController :
         NetworkObject ownerObject =
             GetComponent<NetworkObject>();
 
-        PlayerModule[] candidates =
+        PlayerTickModule[] candidates =
             GetComponentsInChildren<
-                PlayerModule>(
+                PlayerTickModule>(
                 true);
 
-        List<PlayerModule> modules =
+        List<PlayerTickModule> modules =
             new(
                 candidates.Length);
 
-        foreach (PlayerModule module
+        foreach (PlayerTickModule module
                  in candidates)
         {
             NetworkObject moduleObject =
@@ -149,13 +147,13 @@ public sealed class PlayerController :
 
     private void ConfigureTickPipeline()
     {
-        List<IPlayerTickModule> tickModules =
+        List<PlayerTickModule> tickModules =
             new();
 
-        foreach (PlayerModule module
+        foreach (PlayerTickModule module
                  in _modules)
         {
-            if (module is IPlayerTickModule tickModule)
+            if (module is PlayerTickModule tickModule)
             {
                 tickModules.Add(
                     tickModule);
@@ -169,10 +167,10 @@ public sealed class PlayerController :
              i < tickModules.Count;
              i++)
         {
-            IPlayerTickModule previous =
+            PlayerTickModule previous =
                 tickModules[i - 1];
 
-            IPlayerTickModule current =
+            PlayerTickModule current =
                 tickModules[i];
 
             if (previous.Stage !=
@@ -187,19 +185,19 @@ public sealed class PlayerController :
                 "기존 실행 경로를 유지합니다.",
                 this);
 
-            _tickModules =
+            _modules =
                 tickModules.ToArray();
 
             return;
         }
 
-        _tickModules =
+        _modules =
             tickModules.ToArray();
 
         List<IPlayerTickStateSource> stateSources =
             new();
 
-        foreach (PlayerModule module
+        foreach (PlayerTickModule module
                  in _modules)
         {
             if (module is IPlayerTickStateSource stateSource)
@@ -215,12 +213,9 @@ public sealed class PlayerController :
         List<IPlayerTickCommandSink> commandSinks =
             new();
 
-        foreach (PlayerModule module
+        foreach (PlayerTickModule module
                  in _modules)
-        {
-            module.SetTickCommands(
-                _tickCommands);
-
+        {          
             if (module is IPlayerTickCommandSink commandSink)
             {
                 commandSinks.Add(
@@ -234,15 +229,15 @@ public sealed class PlayerController :
         _tickCommands.SetDispatcher(
             this);
 
-        foreach (PlayerModule module
+        /*foreach (PlayerTickModule module
                  in _modules)
         {
-            if (module is IPlayerTickModule)
+            if (module is PlayerTickModule)
             {
                 module.SetTickControlled(
                     true);
             }
-        }
+        }*/
 
         _tickPipelineEnabled =
             true;
@@ -341,8 +336,8 @@ public sealed class PlayerController :
 
 
     private static int CompareTickModules(
-        IPlayerTickModule left,
-        IPlayerTickModule right)
+        PlayerTickModule left,
+        PlayerTickModule right)
     {
         return left.Stage.CompareTo(
             right.Stage);

@@ -11,8 +11,7 @@ public enum DeathCause : byte
 
 [DefaultExecutionOrder(-300)]
 public sealed class PlayerHealth :
-    PlayerModule,
-    IPlayerTickModule,
+    PlayerTickModule,
     IPlayerTickStateSource
 {
     [Header("Health")]
@@ -135,34 +134,6 @@ public sealed class PlayerHealth :
             : transform;
 
     // =========================================================
-    // Context
-    // =========================================================
-
-    /*protected override void RegisterContextUnits()
-    {
-        Context.Register<
-            IPlayerHealthState>(
-            this);
-
-        Context.Register<
-            IPlayerDamageReceiver>(
-            this);
-    }
-
-
-    protected override void OnContextReady()
-    {
-        _knockbackReceiver =
-            Context.Get<
-                IPlayerKnockbackReceiver>();
-
-        _combatControl =
-            Context.Get<
-                IPlayerCombatControl>();
-    }*/
-
-
-    // =========================================================
     // Fusion
     // =========================================================
 
@@ -226,11 +197,11 @@ public sealed class PlayerHealth :
     }
 
 
-    PlayerTickStage IPlayerTickModule.Stage =>
+    public override PlayerTickStage Stage =>
         PlayerTickStage.Begin;
 
 
-    void IPlayerTickModule.Simulate(
+    public override void Simulate(
         in PlayerTick tick)
     {
         TickBegin();
@@ -242,17 +213,7 @@ public sealed class PlayerHealth :
     {
         state.HasHealth = true;
         state.IsAlive = IsAlive;
-    }
-
-
-    public override void FixedUpdateNetwork()
-    {
-        if (IsTickControlled)
-            return;
-
-        TickBegin();
-    }
-
+    }    
 
     internal void TickBegin()
     {
@@ -333,13 +294,13 @@ public sealed class PlayerHealth :
 
     private void RequestCancelAttack()
     {
-        if (TickCommands != null)
+        /*if (TickCommands != null)
         {
             TickCommands.RequestCancelAttack();
             return;
         }
 
-        /*_combatControl?
+        _combatControl?
             .CancelAttack();*/
     }
 
@@ -348,14 +309,14 @@ public sealed class PlayerHealth :
         Vector2 velocity,
         float controlLockDuration)
     {
-        if (TickCommands != null)
+        /*if (TickCommands != null)
         {
             TickCommands.RequestKnockback(
                 velocity,
                 controlLockDuration);
 
             return;
-        }
+        }*/
 
         /*_knockbackReceiver?
             .ApplyKnockback(

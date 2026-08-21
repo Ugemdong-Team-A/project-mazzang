@@ -2,7 +2,7 @@ using Fusion;
 using UnityEngine;
 
 public sealed class PlayerAnimation :
-    PlayerModule
+    PlayerTickModule
 {
     [SerializeField]
     private Animator animator;
@@ -14,6 +14,8 @@ public sealed class PlayerAnimation :
     private byte _lastDeathSequence;
 
     private byte _lastSkillAnimationSequence;
+
+    public override PlayerTickStage Stage => PlayerTickStage.Finalize;
 
 
     // =========================================================
@@ -190,5 +192,10 @@ public sealed class PlayerAnimation :
 
         animator.SetTrigger(
             "Death");
+    }
+
+    public override void Simulate(in PlayerTick tick)
+    {
+        
     }
 }

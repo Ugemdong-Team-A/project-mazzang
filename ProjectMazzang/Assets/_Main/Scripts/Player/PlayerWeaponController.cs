@@ -4,8 +4,7 @@ using UnityEngine.U2D.IK;
 
 [DefaultExecutionOrder(-210)]
 public sealed class PlayerWeaponController :
-    PlayerModule,
-    IPlayerTickModule,
+    PlayerTickModule,
     IPlayerTickCommandSink,
     IPlayerTickStateSource
 {
@@ -129,11 +128,11 @@ public sealed class PlayerWeaponController :
     }
 
 
-    PlayerTickStage IPlayerTickModule.Stage =>
+    public override PlayerTickStage Stage =>
         PlayerTickStage.PrepareAction;
 
 
-    void IPlayerTickModule.Simulate(
+    public override void Simulate(
         in PlayerTick tick)
     {
         TickPrepareAction(
@@ -169,16 +168,6 @@ public sealed class PlayerWeaponController :
 
         return true;
     }
-
-
-    public override void FixedUpdateNetwork()
-    {
-        if (IsTickControlled)
-            return;
-
-        TickPrepareAction();
-    }
-
 
     internal void TickPrepareAction()
     {
