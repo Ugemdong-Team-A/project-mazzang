@@ -2,15 +2,17 @@ using Fusion;
 using UnityEngine;
 
 /// <summary>
-/// PlayerContext를 공유하는 플레이어 내부 NetworkBehaviour의 공통 기반입니다.
+/// 플레이어 내부 NetworkBehaviour의 공통 기반입니다.
 ///
-/// Fusion의 FixedUpdateNetwork / Render 실행은 각 파생 클래스가
-/// 기존처럼 직접 담당하며, 이 클래스는 Context 연결만 책임집니다.
+/// 새 Tick 경로에는 명령 채널을 제공하고, 기존 UI와 Render를 위한
+/// PlayerContext 호환 초기화는 별도 수명 주기로 유지합니다.
 /// </summary>
 public abstract class PlayerModule :
     NetworkBehaviour
 {
     private bool _contextCompleted;
+
+    private bool _tickControlled;
 
 
     protected PlayerContext Context
@@ -23,6 +25,31 @@ public abstract class PlayerModule :
     public bool IsContextReady =>
         Context != null &&
         _contextCompleted;
+
+
+    protected bool IsTickControlled =>
+        _tickControlled;
+
+    protected PlayerTickCommands TickCommands
+    {
+        get;
+        private set;
+    }
+
+
+    internal void SetTickControlled(
+        bool controlled)
+    {
+        _tickControlled =
+            controlled;
+    }
+
+
+    internal void SetTickCommands(
+        PlayerTickCommands commands)
+    {
+        TickCommands = commands;
+    }
 
 
     internal void InitializeContext(

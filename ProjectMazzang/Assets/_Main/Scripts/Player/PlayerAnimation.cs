@@ -17,12 +17,17 @@ public sealed class PlayerAnimation :
     private IPlayerHealthState
         _healthState;
 
+    private IPlayerSkillAnimationState
+        _skillAnimationState;
+
 
     private byte _lastJumpSequence;
 
     private byte _lastAttackSequence;
 
     private byte _lastDeathSequence;
+
+    private byte _lastSkillAnimationSequence;
 
 
     // =========================================================
@@ -42,6 +47,10 @@ public sealed class PlayerAnimation :
         _healthState =
             Context.Get<
                 IPlayerHealthState>();
+
+        _skillAnimationState =
+            Context.Get<
+                IPlayerSkillAnimationState>();
     }
 
 
@@ -66,6 +75,12 @@ public sealed class PlayerAnimation :
 
         _lastDeathSequence =
             _healthState.DeathSequence;
+
+        if (_skillAnimationState != null)
+        {
+            _lastSkillAnimationSequence =
+                _skillAnimationState.SkillAnimationSequence;
+        }
     }
 
 
@@ -105,6 +120,7 @@ public sealed class PlayerAnimation :
 
         HandleJumpAnimation();
         HandleAttackAnimation();
+        HandleSkillAnimation();
         HandleDeathAnimation();
     }
 
@@ -151,6 +167,27 @@ public sealed class PlayerAnimation :
 
         animator.SetTrigger(
             "Attack");
+    }
+
+
+    private void HandleSkillAnimation()
+    {
+        if (_skillAnimationState == null ||
+            _lastSkillAnimationSequence ==
+            _skillAnimationState.SkillAnimationSequence)
+        {
+            return;
+        }
+
+        _lastSkillAnimationSequence =
+            _skillAnimationState.SkillAnimationSequence;
+
+        animator.SetInteger(
+            "SkillId",
+            (int)_skillAnimationState.LastSkillAnimation);
+
+        animator.SetTrigger(
+            "Skill");
     }
 
 

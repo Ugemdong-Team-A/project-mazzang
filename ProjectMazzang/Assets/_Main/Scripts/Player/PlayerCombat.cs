@@ -14,7 +14,10 @@ public enum PlayerAttackState : byte
 public sealed class PlayerCombat :
     PlayerModule,
     IPlayerCombatState,
-    IPlayerCombatControl
+    IPlayerCombatControl,
+    IPlayerTickModule,
+    IPlayerTickStateSource,
+    IPlayerTickCommandSink
 {
     private const int NoneAttackId = 0;
 
@@ -44,9 +47,6 @@ public sealed class PlayerCombat :
 
     private IPlayerHealthState
         _healthState;
-
-    private IPlayerDamageReceiver
-        _selfDamageReceiver;
 
     private IPlayerAimState
         _aimState;
@@ -174,10 +174,6 @@ public sealed class PlayerCombat :
             Context.Get<
                 IPlayerHealthState>();
 
-        _selfDamageReceiver =
-            Context.Get<
-                IPlayerDamageReceiver>();
-
         _aimState =
             Context.Get<
                 IPlayerAimState>();
@@ -222,9 +218,77 @@ public sealed class PlayerCombat :
     }
 
 
+    PlayerTickStage IPlayerTickModule.Stage =>
+        PlayerTickStage.Action;
+
+
+    void IPlayerTickModule.Simulate(
+        in PlayerTick tick)
+    {
+        TickAction(
+            tick.State.HasHealth &&
+            tick.State.IsAlive,
+            tick.State.HasMovement &&
+            tick.State.IsMovementControlLocked,
+            tick.State.HasSkill &&
+            tick.State.IsSkillActionLocked,
+            !tick.State.HasMovement ||
+            tick.State.FacingRight,
+            tick.State);
+    }
+
+
+    void IPlayerTickStateSource.CaptureTickState(
+        PlayerTickState state)
+    {
+        state.HasCombat = true;
+        state.IsCombatMovementLocked = IsMovementLocked;
+    }
+
+
+    bool IPlayerTickCommandSink.ResolveTickCommands(
+        PlayerTickCommands commands,
+        PlayerTickState state)
+    {
+        if (!commands.TryConsumeCancelAttack())
+            return false;
+
+        CancelAttack();
+        return true;
+    }
+
+
     public override void FixedUpdateNetwork()
     {
-        if (!IsContextReady)
+        if (IsTickControlled)
+            return;
+
+        TickAction();
+    }
+
+
+    internal void TickAction()
+    {
+        TickAction(
+            _healthState != null &&
+            _healthState.IsAlive,
+            _movementState != null &&
+            _movementState.IsControlLocked,
+            false,
+            ResolveFacingRight(),
+            null);
+    }
+
+
+    private void TickAction(
+        bool isAlive,
+        bool isMovementControlLocked,
+        bool isSkillActionLocked,
+        bool facingRight,
+        PlayerTickState tickState)
+    {
+        if (tickState == null &&
+            !IsContextReady)
             return;
 
         bool hasInput =
@@ -236,8 +300,7 @@ public sealed class PlayerCombat :
         // Dead
         // ==========================================
 
-        if (_healthState == null ||
-            !_healthState.IsAlive)
+        if (!isAlive)
         {
             CancelAttack();
 
@@ -255,8 +318,21 @@ public sealed class PlayerCombat :
         // Control Lock
         // ==========================================
 
-        if (_movementState != null &&
-            _movementState.IsControlLocked)
+        if (isMovementControlLocked)
+        {
+            CancelAttack();
+
+            if (hasInput)
+            {
+                PreviousButtons =
+                    input.Buttons;
+            }
+
+            return;
+        }
+
+
+        if (isSkillActionLocked)
         {
             CancelAttack();
 
@@ -274,7 +350,8 @@ public sealed class PlayerCombat :
         // Attack State
         // ==========================================
 
-        UpdateAttack();
+        UpdateAttack(
+            facingRight);
 
 
         if (!hasInput)
@@ -298,7 +375,10 @@ public sealed class PlayerCombat :
 
 
         TryAttack(
-            in input);
+            in input,
+            isMovementControlLocked,
+            facingRight,
+            tickState);
     }
 
 
@@ -307,28 +387,46 @@ public sealed class PlayerCombat :
     // =========================================================
 
     private void TryAttack(
-        in PlayerInputData input)
+        in PlayerInputData input,
+        bool isMovementControlLocked,
+        bool facingRight,
+        PlayerTickState tickState)
     {
         if (IsAttacking)
             return;
 
-        if (_movementState != null &&
-            _movementState.IsControlLocked)
+        if (isMovementControlLocked)
         {
             return;
         }
 
 
-        if (_weaponState != null &&
-            _weaponState.HasEquippedWeapon)
+        bool hasEquippedWeapon =
+            tickState != null
+                ? tickState.HasWeapon &&
+                  tickState.HasEquippedWeapon
+                : _weaponState != null &&
+                  _weaponState.HasEquippedWeapon;
+
+        if (hasEquippedWeapon)
         {
             Vector2 aimDirection =
                 ResolveInputAimDirection(
-                    input.AimWorldPosition);
+                    input.AimWorldPosition,
+                    facingRight,
+                    tickState);
 
-            _weaponControl?
-                .TryUseWeapon(
+            if (TickCommands != null)
+            {
+                TickCommands.RequestWeaponUse(
                     aimDirection);
+            }
+            else
+            {
+                _weaponControl?
+                    .TryUseWeapon(
+                        aimDirection);
+            }
 
             return;
         }
@@ -348,7 +446,9 @@ public sealed class PlayerCombat :
 
         Vector2 sourceAimDirection =
             ResolveInputAimDirection(
-                input.AimWorldPosition);
+                input.AimWorldPosition,
+                facingRight,
+                tickState);
 
 
         StartAttack(
@@ -416,17 +516,13 @@ public sealed class PlayerCombat :
         in PlayerAttackDefinition definition,
         Vector2 sourceAimDirection)
     {
-        if (_aimControl == null)
-            return;
-
-
         PlayerAttackAimDefinition aimDefinition =
             definition.Aim;
 
 
         if (!aimDefinition.RequiresOverride)
         {
-            _aimControl.ClearOverride();
+            RequestClearAimOverride();
 
             return;
         }
@@ -436,9 +532,19 @@ public sealed class PlayerCombat :
             aimDefinition.CreateOverride();
 
 
-        _aimControl.ApplyOverride(
-            in aimOverride,
-            sourceAimDirection);
+        if (TickCommands != null)
+        {
+            TickCommands.RequestAimOverride(
+                in aimOverride,
+                sourceAimDirection);
+        }
+        else
+        {
+            _aimControl?
+                .ApplyOverride(
+                    in aimOverride,
+                    sourceAimDirection);
+        }
     }
 
 
@@ -446,7 +552,8 @@ public sealed class PlayerCombat :
     // Attack Update
     // =========================================================
 
-    private void UpdateAttack()
+    private void UpdateAttack(
+        bool facingRight)
     {
         switch (AttackState)
         {
@@ -455,7 +562,8 @@ public sealed class PlayerCombat :
 
 
             case PlayerAttackState.Startup:
-                UpdateStartup();
+                UpdateStartup(
+                    facingRight);
                 break;
 
 
@@ -471,7 +579,8 @@ public sealed class PlayerCombat :
     }
 
 
-    private void UpdateStartup()
+    private void UpdateStartup(
+        bool facingRight)
     {
         if (!AttackPhaseTimer
                 .Expired(Runner))
@@ -480,11 +589,13 @@ public sealed class PlayerCombat :
         }
 
 
-        BeginActive();
+        BeginActive(
+            facingRight);
     }
 
 
-    private void BeginActive()
+    private void BeginActive(
+        bool facingRight)
     {
         if (!TryGetCurrentAttackDefinition(
                 out PlayerAttackDefinition definition))
@@ -507,7 +618,8 @@ public sealed class PlayerCombat :
             BoxAttackData boxAttack)
         {
             PerformBoxAttackHit(
-                boxAttack);
+                boxAttack,
+                facingRight);
         }
 
 
@@ -587,6 +699,18 @@ public sealed class PlayerCombat :
             NoneAttackId;
 
 
+        RequestClearAimOverride();
+    }
+
+
+    private void RequestClearAimOverride()
+    {
+        if (TickCommands != null)
+        {
+            TickCommands.RequestClearAimOverride();
+            return;
+        }
+
         _aimControl?
             .ClearOverride();
     }
@@ -647,9 +771,23 @@ public sealed class PlayerCombat :
     // =========================================================
 
     private Vector2 ResolveInputAimDirection(
-        Vector2 aimWorldPosition)
+        Vector2 aimWorldPosition,
+        bool facingRight,
+        PlayerTickState tickState)
     {
-        if (_aimState != null)
+        if (tickState != null)
+        {
+            Vector2 direction =
+                tickState.ResolveAimDirectionTo(
+                    aimWorldPosition);
+
+            if (direction.sqrMagnitude >
+                0.0001f)
+            {
+                return direction.normalized;
+            }
+        }
+        else if (_aimState != null)
         {
             Vector2 direction =
                 _aimState.ResolveDirectionTo(
@@ -666,7 +804,7 @@ public sealed class PlayerCombat :
 
 
         return
-            ResolveFacingRight()
+            facingRight
                 ? Vector2.right
                 : Vector2.left;
     }
@@ -677,14 +815,11 @@ public sealed class PlayerCombat :
     // =========================================================
 
     private void PerformBoxAttackHit(
-        BoxAttackData attack)
+        BoxAttackData attack,
+        bool facingRight)
     {
         if (attack == null)
             return;
-
-
-        bool facingRight =
-            ResolveFacingRight();
 
 
         float facingSign =
@@ -722,12 +857,12 @@ public sealed class PlayerCombat :
                 continue;
 
 
-            if (ReferenceEquals(
-                    damageable,
-                    _selfDamageReceiver))
-            {
+            NetworkObject damageableObject =
+                hit.GetComponentInParent<
+                    NetworkObject>();
+
+            if (damageableObject == Object)
                 continue;
-            }
 
 
             if (!_hitTargets.Add(

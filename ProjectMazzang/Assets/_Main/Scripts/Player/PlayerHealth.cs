@@ -13,7 +13,9 @@ public enum DeathCause : byte
 public sealed class PlayerHealth :
     PlayerModule,
     IPlayerHealthState,
-    IPlayerDamageReceiver
+    IPlayerDamageReceiver,
+    IPlayerTickModule,
+    IPlayerTickStateSource
 {
     [Header("Health")]
     [SerializeField]
@@ -34,7 +36,7 @@ public sealed class PlayerHealth :
 
 
     [Header("Kill Credit")]
-    [Tooltip("¸¶Áö¸·À¸·Î °ø°ÝÇÑ ÇÃ·¹ÀÌ¾î¿¡°Ô MapOut KO¸¦ ÀÎÁ¤ÇÏ´Â ½Ã°£ÀÔ´Ï´Ù.")]
+    [Tooltip("ë§ˆì§€ë§‰ìœ¼ë¡œ ê³µê²©í•œ í”Œë ˆì´ì–´ì—ê²Œ MapOut KOë¥¼ ì¸ì •í•˜ëŠ” ì‹œê°„ìž…ë‹ˆë‹¤.")]
     [SerializeField]
     private float lastAttackerCreditDuration = 5f;
 
@@ -50,6 +52,9 @@ public sealed class PlayerHealth :
 
     private IPlayerCombatControl
         _combatControl;
+
+    private PlayerSkillController
+        _skillController;
 
 
     // =========================================================
@@ -97,6 +102,9 @@ public sealed class PlayerHealth :
     [Networked]
     private TickTimer InvulnerabilityTimer { get; set; }
 
+    [Networked]
+    private int AppliedMaxHealth { get; set; }
+
 
     // =========================================================
     // Local Presentation Events
@@ -111,7 +119,9 @@ public sealed class PlayerHealth :
     // =========================================================
 
     public int MaxHealth =>
-        maxHealth;
+        AppliedMaxHealth > 0
+            ? AppliedMaxHealth
+            : maxHealth;
 
 
     public int MaxLives =>
@@ -170,18 +180,24 @@ public sealed class PlayerHealth :
 
     public override void Spawned()
     {
+        _skillController =
+            GetComponent<PlayerSkillController>();
+
         _lastHealth =
             Health;
 
         BattleCameraController.Instance?
             .AddTarget(
-                transform);
+                CameraTarget);
 
         if (!HasStateAuthority)
             return;
 
-        Health =
+        AppliedMaxHealth =
             maxHealth;
+
+        Health =
+            MaxHealth;
 
         Lives =
             startingLives;
@@ -218,14 +234,44 @@ public sealed class PlayerHealth :
     {
         BattleCameraController.Instance?
             .RemoveTarget(
-                transform);
+                CameraTarget);
+    }
+
+
+    PlayerTickStage IPlayerTickModule.Stage =>
+        PlayerTickStage.Begin;
+
+
+    void IPlayerTickModule.Simulate(
+        in PlayerTick tick)
+    {
+        TickBegin();
+    }
+
+
+    void IPlayerTickStateSource.CaptureTickState(
+        PlayerTickState state)
+    {
+        state.HasHealth = true;
+        state.IsAlive = IsAlive;
     }
 
 
     public override void FixedUpdateNetwork()
     {
+        if (IsTickControlled)
+            return;
+
+        TickBegin();
+    }
+
+
+    internal void TickBegin()
+    {
         if (!HasStateAuthority)
             return;
+
+        RefreshMaxHealthModifier();
 
         if (!IsDead)
             return;
@@ -262,24 +308,26 @@ public sealed class PlayerHealth :
         RegisterLastAttacker(
             info.Source.InputAuthority);
 
+        int effectiveDamage =
+            ResolveEffectiveDamage(
+                in info);
+
         Health =
             Mathf.Max(
                 0,
                 Health -
-                info.Damage);
+                effectiveDamage);
 
-        // À¯È¿ÇÑ ÇÇ°ÝÀÌ µé¾î¿À´Â Áï½Ã ÇöÀç °ø°ÝÀ» ²÷´Â´Ù.
-        // ÀÌÈÄ MovementÀÇ control lock µ¿¾È »õ °ø°Ýµµ Â÷´ÜµÈ´Ù.
-        _combatControl?
-            .CancelAttack();
+        // ìœ íš¨í•œ í”¼ê²©ì´ ë“¤ì–´ì˜¤ëŠ” ì¦‰ì‹œ í˜„ìž¬ ê³µê²©ì„ ëŠëŠ”ë‹¤.
+        // ì´í›„ Movementì˜ control lock ë™ì•ˆ ìƒˆ ê³µê²©ë„ ì°¨ë‹¨ëœë‹¤.
+        RequestCancelAttack();
 
         if (info.Knockback
                 .sqrMagnitude > 0f)
         {
-            _knockbackReceiver?
-                .ApplyKnockback(
-                    info.Knockback,
-                    info.KnockbackControlLock);
+            RequestKnockback(
+                info.Knockback,
+                info.KnockbackControlLock);
         }
 
         if (Health > 0)
@@ -292,6 +340,39 @@ public sealed class PlayerHealth :
         Die(
             deathAttacker,
             DeathCause.Damage);
+    }
+
+
+    private void RequestCancelAttack()
+    {
+        if (TickCommands != null)
+        {
+            TickCommands.RequestCancelAttack();
+            return;
+        }
+
+        _combatControl?
+            .CancelAttack();
+    }
+
+
+    private void RequestKnockback(
+        Vector2 velocity,
+        float controlLockDuration)
+    {
+        if (TickCommands != null)
+        {
+            TickCommands.RequestKnockback(
+                velocity,
+                controlLockDuration);
+
+            return;
+        }
+
+        _knockbackReceiver?
+            .ApplyKnockback(
+                velocity,
+                controlLockDuration);
     }
 
 
@@ -426,9 +507,8 @@ public sealed class PlayerHealth :
 
         DeathSequence++;
 
-        // »ç¸ÁÇÑ Æ½¿¡ ÀÌ¹Ì ÁøÇà ÁßÀÎ °ø°Ýµµ Áï½Ã Ãë¼ÒÇÑ´Ù.
-        _combatControl?
-            .CancelAttack();
+        // ì‚¬ë§í•œ í‹±ì— ì´ë¯¸ ì§„í–‰ ì¤‘ì¸ ê³µê²©ë„ ì¦‰ì‹œ ì·¨ì†Œí•œë‹¤.
+        RequestCancelAttack();
 
         LoseLife();
 
@@ -478,7 +558,7 @@ public sealed class PlayerHealth :
     private void CompleteRespawn()
     {
         Health =
-            maxHealth;
+            MaxHealth;
 
         RespawnTimer =
             TickTimer.None;
@@ -492,6 +572,83 @@ public sealed class PlayerHealth :
 
         IsDead =
             false;
+    }
+
+
+    private void RefreshMaxHealthModifier()
+    {
+        int previousMaximum =
+            MaxHealth;
+
+        float multiplier =
+            _skillController != null
+                ? _skillController
+                    .GetActiveStatModifiers()
+                    .MaxHealth
+                : 1f;
+
+        int nextMaximum =
+            Mathf.Max(
+                1,
+                Mathf.RoundToInt(
+                    maxHealth * multiplier));
+
+        if (previousMaximum == nextMaximum)
+            return;
+
+        AppliedMaxHealth =
+            nextMaximum;
+
+        if (!IsAlive)
+            return;
+
+        if (nextMaximum > previousMaximum)
+        {
+            Health =
+                Mathf.Min(
+                    nextMaximum,
+                    Health +
+                    nextMaximum -
+                    previousMaximum);
+        }
+        else
+        {
+            Health =
+                Mathf.Min(
+                    Health,
+                    nextMaximum);
+        }
+    }
+
+
+    private int ResolveEffectiveDamage(
+        in DamageInfo info)
+    {
+        float attackMultiplier = 1f;
+
+        if (info.Source != null &&
+            info.Source.TryGetComponent(
+                out PlayerSkillController sourceSkills))
+        {
+            attackMultiplier =
+                sourceSkills
+                    .GetActiveStatModifiers()
+                    .AttackDamage;
+        }
+
+        float damageTakenMultiplier =
+            _skillController != null
+                ? _skillController
+                    .GetActiveStatModifiers()
+                    .DamageTaken
+                : 1f;
+
+        return Mathf.Max(
+            0,
+            Mathf.RoundToInt(
+                info.Damage *
+                attackMultiplier *
+                damageTakenMultiplier));
     }
 
 
@@ -518,9 +675,8 @@ public sealed class PlayerHealth :
                 Health &&
             !IsDead)
         {
-            BattleCameraController.Instance?
-                .PlayHitShake(
-                    transform.position);
+            CameraShakeService.PlayDefaultHit(
+                transform.position);
         }
 
         _lastHealth =
@@ -536,10 +692,10 @@ public sealed class PlayerHealth :
         if (IsDead)
         {
             bcc?.RemoveTarget(
-                cameraTarget);
+                CameraTarget);
 
-            bcc?.PlayDeathShake(
-                cameraTarget.position);
+            CameraShakeService.PlayDefaultDeath(
+                CameraTarget.position);
 
             LocalDeathOccurred?
                 .Invoke(this);
@@ -547,7 +703,7 @@ public sealed class PlayerHealth :
         else
         {
             bcc?.AddTarget(
-                cameraTarget);
+                CameraTarget);
         }
     }
 }

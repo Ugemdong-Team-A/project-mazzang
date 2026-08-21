@@ -13,7 +13,10 @@ using UnityEngine;
 /// </summary>
 [DefaultExecutionOrder(-80)]
 public sealed class PlayerSkillController :
-    PlayerModule
+    PlayerModule,
+    IPlayerSkillAnimationState,
+    IPlayerTickModule,
+    IPlayerTickStateSource
 {
     [Header("Default Skills")]
     [SerializeField]
@@ -28,6 +31,21 @@ public sealed class PlayerSkillController :
 
     private IPlayerHealthState
         _healthState;
+
+
+    [Networked]
+    public byte SkillAnimationSequence
+    {
+        get;
+        private set;
+    }
+
+    [Networked]
+    public PlayerSkillAnimationId LastSkillAnimation
+    {
+        get;
+        private set;
+    }
 
 
     // =========================================================
@@ -142,6 +160,13 @@ public sealed class PlayerSkillController :
     // Context
     // =========================================================
 
+    protected override void RegisterContextUnits()
+    {
+        Context.Register<IPlayerSkillAnimationState>(
+            this);
+    }
+
+
     protected override void OnContextReady()
     {
         _healthState =
@@ -182,9 +207,87 @@ public sealed class PlayerSkillController :
     }
 
 
+    PlayerTickStage IPlayerTickModule.Stage =>
+        PlayerTickStage.SkillIntent;
+
+
+    void IPlayerTickModule.Simulate(
+        in PlayerTick tick)
+    {
+        TickLateAction(
+            tick.State.HasHealth &&
+            tick.State.IsAlive,
+            false);
+    }
+
+    [Networked]
+    private Vector2 Skill1AimDirection
+    {
+        get;
+        set;
+    }
+
+    [Networked]
+    private Vector2 Skill2AimDirection
+    {
+        get;
+        set;
+    }
+
+
+    void IPlayerTickStateSource.CaptureTickState(
+        PlayerTickState state)
+    {
+        state.HasSkill = true;
+        state.IsSkillActionLocked =
+            IsActionLocked(
+                SkillSlot.Skill1,
+                _skill1) ||
+            IsActionLocked(
+                SkillSlot.Skill2,
+                _skill2);
+    }
+
+
     public override void FixedUpdateNetwork()
     {
-        if (!IsContextReady)
+        if (IsTickControlled)
+            return;
+
+        TickLateAction();
+    }
+
+
+    public override void Render()
+    {
+        _skill1?.Render();
+        _skill2?.Render();
+    }
+
+
+    internal bool TryGetCurrentInput(
+        out PlayerInputData input)
+    {
+        return GetInput(
+            out input);
+    }
+
+
+    internal void TickLateAction()
+    {
+        TickLateAction(
+            _healthState != null &&
+            _healthState.IsAlive,
+            true);
+    }
+
+
+    private void TickLateAction(
+        bool isAlive,
+        bool requireContext)
+    {
+        if (requireContext &&
+            !IsContextReady)
             return;
 
 
@@ -216,8 +319,7 @@ public sealed class PlayerSkillController :
         // Dead
         // ==========================================
 
-        if (_healthState == null ||
-            !_healthState.IsAlive)
+        if (!isAlive)
         {
             CancelAll();
 
@@ -337,11 +439,32 @@ public sealed class PlayerSkillController :
             slot,
             skill);
 
+        PlayerSkillAnimationId animationId =
+            ResolveAnimationId(skill);
+
+        if (animationId != PlayerSkillAnimationId.None)
+        {
+            LastSkillAnimation = animationId;
+            SkillAnimationSequence++;
+        }
+
 
         skill.Activate(
             in useContext);
 
         return true;
+    }
+
+
+    private static PlayerSkillAnimationId ResolveAnimationId(
+        Skill skill)
+    {
+        return skill switch
+        {
+            FireballSkill => PlayerSkillAnimationId.Fireball,
+            AwakeningSkill => PlayerSkillAnimationId.Awakening,
+            _ => PlayerSkillAnimationId.None
+        };
     }
 
 
@@ -821,6 +944,95 @@ public sealed class PlayerSkillController :
     }
 
 
+    internal void SetSkillAimDirection(
+        SkillSlot slot,
+        Vector2 direction)
+    {
+        if (!HasStateAuthority)
+            return;
+
+        direction =
+            direction.sqrMagnitude > 0.0001f
+                ? direction.normalized
+                : Vector2.zero;
+
+        switch (slot)
+        {
+            case SkillSlot.Skill1:
+                Skill1AimDirection = direction;
+                break;
+
+            case SkillSlot.Skill2:
+                Skill2AimDirection = direction;
+                break;
+        }
+    }
+
+
+    internal Vector2 GetSkillAimDirection(
+        SkillSlot slot)
+    {
+        return slot switch
+        {
+            SkillSlot.Skill1 => Skill1AimDirection,
+            SkillSlot.Skill2 => Skill2AimDirection,
+            _ => Vector2.zero
+        };
+    }
+
+
+    public PlayerStatModifiers GetActiveStatModifiers()
+    {
+        PlayerStatModifiers result =
+            PlayerStatModifiers.Identity;
+
+        CombineActiveStatModifiers(
+            SkillSlot.Skill1,
+            _skill1,
+            ref result);
+
+        CombineActiveStatModifiers(
+            SkillSlot.Skill2,
+            _skill2,
+            ref result);
+
+        return result;
+    }
+
+
+    private void CombineActiveStatModifiers(
+        SkillSlot slot,
+        Skill skill,
+        ref PlayerStatModifiers result)
+    {
+        if (GetUsePhase(slot) !=
+                SkillUsePhase.Active ||
+            skill is not IPlayerStatModifierSkill modifierSkill)
+        {
+            return;
+        }
+
+        PlayerStatModifiers modifiers =
+            modifierSkill.StatModifiers;
+
+        result =
+            result.Combine(in modifiers);
+    }
+
+
+    private bool IsActionLocked(
+        SkillSlot slot,
+        Skill skill)
+    {
+        SkillUsePhase phase =
+            GetUsePhase(slot);
+
+        return skill is IActionLockSkill actionLockSkill &&
+               phase != SkillUsePhase.None &&
+               actionLockSkill.IsActionLocked(phase);
+    }
+
+
     // =========================================================
     // Skill Access
     // =========================================================
@@ -937,6 +1149,10 @@ public sealed class PlayerSkillController :
         SetPhaseTimer(
             slot,
             TickTimer.None);
+
+        SetSkillAimDirection(
+            slot,
+            Vector2.zero);
     }
 
 
@@ -973,6 +1189,11 @@ public sealed class PlayerSkillController :
         SetPhaseTimer(
             slot,
             TickTimer.None);
+
+
+        SetSkillAimDirection(
+            slot,
+            Vector2.zero);
 
 
         int charges =

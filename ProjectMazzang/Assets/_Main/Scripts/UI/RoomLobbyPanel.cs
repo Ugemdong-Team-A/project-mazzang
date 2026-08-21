@@ -76,6 +76,8 @@ public sealed class RoomLobbyPanel :
     [SerializeField]
     private Button legacyStartButton;
 
+    private TMP_Text _startButtonText;
+
     private readonly Dictionary<
         PlayerRef,
         PlayerListItem> _playerItems = new();
@@ -96,6 +98,9 @@ public sealed class RoomLobbyPanel :
 
     public event Action<int>
         CharacterConfirmRequested;
+
+    public event Action
+        MapVoteStartRequested;
 
     public event Action<int>
         MapVoteRequested;
@@ -123,8 +128,12 @@ public sealed class RoomLobbyPanel :
 
         if (legacyStartButton != null)
         {
-            legacyStartButton.gameObject.SetActive(
-                false);
+            legacyStartButton.onClick.AddListener(
+                OnMapVoteStartClicked);
+
+            _startButtonText =
+                legacyStartButton.GetComponentInChildren<
+                    TMP_Text>(true);
         }
     }
 
@@ -140,6 +149,12 @@ public sealed class RoomLobbyPanel :
         {
             leaveButton.onClick.RemoveListener(
                 OnLeaveClicked);
+        }
+
+        if (legacyStartButton != null)
+        {
+            legacyStartButton.onClick.RemoveListener(
+                OnMapVoteStartClicked);
         }
 
         StopMapRoulette();
@@ -442,7 +457,6 @@ public sealed class RoomLobbyPanel :
         if (characterConfirmButton != null)
         {
             characterConfirmButton.interactable =
-                !confirmed &&
                 _previewCharacterId >= 0;
         }
 
@@ -450,7 +464,7 @@ public sealed class RoomLobbyPanel :
         {
             characterConfirmButtonText.text =
                 confirmed
-                    ? "확정 완료"
+                    ? "확정 취소"
                     : "캐릭터 확정";
         }
     }
@@ -473,6 +487,46 @@ public sealed class RoomLobbyPanel :
 
         CharacterConfirmRequested?.Invoke(
             _previewCharacterId);
+    }
+
+    public void SetMapVoteStartState(
+        bool visible,
+        bool isHost,
+        bool allCharactersConfirmed,
+        int confirmedCount,
+        int playerCount)
+    {
+        if (legacyStartButton == null)
+            return;
+
+        legacyStartButton.gameObject.SetActive(
+            visible);
+
+        if (!visible)
+            return;
+
+        legacyStartButton.interactable =
+            isHost && allCharactersConfirmed;
+
+        if (_startButtonText == null)
+            return;
+
+        if (!allCharactersConfirmed)
+        {
+            _startButtonText.text =
+                $"캐릭터 선택 대기 중 ({confirmedCount}/{playerCount})";
+            return;
+        }
+
+        _startButtonText.text =
+            isHost
+                ? "맵 투표 시작"
+                : "방장이 맵 투표를 시작하기를 기다리는 중...";
+    }
+
+    private void OnMapVoteStartClicked()
+    {
+        MapVoteStartRequested?.Invoke();
     }
 
     // ==================================================
