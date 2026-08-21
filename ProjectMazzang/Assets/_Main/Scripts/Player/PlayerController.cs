@@ -18,7 +18,7 @@ public sealed class PlayerController :
     private const int MaxCommandResolvePasses = 8;
 
 
-    private PlayerContext _context;
+    // private PlayerContext _context;
 
     private PlayerModule[] _modules;
 
@@ -41,15 +41,15 @@ public sealed class PlayerController :
     private bool _resolvingCommands;
 
 
-    public PlayerContext Context =>
-        _context;
+    /*public PlayerContext Context =>
+        _context;*/
 
 
     private void Awake()
     {
-        _context =
+        /*_context =
             new PlayerContext(
-                gameObject);
+                gameObject);*/
 
         CollectModules();
 
@@ -358,21 +358,21 @@ public sealed class PlayerController :
         // 1차:
         // 모든 모듈에 동일 Context를 전달하고,
         // 각 모듈이 제공하는 Context Unit을 등록한다.
-        foreach (PlayerModule module
+        /*foreach (PlayerModule module
                  in _modules)
         {
             module.InitializeContext(
                 _context);
-        }
+        }*/
 
         // 2차:
         // 모든 Unit 등록이 완료된 뒤,
         // 각 모듈이 필요한 Unit을 Resolve한다.
-        foreach (PlayerModule module
+        /*foreach (PlayerModule module
                  in _modules)
         {
             module
                 .CompleteContextInitialization();
-        }
+        }*/
     }
 }

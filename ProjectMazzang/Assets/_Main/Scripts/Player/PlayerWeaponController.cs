@@ -5,8 +5,6 @@ using UnityEngine.U2D.IK;
 [DefaultExecutionOrder(-210)]
 public sealed class PlayerWeaponController :
     PlayerModule,
-    IPlayerWeaponState,
-    IPlayerWeaponControl,
     IPlayerTickModule,
     IPlayerTickCommandSink,
     IPlayerTickStateSource
@@ -40,16 +38,6 @@ public sealed class PlayerWeaponController :
     [Min(0f)]
     [SerializeField]
     private float repickupBlockDuration = 0.35f;
-
-
-    private IPlayerAimState
-        _aimState;
-
-    private IPlayerHealthState
-        _healthState;
-
-    private IPlayerMovementState
-        _movementState;
 
     private HeldWeaponView
         _boundIkView;
@@ -106,39 +94,6 @@ public sealed class PlayerWeaponController :
     public Vector2 WeaponDirection =>
         AngleToDirection(
             WeaponAngle);
-
-
-    // =========================================================
-    // Context
-    // =========================================================
-
-    protected override void RegisterContextUnits()
-    {
-        Context.Register<
-            IPlayerWeaponState>(
-            this);
-
-        Context.Register<
-            IPlayerWeaponControl>(
-            this);
-    }
-
-
-    protected override void OnContextReady()
-    {
-        _aimState =
-            Context.Get<
-                IPlayerAimState>();
-
-        _healthState =
-            Context.Get<
-                IPlayerHealthState>();
-
-        _movementState =
-            Context.Get<
-                IPlayerMovementState>();
-    }
-
 
     // =========================================================
     // Fusion
@@ -227,7 +182,7 @@ public sealed class PlayerWeaponController :
 
     internal void TickPrepareAction()
     {
-        PlayerTickState fallbackState =
+       /* PlayerTickState fallbackState =
             new();
 
         fallbackState.HasHealth =
@@ -253,7 +208,7 @@ public sealed class PlayerWeaponController :
 
         TickPrepareAction(
             fallbackState,
-            true);
+            true);*/
     }
 
 
@@ -352,7 +307,7 @@ public sealed class PlayerWeaponController :
 
     public override void Render()
     {
-        if (weaponSocket == null ||
+        /*if (weaponSocket == null ||
             !HasEquippedWeapon)
         {
             UpdateWeaponIkBinding();
@@ -384,7 +339,7 @@ public sealed class PlayerWeaponController :
                 .RefreshHeldPresentation(
                     _movementState != null &&
                     !_movementState.FacingRight);
-        }
+        }*/
 
         UpdateWeaponIkBinding();
     }
@@ -413,13 +368,14 @@ public sealed class PlayerWeaponController :
         PlayerTickState state,
         bool useLegacyAim)
     {
-        Vector2 direction =
-            useLegacyAim &&
+        Vector2 direction = state.ResolveAimDirectionTo(
+                    aimWorldPosition);
+            /*useLegacyAim &&
             _aimState != null
                 ? _aimState.ResolveDirectionTo(
                     aimWorldPosition)
                 : state.ResolveAimDirectionTo(
-                    aimWorldPosition);
+                    aimWorldPosition);*/
 
         if (direction.sqrMagnitude <=
             0.0001f)
@@ -521,11 +477,11 @@ public sealed class PlayerWeaponController :
             return false;
         }
 
-        if (_healthState != null &&
+        /*if (_healthState != null &&
             !_healthState.IsAlive)
         {
             return false;
-        }
+        }*/
 
         if (!weapon.TryEquip(
                 Object))
@@ -699,7 +655,7 @@ public sealed class PlayerWeaponController :
 
     private Vector2 CalculateDropVelocity()
     {
-        float facingSign =
+        /*float facingSign =
             _movementState == null ||
             _movementState.FacingRight
                 ? 1f
@@ -719,7 +675,9 @@ public sealed class PlayerWeaponController :
         return
             tossVelocity +
             _movementState.Velocity *
-            inheritedVelocityFactor;
+            inheritedVelocityFactor;*/
+
+        return Vector2.zero;
     }
 
 
@@ -753,12 +711,12 @@ public sealed class PlayerWeaponController :
     public bool TryUseWeapon(
         Vector2 aimDirection)
     {
-        return TryUseWeapon(
+        return true;/*TryUseWeapon(
             aimDirection,
             _healthState == null ||
             _healthState.IsAlive,
             _movementState != null &&
-            !_movementState.FacingRight);
+            !_movementState.FacingRight);*/
     }
 
 

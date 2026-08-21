@@ -30,10 +30,6 @@ public sealed class PlayerStatusUI :
     [SerializeField]
     private TMP_Text livesText;
 
-
-    private IPlayerHealthState
-        _healthState;
-
     private NetworkPlayerData
         _playerData;
 
@@ -42,12 +38,12 @@ public sealed class PlayerStatusUI :
     // Context
     // =========================================================
 
-    protected override void OnContextReady()
+    /*protected override void OnContextReady()
     {
         _healthState =
             Context.Get<
                 IPlayerHealthState>();
-    }
+    }*/
 
 
     // =========================================================
@@ -97,8 +93,8 @@ public sealed class PlayerStatusUI :
             return;
         }
 
-        bool visible =
-            !_healthState.IsDead;
+        bool visible = true;
+            //!_healthState.IsDead;
 
         if (statusRoot.activeSelf ==
             visible)
@@ -165,7 +161,7 @@ public sealed class PlayerStatusUI :
 
     private void RefreshHealth()
     {
-        if (_healthState == null)
+        /*if (_healthState == null)
             return;
 
         if (healthBar != null)
@@ -186,19 +182,19 @@ public sealed class PlayerStatusUI :
             healthText.text =
                 $"{_healthState.Health}/" +
                 $"{_healthState.MaxHealth}";
-        }
+        }*/
     }
 
 
     private void RefreshLives()
     {
-        if (livesText == null ||
+        /*if (livesText == null ||
             _healthState == null)
         {
             return;
         }
 
         livesText.text =
-            $"x{_healthState.Lives}";
+            $"x{_healthState.Lives}";*/
     }
 }

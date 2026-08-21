@@ -35,12 +35,6 @@ public sealed class PlayerVisual :
         0.08f;
 
 
-    private IPlayerMovementState
-        _movementState;
-
-    private IPlayerHealthState
-        _healthState;
-
     private PlayerSkillController
         _skillController;
 
@@ -123,23 +117,6 @@ public sealed class PlayerVisual :
         }
     }
 
-
-    // =========================================================
-    // Context
-    // =========================================================
-
-    protected override void OnContextReady()
-    {
-        _movementState =
-            Context.Get<
-                IPlayerMovementState>();
-
-        _healthState =
-            Context.Get<
-                IPlayerHealthState>();
-    }
-
-
     // =========================================================
     // Fusion
     // =========================================================
@@ -161,7 +138,7 @@ public sealed class PlayerVisual :
 
     private void UpdateVisibility()
     {
-        if (_healthState == null)
+        /*if (_healthState == null)
             return;
 
         bool visible =
@@ -171,10 +148,10 @@ public sealed class PlayerVisual :
             visible)
         {
             return;
-        }
+        }*/
 
         characterVisualRoot.SetActive(
-            visible);
+            true);
     }
 
 
@@ -184,12 +161,12 @@ public sealed class PlayerVisual :
 
     private void UpdateFacing()
     {
-        if (_movementState == null)
+        /*if (_movementState == null)
             return;
 
         bool facingRight =
             _movementState.FacingRight;
-
+*/
         float statScale =
             _skillController != null
                 ? _skillController
@@ -197,7 +174,7 @@ public sealed class PlayerVisual :
                     .VisualScale
                 : 1f;
 
-        if (_facingInitialized &&
+        /*if (_facingInitialized &&
             _previousFacingRight ==
             facingRight &&
             Mathf.Approximately(
@@ -230,7 +207,7 @@ public sealed class PlayerVisual :
         characterVisualRoot
             .transform
             .localScale =
-            scale;
+            scale;*/
     }
 
 
@@ -240,7 +217,7 @@ public sealed class PlayerVisual :
 
     private void UpdateHealthPresentation()
     {
-        if (_healthState == null)
+        /*if (_healthState == null)
             return;
 
         if (!_healthPresentationInitialized)
@@ -254,7 +231,7 @@ public sealed class PlayerVisual :
         UpdateInvulnerability();
 
         _previousHealth =
-            _healthState.Health;
+            _healthState.Health;*/
     }
 
 
@@ -263,11 +240,11 @@ public sealed class PlayerVisual :
         _healthPresentationInitialized =
             true;
 
-        _previousHealth =
+        /*_previousHealth =
             _healthState.Health;
 
         _wasInvulnerable =
-            _healthState.IsInvulnerable;
+            _healthState.IsInvulnerable;*/
 
         _invulnerableDimmed =
             false;
@@ -285,14 +262,14 @@ public sealed class PlayerVisual :
 
     private void DetectHit()
     {
-        if (_healthState.IsDead)
+        /*if (_healthState.IsDead)
             return;
 
         if (_healthState.Health >=
             _previousHealth)
         {
             return;
-        }
+        }*/
 
         _hitColorActive =
             true;
@@ -331,8 +308,8 @@ public sealed class PlayerVisual :
 
     private void UpdateInvulnerability()
     {
-        bool isInvulnerable =
-            _healthState.IsInvulnerable;
+        bool isInvulnerable = true;
+            //_healthState.IsInvulnerable;
 
         if (_wasInvulnerable !=
             isInvulnerable)

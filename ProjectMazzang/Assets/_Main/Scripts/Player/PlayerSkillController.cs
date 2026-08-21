@@ -14,7 +14,6 @@ using UnityEngine;
 [DefaultExecutionOrder(-80)]
 public sealed class PlayerSkillController :
     PlayerModule,
-    IPlayerSkillAnimationState,
     IPlayerTickModule,
     IPlayerTickStateSource
 {
@@ -28,9 +27,6 @@ public sealed class PlayerSkillController :
 
     private Skill _skill1;
     private Skill _skill2;
-
-    private IPlayerHealthState
-        _healthState;
 
 
     [Networked]
@@ -160,7 +156,7 @@ public sealed class PlayerSkillController :
     // Context
     // =========================================================
 
-    protected override void RegisterContextUnits()
+    /*protected override void RegisterContextUnits()
     {
         Context.Register<IPlayerSkillAnimationState>(
             this);
@@ -182,7 +178,7 @@ public sealed class PlayerSkillController :
             CreateSkill(
                 skill2,
                 SkillSlot.Skill2);
-    }
+    }*/
 
 
     // =========================================================
@@ -275,10 +271,10 @@ public sealed class PlayerSkillController :
 
     internal void TickLateAction()
     {
-        TickLateAction(
+        /*TickLateAction(
             _healthState != null &&
             _healthState.IsAlive,
-            true);
+            true);*/
     }
 
 
@@ -286,9 +282,9 @@ public sealed class PlayerSkillController :
         bool isAlive,
         bool requireContext)
     {
-        if (requireContext &&
+        /*if (requireContext &&
             !IsContextReady)
-            return;
+            return;*/
 
 
         // 공통 Runtime State를 먼저 갱신합니다.
@@ -1239,8 +1235,7 @@ public sealed class PlayerSkillController :
         skill.Initialize(
             data,
             slot,
-            this,
-            Context);
+            this);
 
         return skill;
     }

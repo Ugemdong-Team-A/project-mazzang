@@ -24,11 +24,11 @@ public abstract class Skill
         private set;
     }
 
-    protected PlayerContext Context
+    /*protected PlayerContext Context
     {
         get;
         private set;
-    }
+    }*/
 
     public bool IsInitialized
     {
@@ -40,8 +40,7 @@ public abstract class Skill
     public void Initialize(
         SkillData data,
         SkillSlot slot,
-        PlayerSkillController controller,
-        PlayerContext context)
+        PlayerSkillController controller)
     {
         Data =
             data;
@@ -51,9 +50,6 @@ public abstract class Skill
 
         Controller =
             controller;
-
-        Context =
-            context;
 
         IsInitialized =
             true;
@@ -101,9 +97,6 @@ public abstract class Skill
         Cancel();
 
         Controller =
-            null;
-
-        Context =
             null;
 
         Data =

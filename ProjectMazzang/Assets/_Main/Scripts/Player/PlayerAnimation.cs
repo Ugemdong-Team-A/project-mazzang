@@ -7,20 +7,6 @@ public sealed class PlayerAnimation :
     [SerializeField]
     private Animator animator;
 
-
-    private IPlayerMovementState
-        _movementState;
-
-    private IPlayerCombatState
-        _combatState;
-
-    private IPlayerHealthState
-        _healthState;
-
-    private IPlayerSkillAnimationState
-        _skillAnimationState;
-
-
     private byte _lastJumpSequence;
 
     private byte _lastAttackSequence;
@@ -34,7 +20,7 @@ public sealed class PlayerAnimation :
     // Context
     // =========================================================
 
-    protected override void OnContextReady()
+    /*protected override void OnContextReady()
     {
         _movementState =
             Context.Get<
@@ -51,7 +37,7 @@ public sealed class PlayerAnimation :
         _skillAnimationState =
             Context.Get<
                 IPlayerSkillAnimationState>();
-    }
+    }*/
 
 
     // =========================================================
@@ -60,7 +46,7 @@ public sealed class PlayerAnimation :
 
     public override void Spawned()
     {
-        if (_movementState == null ||
+        /*if (_movementState == null ||
             _combatState == null ||
             _healthState == null)
         {
@@ -80,13 +66,13 @@ public sealed class PlayerAnimation :
         {
             _lastSkillAnimationSequence =
                 _skillAnimationState.SkillAnimationSequence;
-        }
+        }*/
     }
 
 
     public override void Render()
     {
-        if (_movementState == null ||
+        /*if (_movementState == null ||
             _combatState == null ||
             _healthState == null)
         {
@@ -116,7 +102,7 @@ public sealed class PlayerAnimation :
             animator.SetBool(
                 "WallSliding",
                 _movementState.IsWallSliding);
-        }
+        }*/
 
         HandleJumpAnimation();
         HandleAttackAnimation();
@@ -131,7 +117,7 @@ public sealed class PlayerAnimation :
 
     private void HandleJumpAnimation()
     {
-        if (_lastJumpSequence ==
+        /*if (_lastJumpSequence ==
             _movementState.JumpSequence)
         {
             return;
@@ -143,7 +129,7 @@ public sealed class PlayerAnimation :
         animator.SetInteger(
             "JumpType",
             (int)_movementState
-                .LastJumpType);
+                .LastJumpType);*/
 
         animator.SetTrigger(
             "Jump");
@@ -152,7 +138,7 @@ public sealed class PlayerAnimation :
 
     private void HandleAttackAnimation()
     {
-        if (_lastAttackSequence ==
+        /*if (_lastAttackSequence ==
             _combatState.AttackSequence)
         {
             return;
@@ -163,7 +149,7 @@ public sealed class PlayerAnimation :
 
         animator.SetInteger(
             "AttackId",
-            _combatState.CurrentAttackId);
+            _combatState.CurrentAttackId);*/
 
         animator.SetTrigger(
             "Attack");
@@ -172,7 +158,7 @@ public sealed class PlayerAnimation :
 
     private void HandleSkillAnimation()
     {
-        if (_skillAnimationState == null ||
+        /*if (_skillAnimationState == null ||
             _lastSkillAnimationSequence ==
             _skillAnimationState.SkillAnimationSequence)
         {
@@ -187,20 +173,20 @@ public sealed class PlayerAnimation :
             (int)_skillAnimationState.LastSkillAnimation);
 
         animator.SetTrigger(
-            "Skill");
+            "Skill");*/
     }
 
 
     private void HandleDeathAnimation()
     {
-        if (_lastDeathSequence ==
+        /*if (_lastDeathSequence ==
             _healthState.DeathSequence)
         {
             return;
         }
 
         _lastDeathSequence =
-            _healthState.DeathSequence;
+            _healthState.DeathSequence;*/
 
         animator.SetTrigger(
             "Death");

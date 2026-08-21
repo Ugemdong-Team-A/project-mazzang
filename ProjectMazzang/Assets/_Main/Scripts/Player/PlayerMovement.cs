@@ -12,10 +12,6 @@ public enum JumpType : byte
 [DefaultExecutionOrder(-100)]
 public sealed class PlayerMovement :
     PlayerModule,
-    IPlayerMovementState,
-    IPlayerKnockbackReceiver,
-    IPlayerFacingControl,
-    IPlayerMovementControl,
     IPlayerTickModule,
     IPlayerTickStateSource,
     IPlayerTickCommandSink
@@ -108,11 +104,6 @@ public sealed class PlayerMovement :
     [SerializeField]
     private bool verboseWallDebug;
 
-
-    private IPlayerHealthState _healthState;
-
-    private IPlayerCombatState _combatState;
-
     private PlayerSkillController _skillController;
 
     private bool _debugPreviousTouchingWallLeft;
@@ -180,17 +171,6 @@ public sealed class PlayerMovement :
     public Vector2 Velocity =>
         rb.linearVelocity;
 
-
-    bool IPlayerMovementState.IsGrounded =>
-        IsGrounded;
-
-    bool IPlayerMovementState.FacingRight =>
-        FacingRight;
-
-    bool IPlayerMovementState.IsWallSliding =>
-        IsWallSliding;
-
-
     public bool IsControlLocked =>
         !KnockbackControlTimer
             .ExpiredOrNotRunning(Runner) ||
@@ -219,7 +199,7 @@ public sealed class PlayerMovement :
     // Context
     // =========================================================
 
-    protected override void RegisterContextUnits()
+    /*protected override void RegisterContextUnits()
     {
         Context.Register<
             IPlayerMovementState>(
@@ -248,7 +228,7 @@ public sealed class PlayerMovement :
         _combatState =
             Context.Get<
                 IPlayerCombatState>();
-    }
+    }*/
 
 
     // =========================================================
@@ -328,11 +308,11 @@ public sealed class PlayerMovement :
 
     internal void TickMotion()
     {
-        TickMotion(
+        /*TickMotion(
             _healthState != null &&
             _healthState.IsAlive,
             _combatState != null &&
-            _combatState.IsMovementLocked);
+            _combatState.IsMovementLocked);*/
     }
 
 

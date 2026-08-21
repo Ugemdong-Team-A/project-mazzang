@@ -13,8 +13,6 @@ public enum PlayerAttackState : byte
 [DefaultExecutionOrder(-200)]
 public sealed class PlayerCombat :
     PlayerModule,
-    IPlayerCombatState,
-    IPlayerCombatControl,
     IPlayerTickModule,
     IPlayerTickStateSource,
     IPlayerTickCommandSink
@@ -40,25 +38,6 @@ public sealed class PlayerCombat :
 
     private readonly HashSet<IDamageable>
         _hitTargets = new();
-
-
-    private IPlayerMovementState
-        _movementState;
-
-    private IPlayerHealthState
-        _healthState;
-
-    private IPlayerAimState
-        _aimState;
-
-    private IPlayerAimControl
-        _aimControl;
-
-    private IPlayerWeaponState
-        _weaponState;
-
-    private IPlayerWeaponControl
-        _weaponControl;
 
 
     // =========================================================
@@ -152,7 +131,7 @@ public sealed class PlayerCombat :
     // Context
     // =========================================================
 
-    protected override void RegisterContextUnits()
+    /*protected override void RegisterContextUnits()
     {
         Context.Register<
             IPlayerCombatState>(
@@ -189,7 +168,7 @@ public sealed class PlayerCombat :
         _weaponControl =
             Context.Get<
                 IPlayerWeaponControl>();
-    }
+    }*/
 
 
     // =========================================================
@@ -269,14 +248,14 @@ public sealed class PlayerCombat :
 
     internal void TickAction()
     {
-        TickAction(
+        /*TickAction(
             _healthState != null &&
             _healthState.IsAlive,
             _movementState != null &&
             _movementState.IsControlLocked,
             false,
             ResolveFacingRight(),
-            null);
+            null);*/
     }
 
 
@@ -287,9 +266,9 @@ public sealed class PlayerCombat :
         bool facingRight,
         PlayerTickState tickState)
     {
-        if (tickState == null &&
+        /*if (tickState == null &&
             !IsContextReady)
-            return;
+            return;*/
 
         bool hasInput =
             GetInput(
@@ -404,9 +383,9 @@ public sealed class PlayerCombat :
         bool hasEquippedWeapon =
             tickState != null
                 ? tickState.HasWeapon &&
-                  tickState.HasEquippedWeapon
-                : _weaponState != null &&
-                  _weaponState.HasEquippedWeapon;
+                  tickState.HasEquippedWeapon : true;
+                /*: _weaponState != null &&
+                  _weaponState.HasEquippedWeapon*/
 
         if (hasEquippedWeapon)
         {
@@ -423,9 +402,9 @@ public sealed class PlayerCombat :
             }
             else
             {
-                _weaponControl?
+                /*_weaponControl?
                     .TryUseWeapon(
-                        aimDirection);
+                        aimDirection);*/
             }
 
             return;
@@ -540,10 +519,10 @@ public sealed class PlayerCombat :
         }
         else
         {
-            _aimControl?
+            /*_aimControl?
                 .ApplyOverride(
                     in aimOverride,
-                    sourceAimDirection);
+                    sourceAimDirection);*/
         }
     }
 
@@ -711,8 +690,8 @@ public sealed class PlayerCombat :
             return;
         }
 
-        _aimControl?
-            .ClearOverride();
+        /*_aimControl?
+            .ClearOverride();*/
     }
 
 
@@ -787,7 +766,7 @@ public sealed class PlayerCombat :
                 return direction.normalized;
             }
         }
-        else if (_aimState != null)
+        /*else if (_aimState != null)
         {
             Vector2 direction =
                 _aimState.ResolveDirectionTo(
@@ -800,7 +779,7 @@ public sealed class PlayerCombat :
                 return
                     direction.normalized;
             }
-        }
+        }*/
 
 
         return
@@ -930,8 +909,8 @@ public sealed class PlayerCombat :
     private bool ResolveFacingRight()
     {
         return
-            _movementState == null ||
-            _movementState.FacingRight;
+            true/*_movementState == null ||
+            _movementState.FacingRight*/;
     }
 
 

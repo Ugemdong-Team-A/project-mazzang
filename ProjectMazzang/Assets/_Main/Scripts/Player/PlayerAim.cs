@@ -4,8 +4,6 @@ using UnityEngine;
 [DefaultExecutionOrder(-90)]
 public sealed class PlayerAim :
     PlayerModule,
-    IPlayerAimState,
-    IPlayerAimControl,
     IPlayerTickModule,
     IPlayerTickCommandSink,
     IPlayerTickStateSource
@@ -58,14 +56,6 @@ public sealed class PlayerAim :
     private float _presentedBodyAimAngle;
     private bool _hasPresentedBodyAimAngle;
     private bool _presentedFacingRight;
-
-
-    private IPlayerMovementState
-        _movementState;
-
-    private IPlayerFacingControl
-        _facingControl;
-
 
     // =========================================================
     // Network State
@@ -140,16 +130,14 @@ public sealed class PlayerAim :
             PlayerAimRigMode.Procedural;
 
 
-    private bool FacingRight =>
-        _movementState == null ||
-        _movementState.FacingRight;
+    private bool FacingRight => true;
 
 
     // =========================================================
     // Context
     // =========================================================
 
-    protected override void RegisterContextUnits()
+   /* protected override void RegisterContextUnits()
     {
         Context.Register<
             IPlayerAimState>(
@@ -158,10 +146,10 @@ public sealed class PlayerAim :
         Context.Register<
             IPlayerAimControl>(
             this);
-    }
+    }*/
 
 
-    protected override void OnContextReady()
+    /*protected override void OnContextReady()
     {
         _movementState =
             Context.Get<
@@ -170,7 +158,7 @@ public sealed class PlayerAim :
         _facingControl =
             Context.Get<
                 IPlayerFacingControl>();
-    }
+    }*/
 
 
     // =========================================================
@@ -247,10 +235,10 @@ public sealed class PlayerAim :
 
     internal void TickAim()
     {
-        TickAim(
+        /*TickAim(
             FacingRight,
             _movementState != null &&
-            _movementState.IsWallSliding);
+            _movementState.IsWallSliding);*/
     }
 
 
@@ -318,12 +306,12 @@ public sealed class PlayerAim :
         in PlayerAimOverride aimOverride,
         Vector2 sourceAimDirection)
     {
-        ApplyOverride(
+        /*ApplyOverride(
             in aimOverride,
             sourceAimDirection,
             FacingRight,
             _movementState != null &&
-            _movementState.IsWallSliding);
+            _movementState.IsWallSliding);*/
     }
 
 
@@ -537,11 +525,11 @@ public sealed class PlayerAim :
         bool isWallSliding,
         bool facingRight)
     {
-        if (TickCommands == null &&
+        /*if (TickCommands == null &&
             _facingControl == null)
         {
             return;
-        }
+        }*/
 
         if (isWallSliding)
             return;
@@ -565,11 +553,11 @@ public sealed class PlayerAim :
     private void TryUpdateFacingFromDirection(
         Vector2 direction)
     {
-        TryUpdateFacingFromDirection(
+        /*TryUpdateFacingFromDirection(
             direction,
             _movementState != null &&
             _movementState.IsWallSliding,
-            FacingRight);
+            FacingRight);*/
     }
 
 
@@ -578,11 +566,11 @@ public sealed class PlayerAim :
         bool isWallSliding,
         bool facingRight)
     {
-        if (TickCommands == null &&
+        /*if (TickCommands == null &&
             _facingControl == null)
         {
             return facingRight;
-        }
+        }*/
 
         if (isWallSliding)
             return facingRight;
@@ -630,9 +618,9 @@ public sealed class PlayerAim :
             return;
         }
 
-        _facingControl?
+        /*_facingControl?
             .SetFacing(
-                facingRight);
+                facingRight);*/
     }
 
 

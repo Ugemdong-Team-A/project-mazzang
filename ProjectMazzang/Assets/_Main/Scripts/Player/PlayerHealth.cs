@@ -12,8 +12,6 @@ public enum DeathCause : byte
 [DefaultExecutionOrder(-300)]
 public sealed class PlayerHealth :
     PlayerModule,
-    IPlayerHealthState,
-    IPlayerDamageReceiver,
     IPlayerTickModule,
     IPlayerTickStateSource
 {
@@ -46,12 +44,6 @@ public sealed class PlayerHealth :
 
 
     private float _lastHealth;
-
-    private IPlayerKnockbackReceiver
-        _knockbackReceiver;
-
-    private IPlayerCombatControl
-        _combatControl;
 
     private PlayerSkillController
         _skillController;
@@ -137,10 +129,6 @@ public sealed class PlayerHealth :
         !InvulnerabilityTimer
             .ExpiredOrNotRunning(Runner);
 
-
-    bool IPlayerHealthState.IsDead =>
-        IsDead;
-
     public Transform CameraTarget =>
         cameraTarget != null
             ? cameraTarget
@@ -150,7 +138,7 @@ public sealed class PlayerHealth :
     // Context
     // =========================================================
 
-    protected override void RegisterContextUnits()
+    /*protected override void RegisterContextUnits()
     {
         Context.Register<
             IPlayerHealthState>(
@@ -171,7 +159,7 @@ public sealed class PlayerHealth :
         _combatControl =
             Context.Get<
                 IPlayerCombatControl>();
-    }
+    }*/
 
 
     // =========================================================
@@ -351,8 +339,8 @@ public sealed class PlayerHealth :
             return;
         }
 
-        _combatControl?
-            .CancelAttack();
+        /*_combatControl?
+            .CancelAttack();*/
     }
 
 
@@ -369,10 +357,10 @@ public sealed class PlayerHealth :
             return;
         }
 
-        _knockbackReceiver?
+        /*_knockbackReceiver?
             .ApplyKnockback(
                 velocity,
-                controlLockDuration);
+                controlLockDuration);*/
     }
 
 
