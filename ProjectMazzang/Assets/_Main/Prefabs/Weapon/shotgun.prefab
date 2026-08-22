@@ -25,11 +25,11 @@ Transform:
   m_GameObject: {fileID: 1038075775799467391}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.421, y: -0.243, z: 0}
+  m_LocalPosition: {x: 0.04, y: 0.078, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
-  m_Father: {fileID: 5814568478303250347}
+  m_Father: {fileID: 3085864403559333889}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2211222481828127667
 GameObject:
@@ -42,7 +42,7 @@ GameObject:
   - component: {fileID: 564011938357162093}
   - component: {fileID: 4804617086447151765}
   - component: {fileID: 2778920603820171767}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Square
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -58,8 +58,8 @@ Transform:
   m_GameObject: {fileID: 2211222481828127667}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.35, z: 0}
-  m_LocalScale: {x: 1.4, y: 0.4, z: 1}
+  m_LocalPosition: {x: 0.3, y: 0.149, z: 0}
+  m_LocalScale: {x: 0.5, y: 0.15, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 3085864403559333889}
@@ -196,9 +196,9 @@ Transform:
   m_GameObject: {fileID: 2662674113400603324}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.329, y: -0.593, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_LocalPosition: {x: 0.27, y: -0.35, z: 0}
+  m_LocalScale: {x: 1.36, y: 1.36, z: 1.36}
+  m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 5814568478303250347}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -246,7 +246,7 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 1.56, y: 0.66}
+  m_Size: {x: 1, y: 0.27144897}
   m_EdgeRadius: 0
 --- !u!114 &7881194972578852804
 MonoBehaviour:
@@ -260,7 +260,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d1cbd98f32e3782478fcc700bf8c6067, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WeaponPickupTrigger
-  weapon: {fileID: -1397261331782384034}
+  weapon: {fileID: 2332041606127419910}
   triggerCollider: {fileID: 4345762851702734750}
 --- !u!1 &2717315961084138251
 GameObject:
@@ -287,11 +287,11 @@ Transform:
   m_GameObject: {fileID: 2717315961084138251}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.589, y: -0.042999983, z: 0}
+  m_LocalPosition: {x: 0.543, y: 0.069, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
-  m_Father: {fileID: 5814568478303250347}
+  m_Father: {fileID: 3085864403559333889}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &3008137956220480268
 GameObject:
@@ -302,6 +302,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3085864403559333889}
+  - component: {fileID: 6732957340894770001}
   m_Layer: 0
   m_Name: Visaul
   m_TagString: Untagged
@@ -318,13 +319,31 @@ Transform:
   m_GameObject: {fileID: 3008137956220480268}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.329, y: -0.593, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 564011938357162093}
+  - {fileID: 2486731633620674725}
+  - {fileID: 8819009657638847448}
+  - {fileID: 7883919693575876065}
   m_Father: {fileID: 5814568478303250347}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6732957340894770001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3008137956220480268}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 94a87ccf12f94f33a79375ed7636d338, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HeldWeaponView
+  muzzle: {fileID: 2486731633620674725}
+  leftHandGrip: {fileID: 8819009657638847448}
+  rightHandGrip: {fileID: 7883919693575876065}
 --- !u!1 &6975233142488579268
 GameObject:
   m_ObjectHideFlags: 0
@@ -334,12 +353,13 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5814568478303250347}
-  - component: {fileID: -1397261331782384034}
+  - component: {fileID: 2332041606127419910}
   - component: {fileID: 4498004678548388021}
   - component: {fileID: 9023140553725785208}
   - component: {fileID: 4150836910798701016}
+  - component: {fileID: 2623011332169258659}
   m_Layer: 0
-  m_Name: MachineGun
+  m_Name: shotgun
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -360,12 +380,9 @@ Transform:
   m_Children:
   - {fileID: 3085864403559333889}
   - {fileID: 4992443038341677902}
-  - {fileID: 2486731633620674725}
-  - {fileID: 8819009657638847448}
-  - {fileID: 7883919693575876065}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &-1397261331782384034
+--- !u!114 &2332041606127419910
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -374,28 +391,27 @@ MonoBehaviour:
   m_GameObject: {fileID: 6975233142488579268}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 811a6caae9bf366428f3a06d2ff0b775, type: 3}
+  m_Script: {fileID: 11500000, guid: 3da7b7e1e0a2008448e4f480f8a4d245, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MachineGun
+  m_EditorClassIdentifier: Assembly-CSharp::Shotgun
   rb: {fileID: 9023140553725785208}
   worldCollider: {fileID: 2778920603820171767}
   pickupTrigger: {fileID: 7881194972578852804}
-  leftHandGrip: {fileID: 8819009657638847448}
-  rightHandGrip: {fileID: 7883919693575876065}
+  sortingGroup: {fileID: 2623011332169258659}
+  presentationTemplate: {fileID: 6732957340894770001}
   _Holder: {fileID: 0}
-  magazineSize: 30
-  fireInterval: 0.08
+  magazineSize: 5959
+  fireInterval: 1
+  pelletCount: 4
+  spreadAngle: 30
   muzzle: {fileID: 2486731633620674725}
   projectilePrefab: {fileID: 4736335658398493549, guid: a82faefdd5d0cdd429a786b3436bc112, type: 3}
-  projectileSpeed: 35
-  projectileLifetime: 2
-  damage: 8
-  knockback: {x: 3, y: 1}
-  knockbackControlLock: 0.05
-  muzzleFlash: {fileID: 0}
-  audioSource: {fileID: 0}
-  fireClip: {fileID: 0}
-  _Ammo: 0
+  projectileSpeed: 40
+  projectileLifetime: 0.2
+  damage: 5
+  knockback: {x: 5, y: 1.5}
+  knockbackControlLock: 0.08
+  _Ammo: 999
 --- !u!114 &4498004678548388021
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -410,7 +426,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Fusion.Addons.Physics::Fusion.Addons.Physics.NetworkRigidbody
   _stateAuthorityChangeErrorCorrectionDelta: 0
   SyncScale: 0
-  SyncParent: 1
+  SyncParent: 0
   _interpolationTarget: {fileID: 0}
 --- !u!50 &9023140553725785208
 Rigidbody2D:
@@ -451,15 +467,28 @@ MonoBehaviour:
   m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
-  SortKey: 2045230358
+  SortKey: 3364652158
   SendPriority: 1
   EnableInterpolation: 1
   Flags: 262402
   NestedObjects: []
   NetworkedBehaviours:
   - {fileID: 4498004678548388021}
-  - {fileID: -1397261331782384034}
+  - {fileID: 2332041606127419910}
   ForceRemoteRenderTimeframe: 0
+--- !u!210 &2623011332169258659
+SortingGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6975233142488579268}
+  m_Enabled: 1
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 60
+  m_SortAtRoot: 0
+  m_Sort3DAs2D: 0
 --- !u!1 &8981142756307359045
 GameObject:
   m_ObjectHideFlags: 0
@@ -485,9 +514,9 @@ Transform:
   m_GameObject: {fileID: 8981142756307359045}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.959, y: -0.23299998, z: 0}
+  m_LocalPosition: {x: 0.782, y: 0.151, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
-  m_Father: {fileID: 5814568478303250347}
+  m_Father: {fileID: 3085864403559333889}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
