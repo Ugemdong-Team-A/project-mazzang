@@ -8,6 +8,10 @@ public sealed class PlayerTickState
 {
     public bool HasHealth { get; internal set; }
 
+    public int Health { get; internal set; }
+
+    public bool IsInvulnerable { get; internal set; }
+
     public bool IsAlive { get; internal set; }
 
     public bool HasMovement { get; internal set; }
@@ -44,20 +48,26 @@ public sealed class PlayerTickState
     internal void Reset()
     {
         HasHealth = false;
+        Health = 0;
+        IsInvulnerable = false;
         IsAlive = false;
+
         HasMovement = false;
         FacingRight = true;
         IsWallSliding = false;
         IsMovementControlLocked = false;
         MovementVelocity = Vector2.zero;
+
         HasCombat = false;
         HasSkill = false;
         IsSkillActionLocked = false;
         IsCombatMovementLocked = false;
+
         HasAim = false;
         HasAimOrigin = false;
         AimOriginPosition = Vector2.zero;
         AimDirection = Vector2.zero;
+
         HasWeapon = false;
         HasEquippedWeapon = false;
     }

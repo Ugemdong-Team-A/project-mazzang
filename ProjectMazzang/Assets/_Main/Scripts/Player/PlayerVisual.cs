@@ -38,6 +38,10 @@ public sealed class PlayerVisual :
     private PlayerSkillController
         _skillController;
 
+    PlayerTickState _boundTickState;
+
+    PlayerTickCommands _boundTickCommands;
+
 
     private Vector3 _defaultScale;
 
@@ -128,8 +132,11 @@ public sealed class PlayerVisual :
         if (characterVisualRoot == null)
             return;
 
-        UpdateVisibility();
-        UpdateFacing();
+        var state = _boundTickState;
+        var commands = _boundTickCommands;
+
+        UpdateVisibility(state);
+        UpdateFacing(state, commands);
         UpdateHealthPresentation();
     }
 
@@ -138,19 +145,16 @@ public sealed class PlayerVisual :
     // Visibility
     // =========================================================
 
-    private void UpdateVisibility()
+    private void UpdateVisibility(PlayerTickState state)
     {
-        /*if (_healthState == null)
-            return;
-
         bool visible =
-            !_healthState.IsDead;
+            state.IsAlive;
 
         if (characterVisualRoot.activeSelf ==
             visible)
         {
             return;
-        }*/
+        }
 
         characterVisualRoot.SetActive(
             true);
@@ -161,14 +165,13 @@ public sealed class PlayerVisual :
     // Facing
     // =========================================================
 
-    private void UpdateFacing()
+    private void UpdateFacing(PlayerTickState state, PlayerTickCommands commands)
     {
-        /*if (_movementState == null)
-            return;
-
         bool facingRight =
-            _movementState.FacingRight;
-*/
+            state.FacingRight;
+
+        // Debug.Log("Visual FacingRight: " + facingRight);
+
         float statScale =
             _skillController != null
                 ? _skillController
@@ -176,7 +179,7 @@ public sealed class PlayerVisual :
                     .VisualScale
                 : 1f;
 
-        /*if (_facingInitialized &&
+        if (_facingInitialized &&
             _previousFacingRight ==
             facingRight &&
             Mathf.Approximately(
@@ -209,7 +212,7 @@ public sealed class PlayerVisual :
         characterVisualRoot
             .transform
             .localScale =
-            scale;*/
+            scale;
     }
 
 
@@ -237,16 +240,16 @@ public sealed class PlayerVisual :
     }
 
 
-    private void InitializeHealthPresentation()
+    private void InitializeHealthPresentation(int health, bool isInvulnerable)
     {
         _healthPresentationInitialized =
             true;
 
-        /*_previousHealth =
-            _healthState.Health;
+        _previousHealth =
+            health;
 
         _wasInvulnerable =
-            _healthState.IsInvulnerable;*/
+            isInvulnerable;
 
         _invulnerableDimmed =
             false;
@@ -262,16 +265,15 @@ public sealed class PlayerVisual :
     // Hit
     // =========================================================
 
-    private void DetectHit()
+    private void DetectHit(bool isAlive, int currentHeath)
     {
-        /*if (_healthState.IsDead)
+        if (!isAlive)
             return;
 
-        if (_healthState.Health >=
-            _previousHealth)
+        if (currentHeath >= _previousHealth)
         {
             return;
-        }*/
+        }
 
         _hitColorActive =
             true;
@@ -308,11 +310,8 @@ public sealed class PlayerVisual :
     // Invulnerability
     // =========================================================
 
-    private void UpdateInvulnerability()
+    private void UpdateInvulnerability(bool isInvulnerable)
     {
-        bool isInvulnerable = true;
-            //_healthState.IsInvulnerable;
-
         if (_wasInvulnerable !=
             isInvulnerable)
         {
@@ -397,7 +396,24 @@ public sealed class PlayerVisual :
     }
 
     public override void Simulate(in PlayerTick tick)
-    {
+    {       
+        if (_boundTickState == null)
+            _boundTickState = tick.State;
 
+        if (_boundTickCommands == null)
+            _boundTickCommands = tick.Commands;
+
+        bool isAlive = _boundTickState.IsAlive;
+        int  health = _boundTickState.Health;
+        bool isInvulnerable = _boundTickState.IsInvulnerable;
+
+        if (!_healthPresentationInitialized)
+            InitializeHealthPresentation(health, isInvulnerable);
+
+        DetectHit(isAlive, health);
+
+        UpdateHitColor();
+
+        UpdateInvulnerability(isInvulnerable);
     }
 }

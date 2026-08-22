@@ -193,43 +193,6 @@ public sealed class PlayerMovement :
         }
     }
 
-
-    // =========================================================
-    // Context
-    // =========================================================
-
-    /*protected override void RegisterContextUnits()
-    {
-        Context.Register<
-            IPlayerMovementState>(
-            this);
-
-        Context.Register<
-            IPlayerKnockbackReceiver>(
-            this);
-
-        Context.Register<
-            IPlayerFacingControl>(
-            this);
-
-        Context.Register<
-            IPlayerMovementControl>(
-            this);
-    }
-
-
-    protected override void OnContextReady()
-    {
-        _healthState =
-            Context.Get<
-                IPlayerHealthState>();
-
-        _combatState =
-            Context.Get<
-                IPlayerCombatState>();
-    }*/
-
-
     // =========================================================
     // Fusion
     // =========================================================
@@ -296,29 +259,14 @@ public sealed class PlayerMovement :
     }
 
 
-    /*public override void FixedUpdateNetwork()
-    {
-        if (IsTickControlled)
-            return;
-
-        TickMotion();
-    }*/
-
-
-    internal void TickMotion()
-    {
-        /*TickMotion(
-            _healthState != null &&
-            _healthState.IsAlive,
-            _combatState != null &&
-            _combatState.IsMovementLocked);*/
-    }
-
-
     private void TickMotion(
         bool isAlive,
         bool isCombatMovementLocked)
     {
+        /*Debug.Log("[Movement] isAlive: " + isAlive + "" +
+            " isCombatMovementLocked: " + isCombatMovementLocked);*/
+       
+
         UpdateGrounded();
         UpdateWallState();
 
@@ -698,6 +646,9 @@ public sealed class PlayerMovement :
                 TickTimer.CreateFromSeconds(
                     Runner,
                     wallJumpReadyDelay);
+
+            if (RemainingAirJumps <= maxAirJumps)
+                RemainingAirJumps = maxAirJumps;
         }
 
         if (!wallSliding)
@@ -731,8 +682,9 @@ public sealed class PlayerMovement :
         Vector2 velocity =
             rb.linearVelocity;
 
+        // 이거 Max일수도
         velocity.y =
-            Mathf.Max(
+            Mathf.Min(
                 velocity.y,
                 -wallSlideSpeed);
 

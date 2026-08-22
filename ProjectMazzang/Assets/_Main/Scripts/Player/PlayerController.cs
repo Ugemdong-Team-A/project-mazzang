@@ -20,6 +20,7 @@ public sealed class PlayerController :
 
     // private PlayerContext _context;
 
+    [SerializeField]
     private PlayerTickModule[] _modules;
 
     private IPlayerTickStateSource[] _tickStateSources;
@@ -52,6 +53,8 @@ public sealed class PlayerController :
         CollectModules();
 
         ConfigureTickPipeline();
+        if (!_tickPipelineEnabled)
+            _tickPipelineEnabled = true;
     }
 
 
@@ -68,11 +71,11 @@ public sealed class PlayerController :
 
     public override void FixedUpdateNetwork()
     {
-        if (!_initialized ||
+        /*if (!_initialized ||
             !_tickPipelineEnabled)
         {
             return;
-        }
+        }*/
 
         PlayerTick tick =
             new(
@@ -140,8 +143,8 @@ public sealed class PlayerController :
                 module);
         }
 
-        _modules =
-            modules.ToArray();
+        _modules = candidates;
+            //modules.ToArray();
     }
 
 
@@ -179,16 +182,16 @@ public sealed class PlayerController :
                 continue;
             }
 
-            Debug.LogError(
+            Debug.LogWarning(
                 $"Player Tick Stage {current.Stage}에 " +
-                "둘 이상의 모듈이 등록되었습니다. " +
+                "둘 이상의 모듈이 등록되었습니다 !! " +
                 "기존 실행 경로를 유지합니다.",
                 this);
 
             _modules =
                 tickModules.ToArray();
 
-            return;
+            // return;
         }
 
         _modules =
@@ -202,6 +205,7 @@ public sealed class PlayerController :
         {
             if (module is IPlayerTickStateSource stateSource)
             {
+                Debug.Log("Found IPlayerTickStateSource");
                 stateSources.Add(
                     stateSource);
             }
@@ -239,6 +243,7 @@ public sealed class PlayerController :
             }
         }*/
 
+        Debug.Log("_tickPipelineEnabled = true");
         _tickPipelineEnabled =
             true;
     }

@@ -133,8 +133,8 @@ public sealed class PlayerAnimation :
             (int)_movementState
                 .LastJumpType);*/
 
-        animator.SetTrigger(
-            "Jump");
+        /*animator.SetTrigger(
+            "Jump");*/
     }
 
 
@@ -153,8 +153,8 @@ public sealed class PlayerAnimation :
             "AttackId",
             _combatState.CurrentAttackId);*/
 
-        animator.SetTrigger(
-            "Attack");
+        /*animator.SetTrigger(
+            "Attack");*/
     }
 
 
@@ -190,8 +190,8 @@ public sealed class PlayerAnimation :
         _lastDeathSequence =
             _healthState.DeathSequence;*/
 
-        animator.SetTrigger(
-            "Death");
+        /*animator.SetTrigger(
+            "Death");*/
     }
 
     public override void Simulate(in PlayerTick tick)
