@@ -14,9 +14,18 @@ public sealed class PlayerTickState
 
     public bool IsAlive { get; internal set; }
 
+    public byte DeathSequence { get; internal set; }
+
+
     public bool HasMovement { get; internal set; }
 
     public bool FacingRight { get; internal set; }
+
+    public bool IsGrounded { get; internal set; }
+
+    public byte JumpSequence { get; internal set; }
+
+    public JumpType LastJumpType { get; internal set; }
 
     public bool IsWallSliding { get; internal set; }
 
@@ -24,13 +33,24 @@ public sealed class PlayerTickState
 
     public Vector2 MovementVelocity { get; internal set; }
 
+
     public bool HasCombat { get; internal set; }
 
+    public byte AttackSequence { get; internal set; }
+
+    public byte AttackId { get; internal set; }
+
+
     public bool HasSkill { get; internal set; }
+
+    public byte SkillAnimationSequence { get; internal set; }
+
+    public PlayerSkillAnimationId SkillAnimationId { get; internal set; }
 
     public bool IsSkillActionLocked { get; internal set; }
 
     public bool IsCombatMovementLocked { get; internal set; }
+
 
     public bool HasAim { get; internal set; }
 
@@ -39,6 +59,7 @@ public sealed class PlayerTickState
     public Vector2 AimOriginPosition { get; internal set; }
 
     public Vector2 AimDirection { get; internal set; }
+
 
     public bool HasWeapon { get; internal set; }
 

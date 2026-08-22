@@ -222,10 +222,13 @@ public sealed class PlayerMovement :
         PlayerTickState state)
     {
         state.HasMovement = true;
+        state.IsGrounded = IsGrounded;
         state.FacingRight = FacingRight;
         state.IsWallSliding = IsWallSliding;
         state.IsMovementControlLocked = IsControlLocked;
         state.MovementVelocity = Velocity;
+        state.JumpSequence = JumpSequence;
+        state.LastJumpType = LastJumpType;
     }
 
 
