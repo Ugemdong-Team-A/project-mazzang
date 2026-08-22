@@ -71,11 +71,8 @@ public sealed class PlayerController :
 
     public override void FixedUpdateNetwork()
     {
-        /*if (!_initialized ||
-            !_tickPipelineEnabled)
-        {
+        if (!_initialized)
             return;
-        }*/
 
         PlayerTick tick =
             new(
@@ -103,6 +100,12 @@ public sealed class PlayerController :
                 CaptureCurrentTickState();
             }
         }
+    }
+
+    public override void Render()
+    {
+        foreach (PlayerTickModule module in _modules)
+            module.Present(in _tickState);
     }
 
 

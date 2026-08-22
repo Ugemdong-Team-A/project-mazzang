@@ -244,7 +244,7 @@ public sealed class PlayerSkillController :
     }
 
 
-    public override void Render()
+    public override void Present(in PlayerTickState tickState)
     {
         _skill1?.Render();
         _skill2?.Render();

@@ -51,8 +51,6 @@ public sealed class PlayerAim :
     [Min(0f)]
     [SerializeField]
     private float bodyAimPresentationSharpness = 24f;
-
-    PlayerTickState _boundTickState;
     
     private float _presentedBodyAimAngle;
     private bool _hasPresentedBodyAimAngle;
@@ -142,9 +140,6 @@ public sealed class PlayerAim :
     public override void Simulate(
         in PlayerTick tick)
     {
-        if (_boundTickState == null)
-            _boundTickState = tick.State;
-
         TickAim(tick);
         UpdateBodyAimPresentation(tick.State.FacingRight);
     }
@@ -227,9 +222,9 @@ public sealed class PlayerAim :
     }
 
 
-    public override void Render()
+    public override void Present(in PlayerTickState tickState)
     {
-        bool facingRight = _boundTickState.FacingRight;
+        bool facingRight = tickState.FacingRight;
 
         UpdateBodyAimPresentation(facingRight);
         UpdateRigPresentation(facingRight);

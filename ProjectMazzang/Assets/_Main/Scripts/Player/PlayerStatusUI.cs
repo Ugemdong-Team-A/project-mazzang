@@ -76,7 +76,7 @@ public sealed class PlayerStatusUI :
     }
 
 
-    public override void Render()
+    public override void Present(in PlayerTickState tickState)
     {
         if (_playerData == null)
         {

@@ -38,9 +38,9 @@ public sealed class PlayerVisual :
     private PlayerSkillController
         _skillController;
 
-    PlayerTickState _boundTickState;
+    /*PlayerTickState _boundTickState;
 
-    PlayerTickCommands _boundTickCommands;
+    PlayerTickCommands _boundTickCommands;*/
 
 
     private Vector3 _defaultScale;
@@ -127,16 +127,13 @@ public sealed class PlayerVisual :
     // Fusion
     // =========================================================
 
-    public override void Render()
+    public override void Present(in PlayerTickState tickState)
     {
         if (characterVisualRoot == null)
             return;
 
-        var state = _boundTickState;
-        var commands = _boundTickCommands;
-
-        UpdateVisibility(state);
-        UpdateFacing(state, commands);
+        UpdateVisibility(tickState.IsAlive);
+        UpdateFacing(tickState.FacingRight);
         UpdateHealthPresentation();
     }
 
@@ -145,11 +142,8 @@ public sealed class PlayerVisual :
     // Visibility
     // =========================================================
 
-    private void UpdateVisibility(PlayerTickState state)
+    private void UpdateVisibility(bool visible)
     {
-        bool visible =
-            state.IsAlive;
-
         if (characterVisualRoot.activeSelf ==
             visible)
         {
@@ -165,11 +159,8 @@ public sealed class PlayerVisual :
     // Facing
     // =========================================================
 
-    private void UpdateFacing(PlayerTickState state, PlayerTickCommands commands)
+    private void UpdateFacing(bool facingRight)
     {
-        bool facingRight =
-            state.FacingRight;
-
         // Debug.Log("Visual FacingRight: " + facingRight);
 
         float statScale =
@@ -396,16 +387,10 @@ public sealed class PlayerVisual :
     }
 
     public override void Simulate(in PlayerTick tick)
-    {       
-        if (_boundTickState == null)
-            _boundTickState = tick.State;
-
-        if (_boundTickCommands == null)
-            _boundTickCommands = tick.Commands;
-
-        bool isAlive = _boundTickState.IsAlive;
-        int  health = _boundTickState.Health;
-        bool isInvulnerable = _boundTickState.IsInvulnerable;
+    {              
+        bool isAlive = tick.State.IsAlive;
+        int  health = tick.State.Health;
+        bool isInvulnerable = tick.State.IsInvulnerable;
 
         if (!_healthPresentationInitialized)
             InitializeHealthPresentation(health, isInvulnerable);

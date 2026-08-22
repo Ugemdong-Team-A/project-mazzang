@@ -294,7 +294,7 @@ public sealed class PlayerWeaponController :
     }
 
 
-    public override void Render()
+    public override void Present(in PlayerTickState tickState)
     {
         /*if (weaponSocket == null ||
             !HasEquippedWeapon)

@@ -72,7 +72,7 @@ public sealed class PlayerAnimation :
     }
 
 
-    public override void Render()
+    public override void Present(in PlayerTickState tickState)
     {
         /*if (_movementState == null ||
             _combatState == null ||

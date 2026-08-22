@@ -102,7 +102,7 @@ public sealed class PlayerParry :
         SuccessSequence++;
     }
 
-    public override void Render()
+    public override void Present(in PlayerTickState tickState)
     {
         if (data == null)
             return;
