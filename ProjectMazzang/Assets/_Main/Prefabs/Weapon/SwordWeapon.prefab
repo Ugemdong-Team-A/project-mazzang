@@ -401,11 +401,11 @@ MonoBehaviour:
   presentationTemplate: {fileID: 6732957340894770001}
   _Holder: {fileID: 0}
   damage: 20
-  hitboxSize: {x: 1.3, y: 1.6}
+  hitboxSize: {x: 1.89, y: 1.6}
   hitboxForwardOffset: 0.9
   hurtboxLayer:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 256
   knockbackForward: 5
   knockbackUp: 1.5
   knockbackControlLock: 0.1

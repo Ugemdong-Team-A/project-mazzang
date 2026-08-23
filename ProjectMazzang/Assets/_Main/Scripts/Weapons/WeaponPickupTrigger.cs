@@ -40,17 +40,6 @@ public sealed class WeaponPickupTrigger :
     private void OnTriggerEnter2D(
         Collider2D other)
     {
-
-        Debug.Log(
-            $"[PICKUP TRIGGER] weapon={weapon} " +
-            $"authority={weapon?.HasStateAuthority} " +
-            $"equipped={weapon?.IsEquipped} " +
-            $"other={other.name}",
-            this);
-
-        // 기존 코드...
-
-
         if (weapon == null ||
             !weapon.HasStateAuthority ||
             weapon.IsEquipped)
