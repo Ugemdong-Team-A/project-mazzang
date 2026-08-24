@@ -1,5 +1,4 @@
 using Fusion;
-using System;
 using UnityEngine;
 
 public sealed class DashSkill :
@@ -11,8 +10,6 @@ public sealed class DashSkill :
 {
     private CapsuleCollider2D
         _movementCollider;
-
-    private TickTimer _controlleLockTimer;
 
     private DashSkillData DashData =>
         (DashSkillData)Data;
@@ -68,15 +65,21 @@ public sealed class DashSkill :
             return false;
         }
 
-        if (Controller.TickState == null)
+        PlayerTickState state =
+            Controller.TickState;
+
+        if (state == null ||
+            !state.HasMovement ||
+            !state.HasAim)
         {
             return false;
         }
 
-        if (Controller.TickState.IsMovementControlLocked)
+        if (state.IsMovementControlLocked)
             return false;
 
-        if (Controller.TickState.IsAttacking)
+        if (state.HasCombat &&
+            state.IsAttacking)
         {
             return false;
         }
@@ -119,24 +122,21 @@ public sealed class DashSkill :
             DashData.DashDuration +
             DashData.RecoveryDuration;
 
-        LockControlle(controlLockDuration);      
+        Controller.TickCommands.RequestControlLock(
+            controlLockDuration);
 
-        Controller.TickState.MovementVelocity = Vector2.zero;
+        RequestMovementVelocity(
+            Vector2.zero);
     }
 
-    private void LockControlle(float controlLockDuration)
+
+    private void RequestMovementVelocity(
+        Vector2 velocity)
     {
-        Controller.TickCommands.RequestControlLock(controlLockDuration);
+        Controller.TickCommands.RequestSetMovementVelocity(
+            velocity);
     }
 
-    private void ClearLockControlle()
-    {
-        // Controller.TickCommands.RequestClearLockControl();
-
-        Controller.TickState.IsCombatMovementLocked = false;
-        Controller.TickState.IsMovementControlLocked = false;
-        Controller.TickState.IsSkillActionLocked = false;
-    }
 
     // =========================================================
     // Update
@@ -158,7 +158,8 @@ public sealed class DashSkill :
             // 벽력일섬 준비 상태.
             case SkillUsePhase.Cast:
 
-                Controller.TickState.MovementVelocity = Vector2.zero;
+                RequestMovementVelocity(
+                    Vector2.zero);
 
                 break;
 
@@ -173,7 +174,8 @@ public sealed class DashSkill :
             // Dash가 끝난 후 아주 짧은 정지.
             case SkillUsePhase.Recovery:
 
-                Controller.TickState.MovementVelocity = Vector2.zero;
+                RequestMovementVelocity(
+                    Vector2.zero);
 
                 break;
         }
@@ -190,22 +192,19 @@ public sealed class DashSkill :
                 direction))
         {
             // Dash 자체는 즉시 끝내고 Recovery로 넘어감
-            Controller.TickState.MovementVelocity = Vector2.zero;
+            RequestMovementVelocity(
+                Vector2.zero);
 
 
             Controller.EndActiveEarly(
                 Slot);
 
-            Debug.Log("Dash Hit");
-
             return;
         }
 
-        if (!_controlleLockTimer.Equals(TickTimer.None) &&
-            _controlleLockTimer.Expired(Controller.Runner))
-            ClearLockControlle();   // 어차피 End될 때 되돌려줘서 return 전에 안 해도 됨.
-
-        Controller.TickState.MovementVelocity = direction * DashData.DashSpeed;
+        RequestMovementVelocity(
+            direction *
+            DashData.DashSpeed);
     }
 
 
@@ -297,10 +296,12 @@ public sealed class DashSkill :
                 continue;
 
 
-            // 자기 자신.
-            if (ReferenceEquals(
-                    receiver,
-                    Controller)) // 여기 맞나 싶긴 함. 원래 DamageReceiver였는데
+            NetworkObject receiverObject =
+                collider.GetComponentInParent<
+                    NetworkObject>();
+
+            if (receiverObject ==
+                Controller.Object)
             {
                 continue;
             }
@@ -370,10 +371,9 @@ public sealed class DashSkill :
     private Vector2 ResolveDashDirection(
         Vector2 aimWorldPosition)
     {
-        Vector2 direction = Vector2.right;
-
-        Controller.TickState.ResolveAimDirectionTo(
-            aimWorldPosition);
+        Vector2 direction =
+            Controller.TickState.ResolveAimDirectionTo(
+                aimWorldPosition);
 
         if (direction.sqrMagnitude >
             0.0001f)
@@ -423,7 +423,5 @@ public sealed class DashSkill :
     {
         Controller.TickCommands?
             .RequestClearAimOverride();
-
-        ClearLockControlle();
     }
 }

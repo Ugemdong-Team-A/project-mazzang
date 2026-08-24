@@ -246,6 +246,15 @@ public sealed class PlayerMovement :
             resolved = true;
         }
 
+        if (commands.TryConsumeSetMovementVelocity(
+                out Vector2 movementVelocity))
+        {
+            SetVelocity(
+                movementVelocity);
+
+            resolved = true;
+        }
+
         if (commands.TryConsumeKnockback(
                 out Vector2 velocity,
                 out float moveLockDuration))

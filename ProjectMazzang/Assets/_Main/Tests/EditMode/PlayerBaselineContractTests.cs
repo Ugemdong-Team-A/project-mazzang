@@ -154,6 +154,78 @@ namespace ProjectMazzang.Tests
 
 
         [Test]
+        public void PlayerTickCommands_SetsMovementVelocityOnce()
+        {
+            Type commandsType =
+                GetRuntimeType(
+                    "PlayerTickCommands");
+
+            object commands =
+                Activator.CreateInstance(
+                    commandsType);
+
+            Vector2 expectedVelocity =
+                new(-7f, 2.5f);
+
+            commandsType
+                .GetMethod("RequestSetMovementVelocity")
+                .Invoke(
+                    commands,
+                    new object[]
+                    {
+                        expectedVelocity
+                    });
+
+            AssertProperty(
+                commands,
+                "HasPending",
+                true);
+
+            MethodInfo consume =
+                commandsType.GetMethod(
+                    "TryConsumeSetMovementVelocity",
+                    BindingFlags.Instance |
+                    BindingFlags.NonPublic);
+
+            Assert.That(
+                consume,
+                Is.Not.Null);
+
+            object[] arguments =
+            {
+                Vector2.zero
+            };
+
+            Assert.That(
+                consume.Invoke(
+                    commands,
+                    arguments),
+                Is.EqualTo(true));
+
+            Assert.That(
+                arguments[0],
+                Is.EqualTo(expectedVelocity));
+
+            AssertProperty(
+                commands,
+                "HasPending",
+                false);
+
+            arguments[0] = Vector2.one;
+
+            Assert.That(
+                consume.Invoke(
+                    commands,
+                    arguments),
+                Is.EqualTo(false));
+
+            Assert.That(
+                arguments[0],
+                Is.EqualTo(Vector2.zero));
+        }
+
+
+        [Test]
         public void PlayerTickState_ContainsModuleSnapshotContracts()
         {
             Type tickStateType =

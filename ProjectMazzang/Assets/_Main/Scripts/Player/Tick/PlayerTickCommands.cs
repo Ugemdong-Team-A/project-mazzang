@@ -25,6 +25,9 @@ public sealed class PlayerTickCommands
     private bool _controlLockRequested;
     private float _controlLockDuration;
 
+    private bool _movementVelocityRequested;
+    private Vector2 _movementVelocity;
+
     private bool _weaponUseRequested;
     private Vector2 _weaponAimDirection;
 
@@ -35,6 +38,7 @@ public sealed class PlayerTickCommands
         _aimCommandRequested ||
         _facingRequested ||
         _controlLockRequested ||
+        _movementVelocityRequested ||
         _weaponUseRequested;
 
 
@@ -85,6 +89,16 @@ public sealed class PlayerTickCommands
         Dispatch();
     }
 
+
+    public void RequestSetMovementVelocity(
+        Vector2 velocity)
+    {
+        _movementVelocityRequested = true;
+        _movementVelocity = velocity;
+
+        Dispatch();
+    }
+
     public void RequestFacing(
         bool facingRight)
     {
@@ -126,6 +140,21 @@ public sealed class PlayerTickCommands
 
         _controlLockRequested = false;
         duration = _controlLockDuration;
+        return true;
+    }
+
+
+    internal bool TryConsumeSetMovementVelocity(
+        out Vector2 velocity)
+    {
+        if (!_movementVelocityRequested)
+        {
+            velocity = default;
+            return false;
+        }
+
+        _movementVelocityRequested = false;
+        velocity = _movementVelocity;
         return true;
     }
 
