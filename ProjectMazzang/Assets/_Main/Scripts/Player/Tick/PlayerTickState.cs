@@ -10,6 +10,10 @@ public sealed class PlayerTickState
 
     public int Health { get; internal set; }
 
+    public int MaxHealth { get; internal set; }
+
+    public int Lives { get; internal set; }
+
     public bool IsInvulnerable { get; internal set; }
 
     public bool IsAlive { get; internal set; }
@@ -70,17 +74,29 @@ public sealed class PlayerTickState
     {
         HasHealth = false;
         Health = 0;
+        MaxHealth = 0;
+        Lives = 0;
         IsInvulnerable = false;
         IsAlive = false;
+        DeathSequence = 0;
 
         HasMovement = false;
         FacingRight = true;
+        IsGrounded = false;
+        JumpSequence = 0;
+        LastJumpType = default;
         IsWallSliding = false;
         IsMovementControlLocked = false;
         MovementVelocity = Vector2.zero;
 
         HasCombat = false;
+        IsAttacking = false;
+        AttackSequence = 0;
+        AttackId = 0;
+
         HasSkill = false;
+        SkillAnimationSequence = 0;
+        SkillAnimationId = PlayerSkillAnimationId.None;
         IsSkillActionLocked = false;
         IsCombatMovementLocked = false;
 

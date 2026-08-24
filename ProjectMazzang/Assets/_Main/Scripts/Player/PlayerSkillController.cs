@@ -216,6 +216,10 @@ public sealed class PlayerSkillController :
         PlayerTickState state)
     {
         state.HasSkill = true;
+        state.SkillAnimationSequence =
+            SkillAnimationSequence;
+        state.SkillAnimationId =
+            LastSkillAnimation;
         state.IsSkillActionLocked =
             IsActionLocked(
                 SkillSlot.Skill1,

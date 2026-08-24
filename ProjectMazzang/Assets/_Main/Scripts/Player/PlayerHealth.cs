@@ -213,8 +213,14 @@ public sealed class PlayerHealth :
         PlayerTickState state)
     {
         state.HasHealth = true;
+        state.Health = Health;
+        state.MaxHealth = MaxHealth;
+        state.Lives = Lives;
+        state.IsInvulnerable = IsInvulnerable;
         state.IsAlive = IsAlive;
-    }    
+        state.DeathSequence = DeathSequence;
+    }
+
 
     internal void TickBegin()
     {

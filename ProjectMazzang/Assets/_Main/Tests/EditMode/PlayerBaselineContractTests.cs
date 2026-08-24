@@ -81,8 +81,21 @@ namespace ProjectMazzang.Tests
                 "IPlayerTickStateSource");
 
             AssertInterfaces(
+                "PlayerSkillController",
+                "IPlayerTickStateSource");
+
+            AssertInterfaces(
                 "PlayerWeaponController",
                 "IPlayerTickStateSource");
+        }
+
+
+        [Test]
+        public void PlayerHealth_ProvidesDamageContract()
+        {
+            AssertInterfaces(
+                "PlayerHealth",
+                "IDamageable");
         }
 
 
@@ -234,6 +247,26 @@ namespace ProjectMazzang.Tests
 
             AssertPropertyType(
                 tickStateType,
+                "Health",
+                typeof(int));
+
+            AssertPropertyType(
+                tickStateType,
+                "MaxHealth",
+                typeof(int));
+
+            AssertPropertyType(
+                tickStateType,
+                "Lives",
+                typeof(int));
+
+            AssertPropertyType(
+                tickStateType,
+                "DeathSequence",
+                typeof(byte));
+
+            AssertPropertyType(
+                tickStateType,
                 "HasMovement",
                 typeof(bool));
 
@@ -259,8 +292,24 @@ namespace ProjectMazzang.Tests
 
             AssertPropertyType(
                 tickStateType,
+                "IsAttacking",
+                typeof(bool));
+
+            AssertPropertyType(
+                tickStateType,
                 "IsCombatMovementLocked",
                 typeof(bool));
+
+            AssertPropertyType(
+                tickStateType,
+                "SkillAnimationSequence",
+                typeof(byte));
+
+            AssertPropertyType(
+                tickStateType,
+                "SkillAnimationId",
+                GetRuntimeType(
+                    "PlayerSkillAnimationId"));
 
             AssertPropertyType(
                 tickStateType,
@@ -271,11 +320,6 @@ namespace ProjectMazzang.Tests
                 tickStateType,
                 "AimDirection",
                 typeof(Vector2));
-
-            AssertPropertyType(
-                tickStateType,
-                "HasWeapon",
-                typeof(bool));
 
             AssertPropertyType(
                 tickStateType,
@@ -295,41 +339,25 @@ namespace ProjectMazzang.Tests
                 Activator.CreateInstance(
                     tickStateType);
 
-            tickStateType
-                .GetProperty("HasMovement")
-                .SetValue(tickState, true);
+            PropertyInfo[] properties =
+                tickStateType.GetProperties(
+                    BindingFlags.Instance |
+                    BindingFlags.Public)
+                .Where(
+                    property =>
+                        property.GetSetMethod(true) != null)
+                .ToArray();
 
-            tickStateType
-                .GetProperty("FacingRight")
-                .SetValue(tickState, false);
-
-            tickStateType
-                .GetProperty("IsWallSliding")
-                .SetValue(tickState, true);
-
-            tickStateType
-                .GetProperty("IsMovementControlLocked")
-                .SetValue(tickState, true);
-
-            tickStateType
-                .GetProperty("HasCombat")
-                .SetValue(tickState, true);
-
-            tickStateType
-                .GetProperty("IsCombatMovementLocked")
-                .SetValue(tickState, true);
-
-            tickStateType
-                .GetProperty("HasAim")
-                .SetValue(tickState, true);
-
-            tickStateType
-                .GetProperty("HasWeapon")
-                .SetValue(tickState, true);
-
-            tickStateType
-                .GetProperty("HasEquippedWeapon")
-                .SetValue(tickState, true);
+            foreach (PropertyInfo property
+                     in properties)
+            {
+                property.SetValue(
+                    tickState,
+                    property.Name == "FacingRight"
+                        ? false
+                        : CreateNonDefaultValue(
+                            property.PropertyType));
+            }
 
             MethodInfo reset =
                 tickStateType.GetMethod(
@@ -345,50 +373,17 @@ namespace ProjectMazzang.Tests
                 tickState,
                 null);
 
-            AssertProperty(
-                tickState,
-                "HasMovement",
-                false);
-
-            AssertProperty(
-                tickState,
-                "FacingRight",
-                true);
-
-            AssertProperty(
-                tickState,
-                "IsWallSliding",
-                false);
-
-            AssertProperty(
-                tickState,
-                "IsMovementControlLocked",
-                false);
-
-            AssertProperty(
-                tickState,
-                "HasCombat",
-                false);
-
-            AssertProperty(
-                tickState,
-                "IsCombatMovementLocked",
-                false);
-
-            AssertProperty(
-                tickState,
-                "HasAim",
-                false);
-
-            AssertProperty(
-                tickState,
-                "HasWeapon",
-                false);
-
-            AssertProperty(
-                tickState,
-                "HasEquippedWeapon",
-                false);
+            foreach (PropertyInfo property
+                     in properties)
+            {
+                AssertProperty(
+                    tickState,
+                    property.Name,
+                    property.Name == "FacingRight"
+                        ? true
+                        : Activator.CreateInstance(
+                            property.PropertyType));
+            }
         }
 
 
@@ -573,6 +568,31 @@ namespace ProjectMazzang.Tests
                 property.PropertyType,
                 Is.EqualTo(propertyType),
                 $"{type.Name}.{propertyName}의 타입이 달라졌습니다.");
+        }
+
+
+        private static object CreateNonDefaultValue(
+            Type type)
+        {
+            if (type == typeof(bool))
+                return true;
+
+            if (type == typeof(byte))
+                return (byte)1;
+
+            if (type == typeof(int))
+                return 1;
+
+            if (type == typeof(Vector2))
+                return Vector2.one;
+
+            if (type.IsEnum)
+                return Enum.ToObject(type, 1);
+
+            Assert.Fail(
+                $"{type.Name}의 비기본 테스트 값을 정의해야 합니다.");
+
+            return null;
         }
 
 
