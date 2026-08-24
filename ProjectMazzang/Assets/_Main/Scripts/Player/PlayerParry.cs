@@ -71,15 +71,16 @@ public sealed class PlayerParry :
             PreviousButtons,
             PlayerButton.Parry);
         PreviousButtons = input.Buttons;
-
-        /*if ((_weaponState != null &&
-             _weaponState.ConsumesParryInput) ||
+        
+        if (/*(_weaponState != null &&
+             _weaponState.ConsumesParryInput) ||*/
+            tick.State.HasEquippedWeapon ||
             !pressed ||
             !CooldownTimer.ExpiredOrNotRunning(Runner) ||
             (tick.State.HasHealth && !tick.State.IsAlive))
         {
             return;
-        }*/
+        }
 
         Direction = ClampDirectionToBody(
             tick.State.AimDirection,

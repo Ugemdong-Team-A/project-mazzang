@@ -330,8 +330,7 @@ public sealed class PlayerCombat :
 
         bool hasEquippedWeapon =
             tickState != null
-                ? tickState.HasWeapon &&
-                  tickState.HasEquippedWeapon : true;
+                ? tickState.HasEquippedWeapon : true;
                 /*: _weaponState != null &&
                   _weaponState.HasEquippedWeapon*/
 

@@ -152,35 +152,6 @@ public sealed class PlayerSkillController :
 
 
     // =========================================================
-    // Context
-    // =========================================================
-
-    /*protected override void RegisterContextUnits()
-    {
-        Context.Register<IPlayerSkillAnimationState>(
-            this);
-    }
-
-
-    protected override void OnContextReady()
-    {
-        _healthState =
-            Context.Get<
-                IPlayerHealthState>();
-
-        _skill1 =
-            CreateSkill(
-                skill1,
-                SkillSlot.Skill1);
-
-        _skill2 =
-            CreateSkill(
-                skill2,
-                SkillSlot.Skill2);
-    }*/
-
-
-    // =========================================================
     // Fusion
     // =========================================================
 
@@ -211,8 +182,7 @@ public sealed class PlayerSkillController :
     {
         TickLateAction(
             tick.State.HasHealth &&
-            tick.State.IsAlive,
-            false);
+            tick.State.IsAlive);
     }
 
     [Networked]
@@ -259,23 +229,8 @@ public sealed class PlayerSkillController :
     }
 
 
-    internal void TickLateAction()
+    private void TickLateAction(bool isAlive)
     {
-        /*TickLateAction(
-            _healthState != null &&
-            _healthState.IsAlive,
-            true);*/
-    }
-
-
-    private void TickLateAction(
-        bool isAlive,
-        bool requireContext)
-    {
-        /*if (requireContext &&
-            !IsContextReady)
-            return;*/
-
 
         // 공통 Runtime State를 먼저 갱신합니다.
         UpdateSlotRuntime(

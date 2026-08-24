@@ -61,8 +61,6 @@ public sealed class PlayerTickState
     public Vector2 AimDirection { get; internal set; }
 
 
-    public bool HasWeapon { get; internal set; }
-
     public bool HasEquippedWeapon { get; internal set; }
 
 
@@ -89,7 +87,6 @@ public sealed class PlayerTickState
         AimOriginPosition = Vector2.zero;
         AimDirection = Vector2.zero;
 
-        HasWeapon = false;
         HasEquippedWeapon = false;
     }
 

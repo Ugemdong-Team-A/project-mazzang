@@ -144,7 +144,6 @@ public sealed class PlayerWeaponController :
     void IPlayerTickStateSource.CaptureTickState(
         PlayerTickState state)
     {
-        state.HasWeapon = true;
         state.HasEquippedWeapon = HasEquippedWeapon;
     }
 
@@ -167,37 +166,6 @@ public sealed class PlayerWeaponController :
             !state.FacingRight);
 
         return true;
-    }
-
-    internal void TickPrepareAction()
-    {
-       /* PlayerTickState fallbackState =
-            new();
-
-        fallbackState.HasHealth =
-            _healthState != null;
-        fallbackState.IsAlive =
-            _healthState != null &&
-            _healthState.IsAlive;
-        fallbackState.HasMovement =
-            _movementState != null;
-        fallbackState.MovementVelocity =
-            _movementState != null
-                ? _movementState.Velocity
-                : Vector2.zero;
-        fallbackState.FacingRight =
-            _movementState == null ||
-            _movementState.FacingRight;
-        fallbackState.HasAim =
-            _aimState != null;
-        fallbackState.AimDirection =
-            _aimState != null
-                ? _aimState.AimDirection
-                : Vector2.zero;
-
-        TickPrepareAction(
-            fallbackState,
-            true);*/
     }
 
 
@@ -296,7 +264,7 @@ public sealed class PlayerWeaponController :
 
     public override void Present(in PlayerTickState tickState)
     {
-        /*if (weaponSocket == null ||
+        if (weaponSocket == null ||
             !HasEquippedWeapon)
         {
             UpdateWeaponIkBinding();
@@ -307,13 +275,12 @@ public sealed class PlayerWeaponController :
             WeaponAngle;
 
         if (HasInputAuthority &&
-            _aimState != null &&
-            _aimState.AimDirection.sqrMagnitude >
+            tickState.AimDirection.sqrMagnitude >
                 0.0001f)
         {
             visualAngle =
                 DirectionToAngle(
-                    _aimState.AimDirection);
+                    tickState.AimDirection);
         }
 
         ApplyWeaponSocketRotation(
@@ -326,9 +293,8 @@ public sealed class PlayerWeaponController :
         {
             equippedWeapon
                 .RefreshHeldPresentation(
-                    _movementState != null &&
-                    !_movementState.FacingRight);
-        }*/
+                    !tickState.FacingRight);
+        }
 
         UpdateWeaponIkBinding();
     }

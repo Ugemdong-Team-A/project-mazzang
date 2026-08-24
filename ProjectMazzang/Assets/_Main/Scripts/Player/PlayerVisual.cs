@@ -72,7 +72,7 @@ public sealed class PlayerVisual :
 
     private float _previousStatScale = 1f;
 
-    public override PlayerTickStage Stage => PlayerTickStage.Finalize;
+    public override PlayerTickStage Stage => PlayerTickStage.Motion;
 
 
     // =========================================================
