@@ -58,6 +58,9 @@
 - Aim에서 확정된 방향과 각도를 Animation이 같은 Tick에 읽는다.
 - Aim override가 끝난 뒤 일반 입력 Aim으로 복귀한다.
 - 공격의 Aim override와 Weapon 사용 요청이 요청된 Tick 안에서 처리된다.
+- 재시뮬레이션 횟수와 관계없이 Aim 보간, 피격 색상, 무적 깜빡임 속도가 일정하다.
+- 처음 표시할 때 이미 존재하던 Jump, Attack, Skill, Death Sequence를 새 이벤트로 재생하지 않는다.
+- Health, MaxHealth, Lives와 생존 여부가 상태 UI 및 캐릭터 표시와 일치한다.
 
 ### 예측과 권위 상태
 

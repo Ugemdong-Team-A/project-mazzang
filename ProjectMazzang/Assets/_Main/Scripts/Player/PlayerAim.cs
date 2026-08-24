@@ -141,7 +141,6 @@ public sealed class PlayerAim :
         in PlayerTick tick)
     {
         TickAim(tick);
-        UpdateBodyAimPresentation(tick.State.FacingRight);
     }
 
 

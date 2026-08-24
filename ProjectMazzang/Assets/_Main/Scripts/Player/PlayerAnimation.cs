@@ -1,4 +1,3 @@
-using Fusion;
 using UnityEngine;
 
 public sealed class PlayerAnimation :
@@ -9,76 +8,85 @@ public sealed class PlayerAnimation :
 
     private byte _lastJumpSequence;
 
+    private bool _jumpPresentationInitialized;
+
     private byte _lastAttackSequence;
+
+    private bool _attackPresentationInitialized;
 
     private byte _lastDeathSequence;
 
+    private bool _deathPresentationInitialized;
+
     private byte _lastSkillAnimationSequence;
+
+    private bool _skillPresentationInitialized;
 
     public override PlayerTickStage Stage => PlayerTickStage.Finalize;
 
 
-    // =========================================================
-    // Fusion
-    // =========================================================
-
     public override void Spawned()
     {
-        /*if (_movementState == null ||
-            _combatState == null ||
-            _healthState == null)
-        {
-            return;
-        }
-
-        _lastJumpSequence =
-            _movementState.JumpSequence;
-
-        _lastAttackSequence =
-            _combatState.AttackSequence;
-
-        _lastDeathSequence =
-            _healthState.DeathSequence;
-
-        if (_skillAnimationState != null)
-        {
-            _lastSkillAnimationSequence =
-                _skillAnimationState.SkillAnimationSequence;
-        }*/
+        _jumpPresentationInitialized = false;
+        _attackPresentationInitialized = false;
+        _deathPresentationInitialized = false;
+        _skillPresentationInitialized = false;
     }
 
 
     public override void Present(in PlayerTickState tickState)
     {
-        Vector2 velocity =
-            tickState.MovementVelocity;
-
-        animator.SetFloat(
-            "Speed",
-            Mathf.Abs(
-                velocity.x));
-
-        animator.SetFloat(
-            "VerticalSpeed",
-            velocity.y);
-
-        animator.SetBool(
-            "Grounded",
-            tickState.IsGrounded);
-
-        if (animator.GetBool(
-                "WallSliding") !=
-            tickState.IsWallSliding)
+        if (tickState.HasMovement)
         {
+            Vector2 velocity =
+                tickState.MovementVelocity;
+
+            animator.SetFloat(
+                "Speed",
+                Mathf.Abs(
+                    velocity.x));
+
+            animator.SetFloat(
+                "VerticalSpeed",
+                velocity.y);
+
             animator.SetBool(
-                "WallSliding",
-                tickState.IsWallSliding);
+                "Grounded",
+                tickState.IsGrounded);
+
+            if (animator.GetBool(
+                    "WallSliding") !=
+                tickState.IsWallSliding)
+            {
+                animator.SetBool(
+                    "WallSliding",
+                    tickState.IsWallSliding);
+            }
+
+            HandleJumpAnimation(
+                tickState.JumpSequence,
+                tickState.LastJumpType);
         }
 
-        HandleJumpAnimation(tickState.JumpSequence, tickState.LastJumpType);
-        HandleAttackAnimation(tickState.AttackSequence, tickState.AttackId);
-        HandleSkillAnimation(tickState.SkillAnimationSequence, tickState.SkillAnimationId);
-        HandleDeathAnimation(tickState.DeathSequence);
+        if (tickState.HasCombat)
+        {
+            HandleAttackAnimation(
+                tickState.AttackSequence,
+                tickState.AttackId);
+        }
+
+        if (tickState.HasSkill)
+        {
+            HandleSkillAnimation(
+                tickState.SkillAnimationSequence,
+                tickState.SkillAnimationId);
+        }
+
+        if (tickState.HasHealth)
+        {
+            HandleDeathAnimation(
+                tickState.DeathSequence);
+        }
     }
 
 
@@ -88,12 +96,13 @@ public sealed class PlayerAnimation :
 
     private void HandleJumpAnimation(byte jumpSequence, JumpType jumpType)
     {
-        if (_lastJumpSequence == jumpSequence)
+        if (!HasSequenceChanged(
+                ref _lastJumpSequence,
+                ref _jumpPresentationInitialized,
+                jumpSequence))
         {
             return;
         }
-
-        _lastJumpSequence = jumpSequence;
 
         animator.SetInteger(
             "JumpType", (int)jumpType);
@@ -103,34 +112,42 @@ public sealed class PlayerAnimation :
     }
 
 
-    private void HandleAttackAnimation(byte attackSequence, byte AttackId)
+    private void HandleAttackAnimation(
+        byte attackSequence,
+        byte attackId)
     {
-        if (_lastAttackSequence == attackSequence)
+        if (!HasSequenceChanged(
+                ref _lastAttackSequence,
+                ref _attackPresentationInitialized,
+                attackSequence))
         {
             return;
         }
 
-        _lastAttackSequence = attackSequence;
-
         animator.SetInteger(
-            "AttackId", AttackId);
+            "AttackId",
+            attackId);
 
         animator.SetTrigger(
             "Attack");
     }
 
 
-    private void HandleSkillAnimation(byte skillAnimationSequence, PlayerSkillAnimationId lastSkillAnimation)
+    private void HandleSkillAnimation(
+        byte skillAnimationSequence,
+        PlayerSkillAnimationId skillAnimationId)
     {
-        if (_lastSkillAnimationSequence == skillAnimationSequence)
+        if (!HasSequenceChanged(
+                ref _lastSkillAnimationSequence,
+                ref _skillPresentationInitialized,
+                skillAnimationSequence))
         {
             return;
         }
 
-        _lastSkillAnimationSequence = skillAnimationSequence;
-
         animator.SetInteger(
-            "SkillId", (int)lastSkillAnimation);
+            "SkillId",
+            (int)skillAnimationId);
 
         animator.SetTrigger(
             "Skill");
@@ -139,15 +156,38 @@ public sealed class PlayerAnimation :
 
     private void HandleDeathAnimation(byte deathSequence)
     {
-        if (_lastDeathSequence == deathSequence)
+        if (!HasSequenceChanged(
+                ref _lastDeathSequence,
+                ref _deathPresentationInitialized,
+                deathSequence))
         {
             return;
         }
 
-        _lastDeathSequence = deathSequence;
-
         animator.SetTrigger(
             "Death");
+    }
+
+
+    private static bool HasSequenceChanged(
+        ref byte previousSequence,
+        ref bool initialized,
+        byte currentSequence)
+    {
+        if (!initialized)
+        {
+            initialized = true;
+            previousSequence = currentSequence;
+
+            return false;
+        }
+
+        if (previousSequence == currentSequence)
+            return false;
+
+        previousSequence = currentSequence;
+
+        return true;
     }
 
     public override void Simulate(in PlayerTick tick)
