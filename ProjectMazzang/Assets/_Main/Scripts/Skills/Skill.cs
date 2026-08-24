@@ -24,12 +24,6 @@ public abstract class Skill
         private set;
     }
 
-    /*protected PlayerContext Context
-    {
-        get;
-        private set;
-    }*/
-
     public bool IsInitialized
     {
         get;

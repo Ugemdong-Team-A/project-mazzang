@@ -8,24 +8,6 @@ public sealed class DashSkill :
     IDurationSkill,
     IRecoverySkill
 {
-    /*private IPlayerMovementState
-        _movementState;
-
-    private IPlayerMovementControl
-        _movementControl;
-
-    private IPlayerCombatState
-        _combatState;
-
-    private IPlayerAimState
-        _aimState;
-
-    private IPlayerAimControl
-        _aimControl;
-
-    private IPlayerDamageReceiver
-        _selfDamageReceiver;*/
-
     private CapsuleCollider2D
         _movementCollider;
 
@@ -60,41 +42,13 @@ public sealed class DashSkill :
 
     protected override void OnInitialized()
     {
-        /*_movementState =
-            Context.Get<
-                IPlayerMovementState>();
-
-        _movementControl =
-            Context.Get<
-                IPlayerMovementControl>();
-
-        _combatState =
-            Context.Get<
-                IPlayerCombatState>();
-
-        _aimState =
-            Context.Get<
-                IPlayerAimState>();
-
-        _aimControl =
-            Context.Get<
-                IPlayerAimControl>();
-
-        _selfDamageReceiver =
-            Context.Get<
-                IPlayerDamageReceiver>();
-
-
-        _movementCollider =
-            Context.Owner.GetComponent<
-                CapsuleCollider2D>();*/
+        _movementCollider = Controller.GetComponent<CapsuleCollider2D>();
 
         if (_movementCollider == null)
         {
             Debug.LogError(
                 "[DashSkill] Player Root에 " +
-                "이동용 CapsuleCollider2D가 없습니다."
-                /*Context.Owner*/);
+                "이동용 CapsuleCollider2D가 없습니다.");
         }
     }
 
@@ -112,18 +66,15 @@ public sealed class DashSkill :
             return false;
         }
 
-        /*if (_movementState == null ||
-            _movementControl == null ||
-            _aimState == null)
+        if (Controller.TickState == null)
         {
             return false;
         }
 
-        if (_movementState.IsControlLocked)
+        if (Controller.TickState.IsMovementControlLocked)
             return false;
 
-        if (_combatState != null &&
-            _combatState.IsAttacking)
+        /*if (Controller.TickState.IsAttacking)
         {
             return false;
         }*/
@@ -142,24 +93,23 @@ public sealed class DashSkill :
 
         // Dash가 끝날 때까지
         // 시전 순간 방향을 Networked PlayerAim에 고정합니다.
-        /*if (_aimControl != null)
-        {
-            PlayerAimOverride aimOverride =
-                new(
-                    PlayerAimTrackingMode
-                        .LockedDirection,
 
-                    PlayerAimFacingMode
-                        .Locked,
+        PlayerAimOverride aimOverride =
+            new(
+                PlayerAimTrackingMode
+                    .LockedDirection,
 
-                    PlayerAimRigMode
-                        .Procedural);
+                PlayerAimFacingMode
+                    .Locked,
+
+                PlayerAimRigMode
+                    .Procedural);
 
 
-            _aimControl.ApplyOverride(
-                in aimOverride,
-                direction);
-        }*/
+        Controller.TickCommands.RequestAimOverride(
+            in aimOverride,
+            direction);
+
 
 
         float controlLockDuration =
@@ -167,12 +117,11 @@ public sealed class DashSkill :
             DashData.DashDuration +
             DashData.RecoveryDuration;
 
-
         /*_movementControl.LockControl(
             controlLockDuration);
 
-        _movementControl.SetVelocity(
-            Vector2.zero);*/
+        */
+        Controller.TickState.MovementVelocity = Vector2.zero;
     }
 
 
@@ -182,10 +131,6 @@ public sealed class DashSkill :
 
     public override void FixedUpdateNetwork()
     {
-        /*if (_movementControl == null)
-            return;*/
-
-
         SkillUsePhase phase =
             Controller.GetUsePhase(
                 Slot);
@@ -200,8 +145,7 @@ public sealed class DashSkill :
             // 벽력일섬 준비 상태.
             case SkillUsePhase.Cast:
 
-                /*_movementControl.SetVelocity(
-                    Vector2.zero);*/
+                Controller.TickState.MovementVelocity = Vector2.zero;
 
                 break;
 
@@ -216,8 +160,7 @@ public sealed class DashSkill :
             // Dash가 끝난 후 아주 짧은 정지.
             case SkillUsePhase.Recovery:
 
-                /*_movementControl.SetVelocity(
-                    Vector2.zero);*/
+                Controller.TickState.MovementVelocity = Vector2.zero;
 
                 break;
         }
@@ -233,22 +176,20 @@ public sealed class DashSkill :
         if (TryHitPlayer(
                 direction))
         {
-            // Oryx처럼 Player와 충돌한 순간
-            // Dash 자체는 즉시 끝내고 Recovery로 넘어갑니다.
-            /*_movementControl.SetVelocity(
-                Vector2.zero);*/
+            // Dash 자체는 즉시 끝내고 Recovery로 넘어감
+            Controller.TickState.MovementVelocity = Vector2.zero;
 
 
             Controller.EndActiveEarly(
                 Slot);
 
+            Debug.Log("Dash Hit");
+
             return;
         }
 
 
-        /*_movementControl.SetVelocity(
-            direction *
-            DashData.DashSpeed);*/
+        Controller.TickState.MovementVelocity = direction * DashData.DashSpeed;
     }
 
 
@@ -341,12 +282,12 @@ public sealed class DashSkill :
 
 
             // 자기 자신.
-            /*if (ReferenceEquals(
+            if (ReferenceEquals(
                     receiver,
-                    _selfDamageReceiver))
+                    Controller)) // 여기 맞나 싶긴 함. 원래 DamageReceiver였는데
             {
                 continue;
-            }*/
+            }
 
 
             if (!receiver.IsAlive)
@@ -414,9 +355,9 @@ public sealed class DashSkill :
         Vector2 aimWorldPosition)
     {
         Vector2 direction = Vector2.right;
-        return direction;
-            /*_aimState.ResolveDirectionTo(
-                aimWorldPosition);
+
+        Controller.TickState.ResolveAimDirectionTo(
+            aimWorldPosition);
 
         if (direction.sqrMagnitude >
             0.0001f)
@@ -426,32 +367,28 @@ public sealed class DashSkill :
 
 
         return
-            _movementState.FacingRight
+            Controller.TickState.FacingRight
                 ? Vector2.right
-                : Vector2.left;*/
+                : Vector2.left;
     }
 
 
     private Vector2
         ResolveLockedDashDirection()
     {
-        /*if (_aimState != null &&
-            _aimState.AimDirection.sqrMagnitude >
+        if (Controller.TickState.AimDirection.sqrMagnitude >
             0.0001f)
         {
             return
-                _aimState.AimDirection
+                Controller.TickState.AimDirection
                     .normalized;
         }
 
 
         return
-            _movementState.FacingRight
+            Controller.TickState.FacingRight
                 ? Vector2.right
-                : Vector2.left;*/
-
-        Vector2 direction = Vector2.right;
-        return direction;
+                : Vector2.left;
     }
 
 
@@ -461,14 +398,14 @@ public sealed class DashSkill :
 
     public override void OnUseEnded()
     {
-        /*_aimControl?
-            .ClearOverride();*/
+        Controller.TickCommands?
+            .RequestClearAimOverride();
     }
 
 
     public override void Cancel()
     {
-        /*_aimControl?
-            .ClearOverride();*/
+        Controller.TickCommands?
+            .RequestClearAimOverride();
     }
 }

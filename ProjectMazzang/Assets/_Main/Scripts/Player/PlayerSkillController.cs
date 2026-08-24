@@ -170,16 +170,28 @@ public sealed class PlayerSkillController :
         ResetSlotRuntime(
             SkillSlot.Skill2,
             _skill2);
+
+        Equip(SkillSlot.Skill1, skill1);
+
+        Equip(SkillSlot.Skill2, skill2);
     }
 
 
     public override PlayerTickStage Stage =>
         PlayerTickStage.SkillIntent;
 
+    public PlayerTickState TickState { get; private set; }
+
+    public PlayerTickCommands TickCommands { get; private set; }
+
 
     public override void Simulate(
         in PlayerTick tick)
     {
+        if (TickState == null) TickState = tick.State;
+
+        if(TickCommands == null) TickCommands = tick.Commands;
+
         TickLateAction(
             tick.State.HasHealth &&
             tick.State.IsAlive);
