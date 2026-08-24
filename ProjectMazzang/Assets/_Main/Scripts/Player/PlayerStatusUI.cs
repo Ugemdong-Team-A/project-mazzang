@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 
 public sealed class PlayerStatusUI :
-    PlayerTickModule
+    PlayerComponent
 {
     [Header("Root")]
     [SerializeField]
@@ -32,11 +32,6 @@ public sealed class PlayerStatusUI :
 
     private NetworkPlayerData
         _playerData;
-
-    public override PlayerTickStage Stage => PlayerTickStage.Finalize;
-
-    public override int Order => 100;
-
 
     // =========================================================
     // Fusion
@@ -201,8 +196,4 @@ public sealed class PlayerStatusUI :
             $"x{tickState.Lives}";
     }
 
-    public override void Simulate(in PlayerTick tick)
-    {
-
-    }
 }

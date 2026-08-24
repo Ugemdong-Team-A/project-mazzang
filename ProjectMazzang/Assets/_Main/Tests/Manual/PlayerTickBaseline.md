@@ -19,13 +19,13 @@
 4. PlayerWeaponController (PrepareAction, 0)
 5. PlayerCombat (Action, 0)
 6. PlayerMovement (Motion, 0)
-7. PlayerVisual (Motion, 100)
-8. PlayerAim (Aim, 0)
-9. PlayerAnimation (Finalize, 0)
-10. PlayerStatusUI (Finalize, 100)
+7. PlayerAim (Aim, 0)
 
 같은 Stage에는 여러 모듈이 들어갈 수 있다. 이때 Order가 낮은 모듈이 먼저 실행되며,
 같은 플레이어 안에서 Stage와 Order 조합이 겹치면 파이프라인을 시작하지 않는다.
+
+PlayerAnimation, PlayerVisual, PlayerStatusUI는 Tick 시뮬레이션에 참여하지 않고
+PlayerController의 Present 단계에서만 실행된다.
 
 ## 검증 항목
 

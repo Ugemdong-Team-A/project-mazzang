@@ -1,7 +1,7 @@
 using UnityEngine;
 
 public sealed class PlayerAnimation :
-    PlayerTickModule
+    PlayerComponent
 {
     [SerializeField]
     private Animator animator;
@@ -21,9 +21,6 @@ public sealed class PlayerAnimation :
     private byte _lastSkillAnimationSequence;
 
     private bool _skillPresentationInitialized;
-
-    public override PlayerTickStage Stage => PlayerTickStage.Finalize;
-
 
     public override void Spawned()
     {
@@ -190,8 +187,4 @@ public sealed class PlayerAnimation :
         return true;
     }
 
-    public override void Simulate(in PlayerTick tick)
-    {
-        
-    }
 }

@@ -3,8 +3,9 @@ using Fusion;
 using UnityEngine;
 
 /// <summary>
-/// 같은 NetworkObject에 속한 PlayerTickModule을 수집하고
-/// Stage와 Order 순서로 네트워크 Tick을 실행합니다.
+/// 같은 NetworkObject에 속한 PlayerComponent를 수집합니다.
+/// PlayerTickModule만 Stage와 Order 순서로 시뮬레이션하고,
+/// 모든 PlayerComponent의 Present를 관리합니다.
 /// 개별 모듈의 구체 타입과 시뮬레이션 로직은 알지 않습니다.
 /// </summary>
 [DefaultExecutionOrder(-1000)]
@@ -15,10 +16,10 @@ public sealed class PlayerController :
     private const int MaxCommandResolvePasses = 8;
 
 
-    // private PlayerContext _context;
-
     [SerializeField]
-    private PlayerTickModule[] _modules;
+    private PlayerComponent[] _modules;
+
+    private PlayerTickModule[] _tickModules;
 
     private IPlayerTickStateSource[] _tickStateSources;
 
@@ -37,16 +38,8 @@ public sealed class PlayerController :
     private bool _resolvingCommands;
 
 
-    /*public PlayerContext Context =>
-        _context;*/
-
-
     private void Awake()
     {
-        /*_context =
-            new PlayerContext(
-                gameObject);*/
-
         CollectModules();
 
         ConfigureTickPipeline();
@@ -57,8 +50,6 @@ public sealed class PlayerController :
     {
         if (_initialized)
             return;
-
-        InitializeModules();
 
         _initialized = true;
     }
@@ -86,7 +77,7 @@ public sealed class PlayerController :
         }
 
         foreach (PlayerTickModule module
-                 in _modules)
+                 in _tickModules)
         {
             module.Simulate(
                 in tick);
@@ -108,7 +99,7 @@ public sealed class PlayerController :
             return;
         }
 
-        foreach (PlayerTickModule module in _modules)
+        foreach (PlayerComponent module in _modules)
             module.Present(in _tickState);
     }
 
@@ -122,24 +113,24 @@ public sealed class PlayerController :
         NetworkObject ownerObject =
             GetComponent<NetworkObject>();
 
-        PlayerTickModule[] candidates =
+        PlayerComponent[] candidates =
             GetComponentsInChildren<
-                PlayerTickModule>(
+                PlayerComponent>(
                 true);
 
-        List<PlayerTickModule> modules =
+        List<PlayerComponent> modules =
             new(
                 candidates.Length);
 
-        foreach (PlayerTickModule module
+        foreach (PlayerComponent module
                  in candidates)
         {
             NetworkObject moduleObject =
                 module.GetComponentInParent<
                     NetworkObject>();
 
-            // Nested NetworkObject의 모듈은
-            // 별도의 PlayerContext 영역으로 취급한다.
+            // Nested NetworkObject는 별도의
+            // PlayerController 관리 영역으로 취급한다.
             if (moduleObject !=
                 ownerObject)
             {
@@ -163,11 +154,14 @@ public sealed class PlayerController :
             new(
                 _modules.Length);
 
-        foreach (PlayerTickModule module
+        foreach (PlayerComponent module
                  in _modules)
         {
-            tickModules.Add(
-                module);
+            if (module is PlayerTickModule tickModule)
+            {
+                tickModules.Add(
+                    tickModule);
+            }
         }
 
         tickModules.Sort(
@@ -189,7 +183,7 @@ public sealed class PlayerController :
                 continue;
             }
 
-            _modules =
+            _tickModules =
                 tickModules.ToArray();
 
             Debug.LogError(
@@ -203,14 +197,14 @@ public sealed class PlayerController :
             return;
         }
 
-        _modules =
+        _tickModules =
             tickModules.ToArray();
 
         List<IPlayerTickStateSource> stateSources =
             new();
 
         foreach (PlayerTickModule module
-                 in _modules)
+                 in _tickModules)
         {
             if (module is IPlayerTickStateSource stateSource)
             {
@@ -226,7 +220,7 @@ public sealed class PlayerController :
             new();
 
         foreach (PlayerTickModule module
-                 in _modules)
+                 in _tickModules)
         {
             module.BindCommands(
                 _tickCommands);
@@ -243,16 +237,6 @@ public sealed class PlayerController :
 
         _tickCommands.SetDispatcher(
             this);
-
-        /*foreach (PlayerTickModule module
-                 in _modules)
-        {
-            if (module is PlayerTickModule)
-            {
-                module.SetTickControlled(
-                    true);
-            }
-        }*/
 
         _tickPipelineEnabled =
             true;
@@ -363,33 +347,5 @@ public sealed class PlayerController :
 
         return left.Order.CompareTo(
             right.Order);
-    }
-
-
-    // =========================================================
-    // Context Initialization
-    // =========================================================
-
-    private void InitializeModules()
-    {
-        // 1차:
-        // 모든 모듈에 동일 Context를 전달하고,
-        // 각 모듈이 제공하는 Context Unit을 등록한다.
-        /*foreach (PlayerModule module
-                 in _modules)
-        {
-            module.InitializeContext(
-                _context);
-        }*/
-
-        // 2차:
-        // 모든 Unit 등록이 완료된 뒤,
-        // 각 모듈이 필요한 Unit을 Resolve한다.
-        /*foreach (PlayerModule module
-                 in _modules)
-        {
-            module
-                .CompleteContextInitialization();
-        }*/
     }
 }
