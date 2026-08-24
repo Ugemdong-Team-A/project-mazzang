@@ -167,8 +167,7 @@ public sealed class PlayerCombat :
             tick.State.IsSkillActionLocked,
             !tick.State.HasMovement ||
             tick.State.FacingRight,
-            tick.State,
-            tick.Commands);
+            tick.State);
     }
 
 
@@ -209,8 +208,7 @@ public sealed class PlayerCombat :
         bool isMovementControlLocked,
         bool isSkillActionLocked,
         bool facingRight,
-        PlayerTickState tickState,
-        PlayerTickCommands tickCommands)
+        PlayerTickState tickState)
     {
         /*if (tickState == null &&
             !IsContextReady)
@@ -276,8 +274,7 @@ public sealed class PlayerCombat :
         // ==========================================
 
         UpdateAttack(
-            facingRight,
-            tickCommands);
+            facingRight);
 
 
         if (!hasInput)
@@ -304,8 +301,7 @@ public sealed class PlayerCombat :
             in input,
             isMovementControlLocked,
             facingRight,
-            tickState,
-            tickCommands);
+            tickState);
     }
 
 
@@ -317,8 +313,7 @@ public sealed class PlayerCombat :
         in PlayerInputData input,
         bool isMovementControlLocked,
         bool facingRight,
-        PlayerTickState tickState,
-        PlayerTickCommands tickCommands)
+        PlayerTickState tickState)
     {
         if (IsAttacking)
             return;
@@ -343,9 +338,9 @@ public sealed class PlayerCombat :
                     facingRight,
                     tickState);
 
-            if (tickCommands != null)
+            if (Commands != null)
             {
-                tickCommands.RequestWeaponUse(
+                Commands.RequestWeaponUse(
                     aimDirection);
             }
 
@@ -374,8 +369,7 @@ public sealed class PlayerCombat :
 
         StartAttack(
             in definition,
-            sourceAimDirection,
-            tickCommands);
+            sourceAimDirection);
     }
 
 
@@ -398,8 +392,7 @@ public sealed class PlayerCombat :
 
     private void StartAttack(
         in PlayerAttackDefinition definition,
-        Vector2 sourceAimDirection,
-        PlayerTickCommands tickCommands)
+        Vector2 sourceAimDirection)
     {
         AttackData attack =
             definition.Attack;
@@ -428,8 +421,7 @@ public sealed class PlayerCombat :
 
         ApplyAimRule(
             in definition,
-            sourceAimDirection,
-            tickCommands);
+            sourceAimDirection);
 
 
         AttackSequence++;
@@ -438,8 +430,7 @@ public sealed class PlayerCombat :
 
     private void ApplyAimRule(
         in PlayerAttackDefinition definition,
-        Vector2 sourceAimDirection,
-        PlayerTickCommands tickCommands)
+        Vector2 sourceAimDirection)
     {
         PlayerAttackAimDefinition aimDefinition =
             definition.Aim;
@@ -447,7 +438,7 @@ public sealed class PlayerCombat :
 
         if (!aimDefinition.RequiresOverride)
         {
-            RequestClearAimOverride(tickCommands);
+            RequestClearAimOverride();
 
             return;
         }
@@ -457,9 +448,9 @@ public sealed class PlayerCombat :
             aimDefinition.CreateOverride();
 
 
-        if (tickCommands != null)
+        if (Commands != null)
         {
-            tickCommands.RequestAimOverride(
+            Commands.RequestAimOverride(
                 in aimOverride,
                 sourceAimDirection);
         }
@@ -471,8 +462,7 @@ public sealed class PlayerCombat :
     // =========================================================
 
     private void UpdateAttack(
-        bool facingRight,
-        PlayerTickCommands tickCommands)
+        bool facingRight)
     {
         switch (AttackState)
         {
@@ -492,7 +482,7 @@ public sealed class PlayerCombat :
 
 
             case PlayerAttackState.Recovery:
-                UpdateRecovery(tickCommands);
+                UpdateRecovery();
                 break;
         }
     }
@@ -578,7 +568,7 @@ public sealed class PlayerCombat :
     }
 
 
-    private void UpdateRecovery(PlayerTickCommands tickCommands)
+    private void UpdateRecovery()
     {
         if (!AttackPhaseTimer
                 .Expired(Runner))
@@ -587,7 +577,7 @@ public sealed class PlayerCombat :
         }
 
 
-        CancelAttack(tickCommands);
+        CancelAttack();
     }
 
 
@@ -595,7 +585,7 @@ public sealed class PlayerCombat :
     // Cancel
     // =========================================================
 
-    public void CancelAttack(PlayerTickCommands tickCommands = null)
+    public void CancelAttack()
     {
         if (AttackState ==
                 PlayerAttackState.None &&
@@ -618,16 +608,15 @@ public sealed class PlayerCombat :
             NoneAttackId;
 
 
-        RequestClearAimOverride(tickCommands);
+        RequestClearAimOverride();
     }
 
 
-    private void RequestClearAimOverride(PlayerTickCommands tickCommands)
+    private void RequestClearAimOverride()
     {
-        if (tickCommands != null)
+        if (Commands != null)
         {
-            tickCommands.RequestClearAimOverride();
-            return;
+            Commands.RequestClearAimOverride();
         }
     }
 

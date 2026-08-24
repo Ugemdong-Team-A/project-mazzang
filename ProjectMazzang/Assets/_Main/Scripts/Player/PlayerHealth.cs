@@ -12,6 +12,7 @@ public enum DeathCause : byte
 [DefaultExecutionOrder(-300)]
 public sealed class PlayerHealth :
     PlayerTickModule,
+    IDamageable,
     IPlayerTickStateSource
 {
     [Header("Health")]
@@ -294,14 +295,10 @@ public sealed class PlayerHealth :
 
     private void RequestCancelAttack()
     {
-        /*if (TickCommands != null)
+        if (Commands != null)
         {
-            TickCommands.RequestCancelAttack();
-            return;
+            Commands.RequestCancelAttack();
         }
-
-        _combatControl?
-            .CancelAttack();*/
     }
 
 
@@ -309,19 +306,12 @@ public sealed class PlayerHealth :
         Vector2 velocity,
         float controlLockDuration)
     {
-        /*if (TickCommands != null)
+        if (Commands != null)
         {
-            TickCommands.RequestKnockback(
+            Commands.RequestKnockback(
                 velocity,
                 controlLockDuration);
-
-            return;
-        }*/
-
-        /*_knockbackReceiver?
-            .ApplyKnockback(
-                velocity,
-                controlLockDuration);*/
+        }
     }
 
 

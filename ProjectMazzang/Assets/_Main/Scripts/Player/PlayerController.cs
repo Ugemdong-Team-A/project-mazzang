@@ -146,8 +146,8 @@ public sealed class PlayerController :
                 module);
         }
 
-        _modules = candidates;
-            //modules.ToArray();
+        _modules =
+            modules.ToArray();
     }
 
 
@@ -222,7 +222,10 @@ public sealed class PlayerController :
 
         foreach (PlayerTickModule module
                  in _modules)
-        {          
+        {
+            module.BindCommands(
+                _tickCommands);
+
             if (module is IPlayerTickCommandSink commandSink)
             {
                 commandSinks.Add(
