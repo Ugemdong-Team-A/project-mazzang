@@ -238,13 +238,21 @@ public sealed class PlayerMovement :
     {
         bool resolved = false;
 
+        if(commands.TryConsumeControlLock(
+            out float controlLockDuration))
+        {
+            LockControl(controlLockDuration);
+
+            resolved = true;
+        }
+
         if (commands.TryConsumeKnockback(
                 out Vector2 velocity,
-                out float controlLockDuration))
+                out float moveLockDuration))
         {
             ApplyKnockback(
                 velocity,
-                controlLockDuration);
+                moveLockDuration);
 
             resolved = true;
         }

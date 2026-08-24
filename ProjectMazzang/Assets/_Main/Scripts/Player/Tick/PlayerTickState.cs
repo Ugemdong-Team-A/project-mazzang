@@ -36,6 +36,8 @@ public sealed class PlayerTickState
 
     public bool HasCombat { get; internal set; }
 
+    public bool IsAttacking { get; internal set; }
+
     public byte AttackSequence { get; internal set; }
 
     public byte AttackId { get; internal set; }

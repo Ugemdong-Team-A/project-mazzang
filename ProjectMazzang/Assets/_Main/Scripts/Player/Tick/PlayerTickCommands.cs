@@ -22,6 +22,9 @@ public sealed class PlayerTickCommands
     private bool _facingRequested;
     private bool _facingRight;
 
+    private bool _controlLockRequested;
+    private float _controlLockDuration;
+
     private bool _weaponUseRequested;
     private Vector2 _weaponAimDirection;
 
@@ -31,6 +34,7 @@ public sealed class PlayerTickCommands
         _knockbackRequested ||
         _aimCommandRequested ||
         _facingRequested ||
+        _controlLockRequested ||
         _weaponUseRequested;
 
 
@@ -73,6 +77,13 @@ public sealed class PlayerTickCommands
         Dispatch();
     }
 
+    public void RequestControlLock(float controlLockDuration)
+    {
+        _controlLockRequested = true;
+        _controlLockDuration = controlLockDuration;
+
+        Dispatch();
+    }
 
     public void RequestFacing(
         bool facingRight)
@@ -105,6 +116,18 @@ public sealed class PlayerTickCommands
             .DispatchTickCommands();
     }
 
+    internal bool TryConsumeControlLock(out float duration)
+    {
+        if (!_controlLockRequested)
+        {
+            duration = 0f;
+            return false;
+        }
+
+        _controlLockRequested = false;
+        duration = _controlLockDuration;
+        return true;
+    }
 
     internal bool TryConsumeCancelAttack()
     {

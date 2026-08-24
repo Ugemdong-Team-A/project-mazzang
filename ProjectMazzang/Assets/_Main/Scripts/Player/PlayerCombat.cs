@@ -176,6 +176,7 @@ public sealed class PlayerCombat :
         PlayerTickState state)
     {
         state.HasCombat = true;
+        state.IsAttacking = IsAttacking;
         state.AttackSequence = AttackSequence;
         state.AttackId = (byte)CurrentAttackId;
         state.IsCombatMovementLocked = IsMovementLocked;

@@ -1,4 +1,5 @@
 using Fusion;
+using System;
 using UnityEngine;
 
 public sealed class DashSkill :
@@ -11,6 +12,7 @@ public sealed class DashSkill :
     private CapsuleCollider2D
         _movementCollider;
 
+    private TickTimer _controlleLockTimer;
 
     private DashSkillData DashData =>
         (DashSkillData)Data;
@@ -74,10 +76,10 @@ public sealed class DashSkill :
         if (Controller.TickState.IsMovementControlLocked)
             return false;
 
-        /*if (Controller.TickState.IsAttacking)
+        if (Controller.TickState.IsAttacking)
         {
             return false;
-        }*/
+        }
 
         return true;
     }
@@ -117,13 +119,24 @@ public sealed class DashSkill :
             DashData.DashDuration +
             DashData.RecoveryDuration;
 
-        /*_movementControl.LockControl(
-            controlLockDuration);
+        LockControlle(controlLockDuration);      
 
-        */
         Controller.TickState.MovementVelocity = Vector2.zero;
     }
 
+    private void LockControlle(float controlLockDuration)
+    {
+        Controller.TickCommands.RequestControlLock(controlLockDuration);
+    }
+
+    private void ClearLockControlle()
+    {
+        // Controller.TickCommands.RequestClearLockControl();
+
+        Controller.TickState.IsCombatMovementLocked = false;
+        Controller.TickState.IsMovementControlLocked = false;
+        Controller.TickState.IsSkillActionLocked = false;
+    }
 
     // =========================================================
     // Update
@@ -188,6 +201,9 @@ public sealed class DashSkill :
             return;
         }
 
+        if (!_controlleLockTimer.Equals(TickTimer.None) &&
+            _controlleLockTimer.Expired(Controller.Runner))
+            ClearLockControlle();   // 어차피 End될 때 되돌려줘서 return 전에 안 해도 됨.
 
         Controller.TickState.MovementVelocity = direction * DashData.DashSpeed;
     }
@@ -407,5 +423,7 @@ public sealed class DashSkill :
     {
         Controller.TickCommands?
             .RequestClearAimOverride();
+
+        ClearLockControlle();
     }
 }
