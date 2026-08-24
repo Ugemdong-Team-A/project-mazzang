@@ -1,4 +1,4 @@
-using Fusion;
+/*using Fusion;
 using UnityEngine;
 
 /// <summary>
@@ -193,3 +193,4 @@ public interface IPlayerSkillAnimationState :
 
     PlayerSkillAnimationId LastSkillAnimation { get; }
 }
+*/

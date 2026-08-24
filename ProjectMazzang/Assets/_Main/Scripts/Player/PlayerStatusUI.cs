@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 
 public sealed class PlayerStatusUI :
-    PlayerModule
+    PlayerTickModule
 {
     [Header("Root")]
     [SerializeField]
@@ -30,24 +30,12 @@ public sealed class PlayerStatusUI :
     [SerializeField]
     private TMP_Text livesText;
 
-
-    private IPlayerHealthState
-        _healthState;
-
     private NetworkPlayerData
         _playerData;
 
+    public override PlayerTickStage Stage => PlayerTickStage.Finalize;
 
-    // =========================================================
-    // Context
-    // =========================================================
-
-    protected override void OnContextReady()
-    {
-        _healthState =
-            Context.Get<
-                IPlayerHealthState>();
-    }
+    public override int Order => 100;
 
 
     // =========================================================
@@ -58,7 +46,7 @@ public sealed class PlayerStatusUI :
     {
         TryResolvePlayerData();
 
-        Refresh();
+        RefreshNickname();
 
         if (nicknameText != null)
         {
@@ -78,27 +66,29 @@ public sealed class PlayerStatusUI :
     }
 
 
-    public override void Render()
+    public override void Present(in PlayerTickState tickState)
     {
         if (_playerData == null)
         {
             TryResolvePlayerData();
         }
 
-        Refresh();
+        Refresh(
+            in tickState);
     }
 
 
-    private void RefreshVisibility()
+    private void RefreshVisibility(
+        in PlayerTickState tickState)
     {
-        if (statusRoot == null/* ||
-            _healthState == null*/)
+        if (statusRoot == null ||
+            !tickState.HasHealth)
         {
             return;
         }
 
         bool visible =
-            !_healthState.IsDead;
+            tickState.IsAlive;
 
         if (statusRoot.activeSelf ==
             visible)
@@ -136,12 +126,19 @@ public sealed class PlayerStatusUI :
     // UI
     // =========================================================
 
-    private void Refresh()
+    private void Refresh(
+        in PlayerTickState tickState)
     {
-        RefreshVisibility();
+        RefreshVisibility(
+            in tickState);
+
         RefreshNickname();
-        RefreshHealth();
-        RefreshLives();
+
+        RefreshHealth(
+            in tickState);
+
+        RefreshLives(
+            in tickState);
     }
 
 
@@ -163,17 +160,18 @@ public sealed class PlayerStatusUI :
     }
 
 
-    private void RefreshHealth()
+    private void RefreshHealth(
+        in PlayerTickState tickState)
     {
-        if (_healthState == null)
+        if (!tickState.HasHealth)
             return;
 
         if (healthBar != null)
         {
             float ratio =
-                _healthState.MaxHealth > 0
-                    ? (float)_healthState.Health /
-                      _healthState.MaxHealth
+                tickState.MaxHealth > 0
+                    ? (float)tickState.Health /
+                      tickState.MaxHealth
                     : 0f;
 
             healthBar.value =
@@ -184,21 +182,27 @@ public sealed class PlayerStatusUI :
         if (healthText != null)
         {
             healthText.text =
-                $"{_healthState.Health}/" +
-                $"{_healthState.MaxHealth}";
+                $"{tickState.Health}/" +
+                $"{tickState.MaxHealth}";
         }
     }
 
 
-    private void RefreshLives()
+    private void RefreshLives(
+        in PlayerTickState tickState)
     {
         if (livesText == null ||
-            _healthState == null)
+            !tickState.HasHealth)
         {
             return;
         }
 
         livesText.text =
-            $"x{_healthState.Lives}";
+            $"x{tickState.Lives}";
+    }
+
+    public override void Simulate(in PlayerTick tick)
+    {
+
     }
 }

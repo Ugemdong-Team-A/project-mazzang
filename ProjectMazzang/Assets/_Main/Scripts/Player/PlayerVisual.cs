@@ -1,7 +1,7 @@
 using UnityEngine;
 
 public sealed class PlayerVisual :
-    PlayerModule
+    PlayerTickModule
 {
     [Header("References")]
     [SerializeField]
@@ -35,12 +35,6 @@ public sealed class PlayerVisual :
         0.08f;
 
 
-    private IPlayerMovementState
-        _movementState;
-
-    private IPlayerHealthState
-        _healthState;
-
     private PlayerSkillController
         _skillController;
 
@@ -73,6 +67,10 @@ public sealed class PlayerVisual :
     private bool _previousFacingRight;
 
     private float _previousStatScale = 1f;
+
+    public override PlayerTickStage Stage => PlayerTickStage.Motion;
+
+    public override int Order => 100;
 
 
     // =========================================================
@@ -123,35 +121,29 @@ public sealed class PlayerVisual :
         }
     }
 
-
-    // =========================================================
-    // Context
-    // =========================================================
-
-    protected override void OnContextReady()
-    {
-        _movementState =
-            Context.Get<
-                IPlayerMovementState>();
-
-        _healthState =
-            Context.Get<
-                IPlayerHealthState>();
-    }
-
-
     // =========================================================
     // Fusion
     // =========================================================
 
-    public override void Render()
+    public override void Present(in PlayerTickState tickState)
     {
         if (characterVisualRoot == null)
             return;
 
-        UpdateVisibility();
-        UpdateFacing();
-        UpdateHealthPresentation();
+        if (tickState.HasHealth)
+        {
+            UpdateVisibility(
+                tickState.IsAlive);
+        }
+
+        if (tickState.HasMovement)
+        {
+            UpdateFacing(
+                tickState.FacingRight);
+        }
+
+        UpdateHealthPresentation(
+            in tickState);
     }
 
 
@@ -159,14 +151,8 @@ public sealed class PlayerVisual :
     // Visibility
     // =========================================================
 
-    private void UpdateVisibility()
+    private void UpdateVisibility(bool visible)
     {
-        if (_healthState == null)
-            return;
-
-        bool visible =
-            !_healthState.IsDead;
-
         if (characterVisualRoot.activeSelf ==
             visible)
         {
@@ -182,14 +168,8 @@ public sealed class PlayerVisual :
     // Facing
     // =========================================================
 
-    private void UpdateFacing()
+    private void UpdateFacing(bool facingRight)
     {
-        if (_movementState == null)
-            return;
-
-        bool facingRight =
-            _movementState.FacingRight;
-
         float statScale =
             _skillController != null
                 ? _skillController
@@ -238,36 +218,45 @@ public sealed class PlayerVisual :
     // Health Presentation
     // =========================================================
 
-    private void UpdateHealthPresentation()
+    private void UpdateHealthPresentation(
+        in PlayerTickState tickState)
     {
-        if (_healthState == null)
+        if (!tickState.HasHealth)
             return;
 
         if (!_healthPresentationInitialized)
         {
-            InitializeHealthPresentation();
+            InitializeHealthPresentation(
+                tickState.Health,
+                tickState.IsInvulnerable);
+
             return;
         }
 
-        DetectHit();
+        DetectHit(
+            tickState.IsAlive,
+            tickState.Health);
+
         UpdateHitColor();
-        UpdateInvulnerability();
+
+        UpdateInvulnerability(
+            tickState.IsInvulnerable);
 
         _previousHealth =
-            _healthState.Health;
+            tickState.Health;
     }
 
 
-    private void InitializeHealthPresentation()
+    private void InitializeHealthPresentation(int health, bool isInvulnerable)
     {
         _healthPresentationInitialized =
             true;
 
         _previousHealth =
-            _healthState.Health;
+            health;
 
         _wasInvulnerable =
-            _healthState.IsInvulnerable;
+            isInvulnerable;
 
         _invulnerableDimmed =
             false;
@@ -283,13 +272,12 @@ public sealed class PlayerVisual :
     // Hit
     // =========================================================
 
-    private void DetectHit()
+    private void DetectHit(bool isAlive, int currentHealth)
     {
-        if (_healthState.IsDead)
+        if (!isAlive)
             return;
 
-        if (_healthState.Health >=
-            _previousHealth)
+        if (currentHealth >= _previousHealth)
         {
             return;
         }
@@ -329,11 +317,8 @@ public sealed class PlayerVisual :
     // Invulnerability
     // =========================================================
 
-    private void UpdateInvulnerability()
+    private void UpdateInvulnerability(bool isInvulnerable)
     {
-        bool isInvulnerable =
-            _healthState.IsInvulnerable;
-
         if (_wasInvulnerable !=
             isInvulnerable)
         {
@@ -415,5 +400,9 @@ public sealed class PlayerVisual :
             spriteRenderer.color =
                 color;
         }
+    }
+
+    public override void Simulate(in PlayerTick tick)
+    {
     }
 }
