@@ -91,6 +91,125 @@ namespace ProjectMazzang.Tests
 
 
         [Test]
+        public void PlayerPrefabs_UseUniqueTickSlots()
+        {
+            Type controllerType =
+                GetRuntimeType(
+                    "PlayerController");
+
+            Type moduleType =
+                GetRuntimeType(
+                    "PlayerTickModule");
+
+            Type networkObjectType =
+                AppDomain.CurrentDomain
+                    .GetAssemblies()
+                    .Select(
+                        assembly =>
+                            assembly.GetType(
+                                "Fusion.NetworkObject"))
+                    .FirstOrDefault(
+                        type => type != null);
+
+            PropertyInfo stageProperty =
+                moduleType.GetProperty(
+                    "Stage");
+
+            PropertyInfo orderProperty =
+                moduleType.GetProperty(
+                    "Order");
+
+            Assert.That(stageProperty, Is.Not.Null);
+            Assert.That(orderProperty, Is.Not.Null);
+            Assert.That(orderProperty.PropertyType, Is.EqualTo(typeof(int)));
+            Assert.That(networkObjectType, Is.Not.Null);
+
+            int controllerCount = 0;
+
+            string[] prefabGuids =
+                AssetDatabase.FindAssets(
+                    "t:Prefab",
+                    new[]
+                    {
+                        "Assets/_Main/Prefabs/Characters"
+                    });
+
+            foreach (string prefabGuid
+                     in prefabGuids)
+            {
+                string prefabPath =
+                    AssetDatabase.GUIDToAssetPath(
+                        prefabGuid);
+
+                GameObject prefab =
+                    AssetDatabase.LoadAssetAtPath<
+                        GameObject>(
+                        prefabPath);
+
+                if (prefab == null)
+                    continue;
+
+                Component[] controllers =
+                    prefab.GetComponentsInChildren(
+                        controllerType,
+                        true);
+
+                foreach (Component controller
+                         in controllers)
+                {
+                    controllerCount++;
+
+                    Component ownerObject =
+                        controller.GetComponent(
+                            networkObjectType);
+
+                    Assert.That(ownerObject, Is.Not.Null);
+
+                    Component[] modules =
+                        controller.GetComponentsInChildren(
+                                moduleType,
+                                true)
+                            .Where(
+                                module =>
+                                    module.GetComponentInParent(
+                                        networkObjectType) == ownerObject)
+                            .ToArray();
+
+                    HashSet<string> slots =
+                        new();
+
+                    foreach (Component module
+                             in modules)
+                    {
+                        object stage =
+                            stageProperty.GetValue(
+                                module);
+
+                        int order =
+                            (int)orderProperty.GetValue(
+                                module);
+
+                        string slot =
+                            $"{stage}:{order}";
+
+                        Assert.That(
+                            slots.Add(slot),
+                            Is.True,
+                            $"{prefabPath}의 {controller.name}에서 " +
+                            $"Player Tick 순서 {slot}가 겹칩니다.");
+                    }
+
+                }
+            }
+
+            Assert.That(
+                controllerCount,
+                Is.GreaterThan(0),
+                "검사할 PlayerController 프리팹을 찾지 못했습니다.");
+        }
+
+
+        [Test]
         public void PlayerHealth_ProvidesDamageContract()
         {
             AssertInterfaces(

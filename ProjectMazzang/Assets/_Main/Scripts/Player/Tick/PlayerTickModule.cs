@@ -19,6 +19,13 @@ public abstract class PlayerTickModule
         get;
     }
 
+    /// <summary>
+    /// 같은 Stage 안에서의 실행 순서입니다.
+    /// 값이 낮은 모듈이 먼저 실행되며,
+    /// 같은 플레이어 안의 Stage와 Order 조합은 고유해야 합니다.
+    /// </summary>
+    public virtual int Order => 0;
+
 
     internal void BindCommands(
         PlayerTickCommands commands)

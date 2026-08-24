@@ -3,12 +3,9 @@ using Fusion;
 using UnityEngine;
 
 /// <summary>
-/// 한 플레이어가 공유할 PlayerContext를 생성하고
-/// 같은 NetworkObject 소속 PlayerModule들에게 동일한 Context를 연결합니다.
-///
+/// 같은 NetworkObject에 속한 PlayerTickModule을 수집하고
+/// Stage와 Order 순서로 네트워크 Tick을 실행합니다.
 /// 개별 모듈의 구체 타입과 시뮬레이션 로직은 알지 않습니다.
-/// Tick 단계, 상태 제공자, 명령 소비자 계약만 해석해
-/// 네트워크 Tick을 실행합니다.
 /// </summary>
 [DefaultExecutionOrder(-1000)]
 public sealed class PlayerController :
@@ -53,8 +50,6 @@ public sealed class PlayerController :
         CollectModules();
 
         ConfigureTickPipeline();
-        if (!_tickPipelineEnabled)
-            _tickPipelineEnabled = true;
     }
 
 
@@ -71,8 +66,11 @@ public sealed class PlayerController :
 
     public override void FixedUpdateNetwork()
     {
-        if (!_initialized)
+        if (!_initialized ||
+            !_tickPipelineEnabled)
+        {
             return;
+        }
 
         PlayerTick tick =
             new(
@@ -104,6 +102,12 @@ public sealed class PlayerController :
 
     public override void Render()
     {
+        if (!_initialized ||
+            !_tickPipelineEnabled)
+        {
+            return;
+        }
+
         foreach (PlayerTickModule module in _modules)
             module.Present(in _tickState);
     }
@@ -153,17 +157,17 @@ public sealed class PlayerController :
 
     private void ConfigureTickPipeline()
     {
+        _tickPipelineEnabled = false;
+
         List<PlayerTickModule> tickModules =
-            new();
+            new(
+                _modules.Length);
 
         foreach (PlayerTickModule module
                  in _modules)
         {
-            if (module is PlayerTickModule tickModule)
-            {
-                tickModules.Add(
-                    tickModule);
-            }
+            tickModules.Add(
+                module);
         }
 
         tickModules.Sort(
@@ -179,22 +183,24 @@ public sealed class PlayerController :
             PlayerTickModule current =
                 tickModules[i];
 
-            if (previous.Stage !=
-                current.Stage)
+            if (previous.Stage != current.Stage ||
+                previous.Order != current.Order)
             {
                 continue;
             }
 
-            Debug.LogWarning(
-                $"Player Tick Stage {current.Stage}에 " +
-                "둘 이상의 모듈이 등록되었습니다 !! " +
-                "기존 실행 경로를 유지합니다.",
-                this);
-
             _modules =
                 tickModules.ToArray();
 
-            // return;
+            Debug.LogError(
+                $"Player Tick 순서가 충돌했습니다. " +
+                $"Stage: {current.Stage}, Order: {current.Order}, " +
+                $"Modules: {previous.GetType().Name}, " +
+                $"{current.GetType().Name}. " +
+                "같은 Stage의 모듈에는 서로 다른 Order를 지정해야 합니다.",
+                this);
+
+            return;
         }
 
         _modules =
@@ -208,7 +214,6 @@ public sealed class PlayerController :
         {
             if (module is IPlayerTickStateSource stateSource)
             {
-                Debug.Log("Found IPlayerTickStateSource");
                 stateSources.Add(
                     stateSource);
             }
@@ -249,7 +254,6 @@ public sealed class PlayerController :
             }
         }*/
 
-        Debug.Log("_tickPipelineEnabled = true");
         _tickPipelineEnabled =
             true;
     }
@@ -350,8 +354,15 @@ public sealed class PlayerController :
         PlayerTickModule left,
         PlayerTickModule right)
     {
-        return left.Stage.CompareTo(
-            right.Stage);
+        int stageComparison =
+            left.Stage.CompareTo(
+                right.Stage);
+
+        if (stageComparison != 0)
+            return stageComparison;
+
+        return left.Order.CompareTo(
+            right.Order);
     }
 
 

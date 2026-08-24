@@ -35,6 +35,8 @@ public sealed class PlayerStatusUI :
 
     public override PlayerTickStage Stage => PlayerTickStage.Finalize;
 
+    public override int Order => 100;
+
 
     // =========================================================
     // Context

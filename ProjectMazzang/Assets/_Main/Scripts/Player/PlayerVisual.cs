@@ -74,6 +74,8 @@ public sealed class PlayerVisual :
 
     public override PlayerTickStage Stage => PlayerTickStage.Motion;
 
+    public override int Order => 100;
+
 
     // =========================================================
     // Unity
