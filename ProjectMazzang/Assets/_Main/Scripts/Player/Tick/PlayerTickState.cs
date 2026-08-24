@@ -46,6 +46,11 @@ public sealed class PlayerTickState
 
     public byte AttackId { get; internal set; }
 
+    /// <summary>
+    /// 외부 제어 효과로 기본 공격이 잠긴 상태입니다.
+    /// </summary>
+    public bool IsAttackControlLocked { get; internal set; }
+
 
     public bool HasSkill { get; internal set; }
 
@@ -53,8 +58,20 @@ public sealed class PlayerTickState
 
     public PlayerSkillAnimationId SkillAnimationId { get; internal set; }
 
+    /// <summary>
+    /// 외부 제어 효과로 새 스킬 사용이 잠긴 상태입니다.
+    /// 이미 실행 중인 스킬의 진행 여부와는 무관합니다.
+    /// </summary>
+    public bool IsSkillControlLocked { get; internal set; }
+
+    /// <summary>
+    /// 실행 중인 스킬이 기본 공격과 무기 행동을 잠근 상태입니다.
+    /// </summary>
     public bool IsSkillActionLocked { get; internal set; }
 
+    /// <summary>
+    /// 실행 중인 기본 공격이 이동을 잠근 상태입니다.
+    /// </summary>
     public bool IsCombatMovementLocked { get; internal set; }
 
 
@@ -93,10 +110,12 @@ public sealed class PlayerTickState
         IsAttacking = false;
         AttackSequence = 0;
         AttackId = 0;
+        IsAttackControlLocked = false;
 
         HasSkill = false;
         SkillAnimationSequence = 0;
         SkillAnimationId = PlayerSkillAnimationId.None;
+        IsSkillControlLocked = false;
         IsSkillActionLocked = false;
         IsCombatMovementLocked = false;
 

@@ -26,6 +26,7 @@ public sealed class PlayerHealth :
 
 
     [Header("Respawn")]
+    [Min(0.01f)]
     [SerializeField]
     private float respawnDelay = 2f;
 
@@ -275,7 +276,7 @@ public sealed class PlayerHealth :
                 effectiveDamage);
 
         // 유효한 피격이 들어오는 즉시 현재 공격을 끊는다.
-        // 이후 Movement의 control lock 동안 새 공격도 차단된다.
+        // 새 공격 차단 시간은 아래의 Attack control lock이 담당한다.
         RequestCancelAttack();
 
         if (info.Knockback
@@ -312,12 +313,18 @@ public sealed class PlayerHealth :
         Vector2 velocity,
         float controlLockDuration)
     {
-        if (Commands != null)
-        {
-            Commands.RequestKnockback(
-                velocity,
-                controlLockDuration);
-        }
+        if (Commands == null)
+            return;
+
+        // 기존 피격 규칙을 명시적으로 보존한다.
+        // 넉백은 이동과 기본 공격만 잠그며, 스킬은 별도 정책이다.
+        Commands.RequestControlLock(
+            PlayerControlLock.Movement |
+            PlayerControlLock.Attack,
+            controlLockDuration);
+
+        Commands.RequestKnockback(
+            velocity);
     }
 
 

@@ -134,10 +134,7 @@ public sealed class PlayerMovement :
     private NetworkBool WasWallSliding { get; set; }
 
     [Networked]
-    private TickTimer KnockbackControlTimer { get; set; }
-
-    [Networked]
-    private TickTimer ControlLockTimer { get; set; }
+    private TickTimer MovementControlLockTimer { get; set; }
 
     [Networked]
     public NetworkBool IsGrounded { get; private set; }
@@ -170,10 +167,8 @@ public sealed class PlayerMovement :
     public Vector2 Velocity =>
         rb.linearVelocity;
 
-    public bool IsControlLocked =>
-        !KnockbackControlTimer
-            .ExpiredOrNotRunning(Runner) ||
-        !ControlLockTimer
+    public bool IsMovementControlLocked =>
+        !MovementControlLockTimer
             .ExpiredOrNotRunning(Runner);
 
 
@@ -201,6 +196,12 @@ public sealed class PlayerMovement :
     {
         _skillController =
             GetComponent<PlayerSkillController>();
+
+        if (!HasStateAuthority)
+            return;
+
+        MovementControlLockTimer =
+            TickTimer.None;
     }
 
     public override PlayerTickStage Stage =>
@@ -225,7 +226,8 @@ public sealed class PlayerMovement :
         state.IsGrounded = IsGrounded;
         state.FacingRight = FacingRight;
         state.IsWallSliding = IsWallSliding;
-        state.IsMovementControlLocked = IsControlLocked;
+        state.IsMovementControlLocked =
+            IsMovementControlLocked;
         state.MovementVelocity = Velocity;
         state.JumpSequence = JumpSequence;
         state.LastJumpType = LastJumpType;
@@ -238,10 +240,11 @@ public sealed class PlayerMovement :
     {
         bool resolved = false;
 
-        if(commands.TryConsumeControlLock(
-            out float controlLockDuration))
+        if (commands.TryConsumeMovementControlLock(
+                out float controlLockDuration))
         {
-            LockControl(controlLockDuration);
+            LockMovementControl(
+                controlLockDuration);
 
             resolved = true;
         }
@@ -256,12 +259,10 @@ public sealed class PlayerMovement :
         }
 
         if (commands.TryConsumeKnockback(
-                out Vector2 velocity,
-                out float moveLockDuration))
+                out Vector2 velocity))
         {
             ApplyKnockback(
-                velocity,
-                moveLockDuration);
+                velocity);
 
             resolved = true;
         }
@@ -303,6 +304,9 @@ public sealed class PlayerMovement :
 
         if (!isAlive)
         {
+            MovementControlLockTimer =
+                TickTimer.None;
+
             PreviousButtons =
                 input.Buttons;
 
@@ -316,7 +320,7 @@ public sealed class PlayerMovement :
         // Control Lock
         // ==========================================
 
-        if (IsControlLocked)
+        if (IsMovementControlLocked)
         {
             PreviousButtons =
                 input.Buttons;
@@ -866,7 +870,7 @@ public sealed class PlayerMovement :
     // External Movement Commands
     // =========================================================
 
-    public void SetVelocity(
+    private void SetVelocity(
         Vector2 velocity)
     {
         rb.linearVelocity =
@@ -874,36 +878,37 @@ public sealed class PlayerMovement :
     }
 
 
-    public void LockControl(
+    private void LockMovementControl(
         float duration)
     {
-        ControlLockTimer =
-            duration > 0f
-                ? TickTimer.CreateFromSeconds(
+        if (duration <= 0f)
+            return;
+
+        float remaining =
+            MovementControlLockTimer
+                .RemainingTime(Runner) ??
+            0f;
+
+        if (duration > remaining)
+        {
+            MovementControlLockTimer =
+                TickTimer.CreateFromSeconds(
                     Runner,
-                    duration)
-                : TickTimer.None;
+                    duration);
+        }
 
         ClearControlDrivenStates();
     }
 
 
-    public void ApplyKnockback(
-        Vector2 velocity,
-        float controlLockDuration)
+    private void ApplyKnockback(
+        Vector2 velocity)
     {
         if (!HasStateAuthority)
             return;
 
         rb.linearVelocity =
             velocity;
-
-        KnockbackControlTimer =
-            controlLockDuration > 0f
-                ? TickTimer.CreateFromSeconds(
-                    Runner,
-                    controlLockDuration)
-                : TickTimer.None;
 
         ClearControlDrivenStates();
     }
@@ -940,10 +945,7 @@ public sealed class PlayerMovement :
         WallJumpReadyTimer =
             TickTimer.None;
 
-        KnockbackControlTimer =
-            TickTimer.None;
-
-        ControlLockTimer =
+        MovementControlLockTimer =
             TickTimer.None;
 
         WasWallSliding =

@@ -158,6 +158,13 @@ public sealed class PlayerWeaponController :
             return false;
         }
 
+        if (state.IsAttackControlLocked ||
+            (state.HasSkill &&
+             state.IsSkillActionLocked))
+        {
+            return true;
+        }
+
         TryUseWeapon(
             aimDirection,
             !state.HasHealth ||

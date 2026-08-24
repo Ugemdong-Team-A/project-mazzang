@@ -68,6 +68,14 @@ public sealed class PlayerCombat :
 
 
     [Networked]
+    private TickTimer AttackControlLockTimer
+    {
+        get;
+        set;
+    }
+
+
+    [Networked]
     public PlayerAttackState AttackState
     {
         get;
@@ -102,6 +110,12 @@ public sealed class PlayerCombat :
 
     public bool IsAttackOnCooldown =>
         !AttackCooldownTimer
+            .ExpiredOrNotRunning(
+                Runner);
+
+
+    public bool IsAttackControlLocked =>
+        !AttackControlLockTimer
             .ExpiredOrNotRunning(
                 Runner);
 
@@ -148,6 +162,9 @@ public sealed class PlayerCombat :
 
         AttackCooldownTimer =
             TickTimer.None;
+
+        AttackControlLockTimer =
+            TickTimer.None;
     }
 
 
@@ -161,8 +178,7 @@ public sealed class PlayerCombat :
         TickAction(
             tick.State.HasHealth &&
             tick.State.IsAlive,
-            tick.State.HasMovement &&
-            tick.State.IsMovementControlLocked,
+            tick.State.IsAttackControlLocked,
             tick.State.HasSkill &&
             tick.State.IsSkillActionLocked,
             !tick.State.HasMovement ||
@@ -178,6 +194,8 @@ public sealed class PlayerCombat :
         state.IsAttacking = IsAttacking;
         state.AttackSequence = AttackSequence;
         state.AttackId = (byte)CurrentAttackId;
+        state.IsAttackControlLocked =
+            IsAttackControlLocked;
         state.IsCombatMovementLocked = IsMovementLocked;
     }
 
@@ -186,11 +204,24 @@ public sealed class PlayerCombat :
         PlayerTickCommands commands,
         PlayerTickState state)
     {
-        if (!commands.TryConsumeCancelAttack())
-            return false;
+        bool resolved = false;
 
-        CancelAttack();
-        return true;
+        if (commands.TryConsumeCancelAttack())
+        {
+            CancelAttack();
+            resolved = true;
+        }
+
+        if (commands.TryConsumeAttackControlLock(
+                out float duration))
+        {
+            LockAttackControl(
+                duration);
+
+            resolved = true;
+        }
+
+        return resolved;
     }
 
 
@@ -205,7 +236,7 @@ public sealed class PlayerCombat :
 
     private void TickAction(
         bool isAlive,
-        bool isMovementControlLocked,
+        bool isAttackControlLocked,
         bool isSkillActionLocked,
         bool facingRight,
         PlayerTickState tickState)
@@ -225,6 +256,9 @@ public sealed class PlayerCombat :
 
         if (!isAlive)
         {
+            AttackControlLockTimer =
+                TickTimer.None;
+
             CancelAttack();
 
             if (hasInput)
@@ -238,22 +272,8 @@ public sealed class PlayerCombat :
 
 
         // ==========================================
-        // Control Lock
+        // Active Skill Action Lock
         // ==========================================
-
-        if (isMovementControlLocked)
-        {
-            CancelAttack();
-
-            if (hasInput)
-            {
-                PreviousButtons =
-                    input.Buttons;
-            }
-
-            return;
-        }
-
 
         if (isSkillActionLocked)
         {
@@ -282,6 +302,19 @@ public sealed class PlayerCombat :
 
 
         // ==========================================
+        // Attack Control Lock
+        // ==========================================
+
+        if (isAttackControlLocked)
+        {
+            PreviousButtons =
+                input.Buttons;
+
+            return;
+        }
+
+
+        // ==========================================
         // Attack Input
         // ==========================================
 
@@ -299,7 +332,6 @@ public sealed class PlayerCombat :
 
         TryAttack(
             in input,
-            isMovementControlLocked,
             facingRight,
             tickState);
     }
@@ -311,17 +343,11 @@ public sealed class PlayerCombat :
 
     private void TryAttack(
         in PlayerInputData input,
-        bool isMovementControlLocked,
         bool facingRight,
         PlayerTickState tickState)
     {
         if (IsAttacking)
             return;
-
-        if (isMovementControlLocked)
-        {
-            return;
-        }
 
 
         bool hasEquippedWeapon =
@@ -843,6 +869,27 @@ public sealed class PlayerCombat :
     // =========================================================
     // Timer
     // =========================================================
+
+    private void LockAttackControl(
+        float duration)
+    {
+        if (duration <= 0f)
+            return;
+
+        float remaining =
+            AttackControlLockTimer
+                .RemainingTime(Runner) ??
+            0f;
+
+        if (duration <= remaining)
+            return;
+
+        AttackControlLockTimer =
+            TickTimer.CreateFromSeconds(
+                Runner,
+                duration);
+    }
+
 
     private TickTimer CreateTimer(
         float duration)

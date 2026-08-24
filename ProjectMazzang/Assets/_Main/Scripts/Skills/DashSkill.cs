@@ -123,6 +123,9 @@ public sealed class DashSkill :
             DashData.RecoveryDuration;
 
         Controller.TickCommands.RequestControlLock(
+            PlayerControlLock.Movement |
+            PlayerControlLock.Attack |
+            PlayerControlLock.Skill,
             controlLockDuration);
 
         RequestMovementVelocity(

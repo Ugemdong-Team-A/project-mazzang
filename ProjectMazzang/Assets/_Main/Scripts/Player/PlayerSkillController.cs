@@ -14,7 +14,8 @@ using UnityEngine;
 [DefaultExecutionOrder(-80)]
 public sealed class PlayerSkillController :
     PlayerTickModule,
-    IPlayerTickStateSource
+    IPlayerTickStateSource,
+    IPlayerTickCommandSink
 {
     [Header("Default Skills")]
     [SerializeField]
@@ -49,6 +50,14 @@ public sealed class PlayerSkillController :
 
     [Networked]
     private NetworkButtons PreviousButtons
+    {
+        get;
+        set;
+    }
+
+
+    [Networked]
+    private TickTimer SkillControlLockTimer
     {
         get;
         set;
@@ -151,6 +160,12 @@ public sealed class PlayerSkillController :
         _skill2;
 
 
+    public bool IsSkillControlLocked =>
+        !SkillControlLockTimer
+            .ExpiredOrNotRunning(
+                Runner);
+
+
     // =========================================================
     // Fusion
     // =========================================================
@@ -162,6 +177,9 @@ public sealed class PlayerSkillController :
 
         PreviousButtons =
             default;
+
+        SkillControlLockTimer =
+            TickTimer.None;
 
         ResetSlotRuntime(
             SkillSlot.Skill1,
@@ -220,6 +238,8 @@ public sealed class PlayerSkillController :
             SkillAnimationSequence;
         state.SkillAnimationId =
             LastSkillAnimation;
+        state.IsSkillControlLocked =
+            IsSkillControlLocked;
         state.IsSkillActionLocked =
             IsActionLocked(
                 SkillSlot.Skill1,
@@ -227,6 +247,23 @@ public sealed class PlayerSkillController :
             IsActionLocked(
                 SkillSlot.Skill2,
                 _skill2);
+    }
+
+
+    bool IPlayerTickCommandSink.ResolveTickCommands(
+        PlayerTickCommands commands,
+        PlayerTickState state)
+    {
+        if (!commands.TryConsumeSkillControlLock(
+                out float duration))
+        {
+            return false;
+        }
+
+        LockSkillControl(
+            duration);
+
+        return true;
     }
 
 
@@ -278,6 +315,9 @@ public sealed class PlayerSkillController :
 
         if (!isAlive)
         {
+            SkillControlLockTimer =
+                TickTimer.None;
+
             CancelAll();
 
             if (hasInput)
@@ -350,6 +390,9 @@ public sealed class PlayerSkillController :
         SkillSlot slot,
         in SkillUseContext useContext)
     {
+        if (IsSkillControlLocked)
+            return false;
+
         Skill skill =
             GetSkill(
                 slot);
@@ -974,6 +1017,27 @@ public sealed class PlayerSkillController :
 
         result =
             result.Combine(in modifiers);
+    }
+
+
+    private void LockSkillControl(
+        float duration)
+    {
+        if (duration <= 0f)
+            return;
+
+        float remaining =
+            SkillControlLockTimer
+                .RemainingTime(Runner) ??
+            0f;
+
+        if (duration <= remaining)
+            return;
+
+        SkillControlLockTimer =
+            TickTimer.CreateFromSeconds(
+                Runner,
+                duration);
     }
 
 

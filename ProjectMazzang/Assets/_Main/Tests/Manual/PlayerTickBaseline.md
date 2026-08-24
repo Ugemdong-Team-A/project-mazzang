@@ -34,7 +34,8 @@
 - 공격이 시작된 Tick부터 MovementMode가 Locked인 공격은 이동 입력을 적용하지 않는다.
 - Startup, Active, Recovery가 설정된 순서로 한 번씩 진행된다.
 - Recovery 종료 뒤 공격 상태가 None으로 복귀한다.
-- 공격 도중 control lock이 시작되면 공격이 취소된다.
+- Attack Control Lock 동안 새 일반 공격이 시작되지 않는다.
+- 진행 중인 공격 취소는 Control Lock이 아니라 CancelAttack 명령이 담당한다.
 
 ### 피격과 control lock
 
@@ -44,12 +45,20 @@
 - 공격 취소와 Knockback 명령이 다음 Tick까지 남지 않고 요청된 시뮬레이션 호출에서 처리된다.
 - KnockbackControlLock 동안 이동 및 일반 공격 입력이 적용되지 않는다.
 - Timer 만료 뒤 다음 유효 Tick부터 이동과 일반 공격이 가능하다.
+- 같은 종류의 더 짧은 후속 잠금이 기존의 긴 잠금 시간을 줄이지 않는다.
+
+### Dash와 종류별 control lock
+
+- Dash 시작 시 Movement, Attack, Skill Control Lock이 각각 적용된다.
+- Dash는 자기 자신이 요청한 Skill Control Lock으로 취소되지 않는다.
+- Skill Control Lock 동안 새 스킬만 시작되지 않고 이미 실행 중인 스킬은 계속 진행된다.
+- Skill1과 Skill2를 같은 Tick에 눌렀을 때 먼저 실행된 스킬이 Skill Control Lock을 요청하면 두 번째 스킬은 시작되지 않는다.
 
 ### 사망과 리스폰
 
 - Health가 0이 된 Tick에 IsDead가 true가 되고 공격이 취소된다.
 - 사망 중 Movement 입력이 적용되지 않는다.
-- 리스폰 시 KnockbackControlTimer와 ControlLockTimer가 초기화된다.
+- 리스폰 시 Movement, Attack, Skill Control Lock이 모두 해제되어 있다.
 - 리스폰 무적 시간 동안 피해가 적용되지 않는다.
 
 ### Aim과 Animation
@@ -79,6 +88,7 @@
 - PlayerInputData
 - Health 및 IsDead
 - AttackState 및 CurrentAttackId
-- Movement Velocity 및 IsControlLocked
+- Movement Velocity 및 IsMovementControlLocked
+- IsAttackControlLocked 및 IsSkillControlLocked
 - AimDirection 및 FacingRight
 - 해당 Tick이 prediction인지 resimulation인지

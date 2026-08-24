@@ -41,6 +41,33 @@ public sealed class PlayerController :
         _context;*/
 
 
+    /// <summary>
+    /// 장착 무기처럼 Tick Module 밖에 있는 게임플레이 객체가
+    /// 구체 플레이어 모듈을 직접 변경하지 않고 제어 잠금을 요청합니다.
+    /// 네트워크 시뮬레이션과 State Authority 이벤트에서만 호출합니다.
+    /// </summary>
+    public void RequestControlLock(
+        PlayerControlLock controls,
+        float duration)
+    {
+        _tickCommands.RequestControlLock(
+            controls,
+            duration);
+    }
+
+
+    /// <summary>
+    /// Tick Module 밖의 권위 게임플레이 객체가 Movement 속도 변경을 요청합니다.
+    /// 네트워크 시뮬레이션과 State Authority 이벤트에서만 호출합니다.
+    /// </summary>
+    public void RequestMovementVelocity(
+        Vector2 velocity)
+    {
+        _tickCommands.RequestSetMovementVelocity(
+            velocity);
+    }
+
+
     private void Awake()
     {
         /*_context =

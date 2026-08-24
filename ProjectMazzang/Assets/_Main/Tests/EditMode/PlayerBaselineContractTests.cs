@@ -236,6 +236,10 @@ namespace ProjectMazzang.Tests
             AssertInterfaces(
                 "PlayerWeaponController",
                 "IPlayerTickCommandSink");
+
+            AssertInterfaces(
+                "PlayerSkillController",
+                "IPlayerTickCommandSink");
         }
 
 
@@ -358,6 +362,134 @@ namespace ProjectMazzang.Tests
 
 
         [Test]
+        public void PlayerTickCommands_SeparatesAndMergesControlLocks()
+        {
+            Type commandsType =
+                GetRuntimeType(
+                    "PlayerTickCommands");
+
+            Type controlLockType =
+                GetRuntimeType(
+                    "PlayerControlLock");
+
+            Assert.That(
+                controlLockType.IsDefined(
+                    typeof(FlagsAttribute),
+                    false),
+                Is.True);
+
+            object commands =
+                Activator.CreateInstance(
+                    commandsType);
+
+            object movement =
+                Enum.Parse(
+                    controlLockType,
+                    "Movement");
+
+            object attack =
+                Enum.Parse(
+                    controlLockType,
+                    "Attack");
+
+            object skill =
+                Enum.Parse(
+                    controlLockType,
+                    "Skill");
+
+            object allCurrentControls =
+                Enum.ToObject(
+                    controlLockType,
+                    Convert.ToByte(movement) |
+                    Convert.ToByte(attack) |
+                    Convert.ToByte(skill));
+
+            MethodInfo request =
+                commandsType.GetMethod(
+                    "RequestControlLock");
+
+            request.Invoke(
+                commands,
+                new[]
+                {
+                    allCurrentControls,
+                    (object)0.5f
+                });
+
+            // 같은 종류의 더 짧은 요청은 기존 대기 시간을 줄이지 않는다.
+            request.Invoke(
+                commands,
+                new[]
+                {
+                    movement,
+                    (object)0.2f
+                });
+
+            AssertControlLockConsumed(
+                commandsType,
+                commands,
+                "TryConsumeMovementControlLock",
+                0.5f);
+
+            AssertProperty(
+                commands,
+                "HasPending",
+                true);
+
+            AssertControlLockConsumed(
+                commandsType,
+                commands,
+                "TryConsumeAttackControlLock",
+                0.5f);
+
+            AssertControlLockConsumed(
+                commandsType,
+                commands,
+                "TryConsumeSkillControlLock",
+                0.5f);
+
+            AssertProperty(
+                commands,
+                "HasPending",
+                false);
+
+            MethodInfo consumeMovement =
+                commandsType.GetMethod(
+                    "TryConsumeMovementControlLock",
+                    BindingFlags.Instance |
+                    BindingFlags.NonPublic);
+
+            object[] secondConsume =
+            {
+                1f
+            };
+
+            Assert.That(
+                consumeMovement.Invoke(
+                    commands,
+                    secondConsume),
+                Is.EqualTo(false));
+
+            Assert.That(
+                secondConsume[0],
+                Is.EqualTo(0f));
+
+            request.Invoke(
+                commands,
+                new[]
+                {
+                    skill,
+                    (object)0f
+                });
+
+            AssertProperty(
+                commands,
+                "HasPending",
+                false);
+        }
+
+
+        [Test]
         public void PlayerTickState_ContainsModuleSnapshotContracts()
         {
             Type tickStateType =
@@ -416,6 +548,11 @@ namespace ProjectMazzang.Tests
 
             AssertPropertyType(
                 tickStateType,
+                "IsAttackControlLocked",
+                typeof(bool));
+
+            AssertPropertyType(
+                tickStateType,
                 "IsCombatMovementLocked",
                 typeof(bool));
 
@@ -429,6 +566,11 @@ namespace ProjectMazzang.Tests
                 "SkillAnimationId",
                 GetRuntimeType(
                     "PlayerSkillAnimationId"));
+
+            AssertPropertyType(
+                tickStateType,
+                "IsSkillControlLocked",
+                typeof(bool));
 
             AssertPropertyType(
                 tickStateType,
@@ -622,6 +764,40 @@ namespace ProjectMazzang.Tests
                 damageInfo,
                 "KnockbackControlLock",
                 0.35f);
+        }
+
+
+        private static void AssertControlLockConsumed(
+            Type commandsType,
+            object commands,
+            string methodName,
+            float expectedDuration)
+        {
+            MethodInfo consume =
+                commandsType.GetMethod(
+                    methodName,
+                    BindingFlags.Instance |
+                    BindingFlags.NonPublic);
+
+            Assert.That(
+                consume,
+                Is.Not.Null);
+
+            object[] arguments =
+            {
+                0f
+            };
+
+            Assert.That(
+                consume.Invoke(
+                    commands,
+                    arguments),
+                Is.EqualTo(true));
+
+            Assert.That(
+                (float)arguments[0],
+                Is.EqualTo(expectedDuration)
+                    .Within(0.0001f));
         }
 
 
