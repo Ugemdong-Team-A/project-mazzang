@@ -377,7 +377,9 @@ public sealed class ShieldWeapon :
                 knockback,
                 knockbackControlLock);
 
-            damageable.ApplyDamage(in info);
+            CombatDamageService.ApplyDamage(
+                damageable,
+                in info);
         }
     }
 

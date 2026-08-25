@@ -822,7 +822,8 @@ public sealed class PlayerCombat :
                     attack.KnockbackControlLock);
 
 
-            damageable.ApplyDamage(
+            CombatDamageService.ApplyDamage(
+                damageable,
                 in info);
         }
     }

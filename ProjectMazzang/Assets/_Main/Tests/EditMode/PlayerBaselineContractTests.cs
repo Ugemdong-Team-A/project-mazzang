@@ -101,6 +101,10 @@ namespace ProjectMazzang.Tests
                 GetRuntimeType(
                     "PlayerTickModule");
 
+            Type damageReceiverType =
+                GetRuntimeType(
+                    "IDamageDealtReceiver");
+
             Type networkObjectType =
                 AppDomain.CurrentDomain
                     .GetAssemblies()
@@ -165,6 +169,16 @@ namespace ProjectMazzang.Tests
 
                     Assert.That(ownerObject, Is.Not.Null);
 
+                    Assert.That(
+                        controller
+                            .GetComponents<Component>()
+                            .Any(
+                                damageReceiverType
+                                    .IsInstanceOfType),
+                        Is.True,
+                        $"{prefabPath}의 공격 Source와 " +
+                        "피해 보상 수신자가 같은 GameObject에 없습니다.");
+
                     Component[] modules =
                         controller.GetComponentsInChildren(
                                 moduleType,
@@ -215,6 +229,91 @@ namespace ProjectMazzang.Tests
             AssertInterfaces(
                 "PlayerHealth",
                 "IDamageable");
+        }
+
+
+        [Test]
+        public void PlayerSkillController_CreatesRuntimeSkillsOnEveryPeer()
+        {
+            Type controllerType =
+                GetRuntimeType(
+                    "PlayerSkillController");
+
+            MethodInfo spawned =
+                controllerType.GetMethod(
+                    "Spawned");
+
+            MethodInfo despawned =
+                controllerType.GetMethod(
+                    "Despawned");
+
+            PropertyInfo skill1 =
+                controllerType.GetProperty(
+                    "Skill1");
+
+            Assert.That(spawned, Is.Not.Null);
+            Assert.That(despawned, Is.Not.Null);
+            Assert.That(skill1, Is.Not.Null);
+
+            int controllerCount = 0;
+
+            string[] prefabGuids =
+                AssetDatabase.FindAssets(
+                    "t:Prefab",
+                    new[]
+                    {
+                        "Assets/_Main/Prefabs/Characters"
+                    });
+
+            foreach (string prefabGuid
+                     in prefabGuids)
+            {
+                string prefabPath =
+                    AssetDatabase.GUIDToAssetPath(
+                        prefabGuid);
+
+                GameObject prefab =
+                    AssetDatabase.LoadAssetAtPath<
+                        GameObject>(
+                        prefabPath);
+
+                Component controller =
+                    prefab?.GetComponent(
+                        controllerType);
+
+                if (controller == null)
+                    continue;
+
+                controllerCount++;
+
+                try
+                {
+                    spawned.Invoke(
+                        controller,
+                        null);
+
+                    Assert.That(
+                        skill1.GetValue(
+                            controller),
+                        Is.Not.Null,
+                        $"{prefabPath}에서 비권위 peer용 " +
+                        "런타임 Skill을 생성하지 못했습니다.");
+                }
+                finally
+                {
+                    despawned.Invoke(
+                        controller,
+                        new object[]
+                        {
+                            null,
+                            false
+                        });
+                }
+            }
+
+            Assert.That(
+                controllerCount,
+                Is.GreaterThan(0));
         }
 
 
@@ -724,6 +823,197 @@ namespace ProjectMazzang.Tests
             {
                 UnityEngine.Object.DestroyImmediate(
                     attackData);
+            }
+        }
+
+
+        [Test]
+        public void MeterSkill_KeepsGenericRuntimeContract()
+        {
+            Type meterSkillType =
+                GetRuntimeType(
+                    "IMeterSkill");
+
+            foreach (string propertyName in
+                     new[]
+                     {
+                         "MaxMeter",
+                         "MeterCost",
+                         "PassiveGainPerSecond",
+                         "DamageGainPerDamage"
+                     })
+            {
+                AssertPropertyType(
+                    meterSkillType,
+                    propertyName,
+                    typeof(float));
+            }
+
+            FieldInfo meterField =
+                GetRuntimeType(
+                        "SkillSlotRuntimeState")
+                    .GetField(
+                        "Meter");
+
+            Assert.That(
+                meterField?.FieldType,
+                Is.EqualTo(
+                    typeof(float)));
+        }
+
+
+        [Test]
+        public void UltimateAwakeningSkill_CombinesGenericPatterns()
+        {
+            AssertInterfaces(
+                "UltimateAwakeningSkill",
+                "IMeterSkill",
+                "IDurationSkill",
+                "IPlayerStatModifierSkill");
+
+            ScriptableObject data =
+                AssetDatabase.LoadAssetAtPath<
+                    ScriptableObject>(
+                    "Assets/_Main/Data/Skill/" +
+                    "UltimateAwakeningSkill.asset");
+
+            Assert.That(data, Is.Not.Null);
+            Assert.That(
+                data.GetType().Name,
+                Is.EqualTo(
+                    "UltimateAwakeningSkillData"));
+
+            AssertProperty(
+                data,
+                "MaxMeter",
+                100f);
+
+            AssertProperty(
+                data,
+                "MeterCost",
+                100f);
+
+            AssertProperty(
+                data,
+                "PassiveGainPerSecond",
+                2f);
+
+            AssertProperty(
+                data,
+                "DamageGainPerDamage",
+                1f);
+
+            AssertProperty(
+                data,
+                "Duration",
+                8f);
+
+            object runtimeSkill =
+                data.GetType()
+                    .GetMethod(
+                        "CreateSkill")
+                    ?.Invoke(
+                        data,
+                        null);
+
+            Assert.That(runtimeSkill, Is.Not.Null);
+            Assert.That(
+                runtimeSkill.GetType().Name,
+                Is.EqualTo(
+                    "UltimateAwakeningSkill"));
+        }
+
+
+        [Test]
+        public void KnightAndSkillSlotPrefab_ProvideMeterTestContent()
+        {
+            Type controllerType =
+                GetRuntimeType(
+                    "PlayerSkillController");
+
+            GameObject knight =
+                AssetDatabase.LoadAssetAtPath<
+                    GameObject>(
+                    "Assets/_Main/Prefabs/Characters/" +
+                    "PlayerCharacter_Knight.prefab");
+
+            Component controller =
+                knight?.GetComponent(
+                    controllerType);
+
+            Assert.That(controller, Is.Not.Null);
+
+            SerializedObject serializedController =
+                new(
+                    controller);
+
+            SerializedProperty mainSkill =
+                serializedController.FindProperty(
+                    "mainSkill");
+
+            SerializedProperty ultimateSkill =
+                serializedController.FindProperty(
+                    "ultimateSkill");
+
+            Assert.That(mainSkill, Is.Not.Null);
+            Assert.That(ultimateSkill, Is.Not.Null);
+            Assert.That(
+                mainSkill.objectReferenceValue,
+                Is.Not.Null);
+            Assert.That(
+                mainSkill.objectReferenceValue
+                    .GetType().Name,
+                Is.EqualTo(
+                    "DashSkillData"));
+            Assert.That(
+                ultimateSkill.objectReferenceValue,
+                Is.Not.Null);
+            Assert.That(
+                ultimateSkill.objectReferenceValue
+                    .GetType().Name,
+                Is.EqualTo(
+                    "UltimateAwakeningSkillData"));
+
+
+            GameObject slotPrefab =
+                AssetDatabase.LoadAssetAtPath<
+                    GameObject>(
+                    "Assets/_Main/Prefabs/UI/" +
+                    "SkillSlot.prefab");
+
+            Component slotUI =
+                slotPrefab?.GetComponent(
+                    GetRuntimeType(
+                        "SkillSlotUI"));
+
+            Assert.That(slotUI, Is.Not.Null);
+
+            SerializedObject serializedSlot =
+                new(
+                    slotUI);
+
+            foreach (string propertyName in
+                     new[]
+                     {
+                         "meterRoot",
+                         "meterFill",
+                         "meterOverlay",
+                         "meterAccent",
+                         "meterText"
+                     })
+            {
+                SerializedProperty property =
+                    serializedSlot.FindProperty(
+                        propertyName);
+
+                Assert.That(
+                    property,
+                    Is.Not.Null);
+
+                Assert.That(
+                    property.objectReferenceValue,
+                    Is.Not.Null,
+                    $"SkillSlot prefab의 {propertyName}이 비어 있습니다.");
             }
         }
 

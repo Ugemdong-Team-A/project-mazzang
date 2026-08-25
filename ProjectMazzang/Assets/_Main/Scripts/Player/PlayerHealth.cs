@@ -250,17 +250,20 @@ public sealed class PlayerHealth :
     // Damage
     // =========================================================
 
-    public void ApplyDamage(
+    public DamageResult ApplyDamage(
         in DamageInfo info)
     {
         if (!HasStateAuthority)
-            return;
+            return DamageResult.Rejected;
 
         if (!IsAlive)
-            return;
+            return DamageResult.Rejected;
 
         if (IsInvulnerable)
-            return;
+            return DamageResult.Rejected;
+
+        int previousHealth =
+            Health;
 
         RegisterLastAttacker(
             info.Source.InputAuthority);
@@ -275,6 +278,10 @@ public sealed class PlayerHealth :
                 Health -
                 effectiveDamage);
 
+        int appliedDamage =
+            previousHealth -
+            Health;
+
         // 유효한 피격이 들어오는 즉시 현재 공격을 끊는다.
         // 새 공격 차단 시간은 아래의 Attack control lock이 담당한다.
         RequestCancelAttack();
@@ -287,16 +294,23 @@ public sealed class PlayerHealth :
                 info.KnockbackControlLock);
         }
 
-        if (Health > 0)
-            return;
+        bool wasFatal =
+            Health <= 0;
 
-        PlayerRef deathAttacker =
-            ResolveDeathAttacker(
-                info.Source.InputAuthority);
+        if (wasFatal)
+        {
+            PlayerRef deathAttacker =
+                ResolveDeathAttacker(
+                    info.Source.InputAuthority);
 
-        Die(
-            deathAttacker,
-            DeathCause.Damage);
+            Die(
+                deathAttacker,
+                DeathCause.Damage);
+        }
+
+        return new DamageResult(
+            appliedDamage,
+            wasFatal);
     }
 
 

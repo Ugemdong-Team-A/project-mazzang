@@ -105,8 +105,16 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
 
 - `SkillData`는 조정 가능한 정적 설정을 보관한다.
 - `Skill` 런타임은 사용 조건과 실제 행동을 구현한다.
-- `PlayerSkillController`는 슬롯, 입력 진입점, 쿨다운, 충전량과
+- `PlayerSkillController`는 슬롯, 입력 진입점, 쿨다운, 충전량, 선택적 Meter와
   `Cast → Active → Recovery` Networked 수명 주기를 관리한다.
+- 런타임 `Skill` 인스턴스는 예측과 표현을 위해 모든 peer에서 만들고,
+  Networked 슬롯 상태의 초기화와 외부 보상 지급은 State Authority만 수행한다.
+- `IMeterSkill`의 Meter는 생존 중 자연 충전되고 사용 성공 시 비용이 차감된다.
+  장착 변경 시 0으로 초기화하며 사망과 리스폰 사이에는 유지한다.
+- 피해 기반 충전은 `CombatDamageService`가 State Authority에서 확정된 실제 체력 감소량만
+  공격자의 `IDamageDealtReceiver`에 전달하며, Meter 특성을 가진 모든 슬롯이 각 비율로 받는다.
+- 첫 Meter 콘텐츠인 `UltimateAwakeningSkill`은 Meter, Duration, Stat Modifier 계약을 조합하며
+  테스트 캐릭터인 기사의 `ultimateSkill`에 장착한다. Meter 처리는 슬롯 역할이 아닌 인터페이스로 판별한다.
 - 스킬은 `PlayerTickState`를 읽고 `PlayerTickCommands`로 변경을 요청한다.
 - 네트워크 결과에 영향을 주는 방향과 타이밍은 Fusion Tick 입력에서 계산하고
   필요한 경우 Networked 슬롯 상태에 한 번 저장한다.

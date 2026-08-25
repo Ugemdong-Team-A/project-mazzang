@@ -79,12 +79,27 @@
 - 반복 입력 또는 resimulation 뒤 Damage, DeathSequence, AttackSequence가 중복 증가하지 않는다.
 - Despawn 및 Respawn 뒤 이전 Tick의 control lock이나 공격 상태가 남지 않는다.
 
+### Skill Meter
+
+- 기사 `mainSkill`에서 Dash가 시작되고 `ultimateSkill`에서 `UltimateAwakeningSkill`이 시작되는지 확인한다.
+- Meter UI의 충전 레일·내부 면·퍼센트가 같은 값으로 갱신되고, 정수 증가 시 한 번만 반응하는지 확인한다.
+- Host와 Client가 각각 공격자일 때 실제 감소한 Health에 `DamageGainPerDamage`를 곱한 만큼만 충전된다.
+- 남은 Health보다 큰 피해는 남은 Health만큼만 충전되고, 무적·사망·0 피해에는 충전되지 않는다.
+- Meter 특성을 가진 슬롯이 여러 개면 각 슬롯이 자신의 비율대로 충전되고 최대값을 넘지 않는다.
+- Client의 피해 기반 Meter는 Host 확정 상태를 받은 뒤 반영되며, prediction이나 resimulation으로 중복 충전되지 않는다.
+- 사망한 공격자의 잔존 투사체 피해는 충전되고, 사망과 리스폰 사이에 Meter가 유지된다.
+- 피해로 사용 비용에 도달하는 Tick에 스킬 입력이 겹쳐도 최종 사용 여부와 Meter가 Host 상태로 수렴한다.
+- 100 Meter 미만에서는 각성이 시작되지 않고, 100 Meter에서 한 번 사용하면 0으로 소모된다.
+- 각성 8초 동안 이동·공격·최대 체력·피해 감소·크기 배율이 적용되고 종료 뒤 원래 값으로 복귀한다.
+
 ## 실패 기록
 
 실패 시 다음 값을 함께 기록한다.
 
 - Runner Tick
 - State Authority 및 Input Authority
+- Damage Source의 NetworkObject 및 Input Authority와 `AppliedDamage`
+- Skill1 및 Skill2의 변경 전·후 Meter
 - PlayerInputData
 - Health 및 IsDead
 - AttackState 및 CurrentAttackId
