@@ -95,6 +95,12 @@ public sealed class SkillSlotUI :
 
     private SkillData _skillData;
 
+    private IChargeSkill _chargeSkill;
+
+    private IMeterSkill _meterSkill;
+
+    private IDurationSkill _durationSkill;
+
     private int _builtMaxCharges;
 
 
@@ -159,6 +165,15 @@ public sealed class SkillSlotUI :
         _skillData =
             null;
 
+        _chargeSkill =
+            null;
+
+        _meterSkill =
+            null;
+
+        _durationSkill =
+            null;
+
         _builtMaxCharges =
             0;
 
@@ -215,6 +230,15 @@ public sealed class SkillSlotUI :
         _skillData =
             _controller.GetSkillData(
                 _slot);
+
+        _chargeSkill =
+            _skill as IChargeSkill;
+
+        _meterSkill =
+            _skill as IMeterSkill;
+
+        _durationSkill =
+            _skill as IDurationSkill;
 
 
         bool hasSkill =
@@ -331,8 +355,7 @@ public sealed class SkillSlotUI :
 
     private void RefreshChargeLayout()
     {
-        if (_skill is not
-            IChargeSkill)
+        if (_chargeSkill == null)
         {
             _builtMaxCharges =
                 0;
@@ -375,8 +398,7 @@ public sealed class SkillSlotUI :
 
     private void RefreshCharge()
     {
-        if (_skill is not
-            IChargeSkill)
+        if (_chargeSkill == null)
         {
             SetActive(
                 chargeRoot,
@@ -537,8 +559,7 @@ public sealed class SkillSlotUI :
 
     private void RefreshMeter()
     {
-        if (_skill is not
-                IMeterSkill meterSkill ||
+        if (_meterSkill == null ||
             _controller.GetUsePhase(
                 _slot) !=
             SkillUsePhase.None)
@@ -591,7 +612,7 @@ public sealed class SkillSlotUI :
         float cost =
             Mathf.Max(
                 0f,
-                meterSkill.MeterCost);
+                _meterSkill.MeterCost);
 
         meterText.text =
             current >= cost
@@ -606,8 +627,7 @@ public sealed class SkillSlotUI :
 
     private void RefreshDuration()
     {
-        if (_skill is not
-                IDurationSkill durationSkill ||
+        if (_durationSkill == null ||
             _controller.GetUsePhase(
                 _slot) !=
             SkillUsePhase.Active)
@@ -621,7 +641,7 @@ public sealed class SkillSlotUI :
 
 
         float duration =
-            durationSkill.Duration;
+            _durationSkill.Duration;
 
         float remaining =
             _controller.GetPhaseRemaining(
