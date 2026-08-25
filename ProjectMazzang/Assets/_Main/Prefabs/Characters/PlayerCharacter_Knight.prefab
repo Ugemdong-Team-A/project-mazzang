@@ -1102,7 +1102,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerSkillController
   mainSkill: {fileID: 11400000, guid: d47edf51b4312c14fa9b46f8f5656320, type: 2}
-  ultimateSkill: {fileID: 11400000, guid: e7b2ad5d74704cbabf0668bff6c925f4, type: 2}
+  ultimateSkill: {fileID: 0}
   _SkillAnimationSequence: 0
   _LastSkillAnimation: 0
 --- !u!114 &700000000000000001
