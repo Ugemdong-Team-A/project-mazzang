@@ -60,6 +60,17 @@ public sealed class SkillSlotUI :
     private TMP_Text rechargeText;
 
 
+    [Header("Meter")]
+    [SerializeField]
+    private GameObject meterRoot;
+
+    [SerializeField]
+    private Image meterFill;
+
+    [SerializeField]
+    private TMP_Text meterText;
+
+
     [Header("Duration")]
     [SerializeField]
     private GameObject durationRoot;
@@ -103,6 +114,7 @@ public sealed class SkillSlotUI :
 
         RefreshCooldown();
         RefreshCharge();
+        RefreshMeter();
         RefreshDuration();
     }
 
@@ -162,6 +174,10 @@ public sealed class SkillSlotUI :
 
         SetActive(
             chargeRoot,
+            false);
+
+        SetActive(
+            meterRoot,
             false);
 
         SetActive(
@@ -227,6 +243,10 @@ public sealed class SkillSlotUI :
 
             SetActive(
                 chargeRoot,
+                false);
+
+            SetActive(
+                meterRoot,
                 false);
 
             SetActive(
@@ -508,6 +528,75 @@ public sealed class SkillSlotUI :
         }
 
         _chargePips.Clear();
+    }
+
+
+    // =========================================================
+    // Meter
+    // =========================================================
+
+    private void RefreshMeter()
+    {
+        if (_skill is not
+                IMeterSkill meterSkill ||
+            _controller.GetUsePhase(
+                _slot) !=
+            SkillUsePhase.None)
+        {
+            SetActive(
+                meterRoot,
+                false);
+
+            return;
+        }
+
+
+        float maximum =
+            _controller.GetMaxMeter(
+                _slot);
+
+        bool active =
+            maximum > 0f;
+
+        SetActive(
+            meterRoot,
+            active);
+
+        if (!active)
+            return;
+
+
+        float current =
+            _controller.GetCurrentMeter(
+                _slot);
+
+        float normalized =
+            _controller.GetMeterNormalized(
+                _slot);
+
+        if (meterFill != null)
+        {
+            meterFill.fillAmount =
+                normalized;
+
+            SetHorizontalProgress(
+                meterFill,
+                normalized);
+        }
+
+
+        if (meterText == null)
+            return;
+
+        float cost =
+            Mathf.Max(
+                0f,
+                meterSkill.MeterCost);
+
+        meterText.text =
+            current >= cost
+                ? "READY"
+                : $"{Mathf.FloorToInt(normalized * 100f)}%";
     }
 
 

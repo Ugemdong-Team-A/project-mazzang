@@ -113,6 +113,8 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
   장착 변경 시 0으로 초기화하며 사망과 리스폰 사이에는 유지한다.
 - 피해 기반 충전은 `CombatDamageService`가 State Authority에서 확정된 실제 체력 감소량만
   공격자의 `IDamageDealtReceiver`에 전달하며, Meter 특성을 가진 모든 슬롯이 각 비율로 받는다.
+- 첫 Meter 콘텐츠인 `UltimateAwakeningSkill`은 Meter, Duration, Stat Modifier 계약을 조합하며
+  테스트 캐릭터인 기사의 Skill1에 장착해 Meter가 특정 슬롯에 종속되지 않음을 검증한다.
 - 스킬은 `PlayerTickState`를 읽고 `PlayerTickCommands`로 변경을 요청한다.
 - 네트워크 결과에 영향을 주는 방향과 타이밍은 Fusion Tick 입력에서 계산하고
   필요한 경우 Networked 슬롯 상태에 한 번 저장한다.

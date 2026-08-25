@@ -863,6 +863,155 @@ namespace ProjectMazzang.Tests
 
 
         [Test]
+        public void UltimateAwakeningSkill_CombinesGenericPatterns()
+        {
+            AssertInterfaces(
+                "UltimateAwakeningSkill",
+                "IMeterSkill",
+                "IDurationSkill",
+                "IPlayerStatModifierSkill");
+
+            ScriptableObject data =
+                AssetDatabase.LoadAssetAtPath<
+                    ScriptableObject>(
+                    "Assets/_Main/Data/Skill/" +
+                    "UltimateAwakeningSkill.asset");
+
+            Assert.That(data, Is.Not.Null);
+            Assert.That(
+                data.GetType().Name,
+                Is.EqualTo(
+                    "UltimateAwakeningSkillData"));
+
+            AssertProperty(
+                data,
+                "MaxMeter",
+                100f);
+
+            AssertProperty(
+                data,
+                "MeterCost",
+                100f);
+
+            AssertProperty(
+                data,
+                "PassiveGainPerSecond",
+                2f);
+
+            AssertProperty(
+                data,
+                "DamageGainPerDamage",
+                1f);
+
+            AssertProperty(
+                data,
+                "Duration",
+                8f);
+
+            object runtimeSkill =
+                data.GetType()
+                    .GetMethod(
+                        "CreateSkill")
+                    ?.Invoke(
+                        data,
+                        null);
+
+            Assert.That(runtimeSkill, Is.Not.Null);
+            Assert.That(
+                runtimeSkill.GetType().Name,
+                Is.EqualTo(
+                    "UltimateAwakeningSkill"));
+        }
+
+
+        [Test]
+        public void KnightAndSkillSlotPrefab_ProvideMeterTestContent()
+        {
+            Type controllerType =
+                GetRuntimeType(
+                    "PlayerSkillController");
+
+            GameObject knight =
+                AssetDatabase.LoadAssetAtPath<
+                    GameObject>(
+                    "Assets/_Main/Prefabs/Characters/" +
+                    "PlayerCharacter_Knight.prefab");
+
+            Component controller =
+                knight?.GetComponent(
+                    controllerType);
+
+            Assert.That(controller, Is.Not.Null);
+
+            SerializedObject serializedController =
+                new(
+                    controller);
+
+            SerializedProperty mainSkill =
+                serializedController.FindProperty(
+                    "mainSkill");
+
+            SerializedProperty ultimateSkill =
+                serializedController.FindProperty(
+                    "ultimateSkill");
+
+            Assert.That(mainSkill, Is.Not.Null);
+            Assert.That(ultimateSkill, Is.Not.Null);
+            Assert.That(
+                mainSkill.objectReferenceValue,
+                Is.Not.Null);
+            Assert.That(
+                mainSkill.objectReferenceValue
+                    .GetType().Name,
+                Is.EqualTo(
+                    "UltimateAwakeningSkillData"));
+            Assert.That(
+                ultimateSkill.objectReferenceValue,
+                Is.Null);
+
+
+            GameObject slotPrefab =
+                AssetDatabase.LoadAssetAtPath<
+                    GameObject>(
+                    "Assets/_Main/Prefabs/UI/" +
+                    "SkillSlot.prefab");
+
+            Component slotUI =
+                slotPrefab?.GetComponent(
+                    GetRuntimeType(
+                        "SkillSlotUI"));
+
+            Assert.That(slotUI, Is.Not.Null);
+
+            SerializedObject serializedSlot =
+                new(
+                    slotUI);
+
+            foreach (string propertyName in
+                     new[]
+                     {
+                         "meterRoot",
+                         "meterFill",
+                         "meterText"
+                     })
+            {
+                SerializedProperty property =
+                    serializedSlot.FindProperty(
+                        propertyName);
+
+                Assert.That(
+                    property,
+                    Is.Not.Null);
+
+                Assert.That(
+                    property.objectReferenceValue,
+                    Is.Not.Null,
+                    $"SkillSlot prefab의 {propertyName}이 비어 있습니다.");
+            }
+        }
+
+
+        [Test]
         public void DamageInfo_KeepsKnockbackControlLockValue()
         {
             Type damageInfoType =

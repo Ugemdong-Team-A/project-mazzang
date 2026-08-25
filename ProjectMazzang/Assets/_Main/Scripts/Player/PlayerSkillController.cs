@@ -394,6 +394,8 @@ public sealed class PlayerSkillController :
         {
             FireballSkill => PlayerSkillAnimationId.Fireball,
             AwakeningSkill => PlayerSkillAnimationId.Awakening,
+            UltimateAwakeningSkill =>
+                PlayerSkillAnimationId.Awakening,
             _ => PlayerSkillAnimationId.None
         };
     }
