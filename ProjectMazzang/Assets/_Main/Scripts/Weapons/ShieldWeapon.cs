@@ -306,7 +306,9 @@ public sealed class ShieldWeapon :
     {
         if (Holder == null ||
             !Holder.TryGetComponent(
-                out PlayerMovement movement))
+                out PlayerMovement movement) ||
+            !Holder.TryGetComponent(
+                out PlayerController playerController))
         {
             return;
         }
@@ -317,8 +319,13 @@ public sealed class ShieldWeapon :
             velocity.y,
             direction.y * dashSpeed * 0.45f);
 
-        movement.SetVelocity(velocity);
-        movement.LockControl(dashControlLock);
+        playerController.RequestMovementVelocity(
+            velocity);
+
+        playerController.RequestControlLock(
+            PlayerControlLock.Movement |
+            PlayerControlLock.Attack,
+            dashControlLock);
     }
 
     private void PerformBash(

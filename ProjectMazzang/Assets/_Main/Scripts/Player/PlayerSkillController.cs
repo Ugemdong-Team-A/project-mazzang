@@ -14,10 +14,9 @@ using UnityEngine.Serialization;
 /// </summary>
 [DefaultExecutionOrder(-80)]
 public sealed class PlayerSkillController :
-    PlayerModule,
-    IPlayerSkillAnimationState,
-    IPlayerTickModule,
-    IPlayerTickStateSource
+    PlayerTickModule,
+    IPlayerTickStateSource,
+    IPlayerTickCommandSink
 {
     private const int SkillSlotCount = 2;
 
@@ -34,9 +33,6 @@ public sealed class PlayerSkillController :
 
     private readonly Skill[] _skills =
         new Skill[SkillSlotCount];
-
-    private IPlayerHealthState
-        _healthState;
 
 
     [Networked]
@@ -66,6 +62,14 @@ public sealed class PlayerSkillController :
     }
 
 
+    [Networked]
+    private TickTimer SkillControlLockTimer
+    {
+        get;
+        set;
+    }
+
+
     // =========================================================
     // Network State - Slots
     // =========================================================
@@ -89,35 +93,10 @@ public sealed class PlayerSkillController :
             SkillSlot.Skill2);
 
 
-    // =========================================================
-    // Context
-    // =========================================================
-
-    protected override void RegisterContextUnits()
-    {
-        Context.Register<IPlayerSkillAnimationState>(
-            this);
-    }
-
-
-    protected override void OnContextReady()
-    {
-        _healthState =
-            Context.Get<
-                IPlayerHealthState>();
-
-        SetSkill(
-            SkillSlot.Skill1,
-            CreateSkill(
-                mainSkill,
-                SkillSlot.Skill1));
-
-        SetSkill(
-            SkillSlot.Skill2,
-            CreateSkill(
-                ultimateSkill,
-                SkillSlot.Skill2));
-    }
+    public bool IsSkillControlLocked =>
+        !SkillControlLockTimer
+            .ExpiredOrNotRunning(
+                Runner);
 
 
     // =========================================================
@@ -132,6 +111,9 @@ public sealed class PlayerSkillController :
         PreviousButtons =
             default;
 
+        SkillControlLockTimer =
+            TickTimer.None;
+
         ResetSlotRuntime(
             SkillSlot.Skill1,
             Skill1);
@@ -139,26 +121,47 @@ public sealed class PlayerSkillController :
         ResetSlotRuntime(
             SkillSlot.Skill2,
             Skill2);
+
+        Equip(
+            SkillSlot.Skill1,
+            mainSkill);
+
+        Equip(
+            SkillSlot.Skill2,
+            ultimateSkill);
     }
 
 
-    PlayerTickStage IPlayerTickModule.Stage =>
+    public override PlayerTickStage Stage =>
         PlayerTickStage.SkillIntent;
 
+    public PlayerTickState TickState { get; private set; }
 
-    void IPlayerTickModule.Simulate(
+    public PlayerTickCommands TickCommands { get; private set; }
+
+
+    public override void Simulate(
         in PlayerTick tick)
     {
+        if (TickState == null) TickState = tick.State;
+
+        if(TickCommands == null) TickCommands = tick.Commands;
+
         TickLateAction(
             tick.State.HasHealth &&
-            tick.State.IsAlive,
-            false);
+            tick.State.IsAlive);
     }
 
     void IPlayerTickStateSource.CaptureTickState(
         PlayerTickState state)
     {
         state.HasSkill = true;
+        state.SkillAnimationSequence =
+            SkillAnimationSequence;
+        state.SkillAnimationId =
+            LastSkillAnimation;
+        state.IsSkillControlLocked =
+            IsSkillControlLocked;
         state.IsSkillActionLocked =
             IsActionLocked(
                 SkillSlot.Skill1,
@@ -169,16 +172,24 @@ public sealed class PlayerSkillController :
     }
 
 
-    public override void FixedUpdateNetwork()
+    bool IPlayerTickCommandSink.ResolveTickCommands(
+        PlayerTickCommands commands,
+        PlayerTickState state)
     {
-        if (IsTickControlled)
-            return;
+        if (!commands.TryConsumeSkillControlLock(
+                out float duration))
+        {
+            return false;
+        }
 
-        TickLateAction();
+        LockSkillControl(
+            duration);
+
+        return true;
     }
 
 
-    public override void Render()
+    public override void Present(in PlayerTickState tickState)
     {
         foreach (Skill skill in _skills)
         {
@@ -195,23 +206,8 @@ public sealed class PlayerSkillController :
     }
 
 
-    internal void TickLateAction()
+    private void TickLateAction(bool isAlive)
     {
-        TickLateAction(
-            _healthState != null &&
-            _healthState.IsAlive,
-            true);
-    }
-
-
-    private void TickLateAction(
-        bool isAlive,
-        bool requireContext)
-    {
-        if (requireContext &&
-            !IsContextReady)
-            return;
-
 
         // 공통 Runtime State를 먼저 갱신합니다.
         UpdateSlotRuntime(
@@ -242,6 +238,9 @@ public sealed class PlayerSkillController :
 
         if (!isAlive)
         {
+            SkillControlLockTimer =
+                TickTimer.None;
+
             CancelAll();
 
             if (hasInput)
@@ -314,6 +313,9 @@ public sealed class PlayerSkillController :
         SkillSlot slot,
         in SkillUseContext useContext)
     {
+        if (IsSkillControlLocked)
+            return false;
+
         Skill skill =
             GetSkill(
                 slot);
@@ -922,6 +924,27 @@ public sealed class PlayerSkillController :
     }
 
 
+    private void LockSkillControl(
+        float duration)
+    {
+        if (duration <= 0f)
+            return;
+
+        float remaining =
+            SkillControlLockTimer
+                .RemainingTime(Runner) ??
+            0f;
+
+        if (duration <= remaining)
+            return;
+
+        SkillControlLockTimer =
+            TickTimer.CreateFromSeconds(
+                Runner,
+                duration);
+    }
+
+
     private bool IsActionLocked(
         SkillSlot slot,
         Skill skill)
@@ -1130,8 +1153,7 @@ public sealed class PlayerSkillController :
         skill.Initialize(
             data,
             slot,
-            this,
-            Context);
+            this);
 
         return skill;
     }

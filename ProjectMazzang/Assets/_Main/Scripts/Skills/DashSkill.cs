@@ -8,27 +8,8 @@ public sealed class DashSkill :
     IDurationSkill,
     IRecoverySkill
 {
-    private IPlayerMovementState
-        _movementState;
-
-    private IPlayerMovementControl
-        _movementControl;
-
-    private IPlayerCombatState
-        _combatState;
-
-    private IPlayerAimState
-        _aimState;
-
-    private IPlayerAimControl
-        _aimControl;
-
-    private IPlayerDamageReceiver
-        _selfDamageReceiver;
-
     private CapsuleCollider2D
         _movementCollider;
-
 
     private DashSkillData DashData =>
         (DashSkillData)Data;
@@ -60,41 +41,13 @@ public sealed class DashSkill :
 
     protected override void OnInitialized()
     {
-        _movementState =
-            Context.Get<
-                IPlayerMovementState>();
-
-        _movementControl =
-            Context.Get<
-                IPlayerMovementControl>();
-
-        _combatState =
-            Context.Get<
-                IPlayerCombatState>();
-
-        _aimState =
-            Context.Get<
-                IPlayerAimState>();
-
-        _aimControl =
-            Context.Get<
-                IPlayerAimControl>();
-
-        _selfDamageReceiver =
-            Context.Get<
-                IPlayerDamageReceiver>();
-
-
-        _movementCollider =
-            Context.Owner.GetComponent<
-                CapsuleCollider2D>();
+        _movementCollider = Controller.GetComponent<CapsuleCollider2D>();
 
         if (_movementCollider == null)
         {
             Debug.LogError(
                 "[DashSkill] Player Root에 " +
-                "이동용 CapsuleCollider2D가 없습니다.",
-                Context.Owner);
+                "이동용 CapsuleCollider2D가 없습니다.");
         }
     }
 
@@ -112,18 +65,21 @@ public sealed class DashSkill :
             return false;
         }
 
-        if (_movementState == null ||
-            _movementControl == null ||
-            _aimState == null)
+        PlayerTickState state =
+            Controller.TickState;
+
+        if (state == null ||
+            !state.HasMovement ||
+            !state.HasAim)
         {
             return false;
         }
 
-        if (_movementState.IsControlLocked)
+        if (state.IsMovementControlLocked)
             return false;
 
-        if (_combatState != null &&
-            _combatState.IsAttacking)
+        if (state.HasCombat &&
+            state.IsAttacking)
         {
             return false;
         }
@@ -142,24 +98,23 @@ public sealed class DashSkill :
 
         // Dash가 끝날 때까지
         // 시전 순간 방향을 Networked PlayerAim에 고정합니다.
-        if (_aimControl != null)
-        {
-            PlayerAimOverride aimOverride =
-                new(
-                    PlayerAimTrackingMode
-                        .LockedDirection,
 
-                    PlayerAimFacingMode
-                        .Locked,
+        PlayerAimOverride aimOverride =
+            new(
+                PlayerAimTrackingMode
+                    .LockedDirection,
 
-                    PlayerAimRigMode
-                        .Procedural);
+                PlayerAimFacingMode
+                    .Locked,
+
+                PlayerAimRigMode
+                    .Procedural);
 
 
-            _aimControl.ApplyOverride(
-                in aimOverride,
-                direction);
-        }
+        Controller.TickCommands.RequestAimOverride(
+            in aimOverride,
+            direction);
+
 
 
         float controlLockDuration =
@@ -167,12 +122,22 @@ public sealed class DashSkill :
             DashData.DashDuration +
             DashData.RecoveryDuration;
 
-
-        _movementControl.LockControl(
+        Controller.TickCommands.RequestControlLock(
+            PlayerControlLock.Movement |
+            PlayerControlLock.Attack |
+            PlayerControlLock.Skill,
             controlLockDuration);
 
-        _movementControl.SetVelocity(
+        RequestMovementVelocity(
             Vector2.zero);
+    }
+
+
+    private void RequestMovementVelocity(
+        Vector2 velocity)
+    {
+        Controller.TickCommands.RequestSetMovementVelocity(
+            velocity);
     }
 
 
@@ -182,10 +147,6 @@ public sealed class DashSkill :
 
     public override void FixedUpdateNetwork()
     {
-        if (_movementControl == null)
-            return;
-
-
         SkillUsePhase phase =
             Controller.GetUsePhase(
                 Slot);
@@ -200,7 +161,7 @@ public sealed class DashSkill :
             // 벽력일섬 준비 상태.
             case SkillUsePhase.Cast:
 
-                _movementControl.SetVelocity(
+                RequestMovementVelocity(
                     Vector2.zero);
 
                 break;
@@ -216,7 +177,7 @@ public sealed class DashSkill :
             // Dash가 끝난 후 아주 짧은 정지.
             case SkillUsePhase.Recovery:
 
-                _movementControl.SetVelocity(
+                RequestMovementVelocity(
                     Vector2.zero);
 
                 break;
@@ -233,9 +194,8 @@ public sealed class DashSkill :
         if (TryHitPlayer(
                 direction))
         {
-            // Oryx처럼 Player와 충돌한 순간
-            // Dash 자체는 즉시 끝내고 Recovery로 넘어갑니다.
-            _movementControl.SetVelocity(
+            // Dash 자체는 즉시 끝내고 Recovery로 넘어감
+            RequestMovementVelocity(
                 Vector2.zero);
 
 
@@ -245,8 +205,7 @@ public sealed class DashSkill :
             return;
         }
 
-
-        _movementControl.SetVelocity(
+        RequestMovementVelocity(
             direction *
             DashData.DashSpeed);
     }
@@ -315,7 +274,7 @@ public sealed class DashSkill :
                 DashData.PlayerHurtboxLayer);
 
 
-        IPlayerDamageReceiver target =
+        IDamageable target =
             null;
 
         float nearestDistance =
@@ -332,18 +291,20 @@ public sealed class DashSkill :
                 continue;
 
 
-            IPlayerDamageReceiver receiver =
+            IDamageable receiver =
                 collider.GetComponentInParent<
-                    IPlayerDamageReceiver>();
+                    IDamageable>();
 
             if (receiver == null)
                 continue;
 
 
-            // 자기 자신.
-            if (ReferenceEquals(
-                    receiver,
-                    _selfDamageReceiver))
+            NetworkObject receiverObject =
+                collider.GetComponentInParent<
+                    NetworkObject>();
+
+            if (receiverObject ==
+                Controller.Object)
             {
                 continue;
             }
@@ -382,7 +343,7 @@ public sealed class DashSkill :
 
 
     private void ApplyDashCollisionDamage(
-        IPlayerDamageReceiver target,
+        IDamageable target,
         AttackData attack,
         Vector2 direction)
     {
@@ -415,7 +376,7 @@ public sealed class DashSkill :
         Vector2 aimWorldPosition)
     {
         Vector2 direction =
-            _aimState.ResolveDirectionTo(
+            Controller.TickState.ResolveAimDirectionTo(
                 aimWorldPosition);
 
         if (direction.sqrMagnitude >
@@ -426,7 +387,7 @@ public sealed class DashSkill :
 
 
         return
-            _movementState.FacingRight
+            Controller.TickState.FacingRight
                 ? Vector2.right
                 : Vector2.left;
     }
@@ -435,18 +396,17 @@ public sealed class DashSkill :
     private Vector2
         ResolveLockedDashDirection()
     {
-        if (_aimState != null &&
-            _aimState.AimDirection.sqrMagnitude >
+        if (Controller.TickState.AimDirection.sqrMagnitude >
             0.0001f)
         {
             return
-                _aimState.AimDirection
+                Controller.TickState.AimDirection
                     .normalized;
         }
 
 
         return
-            _movementState.FacingRight
+            Controller.TickState.FacingRight
                 ? Vector2.right
                 : Vector2.left;
     }
@@ -458,14 +418,14 @@ public sealed class DashSkill :
 
     public override void OnUseEnded()
     {
-        _aimControl?
-            .ClearOverride();
+        Controller.TickCommands?
+            .RequestClearAimOverride();
     }
 
 
     public override void Cancel()
     {
-        _aimControl?
-            .ClearOverride();
+        Controller.TickCommands?
+            .RequestClearAimOverride();
     }
 }

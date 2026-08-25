@@ -8,11 +8,28 @@ public sealed class PlayerTickState
 {
     public bool HasHealth { get; internal set; }
 
+    public int Health { get; internal set; }
+
+    public int MaxHealth { get; internal set; }
+
+    public int Lives { get; internal set; }
+
+    public bool IsInvulnerable { get; internal set; }
+
     public bool IsAlive { get; internal set; }
+
+    public byte DeathSequence { get; internal set; }
+
 
     public bool HasMovement { get; internal set; }
 
     public bool FacingRight { get; internal set; }
+
+    public bool IsGrounded { get; internal set; }
+
+    public byte JumpSequence { get; internal set; }
+
+    public JumpType LastJumpType { get; internal set; }
 
     public bool IsWallSliding { get; internal set; }
 
@@ -20,13 +37,43 @@ public sealed class PlayerTickState
 
     public Vector2 MovementVelocity { get; internal set; }
 
+
     public bool HasCombat { get; internal set; }
+
+    public bool IsAttacking { get; internal set; }
+
+    public byte AttackSequence { get; internal set; }
+
+    public byte AttackId { get; internal set; }
+
+    /// <summary>
+    /// 외부 제어 효과로 기본 공격이 잠긴 상태입니다.
+    /// </summary>
+    public bool IsAttackControlLocked { get; internal set; }
+
 
     public bool HasSkill { get; internal set; }
 
+    public byte SkillAnimationSequence { get; internal set; }
+
+    public PlayerSkillAnimationId SkillAnimationId { get; internal set; }
+
+    /// <summary>
+    /// 외부 제어 효과로 새 스킬 사용이 잠긴 상태입니다.
+    /// 이미 실행 중인 스킬의 진행 여부와는 무관합니다.
+    /// </summary>
+    public bool IsSkillControlLocked { get; internal set; }
+
+    /// <summary>
+    /// 실행 중인 스킬이 기본 공격과 무기 행동을 잠근 상태입니다.
+    /// </summary>
     public bool IsSkillActionLocked { get; internal set; }
 
+    /// <summary>
+    /// 실행 중인 기본 공격이 이동을 잠근 상태입니다.
+    /// </summary>
     public bool IsCombatMovementLocked { get; internal set; }
+
 
     public bool HasAim { get; internal set; }
 
@@ -36,7 +83,6 @@ public sealed class PlayerTickState
 
     public Vector2 AimDirection { get; internal set; }
 
-    public bool HasWeapon { get; internal set; }
 
     public bool HasEquippedWeapon { get; internal set; }
 
@@ -44,21 +90,40 @@ public sealed class PlayerTickState
     internal void Reset()
     {
         HasHealth = false;
+        Health = 0;
+        MaxHealth = 0;
+        Lives = 0;
+        IsInvulnerable = false;
         IsAlive = false;
+        DeathSequence = 0;
+
         HasMovement = false;
         FacingRight = true;
+        IsGrounded = false;
+        JumpSequence = 0;
+        LastJumpType = default;
         IsWallSliding = false;
         IsMovementControlLocked = false;
         MovementVelocity = Vector2.zero;
+
         HasCombat = false;
+        IsAttacking = false;
+        AttackSequence = 0;
+        AttackId = 0;
+        IsAttackControlLocked = false;
+
         HasSkill = false;
+        SkillAnimationSequence = 0;
+        SkillAnimationId = PlayerSkillAnimationId.None;
+        IsSkillControlLocked = false;
         IsSkillActionLocked = false;
         IsCombatMovementLocked = false;
+
         HasAim = false;
         HasAimOrigin = false;
         AimOriginPosition = Vector2.zero;
         AimDirection = Vector2.zero;
-        HasWeapon = false;
+
         HasEquippedWeapon = false;
     }
 

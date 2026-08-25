@@ -1,4 +1,4 @@
-using Fusion;
+/*using Fusion;
 using UnityEngine;
 
 /// <summary>
@@ -15,16 +15,16 @@ public abstract class PlayerModule :
     private bool _tickControlled;
 
 
-    protected PlayerContext Context
+    *//*protected PlayerContext Context
     {
         get;
         private set;
-    }
+    }*/
 
 
-    public bool IsContextReady =>
+    /*public bool IsContextReady =>
         Context != null &&
-        _contextCompleted;
+        _contextCompleted;*//*
 
 
     protected bool IsTickControlled =>
@@ -52,7 +52,7 @@ public abstract class PlayerModule :
     }
 
 
-    internal void InitializeContext(
+    *//*internal void InitializeContext(
         PlayerContext context)
     {
         if (context == null)
@@ -85,10 +85,10 @@ public abstract class PlayerModule :
         Context = context;
 
         RegisterContextUnits();
-    }
+    }*/
 
 
-    internal void CompleteContextInitialization()
+    /*internal void CompleteContextInitialization()
     {
         if (_contextCompleted)
             return;
@@ -106,7 +106,7 @@ public abstract class PlayerModule :
         OnContextReady();
 
         _contextCompleted = true;
-    }
+    }*//*
 
 
     // =========================================================
@@ -130,3 +130,4 @@ public abstract class PlayerModule :
     {
     }
 }
+*/

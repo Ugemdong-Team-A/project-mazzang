@@ -81,8 +81,140 @@ namespace ProjectMazzang.Tests
                 "IPlayerTickStateSource");
 
             AssertInterfaces(
+                "PlayerSkillController",
+                "IPlayerTickStateSource");
+
+            AssertInterfaces(
                 "PlayerWeaponController",
                 "IPlayerTickStateSource");
+        }
+
+
+        [Test]
+        public void PlayerPrefabs_UseUniqueTickSlots()
+        {
+            Type controllerType =
+                GetRuntimeType(
+                    "PlayerController");
+
+            Type moduleType =
+                GetRuntimeType(
+                    "PlayerTickModule");
+
+            Type networkObjectType =
+                AppDomain.CurrentDomain
+                    .GetAssemblies()
+                    .Select(
+                        assembly =>
+                            assembly.GetType(
+                                "Fusion.NetworkObject"))
+                    .FirstOrDefault(
+                        type => type != null);
+
+            PropertyInfo stageProperty =
+                moduleType.GetProperty(
+                    "Stage");
+
+            PropertyInfo orderProperty =
+                moduleType.GetProperty(
+                    "Order");
+
+            Assert.That(stageProperty, Is.Not.Null);
+            Assert.That(orderProperty, Is.Not.Null);
+            Assert.That(orderProperty.PropertyType, Is.EqualTo(typeof(int)));
+            Assert.That(networkObjectType, Is.Not.Null);
+
+            int controllerCount = 0;
+
+            string[] prefabGuids =
+                AssetDatabase.FindAssets(
+                    "t:Prefab",
+                    new[]
+                    {
+                        "Assets/_Main/Prefabs/Characters"
+                    });
+
+            foreach (string prefabGuid
+                     in prefabGuids)
+            {
+                string prefabPath =
+                    AssetDatabase.GUIDToAssetPath(
+                        prefabGuid);
+
+                GameObject prefab =
+                    AssetDatabase.LoadAssetAtPath<
+                        GameObject>(
+                        prefabPath);
+
+                if (prefab == null)
+                    continue;
+
+                Component[] controllers =
+                    prefab.GetComponentsInChildren(
+                        controllerType,
+                        true);
+
+                foreach (Component controller
+                         in controllers)
+                {
+                    controllerCount++;
+
+                    Component ownerObject =
+                        controller.GetComponent(
+                            networkObjectType);
+
+                    Assert.That(ownerObject, Is.Not.Null);
+
+                    Component[] modules =
+                        controller.GetComponentsInChildren(
+                                moduleType,
+                                true)
+                            .Where(
+                                module =>
+                                    module.GetComponentInParent(
+                                        networkObjectType) == ownerObject)
+                            .ToArray();
+
+                    HashSet<string> slots =
+                        new();
+
+                    foreach (Component module
+                             in modules)
+                    {
+                        object stage =
+                            stageProperty.GetValue(
+                                module);
+
+                        int order =
+                            (int)orderProperty.GetValue(
+                                module);
+
+                        string slot =
+                            $"{stage}:{order}";
+
+                        Assert.That(
+                            slots.Add(slot),
+                            Is.True,
+                            $"{prefabPath}의 {controller.name}에서 " +
+                            $"Player Tick 순서 {slot}가 겹칩니다.");
+                    }
+
+                }
+            }
+
+            Assert.That(
+                controllerCount,
+                Is.GreaterThan(0),
+                "검사할 PlayerController 프리팹을 찾지 못했습니다.");
+        }
+
+
+        [Test]
+        public void PlayerHealth_ProvidesDamageContract()
+        {
+            AssertInterfaces(
+                "PlayerHealth",
+                "IDamageable");
         }
 
 
@@ -103,6 +235,10 @@ namespace ProjectMazzang.Tests
 
             AssertInterfaces(
                 "PlayerWeaponController",
+                "IPlayerTickCommandSink");
+
+            AssertInterfaces(
+                "PlayerSkillController",
                 "IPlayerTickCommandSink");
         }
 
@@ -154,11 +290,231 @@ namespace ProjectMazzang.Tests
 
 
         [Test]
+        public void PlayerTickCommands_SetsMovementVelocityOnce()
+        {
+            Type commandsType =
+                GetRuntimeType(
+                    "PlayerTickCommands");
+
+            object commands =
+                Activator.CreateInstance(
+                    commandsType);
+
+            Vector2 expectedVelocity =
+                new(-7f, 2.5f);
+
+            commandsType
+                .GetMethod("RequestSetMovementVelocity")
+                .Invoke(
+                    commands,
+                    new object[]
+                    {
+                        expectedVelocity
+                    });
+
+            AssertProperty(
+                commands,
+                "HasPending",
+                true);
+
+            MethodInfo consume =
+                commandsType.GetMethod(
+                    "TryConsumeSetMovementVelocity",
+                    BindingFlags.Instance |
+                    BindingFlags.NonPublic);
+
+            Assert.That(
+                consume,
+                Is.Not.Null);
+
+            object[] arguments =
+            {
+                Vector2.zero
+            };
+
+            Assert.That(
+                consume.Invoke(
+                    commands,
+                    arguments),
+                Is.EqualTo(true));
+
+            Assert.That(
+                arguments[0],
+                Is.EqualTo(expectedVelocity));
+
+            AssertProperty(
+                commands,
+                "HasPending",
+                false);
+
+            arguments[0] = Vector2.one;
+
+            Assert.That(
+                consume.Invoke(
+                    commands,
+                    arguments),
+                Is.EqualTo(false));
+
+            Assert.That(
+                arguments[0],
+                Is.EqualTo(Vector2.zero));
+        }
+
+
+        [Test]
+        public void PlayerTickCommands_SeparatesAndMergesControlLocks()
+        {
+            Type commandsType =
+                GetRuntimeType(
+                    "PlayerTickCommands");
+
+            Type controlLockType =
+                GetRuntimeType(
+                    "PlayerControlLock");
+
+            Assert.That(
+                controlLockType.IsDefined(
+                    typeof(FlagsAttribute),
+                    false),
+                Is.True);
+
+            object commands =
+                Activator.CreateInstance(
+                    commandsType);
+
+            object movement =
+                Enum.Parse(
+                    controlLockType,
+                    "Movement");
+
+            object attack =
+                Enum.Parse(
+                    controlLockType,
+                    "Attack");
+
+            object skill =
+                Enum.Parse(
+                    controlLockType,
+                    "Skill");
+
+            object allCurrentControls =
+                Enum.ToObject(
+                    controlLockType,
+                    Convert.ToByte(movement) |
+                    Convert.ToByte(attack) |
+                    Convert.ToByte(skill));
+
+            MethodInfo request =
+                commandsType.GetMethod(
+                    "RequestControlLock");
+
+            request.Invoke(
+                commands,
+                new[]
+                {
+                    allCurrentControls,
+                    (object)0.5f
+                });
+
+            // 같은 종류의 더 짧은 요청은 기존 대기 시간을 줄이지 않는다.
+            request.Invoke(
+                commands,
+                new[]
+                {
+                    movement,
+                    (object)0.2f
+                });
+
+            AssertControlLockConsumed(
+                commandsType,
+                commands,
+                "TryConsumeMovementControlLock",
+                0.5f);
+
+            AssertProperty(
+                commands,
+                "HasPending",
+                true);
+
+            AssertControlLockConsumed(
+                commandsType,
+                commands,
+                "TryConsumeAttackControlLock",
+                0.5f);
+
+            AssertControlLockConsumed(
+                commandsType,
+                commands,
+                "TryConsumeSkillControlLock",
+                0.5f);
+
+            AssertProperty(
+                commands,
+                "HasPending",
+                false);
+
+            MethodInfo consumeMovement =
+                commandsType.GetMethod(
+                    "TryConsumeMovementControlLock",
+                    BindingFlags.Instance |
+                    BindingFlags.NonPublic);
+
+            object[] secondConsume =
+            {
+                1f
+            };
+
+            Assert.That(
+                consumeMovement.Invoke(
+                    commands,
+                    secondConsume),
+                Is.EqualTo(false));
+
+            Assert.That(
+                secondConsume[0],
+                Is.EqualTo(0f));
+
+            request.Invoke(
+                commands,
+                new[]
+                {
+                    skill,
+                    (object)0f
+                });
+
+            AssertProperty(
+                commands,
+                "HasPending",
+                false);
+        }
+
+
+        [Test]
         public void PlayerTickState_ContainsModuleSnapshotContracts()
         {
             Type tickStateType =
                 GetRuntimeType(
                     "PlayerTickState");
+
+            AssertPropertyType(
+                tickStateType,
+                "Health",
+                typeof(int));
+
+            AssertPropertyType(
+                tickStateType,
+                "MaxHealth",
+                typeof(int));
+
+            AssertPropertyType(
+                tickStateType,
+                "Lives",
+                typeof(int));
+
+            AssertPropertyType(
+                tickStateType,
+                "DeathSequence",
+                typeof(byte));
 
             AssertPropertyType(
                 tickStateType,
@@ -187,7 +543,33 @@ namespace ProjectMazzang.Tests
 
             AssertPropertyType(
                 tickStateType,
+                "IsAttacking",
+                typeof(bool));
+
+            AssertPropertyType(
+                tickStateType,
+                "IsAttackControlLocked",
+                typeof(bool));
+
+            AssertPropertyType(
+                tickStateType,
                 "IsCombatMovementLocked",
+                typeof(bool));
+
+            AssertPropertyType(
+                tickStateType,
+                "SkillAnimationSequence",
+                typeof(byte));
+
+            AssertPropertyType(
+                tickStateType,
+                "SkillAnimationId",
+                GetRuntimeType(
+                    "PlayerSkillAnimationId"));
+
+            AssertPropertyType(
+                tickStateType,
+                "IsSkillControlLocked",
                 typeof(bool));
 
             AssertPropertyType(
@@ -199,11 +581,6 @@ namespace ProjectMazzang.Tests
                 tickStateType,
                 "AimDirection",
                 typeof(Vector2));
-
-            AssertPropertyType(
-                tickStateType,
-                "HasWeapon",
-                typeof(bool));
 
             AssertPropertyType(
                 tickStateType,
@@ -223,41 +600,25 @@ namespace ProjectMazzang.Tests
                 Activator.CreateInstance(
                     tickStateType);
 
-            tickStateType
-                .GetProperty("HasMovement")
-                .SetValue(tickState, true);
+            PropertyInfo[] properties =
+                tickStateType.GetProperties(
+                    BindingFlags.Instance |
+                    BindingFlags.Public)
+                .Where(
+                    property =>
+                        property.GetSetMethod(true) != null)
+                .ToArray();
 
-            tickStateType
-                .GetProperty("FacingRight")
-                .SetValue(tickState, false);
-
-            tickStateType
-                .GetProperty("IsWallSliding")
-                .SetValue(tickState, true);
-
-            tickStateType
-                .GetProperty("IsMovementControlLocked")
-                .SetValue(tickState, true);
-
-            tickStateType
-                .GetProperty("HasCombat")
-                .SetValue(tickState, true);
-
-            tickStateType
-                .GetProperty("IsCombatMovementLocked")
-                .SetValue(tickState, true);
-
-            tickStateType
-                .GetProperty("HasAim")
-                .SetValue(tickState, true);
-
-            tickStateType
-                .GetProperty("HasWeapon")
-                .SetValue(tickState, true);
-
-            tickStateType
-                .GetProperty("HasEquippedWeapon")
-                .SetValue(tickState, true);
+            foreach (PropertyInfo property
+                     in properties)
+            {
+                property.SetValue(
+                    tickState,
+                    property.Name == "FacingRight"
+                        ? false
+                        : CreateNonDefaultValue(
+                            property.PropertyType));
+            }
 
             MethodInfo reset =
                 tickStateType.GetMethod(
@@ -273,50 +634,17 @@ namespace ProjectMazzang.Tests
                 tickState,
                 null);
 
-            AssertProperty(
-                tickState,
-                "HasMovement",
-                false);
-
-            AssertProperty(
-                tickState,
-                "FacingRight",
-                true);
-
-            AssertProperty(
-                tickState,
-                "IsWallSliding",
-                false);
-
-            AssertProperty(
-                tickState,
-                "IsMovementControlLocked",
-                false);
-
-            AssertProperty(
-                tickState,
-                "HasCombat",
-                false);
-
-            AssertProperty(
-                tickState,
-                "IsCombatMovementLocked",
-                false);
-
-            AssertProperty(
-                tickState,
-                "HasAim",
-                false);
-
-            AssertProperty(
-                tickState,
-                "HasWeapon",
-                false);
-
-            AssertProperty(
-                tickState,
-                "HasEquippedWeapon",
-                false);
+            foreach (PropertyInfo property
+                     in properties)
+            {
+                AssertProperty(
+                    tickState,
+                    property.Name,
+                    property.Name == "FacingRight"
+                        ? true
+                        : Activator.CreateInstance(
+                            property.PropertyType));
+            }
         }
 
 
@@ -439,6 +767,40 @@ namespace ProjectMazzang.Tests
         }
 
 
+        private static void AssertControlLockConsumed(
+            Type commandsType,
+            object commands,
+            string methodName,
+            float expectedDuration)
+        {
+            MethodInfo consume =
+                commandsType.GetMethod(
+                    methodName,
+                    BindingFlags.Instance |
+                    BindingFlags.NonPublic);
+
+            Assert.That(
+                consume,
+                Is.Not.Null);
+
+            object[] arguments =
+            {
+                0f
+            };
+
+            Assert.That(
+                consume.Invoke(
+                    commands,
+                    arguments),
+                Is.EqualTo(true));
+
+            Assert.That(
+                (float)arguments[0],
+                Is.EqualTo(expectedDuration)
+                    .Within(0.0001f));
+        }
+
+
         private static void AssertInterfaces(
             string typeName,
             params string[] expectedInterfaces)
@@ -501,6 +863,31 @@ namespace ProjectMazzang.Tests
                 property.PropertyType,
                 Is.EqualTo(propertyType),
                 $"{type.Name}.{propertyName}의 타입이 달라졌습니다.");
+        }
+
+
+        private static object CreateNonDefaultValue(
+            Type type)
+        {
+            if (type == typeof(bool))
+                return true;
+
+            if (type == typeof(byte))
+                return (byte)1;
+
+            if (type == typeof(int))
+                return 1;
+
+            if (type == typeof(Vector2))
+                return Vector2.one;
+
+            if (type.IsEnum)
+                return Enum.ToObject(type, 1);
+
+            Assert.Fail(
+                $"{type.Name}의 비기본 테스트 값을 정의해야 합니다.");
+
+            return null;
         }
 
 
