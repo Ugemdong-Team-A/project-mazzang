@@ -964,10 +964,15 @@ namespace ProjectMazzang.Tests
                 mainSkill.objectReferenceValue
                     .GetType().Name,
                 Is.EqualTo(
-                    "UltimateAwakeningSkillData"));
+                    "DashSkillData"));
             Assert.That(
                 ultimateSkill.objectReferenceValue,
-                Is.Null);
+                Is.Not.Null);
+            Assert.That(
+                ultimateSkill.objectReferenceValue
+                    .GetType().Name,
+                Is.EqualTo(
+                    "UltimateAwakeningSkillData"));
 
 
             GameObject slotPrefab =
@@ -992,6 +997,8 @@ namespace ProjectMazzang.Tests
                      {
                          "meterRoot",
                          "meterFill",
+                         "meterOverlay",
+                         "meterAccent",
                          "meterText"
                      })
             {

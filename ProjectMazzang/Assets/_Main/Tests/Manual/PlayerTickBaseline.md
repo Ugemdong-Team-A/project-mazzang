@@ -81,7 +81,8 @@
 
 ### Skill Meter
 
-- 기사 Skill1에 `UltimateAwakeningSkill`을 장착하고 Dash가 시작되지 않는지 확인한다.
+- 기사 `mainSkill`에서 Dash가 시작되고 `ultimateSkill`에서 `UltimateAwakeningSkill`이 시작되는지 확인한다.
+- Meter UI의 충전 레일·내부 면·퍼센트가 같은 값으로 갱신되고, 정수 증가 시 한 번만 반응하는지 확인한다.
 - Host와 Client가 각각 공격자일 때 실제 감소한 Health에 `DamageGainPerDamage`를 곱한 만큼만 충전된다.
 - 남은 Health보다 큰 피해는 남은 Health만큼만 충전되고, 무적·사망·0 피해에는 충전되지 않는다.
 - Meter 특성을 가진 슬롯이 여러 개면 각 슬롯이 자신의 비율대로 충전되고 최대값을 넘지 않는다.

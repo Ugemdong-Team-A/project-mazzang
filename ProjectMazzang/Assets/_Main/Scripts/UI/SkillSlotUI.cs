@@ -68,7 +68,39 @@ public sealed class SkillSlotUI :
     private Image meterFill;
 
     [SerializeField]
+    private Image meterOverlay;
+
+    [SerializeField]
+    private Image meterAccent;
+
+    [SerializeField]
     private TMP_Text meterText;
+
+    [SerializeField]
+    private Color meterChargingColor =
+        new(
+            0.76f,
+            0.54f,
+            0.22f,
+            1f);
+
+    [SerializeField]
+    private Color meterReadyColor =
+        new(
+            1f,
+            0.88f,
+            0.54f,
+            1f);
+
+    [Min(0.01f)]
+    [SerializeField]
+    private float meterTickDuration =
+        0.16f;
+
+    [Range(0f, 0.3f)]
+    [SerializeField]
+    private float meterTickScale =
+        0.08f;
 
 
     [Header("Duration")]
@@ -102,6 +134,13 @@ public sealed class SkillSlotUI :
     private IDurationSkill _durationSkill;
 
     private int _builtMaxCharges;
+
+    private int _meterPercentage =
+        -1;
+
+    private float _meterFeedbackRemaining;
+
+    private bool _meterWasReady;
 
 
     // =========================================================
@@ -174,6 +213,8 @@ public sealed class SkillSlotUI :
         _durationSkill =
             null;
 
+        ResetMeterFeedback();
+
         _builtMaxCharges =
             0;
 
@@ -239,6 +280,8 @@ public sealed class SkillSlotUI :
 
         _durationSkill =
             _skill as IDurationSkill;
+
+        ResetMeterFeedback();
 
 
         bool hasSkill =
@@ -568,6 +611,8 @@ public sealed class SkillSlotUI :
                 meterRoot,
                 false);
 
+            ResetMeterFeedback();
+
             return;
         }
 
@@ -584,7 +629,11 @@ public sealed class SkillSlotUI :
             active);
 
         if (!active)
+        {
+            ResetMeterFeedback();
+
             return;
+        }
 
 
         float current =
@@ -605,19 +654,167 @@ public sealed class SkillSlotUI :
                 normalized);
         }
 
+        if (meterOverlay != null)
+        {
+            SetVerticalProgress(
+                meterOverlay,
+                normalized);
+        }
 
-        if (meterText == null)
-            return;
 
         float cost =
             Mathf.Max(
                 0f,
                 _meterSkill.MeterCost);
 
+        bool ready =
+            current >= cost;
+
+        int percentage =
+            Mathf.FloorToInt(
+                normalized * 100f);
+
+        RefreshMeterFeedback(
+            percentage,
+            ready);
+
+
+        if (meterText == null)
+            return;
+
         meterText.text =
-            current >= cost
+            ready
                 ? "READY"
-                : $"{Mathf.FloorToInt(normalized * 100f)}%";
+                : $"{percentage}%";
+    }
+
+
+    private void RefreshMeterFeedback(
+        int percentage,
+        bool ready)
+    {
+        bool increased =
+            _meterPercentage >= 0 &&
+            percentage > _meterPercentage;
+
+        bool becameReady =
+            _meterPercentage >= 0 &&
+            !_meterWasReady &&
+            ready;
+
+        if (increased)
+        {
+            _meterFeedbackRemaining =
+                meterTickDuration *
+                (becameReady
+                    ? 1.75f
+                    : 1f);
+        }
+
+        _meterPercentage =
+            percentage;
+
+        _meterWasReady =
+            ready;
+
+
+        float duration =
+            meterTickDuration *
+            (ready
+                ? 1.75f
+                : 1f);
+
+        float feedback =
+            duration > 0f
+                ? Mathf.Clamp01(
+                    _meterFeedbackRemaining /
+                    duration)
+                : 0f;
+
+        _meterFeedbackRemaining =
+            Mathf.Max(
+                0f,
+                _meterFeedbackRemaining -
+                Time.unscaledDeltaTime);
+
+        float punch =
+            feedback * feedback;
+
+        Color baseColor =
+            ready
+                ? meterReadyColor
+                : meterChargingColor;
+
+        Color feedbackColor =
+            Color.Lerp(
+                baseColor,
+                Color.white,
+                punch * 0.55f);
+
+        if (meterFill != null)
+        {
+            meterFill.color =
+                feedbackColor;
+        }
+
+        if (meterAccent != null)
+        {
+            meterAccent.color =
+                feedbackColor;
+
+            meterAccent.rectTransform.localScale =
+                Vector3.one *
+                (1f + punch * meterTickScale * 1.5f);
+        }
+
+        if (meterOverlay != null)
+        {
+            Color overlayColor =
+                baseColor;
+
+            overlayColor.a =
+                ready
+                    ? 0.09f
+                    : 0.045f;
+
+            meterOverlay.color =
+                overlayColor;
+        }
+
+        if (meterText != null)
+        {
+            meterText.color =
+                feedbackColor;
+
+            meterText.rectTransform.localScale =
+                Vector3.one *
+                (1f + punch * meterTickScale);
+        }
+    }
+
+
+    private void ResetMeterFeedback()
+    {
+        _meterPercentage =
+            -1;
+
+        _meterFeedbackRemaining =
+            0f;
+
+        _meterWasReady =
+            false;
+
+        if (meterAccent != null)
+        {
+            meterAccent.rectTransform.localScale =
+                Vector3.one;
+        }
+
+        if (meterText != null)
+        {
+            meterText.rectTransform.localScale =
+                Vector3.one;
+        }
     }
 
 

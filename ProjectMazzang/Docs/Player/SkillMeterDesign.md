@@ -16,7 +16,9 @@
 
 - `UltimateAwakeningSkill`은 최대·비용 100, 자연 충전 초당 2,
   실제 피해 1당 1 Meter를 사용하며 8초 동안 능력치 배율을 적용한다.
-- 기사 Skill1에 장착해 Meter 특성과 궁극기 컨셉이 Skill2 슬롯에 종속되지 않음을 검증한다.
+- 기사는 `mainSkill`에 Dash, `ultimateSkill`에 `UltimateAwakeningSkill`을 장착한다.
+- 슬롯 UI는 Meter 인터페이스를 판별해 얇은 충전 레일, 내부 면 채움, 정수 퍼센트를 표시하고
+  퍼센트 증가와 사용 가능 전환에 짧은 피드백을 준다.
 
 ## 후속 검토
 
