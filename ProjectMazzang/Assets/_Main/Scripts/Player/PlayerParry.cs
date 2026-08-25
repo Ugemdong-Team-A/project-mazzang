@@ -3,8 +3,7 @@ using UnityEngine;
 
 [DefaultExecutionOrder(-75)]
 public sealed class PlayerParry :
-    PlayerModule,
-    IPlayerTickModule,
+    PlayerTickModule,
     IParryVolume
 {
     [SerializeField] private ParryData data;
@@ -20,7 +19,7 @@ public sealed class PlayerParry :
 
     private byte _visibleSuccessSequence;
     private ParryPresentation _presentation;
-    private IPlayerWeaponState _weaponState;
+    // private IPlayerWeaponState _weaponState;
 
     public bool IsParryActive =>
         data != null && !ActiveTimer.ExpiredOrNotRunning(Runner);
@@ -48,13 +47,7 @@ public sealed class PlayerParry :
     public float ParryAimInfluence => data != null ? data.AimInfluence : 0f;
     public float ParrySpeedMultiplier => data != null ? data.SpeedMultiplier : 1f;
 
-    PlayerTickStage IPlayerTickModule.Stage => PlayerTickStage.DefenseIntent;
-
-    protected override void OnContextReady()
-    {
-        _weaponState =
-            Context.Get<IPlayerWeaponState>();
-    }
+    public override PlayerTickStage Stage => PlayerTickStage.DefenseIntent;
 
     public override void Spawned()
     {
@@ -69,7 +62,7 @@ public sealed class PlayerParry :
             Destroy(_presentation);
     }
 
-    void IPlayerTickModule.Simulate(in PlayerTick tick)
+    public override void Simulate(in PlayerTick tick)
     {
         if (data == null || !GetInput(out PlayerInputData input))
             return;
@@ -78,9 +71,10 @@ public sealed class PlayerParry :
             PreviousButtons,
             PlayerButton.Parry);
         PreviousButtons = input.Buttons;
-
-        if ((_weaponState != null &&
-             _weaponState.ConsumesParryInput) ||
+        
+        if (/*(_weaponState != null &&
+             _weaponState.ConsumesParryInput) ||*/
+            tick.State.HasEquippedWeapon ||
             !pressed ||
             !CooldownTimer.ExpiredOrNotRunning(Runner) ||
             (tick.State.HasHealth && !tick.State.IsAlive))
@@ -109,7 +103,7 @@ public sealed class PlayerParry :
         SuccessSequence++;
     }
 
-    public override void Render()
+    public override void Present(in PlayerTickState tickState)
     {
         if (data == null)
             return;

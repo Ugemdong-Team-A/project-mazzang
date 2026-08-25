@@ -11,12 +11,7 @@ public enum JumpType : byte
 
 [DefaultExecutionOrder(-100)]
 public sealed class PlayerMovement :
-    PlayerModule,
-    IPlayerMovementState,
-    IPlayerKnockbackReceiver,
-    IPlayerFacingControl,
-    IPlayerMovementControl,
-    IPlayerTickModule,
+    PlayerTickModule,
     IPlayerTickStateSource,
     IPlayerTickCommandSink
 {
@@ -108,11 +103,6 @@ public sealed class PlayerMovement :
     [SerializeField]
     private bool verboseWallDebug;
 
-
-    private IPlayerHealthState _healthState;
-
-    private IPlayerCombatState _combatState;
-
     private PlayerSkillController _skillController;
 
     private bool _debugPreviousTouchingWallLeft;
@@ -144,10 +134,7 @@ public sealed class PlayerMovement :
     private NetworkBool WasWallSliding { get; set; }
 
     [Networked]
-    private TickTimer KnockbackControlTimer { get; set; }
-
-    [Networked]
-    private TickTimer ControlLockTimer { get; set; }
+    private TickTimer MovementControlLockTimer { get; set; }
 
     [Networked]
     public NetworkBool IsGrounded { get; private set; }
@@ -180,21 +167,8 @@ public sealed class PlayerMovement :
     public Vector2 Velocity =>
         rb.linearVelocity;
 
-
-    bool IPlayerMovementState.IsGrounded =>
-        IsGrounded;
-
-    bool IPlayerMovementState.FacingRight =>
-        FacingRight;
-
-    bool IPlayerMovementState.IsWallSliding =>
-        IsWallSliding;
-
-
-    public bool IsControlLocked =>
-        !KnockbackControlTimer
-            .ExpiredOrNotRunning(Runner) ||
-        !ControlLockTimer
+    public bool IsMovementControlLocked =>
+        !MovementControlLockTimer
             .ExpiredOrNotRunning(Runner);
 
 
@@ -214,43 +188,6 @@ public sealed class PlayerMovement :
         }
     }
 
-
-    // =========================================================
-    // Context
-    // =========================================================
-
-    protected override void RegisterContextUnits()
-    {
-        Context.Register<
-            IPlayerMovementState>(
-            this);
-
-        Context.Register<
-            IPlayerKnockbackReceiver>(
-            this);
-
-        Context.Register<
-            IPlayerFacingControl>(
-            this);
-
-        Context.Register<
-            IPlayerMovementControl>(
-            this);
-    }
-
-
-    protected override void OnContextReady()
-    {
-        _healthState =
-            Context.Get<
-                IPlayerHealthState>();
-
-        _combatState =
-            Context.Get<
-                IPlayerCombatState>();
-    }
-
-
     // =========================================================
     // Fusion
     // =========================================================
@@ -259,13 +196,19 @@ public sealed class PlayerMovement :
     {
         _skillController =
             GetComponent<PlayerSkillController>();
+
+        if (!HasStateAuthority)
+            return;
+
+        MovementControlLockTimer =
+            TickTimer.None;
     }
 
-    PlayerTickStage IPlayerTickModule.Stage =>
+    public override PlayerTickStage Stage =>
         PlayerTickStage.Motion;
 
 
-    void IPlayerTickModule.Simulate(
+    public override void Simulate(
         in PlayerTick tick)
     {
         TickMotion(
@@ -280,10 +223,14 @@ public sealed class PlayerMovement :
         PlayerTickState state)
     {
         state.HasMovement = true;
+        state.IsGrounded = IsGrounded;
         state.FacingRight = FacingRight;
         state.IsWallSliding = IsWallSliding;
-        state.IsMovementControlLocked = IsControlLocked;
+        state.IsMovementControlLocked =
+            IsMovementControlLocked;
         state.MovementVelocity = Velocity;
+        state.JumpSequence = JumpSequence;
+        state.LastJumpType = LastJumpType;
     }
 
 
@@ -293,13 +240,29 @@ public sealed class PlayerMovement :
     {
         bool resolved = false;
 
-        if (commands.TryConsumeKnockback(
-                out Vector2 velocity,
+        if (commands.TryConsumeMovementControlLock(
                 out float controlLockDuration))
         {
-            ApplyKnockback(
-                velocity,
+            LockMovementControl(
                 controlLockDuration);
+
+            resolved = true;
+        }
+
+        if (commands.TryConsumeSetMovementVelocity(
+                out Vector2 movementVelocity))
+        {
+            SetVelocity(
+                movementVelocity);
+
+            resolved = true;
+        }
+
+        if (commands.TryConsumeKnockback(
+                out Vector2 velocity))
+        {
+            ApplyKnockback(
+                velocity);
 
             resolved = true;
         }
@@ -317,29 +280,14 @@ public sealed class PlayerMovement :
     }
 
 
-    public override void FixedUpdateNetwork()
-    {
-        if (IsTickControlled)
-            return;
-
-        TickMotion();
-    }
-
-
-    internal void TickMotion()
-    {
-        TickMotion(
-            _healthState != null &&
-            _healthState.IsAlive,
-            _combatState != null &&
-            _combatState.IsMovementLocked);
-    }
-
-
     private void TickMotion(
         bool isAlive,
         bool isCombatMovementLocked)
     {
+        /*Debug.Log("[Movement] isAlive: " + isAlive + "" +
+            " isCombatMovementLocked: " + isCombatMovementLocked);*/
+       
+
         UpdateGrounded();
         UpdateWallState();
 
@@ -356,6 +304,9 @@ public sealed class PlayerMovement :
 
         if (!isAlive)
         {
+            MovementControlLockTimer =
+                TickTimer.None;
+
             PreviousButtons =
                 input.Buttons;
 
@@ -369,7 +320,7 @@ public sealed class PlayerMovement :
         // Control Lock
         // ==========================================
 
-        if (IsControlLocked)
+        if (IsMovementControlLocked)
         {
             PreviousButtons =
                 input.Buttons;
@@ -719,6 +670,9 @@ public sealed class PlayerMovement :
                 TickTimer.CreateFromSeconds(
                     Runner,
                     wallJumpReadyDelay);
+
+            if (RemainingAirJumps <= maxAirJumps)
+                RemainingAirJumps = maxAirJumps;
         }
 
         if (!wallSliding)
@@ -752,8 +706,9 @@ public sealed class PlayerMovement :
         Vector2 velocity =
             rb.linearVelocity;
 
+        // 이거 Max일수도
         velocity.y =
-            Mathf.Max(
+            Mathf.Min(
                 velocity.y,
                 -wallSlideSpeed);
 
@@ -915,7 +870,7 @@ public sealed class PlayerMovement :
     // External Movement Commands
     // =========================================================
 
-    public void SetVelocity(
+    private void SetVelocity(
         Vector2 velocity)
     {
         rb.linearVelocity =
@@ -923,36 +878,37 @@ public sealed class PlayerMovement :
     }
 
 
-    public void LockControl(
+    private void LockMovementControl(
         float duration)
     {
-        ControlLockTimer =
-            duration > 0f
-                ? TickTimer.CreateFromSeconds(
+        if (duration <= 0f)
+            return;
+
+        float remaining =
+            MovementControlLockTimer
+                .RemainingTime(Runner) ??
+            0f;
+
+        if (duration > remaining)
+        {
+            MovementControlLockTimer =
+                TickTimer.CreateFromSeconds(
                     Runner,
-                    duration)
-                : TickTimer.None;
+                    duration);
+        }
 
         ClearControlDrivenStates();
     }
 
 
-    public void ApplyKnockback(
-        Vector2 velocity,
-        float controlLockDuration)
+    private void ApplyKnockback(
+        Vector2 velocity)
     {
         if (!HasStateAuthority)
             return;
 
         rb.linearVelocity =
             velocity;
-
-        KnockbackControlTimer =
-            controlLockDuration > 0f
-                ? TickTimer.CreateFromSeconds(
-                    Runner,
-                    controlLockDuration)
-                : TickTimer.None;
 
         ClearControlDrivenStates();
     }
@@ -989,10 +945,7 @@ public sealed class PlayerMovement :
         WallJumpReadyTimer =
             TickTimer.None;
 
-        KnockbackControlTimer =
-            TickTimer.None;
-
-        ControlLockTimer =
+        MovementControlLockTimer =
             TickTimer.None;
 
         WasWallSliding =

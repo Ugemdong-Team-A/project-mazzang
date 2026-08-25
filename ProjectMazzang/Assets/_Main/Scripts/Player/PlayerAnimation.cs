@@ -1,127 +1,92 @@
-using Fusion;
 using UnityEngine;
 
 public sealed class PlayerAnimation :
-    PlayerModule
+    PlayerTickModule
 {
     [SerializeField]
     private Animator animator;
 
-
-    private IPlayerMovementState
-        _movementState;
-
-    private IPlayerCombatState
-        _combatState;
-
-    private IPlayerHealthState
-        _healthState;
-
-    private IPlayerSkillAnimationState
-        _skillAnimationState;
-
-
     private byte _lastJumpSequence;
+
+    private bool _jumpPresentationInitialized;
 
     private byte _lastAttackSequence;
 
+    private bool _attackPresentationInitialized;
+
     private byte _lastDeathSequence;
+
+    private bool _deathPresentationInitialized;
 
     private byte _lastSkillAnimationSequence;
 
+    private bool _skillPresentationInitialized;
 
-    // =========================================================
-    // Context
-    // =========================================================
+    public override PlayerTickStage Stage => PlayerTickStage.Finalize;
 
-    protected override void OnContextReady()
-    {
-        _movementState =
-            Context.Get<
-                IPlayerMovementState>();
-
-        _combatState =
-            Context.Get<
-                IPlayerCombatState>();
-
-        _healthState =
-            Context.Get<
-                IPlayerHealthState>();
-
-        _skillAnimationState =
-            Context.Get<
-                IPlayerSkillAnimationState>();
-    }
-
-
-    // =========================================================
-    // Fusion
-    // =========================================================
 
     public override void Spawned()
     {
-        if (_movementState == null ||
-            _combatState == null ||
-            _healthState == null)
-        {
-            return;
-        }
-
-        _lastJumpSequence =
-            _movementState.JumpSequence;
-
-        _lastAttackSequence =
-            _combatState.AttackSequence;
-
-        _lastDeathSequence =
-            _healthState.DeathSequence;
-
-        if (_skillAnimationState != null)
-        {
-            _lastSkillAnimationSequence =
-                _skillAnimationState.SkillAnimationSequence;
-        }
+        _jumpPresentationInitialized = false;
+        _attackPresentationInitialized = false;
+        _deathPresentationInitialized = false;
+        _skillPresentationInitialized = false;
     }
 
 
-    public override void Render()
+    public override void Present(in PlayerTickState tickState)
     {
-        if (_movementState == null ||
-            _combatState == null ||
-            _healthState == null)
+        if (tickState.HasMovement)
         {
-            return;
-        }
+            Vector2 velocity =
+                tickState.MovementVelocity;
 
-        Vector2 velocity =
-            _movementState.Velocity;
+            animator.SetFloat(
+                "Speed",
+                Mathf.Abs(
+                    velocity.x));
 
-        animator.SetFloat(
-            "Speed",
-            Mathf.Abs(
-                velocity.x));
+            animator.SetFloat(
+                "VerticalSpeed",
+                velocity.y);
 
-        animator.SetFloat(
-            "VerticalSpeed",
-            velocity.y);
-
-        animator.SetBool(
-            "Grounded",
-            _movementState.IsGrounded);
-
-        if (animator.GetBool(
-                "WallSliding") !=
-            _movementState.IsWallSliding)
-        {
             animator.SetBool(
-                "WallSliding",
-                _movementState.IsWallSliding);
+                "Grounded",
+                tickState.IsGrounded);
+
+            if (animator.GetBool(
+                    "WallSliding") !=
+                tickState.IsWallSliding)
+            {
+                animator.SetBool(
+                    "WallSliding",
+                    tickState.IsWallSliding);
+            }
+
+            HandleJumpAnimation(
+                tickState.JumpSequence,
+                tickState.LastJumpType);
         }
 
-        HandleJumpAnimation();
-        HandleAttackAnimation();
-        HandleSkillAnimation();
-        HandleDeathAnimation();
+        if (tickState.HasCombat)
+        {
+            HandleAttackAnimation(
+                tickState.AttackSequence,
+                tickState.AttackId);
+        }
+
+        if (tickState.HasSkill)
+        {
+            HandleSkillAnimation(
+                tickState.SkillAnimationSequence,
+                tickState.SkillAnimationId);
+        }
+
+        if (tickState.HasHealth)
+        {
+            HandleDeathAnimation(
+                tickState.DeathSequence);
+        }
     }
 
 
@@ -129,80 +94,104 @@ public sealed class PlayerAnimation :
     // Animation Events
     // =========================================================
 
-    private void HandleJumpAnimation()
+    private void HandleJumpAnimation(byte jumpSequence, JumpType jumpType)
     {
-        if (_lastJumpSequence ==
-            _movementState.JumpSequence)
+        if (!HasSequenceChanged(
+                ref _lastJumpSequence,
+                ref _jumpPresentationInitialized,
+                jumpSequence))
         {
             return;
         }
 
-        _lastJumpSequence =
-            _movementState.JumpSequence;
-
         animator.SetInteger(
-            "JumpType",
-            (int)_movementState
-                .LastJumpType);
+            "JumpType", (int)jumpType);
 
         animator.SetTrigger(
             "Jump");
     }
 
 
-    private void HandleAttackAnimation()
+    private void HandleAttackAnimation(
+        byte attackSequence,
+        byte attackId)
     {
-        if (_lastAttackSequence ==
-            _combatState.AttackSequence)
+        if (!HasSequenceChanged(
+                ref _lastAttackSequence,
+                ref _attackPresentationInitialized,
+                attackSequence))
         {
             return;
         }
 
-        _lastAttackSequence =
-            _combatState.AttackSequence;
-
         animator.SetInteger(
             "AttackId",
-            _combatState.CurrentAttackId);
+            attackId);
 
         animator.SetTrigger(
             "Attack");
     }
 
 
-    private void HandleSkillAnimation()
+    private void HandleSkillAnimation(
+        byte skillAnimationSequence,
+        PlayerSkillAnimationId skillAnimationId)
     {
-        if (_skillAnimationState == null ||
-            _lastSkillAnimationSequence ==
-            _skillAnimationState.SkillAnimationSequence)
+        if (!HasSequenceChanged(
+                ref _lastSkillAnimationSequence,
+                ref _skillPresentationInitialized,
+                skillAnimationSequence))
         {
             return;
         }
 
-        _lastSkillAnimationSequence =
-            _skillAnimationState.SkillAnimationSequence;
-
         animator.SetInteger(
             "SkillId",
-            (int)_skillAnimationState.LastSkillAnimation);
+            (int)skillAnimationId);
 
         animator.SetTrigger(
             "Skill");
     }
 
 
-    private void HandleDeathAnimation()
+    private void HandleDeathAnimation(byte deathSequence)
     {
-        if (_lastDeathSequence ==
-            _healthState.DeathSequence)
+        if (!HasSequenceChanged(
+                ref _lastDeathSequence,
+                ref _deathPresentationInitialized,
+                deathSequence))
         {
             return;
         }
 
-        _lastDeathSequence =
-            _healthState.DeathSequence;
-
         animator.SetTrigger(
             "Death");
+    }
+
+
+    private static bool HasSequenceChanged(
+        ref byte previousSequence,
+        ref bool initialized,
+        byte currentSequence)
+    {
+        if (!initialized)
+        {
+            initialized = true;
+            previousSequence = currentSequence;
+
+            return false;
+        }
+
+        if (previousSequence == currentSequence)
+            return false;
+
+        previousSequence = currentSequence;
+
+        return true;
+    }
+
+    public override void Simulate(in PlayerTick tick)
+    {
+        
     }
 }

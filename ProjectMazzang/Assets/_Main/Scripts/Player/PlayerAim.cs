@@ -3,10 +3,7 @@ using UnityEngine;
 
 [DefaultExecutionOrder(-90)]
 public sealed class PlayerAim :
-    PlayerModule,
-    IPlayerAimState,
-    IPlayerAimControl,
-    IPlayerTickModule,
+    PlayerTickModule,
     IPlayerTickCommandSink,
     IPlayerTickStateSource
 {
@@ -54,18 +51,10 @@ public sealed class PlayerAim :
     [Min(0f)]
     [SerializeField]
     private float bodyAimPresentationSharpness = 24f;
-
+    
     private float _presentedBodyAimAngle;
     private bool _hasPresentedBodyAimAngle;
     private bool _presentedFacingRight;
-
-
-    private IPlayerMovementState
-        _movementState;
-
-    private IPlayerFacingControl
-        _facingControl;
-
 
     // =========================================================
     // Network State
@@ -140,55 +129,18 @@ public sealed class PlayerAim :
             PlayerAimRigMode.Procedural;
 
 
-    private bool FacingRight =>
-        _movementState == null ||
-        _movementState.FacingRight;
-
-
-    // =========================================================
-    // Context
-    // =========================================================
-
-    protected override void RegisterContextUnits()
-    {
-        Context.Register<
-            IPlayerAimState>(
-            this);
-
-        Context.Register<
-            IPlayerAimControl>(
-            this);
-    }
-
-
-    protected override void OnContextReady()
-    {
-        _movementState =
-            Context.Get<
-                IPlayerMovementState>();
-
-        _facingControl =
-            Context.Get<
-                IPlayerFacingControl>();
-    }
-
-
     // =========================================================
     // Fusion
     // =========================================================
 
-    PlayerTickStage IPlayerTickModule.Stage =>
+    public override PlayerTickStage Stage =>
         PlayerTickStage.Aim;
 
 
-    void IPlayerTickModule.Simulate(
+    public override void Simulate(
         in PlayerTick tick)
     {
-        TickAim(
-            !tick.State.HasMovement ||
-            tick.State.FacingRight,
-            tick.State.HasMovement &&
-            tick.State.IsWallSliding);
+        TickAim(tick);
     }
 
 
@@ -224,6 +176,7 @@ public sealed class PlayerAim :
         else
         {
             ApplyOverride(
+                commands,
                 in aimOverride,
                 sourceAimDirection,
                 !state.HasMovement ||
@@ -236,33 +189,20 @@ public sealed class PlayerAim :
     }
 
 
-    public override void FixedUpdateNetwork()
-    {
-        if (IsTickControlled)
-            return;
-
-        TickAim();
-    }
-
-
-    internal void TickAim()
-    {
-        TickAim(
-            FacingRight,
-            _movementState != null &&
-            _movementState.IsWallSliding);
-    }
-
-
     private void TickAim(
-        bool facingRight,
-        bool isWallSliding)
+        PlayerTick tick)
     {
         if (!GetInput(
                 out PlayerInputData input))
         {
             return;
         }
+
+        bool facingRight = !tick.State.HasMovement ||
+            tick.State.FacingRight;
+        bool isWallSliding =
+            tick.State.HasMovement &&
+            tick.State.IsWallSliding;
 
         Vector2 inputAimDirection =
             ResolveDirectionTo(
@@ -273,28 +213,31 @@ public sealed class PlayerAim :
             inputAimDirection);
 
         UpdateFacing(
+            tick.Commands,
             isWallSliding,
             facingRight);
 
-        UpdateBodyAim();
+        UpdateBodyAim(facingRight);
     }
 
 
-    public override void Render()
+    public override void Present(in PlayerTickState tickState)
     {
-        UpdateBodyAimPresentation();
-        UpdateRigPresentation();
+        bool facingRight = tickState.FacingRight;
+
+        UpdateBodyAimPresentation(facingRight);
+        UpdateRigPresentation(facingRight);
     }
 
 
-    private void UpdateBodyAimPresentation()
+    private void UpdateBodyAimPresentation(bool facingRight)
     {
         if (!_hasPresentedBodyAimAngle ||
-            _presentedFacingRight != FacingRight)
+            _presentedFacingRight != facingRight)
         {
             _presentedBodyAimAngle = BodyAimAngle;
             _hasPresentedBodyAimAngle = true;
-            _presentedFacingRight = FacingRight;
+            _presentedFacingRight = facingRight;
             return;
         }
 
@@ -314,20 +257,9 @@ public sealed class PlayerAim :
     // Aim Override
     // =========================================================
 
-    public void ApplyOverride(
-        in PlayerAimOverride aimOverride,
-        Vector2 sourceAimDirection)
-    {
-        ApplyOverride(
-            in aimOverride,
-            sourceAimDirection,
-            FacingRight,
-            _movementState != null &&
-            _movementState.IsWallSliding);
-    }
-
 
     private void ApplyOverride(
+        PlayerTickCommands tickCommands,
         in PlayerAimOverride aimOverride,
         Vector2 sourceAimDirection,
         bool facingRight,
@@ -335,7 +267,7 @@ public sealed class PlayerAim :
     {
         Vector2 sourceDirection =
             ResolveSourceDirection(
-                sourceAimDirection);
+                sourceAimDirection, facingRight);
 
         // 방향을 고정하기 전에
         // 해당 공격 방향에 맞게 Facing을 한 번 확정한다.
@@ -344,6 +276,7 @@ public sealed class PlayerAim :
         {
             LockedFacingRight =
                 TryUpdateFacingFromDirection(
+                    tickCommands,
                     sourceDirection,
                     isWallSliding,
                     facingRight);
@@ -415,14 +348,6 @@ public sealed class PlayerAim :
     /// AimOrigin에서 월드 타겟까지의 정확한 조준 방향을 계산합니다.
     /// Input은 월드 좌표만 제공하고, 조준 기준점의 의미는 PlayerAim이 소유합니다.
     /// </summary>
-    public Vector2 ResolveDirectionTo(
-        Vector2 worldTargetPosition)
-    {
-        return ResolveDirectionTo(
-            worldTargetPosition,
-            FacingRight);
-    }
-
 
     private Vector2 ResolveDirectionTo(
         Vector2 worldTargetPosition,
@@ -507,15 +432,6 @@ public sealed class PlayerAim :
     }
 
 
-    private Vector2 ResolveSourceDirection(
-        Vector2 sourceDirection)
-    {
-        return ResolveSourceDirection(
-            sourceDirection,
-            FacingRight);
-    }
-
-
     private static Vector2 NormalizeDirection(
         Vector2 direction)
     {
@@ -534,15 +450,10 @@ public sealed class PlayerAim :
     // =========================================================
 
     private void UpdateFacing(
+        PlayerTickCommands commands,
         bool isWallSliding,
         bool facingRight)
-    {
-        if (TickCommands == null &&
-            _facingControl == null)
-        {
-            return;
-        }
-
+    {        
         if (isWallSliding)
             return;
 
@@ -550,40 +461,26 @@ public sealed class PlayerAim :
             PlayerAimFacingMode.Locked)
         {
             RequestFacing(
+                commands,
                 LockedFacingRight);
 
             return;
         }
 
         TryUpdateFacingFromDirection(
+            commands,
             AimDirection,
             isWallSliding,
             facingRight);
     }
 
 
-    private void TryUpdateFacingFromDirection(
-        Vector2 direction)
-    {
-        TryUpdateFacingFromDirection(
-            direction,
-            _movementState != null &&
-            _movementState.IsWallSliding,
-            FacingRight);
-    }
-
-
     private bool TryUpdateFacingFromDirection(
+        PlayerTickCommands tickCommands,
         Vector2 direction,
         bool isWallSliding,
         bool facingRight)
     {
-        if (TickCommands == null &&
-            _facingControl == null)
-        {
-            return facingRight;
-        }
-
         if (isWallSliding)
             return facingRight;
 
@@ -613,6 +510,7 @@ public sealed class PlayerAim :
             !facingRight;
 
         RequestFacing(
+            tickCommands,
             nextFacingRight);
 
         return nextFacingRight;
@@ -620,19 +518,16 @@ public sealed class PlayerAim :
 
 
     private void RequestFacing(
+        PlayerTickCommands tickCommands,
         bool facingRight)
     {
-        if (TickCommands != null)
+        if (tickCommands != null)
         {
-            TickCommands.RequestFacing(
+            tickCommands.RequestFacing(
                 facingRight);
 
             return;
         }
-
-        _facingControl?
-            .SetFacing(
-                facingRight);
     }
 
 
@@ -640,7 +535,7 @@ public sealed class PlayerAim :
     // Body Aim
     // =========================================================
 
-    private void UpdateBodyAim()
+    private void UpdateBodyAim(bool facingRight)
     {
         if (AimDirection.sqrMagnitude <=
             0.0001f)
@@ -650,7 +545,7 @@ public sealed class PlayerAim :
 
         float targetAngle =
             CalculateLocalAimAngle(
-                AimDirection);
+                AimDirection, facingRight);
 
         targetAngle =
             Mathf.Clamp(
@@ -668,10 +563,10 @@ public sealed class PlayerAim :
 
 
     private float CalculateLocalAimAngle(
-        Vector2 worldDirection)
+        Vector2 worldDirection, bool facingFight)
     {
         Vector2 localDirection =
-            FacingRight
+            facingFight
                 ? worldDirection
                 : new Vector2(
                     -worldDirection.x,
@@ -686,7 +581,7 @@ public sealed class PlayerAim :
 
 
     private Vector2 GetWorldBodyDirection(
-        float localAngle)
+        float localAngle, bool facingRight)
     {
         float radians =
             localAngle *
@@ -697,7 +592,7 @@ public sealed class PlayerAim :
                 Mathf.Cos(radians),
                 Mathf.Sin(radians));
 
-        if (!FacingRight)
+        if (!facingRight)
         {
             direction.x *=
                 -1f;
@@ -764,7 +659,7 @@ public sealed class PlayerAim :
     // Rig
     // =========================================================
 
-    private void UpdateRigPresentation()
+    private void UpdateRigPresentation(bool facingRight)
     {
         bool useProceduralRig =
             RigMode ==
@@ -788,7 +683,7 @@ public sealed class PlayerAim :
             return;
         }
 
-        ApplyCcdTarget();
+        ApplyCcdTarget(facingRight);
 
         if (upperBodyAimRig != null &&
             !upperBodyAimRig.enabled)
@@ -799,16 +694,16 @@ public sealed class PlayerAim :
     }
 
 
-    private void ApplyCcdTarget()
+    private void ApplyCcdTarget(bool facingRight)
     {
         Vector2 bodyDirection =
             GetWorldBodyDirection(
                 _hasPresentedBodyAimAngle
                     ? _presentedBodyAimAngle
-                    : BodyAimAngle);
+                    : BodyAimAngle, facingRight);
 
         float signedRigOffset =
-            FacingRight
+            facingRight
                 ? rigAngleOffset
                 : -rigAngleOffset;
 

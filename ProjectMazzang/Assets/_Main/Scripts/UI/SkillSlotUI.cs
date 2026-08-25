@@ -60,6 +60,49 @@ public sealed class SkillSlotUI :
     private TMP_Text rechargeText;
 
 
+    [Header("Meter")]
+    [SerializeField]
+    private GameObject meterRoot;
+
+    [SerializeField]
+    private Image meterFill;
+
+    [SerializeField]
+    private Image meterOverlay;
+
+    [SerializeField]
+    private Image meterAccent;
+
+    [SerializeField]
+    private TMP_Text meterText;
+
+    [SerializeField]
+    private Color meterChargingColor =
+        new(
+            0.76f,
+            0.54f,
+            0.22f,
+            1f);
+
+    [SerializeField]
+    private Color meterReadyColor =
+        new(
+            1f,
+            0.88f,
+            0.54f,
+            1f);
+
+    [Min(0.01f)]
+    [SerializeField]
+    private float meterTickDuration =
+        0.16f;
+
+    [Range(0f, 0.3f)]
+    [SerializeField]
+    private float meterTickScale =
+        0.08f;
+
+
     [Header("Duration")]
     [SerializeField]
     private GameObject durationRoot;
@@ -84,7 +127,20 @@ public sealed class SkillSlotUI :
 
     private SkillData _skillData;
 
+    private IChargeSkill _chargeSkill;
+
+    private IMeterSkill _meterSkill;
+
+    private IDurationSkill _durationSkill;
+
     private int _builtMaxCharges;
+
+    private int _meterPercentage =
+        -1;
+
+    private float _meterFeedbackRemaining;
+
+    private bool _meterWasReady;
 
 
     // =========================================================
@@ -103,6 +159,7 @@ public sealed class SkillSlotUI :
 
         RefreshCooldown();
         RefreshCharge();
+        RefreshMeter();
         RefreshDuration();
     }
 
@@ -147,6 +204,17 @@ public sealed class SkillSlotUI :
         _skillData =
             null;
 
+        _chargeSkill =
+            null;
+
+        _meterSkill =
+            null;
+
+        _durationSkill =
+            null;
+
+        ResetMeterFeedback();
+
         _builtMaxCharges =
             0;
 
@@ -162,6 +230,10 @@ public sealed class SkillSlotUI :
 
         SetActive(
             chargeRoot,
+            false);
+
+        SetActive(
+            meterRoot,
             false);
 
         SetActive(
@@ -200,6 +272,17 @@ public sealed class SkillSlotUI :
             _controller.GetSkillData(
                 _slot);
 
+        _chargeSkill =
+            _skill as IChargeSkill;
+
+        _meterSkill =
+            _skill as IMeterSkill;
+
+        _durationSkill =
+            _skill as IDurationSkill;
+
+        ResetMeterFeedback();
+
 
         bool hasSkill =
             _skill != null &&
@@ -227,6 +310,10 @@ public sealed class SkillSlotUI :
 
             SetActive(
                 chargeRoot,
+                false);
+
+            SetActive(
+                meterRoot,
                 false);
 
             SetActive(
@@ -311,8 +398,7 @@ public sealed class SkillSlotUI :
 
     private void RefreshChargeLayout()
     {
-        if (_skill is not
-            IChargeSkill)
+        if (_chargeSkill == null)
         {
             _builtMaxCharges =
                 0;
@@ -355,8 +441,7 @@ public sealed class SkillSlotUI :
 
     private void RefreshCharge()
     {
-        if (_skill is not
-            IChargeSkill)
+        if (_chargeSkill == null)
         {
             SetActive(
                 chargeRoot,
@@ -512,13 +597,234 @@ public sealed class SkillSlotUI :
 
 
     // =========================================================
+    // Meter
+    // =========================================================
+
+    private void RefreshMeter()
+    {
+        if (_meterSkill == null ||
+            _controller.GetUsePhase(
+                _slot) !=
+            SkillUsePhase.None)
+        {
+            SetActive(
+                meterRoot,
+                false);
+
+            ResetMeterFeedback();
+
+            return;
+        }
+
+
+        float maximum =
+            _controller.GetMaxMeter(
+                _slot);
+
+        bool active =
+            maximum > 0f;
+
+        SetActive(
+            meterRoot,
+            active);
+
+        if (!active)
+        {
+            ResetMeterFeedback();
+
+            return;
+        }
+
+
+        float current =
+            _controller.GetCurrentMeter(
+                _slot);
+
+        float normalized =
+            _controller.GetMeterNormalized(
+                _slot);
+
+        if (meterFill != null)
+        {
+            meterFill.fillAmount =
+                normalized;
+
+            SetHorizontalProgress(
+                meterFill,
+                normalized);
+        }
+
+        if (meterOverlay != null)
+        {
+            SetVerticalProgress(
+                meterOverlay,
+                normalized);
+        }
+
+
+        float cost =
+            Mathf.Max(
+                0f,
+                _meterSkill.MeterCost);
+
+        bool ready =
+            current >= cost;
+
+        int percentage =
+            Mathf.FloorToInt(
+                normalized * 100f);
+
+        RefreshMeterFeedback(
+            percentage,
+            ready);
+
+
+        if (meterText == null)
+            return;
+
+        meterText.text =
+            ready
+                ? "READY"
+                : $"{percentage}%";
+    }
+
+
+    private void RefreshMeterFeedback(
+        int percentage,
+        bool ready)
+    {
+        bool increased =
+            _meterPercentage >= 0 &&
+            percentage > _meterPercentage;
+
+        bool becameReady =
+            _meterPercentage >= 0 &&
+            !_meterWasReady &&
+            ready;
+
+        if (increased)
+        {
+            _meterFeedbackRemaining =
+                meterTickDuration *
+                (becameReady
+                    ? 1.75f
+                    : 1f);
+        }
+
+        _meterPercentage =
+            percentage;
+
+        _meterWasReady =
+            ready;
+
+
+        float duration =
+            meterTickDuration *
+            (ready
+                ? 1.75f
+                : 1f);
+
+        float feedback =
+            duration > 0f
+                ? Mathf.Clamp01(
+                    _meterFeedbackRemaining /
+                    duration)
+                : 0f;
+
+        _meterFeedbackRemaining =
+            Mathf.Max(
+                0f,
+                _meterFeedbackRemaining -
+                Time.unscaledDeltaTime);
+
+        float punch =
+            feedback * feedback;
+
+        Color baseColor =
+            ready
+                ? meterReadyColor
+                : meterChargingColor;
+
+        Color feedbackColor =
+            Color.Lerp(
+                baseColor,
+                Color.white,
+                punch * 0.55f);
+
+        if (meterFill != null)
+        {
+            meterFill.color =
+                feedbackColor;
+        }
+
+        if (meterAccent != null)
+        {
+            meterAccent.color =
+                feedbackColor;
+
+            meterAccent.rectTransform.localScale =
+                Vector3.one *
+                (1f + punch * meterTickScale * 1.5f);
+        }
+
+        if (meterOverlay != null)
+        {
+            Color overlayColor =
+                baseColor;
+
+            overlayColor.a =
+                ready
+                    ? 0.09f
+                    : 0.045f;
+
+            meterOverlay.color =
+                overlayColor;
+        }
+
+        if (meterText != null)
+        {
+            meterText.color =
+                feedbackColor;
+
+            meterText.rectTransform.localScale =
+                Vector3.one *
+                (1f + punch * meterTickScale);
+        }
+    }
+
+
+    private void ResetMeterFeedback()
+    {
+        _meterPercentage =
+            -1;
+
+        _meterFeedbackRemaining =
+            0f;
+
+        _meterWasReady =
+            false;
+
+        if (meterAccent != null)
+        {
+            meterAccent.rectTransform.localScale =
+                Vector3.one;
+        }
+
+        if (meterText != null)
+        {
+            meterText.rectTransform.localScale =
+                Vector3.one;
+        }
+    }
+
+
+    // =========================================================
     // Duration
     // =========================================================
 
     private void RefreshDuration()
     {
-        if (_skill is not
-                IDurationSkill durationSkill ||
+        if (_durationSkill == null ||
             _controller.GetUsePhase(
                 _slot) !=
             SkillUsePhase.Active)
@@ -532,7 +838,7 @@ public sealed class SkillSlotUI :
 
 
         float duration =
-            durationSkill.Duration;
+            _durationSkill.Duration;
 
         float remaining =
             _controller.GetPhaseRemaining(
