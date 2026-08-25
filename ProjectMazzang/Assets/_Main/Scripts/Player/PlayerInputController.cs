@@ -288,7 +288,6 @@ public sealed class PlayerInputController :
             input.Set(
                 new PlayerInputData());
 
-            Debug.Log(0);
             return;
         }
 
