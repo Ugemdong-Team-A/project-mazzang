@@ -4,11 +4,13 @@ using UnityEngine;
 public struct SkillSlotRuntimeState :
     INetworkStruct
 {
-    public byte Phase;
+    public SkillUsePhase Phase;
 
-    public byte SpentCharges;
+    public byte Charges;
 
-    public Vector2 Direction;
+    public Vector2 AimDirection;
+
+    public TickTimer CooldownTimer;
 
     public TickTimer PhaseTimer;
 
