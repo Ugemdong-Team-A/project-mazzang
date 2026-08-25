@@ -646,6 +646,8 @@ public sealed class SkillSlotUI :
 
         if (meterFill != null)
         {
+            meterFill.fillMethod = Image.FillMethod.Radial360;
+
             meterFill.fillAmount =
                 normalized;
 
