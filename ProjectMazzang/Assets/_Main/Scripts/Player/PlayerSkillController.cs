@@ -1,15 +1,16 @@
 using Fusion;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 /// <summary>
-/// ÇÃ·¹ÀÌ¾îÀÇ Skill Slot°ú Runtime SkillÀ» °ü¸®ÇÕ´Ï´Ù.
+/// í”Œë ˆì´ì–´ì˜ Skill Slotê³¼ Runtime Skillì„ ê´€ë¦¬í•©ë‹ˆë‹¤.
 ///
-/// ¸ğµç Active SkillÀÇ ±âº» Cooldown°ú,
-/// SkillÀÌ ±¸ÇöÇÑ °øÅë ÆĞÅÏ
-/// (Charge / Cast / Duration / Recovery)ÀÇ
-/// Network Runtime State¸¦ °ü¸®ÇÕ´Ï´Ù.
+/// ëª¨ë“  Active Skillì˜ ê¸°ë³¸ Cooldownê³¼,
+/// Skillì´ êµ¬í˜„í•œ ê³µí†µ íŒ¨í„´
+/// (Charge / Cast / Duration / Recovery)ì˜
+/// Network Runtime Stateë¥¼ ê´€ë¦¬í•©ë‹ˆë‹¤.
 ///
-/// ±¸Ã¼ ½ºÅ³ÀÇ ½ÇÁ¦ Çàµ¿Àº SkillÀÌ ´ã´çÇÕ´Ï´Ù.
+/// êµ¬ì²´ ìŠ¤í‚¬ì˜ ì‹¤ì œ í–‰ë™ì€ Skillì´ ë‹´ë‹¹í•©ë‹ˆë‹¤.
 /// </summary>
 [DefaultExecutionOrder(-80)]
 public sealed class PlayerSkillController :
@@ -18,16 +19,21 @@ public sealed class PlayerSkillController :
     IPlayerTickModule,
     IPlayerTickStateSource
 {
+    private const int SkillSlotCount = 2;
+
+
     [Header("Default Skills")]
+    [FormerlySerializedAs("skill1")]
     [SerializeField]
-    private SkillData skill1;
+    private SkillData mainSkill;
 
+    [FormerlySerializedAs("skill2")]
     [SerializeField]
-    private SkillData skill2;
+    private SkillData ultimateSkill;
 
 
-    private Skill _skill1;
-    private Skill _skill2;
+    private readonly Skill[] _skills =
+        new Skill[SkillSlotCount];
 
     private IPlayerHealthState
         _healthState;
@@ -150,10 +156,12 @@ public sealed class PlayerSkillController :
     // =========================================================
 
     public Skill Skill1 =>
-        _skill1;
+        GetSkill(
+            SkillSlot.Skill1);
 
     public Skill Skill2 =>
-        _skill2;
+        GetSkill(
+            SkillSlot.Skill2);
 
 
     // =========================================================
@@ -173,15 +181,17 @@ public sealed class PlayerSkillController :
             Context.Get<
                 IPlayerHealthState>();
 
-        _skill1 =
+        SetSkill(
+            SkillSlot.Skill1,
             CreateSkill(
-                skill1,
-                SkillSlot.Skill1);
+                mainSkill,
+                SkillSlot.Skill1));
 
-        _skill2 =
+        SetSkill(
+            SkillSlot.Skill2,
             CreateSkill(
-                skill2,
-                SkillSlot.Skill2);
+                ultimateSkill,
+                SkillSlot.Skill2));
     }
 
 
@@ -199,11 +209,11 @@ public sealed class PlayerSkillController :
 
         ResetSlotRuntime(
             SkillSlot.Skill1,
-            _skill1);
+            Skill1);
 
         ResetSlotRuntime(
             SkillSlot.Skill2,
-            _skill2);
+            Skill2);
     }
 
 
@@ -242,10 +252,10 @@ public sealed class PlayerSkillController :
         state.IsSkillActionLocked =
             IsActionLocked(
                 SkillSlot.Skill1,
-                _skill1) ||
+                Skill1) ||
             IsActionLocked(
                 SkillSlot.Skill2,
-                _skill2);
+                Skill2);
     }
 
 
@@ -260,8 +270,10 @@ public sealed class PlayerSkillController :
 
     public override void Render()
     {
-        _skill1?.Render();
-        _skill2?.Render();
+        foreach (Skill skill in _skills)
+        {
+            skill?.Render();
+        }
     }
 
 
@@ -291,23 +303,22 @@ public sealed class PlayerSkillController :
             return;
 
 
-        // °øÅë Runtime State¸¦ ¸ÕÀú °»½ÅÇÕ´Ï´Ù.
+        // ê³µí†µ Runtime Stateë¥¼ ë¨¼ì € ê°±ì‹ í•©ë‹ˆë‹¤.
         UpdateSlotRuntime(
             SkillSlot.Skill1,
-            _skill1);
+            Skill1);
 
         UpdateSlotRuntime(
             SkillSlot.Skill2,
-            _skill2);
+            Skill2);
 
 
-        // °»½ÅµÈ Phase¸¦ ±âÁØÀ¸·Î
-        // ½ÇÁ¦ Skill Çàµ¿À» ¼öÇàÇÕ´Ï´Ù.
-        _skill1?
-            .FixedUpdateNetwork();
-
-        _skill2?
-            .FixedUpdateNetwork();
+        // ê°±ì‹ ëœ Phaseë¥¼ ê¸°ì¤€ìœ¼ë¡œ
+        // ì‹¤ì œ Skill í–‰ë™ì„ ìˆ˜í–‰í•©ë‹ˆë‹¤.
+        foreach (Skill skill in _skills)
+        {
+            skill?.FixedUpdateNetwork();
+        }
 
 
         bool hasInput =
@@ -884,8 +895,8 @@ public sealed class PlayerSkillController :
 
 
     /// <summary>
-    /// SkillÀÌ Active »óÅÂ¸¦ Á¶±â¿¡ Á¾·áÇÒ ¶§ »ç¿ëÇÕ´Ï´Ù.
-    /// Ãæµ¹·Î Dash¸¦ ¸ØÃß´Â °æ¿ì µîÀÌ ÇØ´çµË´Ï´Ù.
+    /// Skillì´ Active ìƒíƒœë¥¼ ì¡°ê¸°ì— ì¢…ë£Œí•  ë•Œ ì‚¬ìš©í•©ë‹ˆë‹¤.
+    /// ì¶©ëŒë¡œ Dashë¥¼ ë©ˆì¶”ëŠ” ê²½ìš° ë“±ì´ í•´ë‹¹ë©ë‹ˆë‹¤.
     /// </summary>
     internal void EndActiveEarly(
         SkillSlot slot)
@@ -988,12 +999,12 @@ public sealed class PlayerSkillController :
 
         CombineActiveStatModifiers(
             SkillSlot.Skill1,
-            _skill1,
+            Skill1,
             ref result);
 
         CombineActiveStatModifiers(
             SkillSlot.Skill2,
-            _skill2,
+            Skill2,
             ref result);
 
         return result;
@@ -1040,17 +1051,13 @@ public sealed class PlayerSkillController :
     public Skill GetSkill(
         SkillSlot slot)
     {
-        return slot switch
-        {
-            SkillSlot.Skill1 =>
-                _skill1,
+        int index =
+            (int)slot;
 
-            SkillSlot.Skill2 =>
-                _skill2,
-
-            _ =>
-                null
-        };
+        return index >= 0 &&
+               index < _skills.Length
+            ? _skills[index]
+            : null;
     }
 
 
@@ -1229,8 +1236,8 @@ public sealed class PlayerSkillController :
         {
             Debug.LogError(
                 $"[{nameof(PlayerSkillController)}] " +
-                $"{data.name}ÀÌ Runtime SkillÀ» " +
-                "»ı¼ºÇÏÁö ¸øÇß½À´Ï´Ù.",
+                $"{data.name}ì´ Runtime Skillì„ " +
+                "ìƒì„±í•˜ì§€ ëª»í–ˆìŠµë‹ˆë‹¤.",
                 data);
 
             return null;
@@ -1250,18 +1257,17 @@ public sealed class PlayerSkillController :
         SkillSlot slot,
         Skill skill)
     {
-        switch (slot)
-        {
-            case SkillSlot.Skill1:
-                _skill1 =
-                    skill;
-                break;
+        int index =
+            (int)slot;
 
-            case SkillSlot.Skill2:
-                _skill2 =
-                    skill;
-                break;
+        if (index < 0 ||
+            index >= _skills.Length)
+        {
+            return;
         }
+
+        _skills[index] =
+            skill;
     }
 
 
@@ -1442,16 +1448,15 @@ public sealed class PlayerSkillController :
 
     private void DisposeSkills()
     {
-        _skill1?
-            .Dispose();
+        for (int i = 0;
+             i < _skills.Length;
+             i++)
+        {
+            _skills[i]?
+                .Dispose();
 
-        _skill2?
-            .Dispose();
-
-        _skill1 =
-            null;
-
-        _skill2 =
-            null;
+            _skills[i] =
+                null;
+        }
     }
 }
