@@ -212,11 +212,13 @@ public sealed class PlayerSkillController :
         // 공통 Runtime State를 먼저 갱신합니다.
         UpdateSlotRuntime(
             SkillSlot.Skill1,
-            Skill1);
+            Skill1,
+            isAlive);
 
         UpdateSlotRuntime(
             SkillSlot.Skill2,
-            Skill2);
+            Skill2,
+            isAlive);
 
 
         // 갱신된 Phase를 기준으로
@@ -343,6 +345,13 @@ public sealed class PlayerSkillController :
             return false;
         }
 
+        if (!HasRequiredMeter(
+                slot,
+                skill))
+        {
+            return false;
+        }
+
         if (!skill.CanUse(
                 in useContext))
         {
@@ -351,6 +360,10 @@ public sealed class PlayerSkillController :
 
 
         ConsumeCharge(
+            slot,
+            skill);
+
+        ConsumeMeter(
             slot,
             skill);
 
@@ -397,10 +410,16 @@ public sealed class PlayerSkillController :
 
     private void UpdateSlotRuntime(
         SkillSlot slot,
-        Skill skill)
+        Skill skill,
+        bool isAlive)
     {
         if (skill == null)
             return;
+
+        UpdateMeter(
+            slot,
+            skill,
+            isAlive);
 
         UpdateRecharge(
             slot,
@@ -639,6 +658,136 @@ public sealed class PlayerSkillController :
             1f -
             remaining /
             duration);
+    }
+
+
+    // =========================================================
+    // Meter
+    // =========================================================
+
+    private bool HasRequiredMeter(
+        SkillSlot slot,
+        Skill skill)
+    {
+        if (skill is not
+            IMeterSkill meterSkill)
+        {
+            return true;
+        }
+
+        float cost =
+            Mathf.Max(
+                0f,
+                meterSkill.MeterCost);
+
+        return GetCurrentMeter(
+                   slot) >=
+               cost;
+    }
+
+
+    private void ConsumeMeter(
+        SkillSlot slot,
+        Skill skill)
+    {
+        if (skill is not
+            IMeterSkill meterSkill)
+        {
+            return;
+        }
+
+        SetCurrentMeter(
+            slot,
+            GetCurrentMeter(slot) -
+            Mathf.Max(
+                0f,
+                meterSkill.MeterCost));
+    }
+
+
+    private void UpdateMeter(
+        SkillSlot slot,
+        Skill skill,
+        bool isAlive)
+    {
+        if (!isAlive ||
+            skill is not
+                IMeterSkill meterSkill)
+        {
+            return;
+        }
+
+        float gainPerSecond =
+            Mathf.Max(
+                0f,
+                meterSkill
+                    .PassiveGainPerSecond);
+
+        if (gainPerSecond <= 0f ||
+            GetCurrentMeter(slot) >=
+                GetMaxMeter(slot))
+        {
+            return;
+        }
+
+        SetCurrentMeter(
+            slot,
+            GetCurrentMeter(slot) +
+            gainPerSecond *
+            Runner.DeltaTime);
+    }
+
+
+    public float GetCurrentMeter(
+        SkillSlot slot)
+    {
+        return GetSlotState(
+                slot)
+            .Meter;
+    }
+
+
+    public float GetMaxMeter(
+        SkillSlot slot)
+    {
+        return GetSkill(slot) is
+            IMeterSkill meterSkill
+                ? Mathf.Max(
+                    0f,
+                    meterSkill.MaxMeter)
+                : 0f;
+    }
+
+
+    public float GetMeterNormalized(
+        SkillSlot slot)
+    {
+        float maximum =
+            GetMaxMeter(
+                slot);
+
+        return maximum > 0f
+            ? Mathf.Clamp01(
+                GetCurrentMeter(slot) /
+                maximum)
+            : 0f;
+    }
+
+
+    public void GrantMeter(
+        SkillSlot slot,
+        float amount)
+    {
+        if (!HasStateAuthority ||
+            amount <= 0f)
+        {
+            return;
+        }
+
+        SetCurrentMeter(
+            slot,
+            GetCurrentMeter(slot) +
+            amount);
     }
 
 
@@ -1109,6 +1258,8 @@ public sealed class PlayerSkillController :
                     SkillUsePhase.None,
                 Charges =
                     (byte)charges,
+                Meter =
+                    0f,
                 AimDirection =
                     Vector2.zero,
                 CooldownTimer =
@@ -1275,6 +1426,26 @@ public sealed class PlayerSkillController :
 
         state.Charges =
             value;
+
+        SetSlotState(
+            slot,
+            state);
+    }
+
+
+    private void SetCurrentMeter(
+        SkillSlot slot,
+        float meter)
+    {
+        SkillSlotRuntimeState state =
+            GetSlotState(
+                slot);
+
+        state.Meter =
+            Mathf.Clamp(
+                meter,
+                0f,
+                GetMaxMeter(slot));
 
         SetSlotState(
             slot,

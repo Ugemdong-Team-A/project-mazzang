@@ -8,6 +8,8 @@ public struct SkillSlotRuntimeState :
 
     public byte Charges;
 
+    public float Meter;
+
     public Vector2 AimDirection;
 
     public TickTimer CooldownTimer;

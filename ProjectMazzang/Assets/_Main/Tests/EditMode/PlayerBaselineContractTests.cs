@@ -729,6 +729,41 @@ namespace ProjectMazzang.Tests
 
 
         [Test]
+        public void MeterSkill_KeepsGenericRuntimeContract()
+        {
+            Type meterSkillType =
+                GetRuntimeType(
+                    "IMeterSkill");
+
+            foreach (string propertyName in
+                     new[]
+                     {
+                         "MaxMeter",
+                         "MeterCost",
+                         "PassiveGainPerSecond",
+                         "DamageGainPerDamage"
+                     })
+            {
+                AssertPropertyType(
+                    meterSkillType,
+                    propertyName,
+                    typeof(float));
+            }
+
+            FieldInfo meterField =
+                GetRuntimeType(
+                        "SkillSlotRuntimeState")
+                    .GetField(
+                        "Meter");
+
+            Assert.That(
+                meterField?.FieldType,
+                Is.EqualTo(
+                    typeof(float)));
+        }
+
+
+        [Test]
         public void DamageInfo_KeepsKnockbackControlLockValue()
         {
             Type damageInfoType =
