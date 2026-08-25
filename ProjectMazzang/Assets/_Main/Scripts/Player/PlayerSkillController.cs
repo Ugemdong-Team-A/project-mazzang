@@ -16,7 +16,8 @@ using UnityEngine.Serialization;
 public sealed class PlayerSkillController :
     PlayerTickModule,
     IPlayerTickStateSource,
-    IPlayerTickCommandSink
+    IPlayerTickCommandSink,
+    IDamageDealtReceiver
 {
     private const int SkillSlotCount = 2;
 
@@ -105,6 +106,16 @@ public sealed class PlayerSkillController :
 
     public override void Spawned()
     {
+        // 런타임 Skill은 예측과 표현을 위해 모든 peer가 생성합니다.
+        // Networked 슬롯 초기화는 Equip 내부에서 State Authority만 수행합니다.
+        Equip(
+            SkillSlot.Skill1,
+            mainSkill);
+
+        Equip(
+            SkillSlot.Skill2,
+            ultimateSkill);
+
         if (!HasStateAuthority)
             return;
 
@@ -113,22 +124,6 @@ public sealed class PlayerSkillController :
 
         SkillControlLockTimer =
             TickTimer.None;
-
-        ResetSlotRuntime(
-            SkillSlot.Skill1,
-            Skill1);
-
-        ResetSlotRuntime(
-            SkillSlot.Skill2,
-            Skill2);
-
-        Equip(
-            SkillSlot.Skill1,
-            mainSkill);
-
-        Equip(
-            SkillSlot.Skill2,
-            ultimateSkill);
     }
 
 
@@ -788,6 +783,39 @@ public sealed class PlayerSkillController :
             slot,
             GetCurrentMeter(slot) +
             amount);
+    }
+
+
+    void IDamageDealtReceiver.ReceiveDamageDealt(
+        int appliedDamage)
+    {
+        if (!HasStateAuthority ||
+            appliedDamage <= 0)
+        {
+            return;
+        }
+
+        for (int index = 0;
+             index < _skills.Length;
+             index++)
+        {
+            if (_skills[index] is not
+                IMeterSkill meterSkill)
+            {
+                continue;
+            }
+
+            float gain =
+                appliedDamage *
+                Mathf.Max(
+                    0f,
+                    meterSkill
+                        .DamageGainPerDamage);
+
+            GrantMeter(
+                (SkillSlot)index,
+                gain);
+        }
     }
 
 

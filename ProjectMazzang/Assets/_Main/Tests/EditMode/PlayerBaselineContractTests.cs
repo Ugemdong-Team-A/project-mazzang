@@ -101,6 +101,10 @@ namespace ProjectMazzang.Tests
                 GetRuntimeType(
                     "PlayerTickModule");
 
+            Type damageReceiverType =
+                GetRuntimeType(
+                    "IDamageDealtReceiver");
+
             Type networkObjectType =
                 AppDomain.CurrentDomain
                     .GetAssemblies()
@@ -165,6 +169,16 @@ namespace ProjectMazzang.Tests
 
                     Assert.That(ownerObject, Is.Not.Null);
 
+                    Assert.That(
+                        controller
+                            .GetComponents<Component>()
+                            .Any(
+                                damageReceiverType
+                                    .IsInstanceOfType),
+                        Is.True,
+                        $"{prefabPath}의 공격 Source와 " +
+                        "피해 보상 수신자가 같은 GameObject에 없습니다.");
+
                     Component[] modules =
                         controller.GetComponentsInChildren(
                                 moduleType,
@@ -215,6 +229,91 @@ namespace ProjectMazzang.Tests
             AssertInterfaces(
                 "PlayerHealth",
                 "IDamageable");
+        }
+
+
+        [Test]
+        public void PlayerSkillController_CreatesRuntimeSkillsOnEveryPeer()
+        {
+            Type controllerType =
+                GetRuntimeType(
+                    "PlayerSkillController");
+
+            MethodInfo spawned =
+                controllerType.GetMethod(
+                    "Spawned");
+
+            MethodInfo despawned =
+                controllerType.GetMethod(
+                    "Despawned");
+
+            PropertyInfo skill1 =
+                controllerType.GetProperty(
+                    "Skill1");
+
+            Assert.That(spawned, Is.Not.Null);
+            Assert.That(despawned, Is.Not.Null);
+            Assert.That(skill1, Is.Not.Null);
+
+            int controllerCount = 0;
+
+            string[] prefabGuids =
+                AssetDatabase.FindAssets(
+                    "t:Prefab",
+                    new[]
+                    {
+                        "Assets/_Main/Prefabs/Characters"
+                    });
+
+            foreach (string prefabGuid
+                     in prefabGuids)
+            {
+                string prefabPath =
+                    AssetDatabase.GUIDToAssetPath(
+                        prefabGuid);
+
+                GameObject prefab =
+                    AssetDatabase.LoadAssetAtPath<
+                        GameObject>(
+                        prefabPath);
+
+                Component controller =
+                    prefab?.GetComponent(
+                        controllerType);
+
+                if (controller == null)
+                    continue;
+
+                controllerCount++;
+
+                try
+                {
+                    spawned.Invoke(
+                        controller,
+                        null);
+
+                    Assert.That(
+                        skill1.GetValue(
+                            controller),
+                        Is.Not.Null,
+                        $"{prefabPath}에서 비권위 peer용 " +
+                        "런타임 Skill을 생성하지 못했습니다.");
+                }
+                finally
+                {
+                    despawned.Invoke(
+                        controller,
+                        new object[]
+                        {
+                            null,
+                            false
+                        });
+                }
+            }
+
+            Assert.That(
+                controllerCount,
+                Is.GreaterThan(0));
         }
 
 

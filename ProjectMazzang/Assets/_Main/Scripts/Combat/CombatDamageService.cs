@@ -13,7 +13,23 @@ public static class CombatDamageService
             return DamageResult.Rejected;
         }
 
-        return target.ApplyDamage(
-            in info);
+        DamageResult result =
+            target.ApplyDamage(
+                in info);
+
+        if (result.AppliedDamage <= 0 ||
+            info.Source == null)
+        {
+            return result;
+        }
+
+        IDamageDealtReceiver receiver =
+            info.Source.GetComponent<
+                IDamageDealtReceiver>();
+
+        receiver?.ReceiveDamageDealt(
+            result.AppliedDamage);
+
+        return result;
     }
 }

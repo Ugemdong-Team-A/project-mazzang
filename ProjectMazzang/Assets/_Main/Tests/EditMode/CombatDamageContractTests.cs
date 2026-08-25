@@ -105,6 +105,46 @@ namespace ProjectMazzang.Tests
         }
 
 
+        [Test]
+        public void DamageDealtReceiver_UsesAppliedDamageContract()
+        {
+            Type receiverType =
+                GetRuntimeType(
+                    "IDamageDealtReceiver");
+
+            MethodInfo receiveDamage =
+                receiverType.GetMethod(
+                    "ReceiveDamageDealt");
+
+            Assert.That(
+                receiveDamage,
+                Is.Not.Null);
+
+            Assert.That(
+                receiveDamage.ReturnType,
+                Is.EqualTo(
+                    typeof(void)));
+
+            ParameterInfo[] parameters =
+                receiveDamage.GetParameters();
+
+            Assert.That(
+                parameters.Length,
+                Is.EqualTo(1));
+
+            Assert.That(
+                parameters[0].ParameterType,
+                Is.EqualTo(
+                    typeof(int)));
+
+            Assert.That(
+                receiverType.IsAssignableFrom(
+                    GetRuntimeType(
+                        "PlayerSkillController")),
+                Is.True);
+        }
+
+
         private static Type GetRuntimeType(
             string typeName)
         {
