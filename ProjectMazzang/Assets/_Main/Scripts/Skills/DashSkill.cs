@@ -401,7 +401,8 @@ public sealed class DashSkill :
                 attack.KnockbackControlLock);
 
 
-        target.ApplyDamage(
+        CombatDamageService.ApplyDamage(
+            target,
             in info);
     }
 
