@@ -1,36 +1,39 @@
 using Fusion;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 /// <summary>
-/// ÇÃ·¹ÀÌ¾îÀÇ Skill Slot°ú Runtime SkillÀ» °ü¸®ÇÕ´Ï´Ù.
+/// í”Œë ˆì´ì–´ì˜ Skill Slotê³¼ Runtime Skillì„ ê´€ë¦¬í•©ë‹ˆë‹¤.
 ///
-/// ¸ğµç Active SkillÀÇ ±âº» Cooldown°ú,
-/// SkillÀÌ ±¸ÇöÇÑ °øÅë ÆĞÅÏ
-/// (Charge / Cast / Duration / Recovery)ÀÇ
-/// Network Runtime State¸¦ °ü¸®ÇÕ´Ï´Ù.
+/// ëª¨ë“  Active Skillì˜ ê¸°ë³¸ Cooldownê³¼,
+/// Skillì´ êµ¬í˜„í•œ ê³µí†µ íŒ¨í„´
+/// (Charge / Cast / Duration / Recovery)ì˜
+/// Network Runtime Stateë¥¼ ê´€ë¦¬í•©ë‹ˆë‹¤.
 ///
-/// ±¸Ã¼ ½ºÅ³ÀÇ ½ÇÁ¦ Çàµ¿Àº SkillÀÌ ´ã´çÇÕ´Ï´Ù.
+/// êµ¬ì²´ ìŠ¤í‚¬ì˜ ì‹¤ì œ í–‰ë™ì€ Skillì´ ë‹´ë‹¹í•©ë‹ˆë‹¤.
 /// </summary>
 [DefaultExecutionOrder(-80)]
 public sealed class PlayerSkillController :
-    PlayerModule,
-    IPlayerSkillAnimationState,
-    IPlayerTickModule,
-    IPlayerTickStateSource
+    PlayerTickModule,
+    IPlayerTickStateSource,
+    IPlayerTickCommandSink,
+    IDamageDealtReceiver
 {
+    private const int SkillSlotCount = 2;
+
+
     [Header("Default Skills")]
+    [FormerlySerializedAs("skill1")]
     [SerializeField]
-    private SkillData skill1;
+    private SkillData mainSkill;
 
+    [FormerlySerializedAs("skill2")]
     [SerializeField]
-    private SkillData skill2;
+    private SkillData ultimateSkill;
 
 
-    private Skill _skill1;
-    private Skill _skill2;
-
-    private IPlayerHealthState
-        _healthState;
+    private readonly Skill[] _skills =
+        new Skill[SkillSlotCount];
 
 
     [Networked]
@@ -60,19 +63,8 @@ public sealed class PlayerSkillController :
     }
 
 
-    // =========================================================
-    // Network State - Cooldown
-    // =========================================================
-
     [Networked]
-    private TickTimer Skill1CooldownTimer
-    {
-        get;
-        set;
-    }
-
-    [Networked]
-    private TickTimer Skill2CooldownTimer
+    private TickTimer SkillControlLockTimer
     {
         get;
         set;
@@ -80,69 +72,13 @@ public sealed class PlayerSkillController :
 
 
     // =========================================================
-    // Network State - Charge
+    // Network State - Slots
     // =========================================================
 
-    [Networked]
-    private byte Skill1Charges
-    {
-        get;
-        set;
-    }
-
-    [Networked]
-    private byte Skill2Charges
-    {
-        get;
-        set;
-    }
-
-    [Networked]
-    private TickTimer Skill1RechargeTimer
-    {
-        get;
-        set;
-    }
-
-    [Networked]
-    private TickTimer Skill2RechargeTimer
-    {
-        get;
-        set;
-    }
-
-
-    // =========================================================
-    // Network State - Use Phase
-    // =========================================================
-
-    [Networked]
-    private SkillUsePhase Skill1Phase
-    {
-        get;
-        set;
-    }
-
-    [Networked]
-    private SkillUsePhase Skill2Phase
-    {
-        get;
-        set;
-    }
-
-    [Networked]
-    private TickTimer Skill1PhaseTimer
-    {
-        get;
-        set;
-    }
-
-    [Networked]
-    private TickTimer Skill2PhaseTimer
-    {
-        get;
-        set;
-    }
+    [Networked, Capacity(SkillSlotCount)]
+    private NetworkArray<SkillSlotRuntimeState>
+        SlotStates =>
+            default;
 
 
     // =========================================================
@@ -150,39 +86,18 @@ public sealed class PlayerSkillController :
     // =========================================================
 
     public Skill Skill1 =>
-        _skill1;
+        GetSkill(
+            SkillSlot.Skill1);
 
     public Skill Skill2 =>
-        _skill2;
+        GetSkill(
+            SkillSlot.Skill2);
 
 
-    // =========================================================
-    // Context
-    // =========================================================
-
-    protected override void RegisterContextUnits()
-    {
-        Context.Register<IPlayerSkillAnimationState>(
-            this);
-    }
-
-
-    protected override void OnContextReady()
-    {
-        _healthState =
-            Context.Get<
-                IPlayerHealthState>();
-
-        _skill1 =
-            CreateSkill(
-                skill1,
-                SkillSlot.Skill1);
-
-        _skill2 =
-            CreateSkill(
-                skill2,
-                SkillSlot.Skill2);
-    }
+    public bool IsSkillControlLocked =>
+        !SkillControlLockTimer
+            .ExpiredOrNotRunning(
+                Runner);
 
 
     // =========================================================
@@ -191,77 +106,90 @@ public sealed class PlayerSkillController :
 
     public override void Spawned()
     {
+        // ëŸ°íƒ€ì„ Skillì€ ì˜ˆì¸¡ê³¼ í‘œí˜„ì„ ìœ„í•´ ëª¨ë“  peerê°€ ìƒì„±í•©ë‹ˆë‹¤.
+        // Networked ìŠ¬ë¡¯ ì´ˆê¸°í™”ëŠ” Equip ë‚´ë¶€ì—ì„œ State Authorityë§Œ ìˆ˜í–‰í•©ë‹ˆë‹¤.
+        Equip(
+            SkillSlot.Skill1,
+            mainSkill);
+
+        Equip(
+            SkillSlot.Skill2,
+            ultimateSkill);
+
         if (!HasStateAuthority)
             return;
 
         PreviousButtons =
             default;
 
-        ResetSlotRuntime(
-            SkillSlot.Skill1,
-            _skill1);
-
-        ResetSlotRuntime(
-            SkillSlot.Skill2,
-            _skill2);
+        SkillControlLockTimer =
+            TickTimer.None;
     }
 
 
-    PlayerTickStage IPlayerTickModule.Stage =>
+    public override PlayerTickStage Stage =>
         PlayerTickStage.SkillIntent;
 
+    public PlayerTickState TickState { get; private set; }
 
-    void IPlayerTickModule.Simulate(
+    public PlayerTickCommands TickCommands { get; private set; }
+
+
+    public override void Simulate(
         in PlayerTick tick)
     {
+        if (TickState == null) TickState = tick.State;
+
+        if(TickCommands == null) TickCommands = tick.Commands;
+
         TickLateAction(
             tick.State.HasHealth &&
-            tick.State.IsAlive,
-            false);
+            tick.State.IsAlive);
     }
-
-    [Networked]
-    private Vector2 Skill1AimDirection
-    {
-        get;
-        set;
-    }
-
-    [Networked]
-    private Vector2 Skill2AimDirection
-    {
-        get;
-        set;
-    }
-
 
     void IPlayerTickStateSource.CaptureTickState(
         PlayerTickState state)
     {
         state.HasSkill = true;
+        state.SkillAnimationSequence =
+            SkillAnimationSequence;
+        state.SkillAnimationId =
+            LastSkillAnimation;
+        state.IsSkillControlLocked =
+            IsSkillControlLocked;
         state.IsSkillActionLocked =
             IsActionLocked(
                 SkillSlot.Skill1,
-                _skill1) ||
+                Skill1) ||
             IsActionLocked(
                 SkillSlot.Skill2,
-                _skill2);
+                Skill2);
     }
 
 
-    public override void FixedUpdateNetwork()
+    bool IPlayerTickCommandSink.ResolveTickCommands(
+        PlayerTickCommands commands,
+        PlayerTickState state)
     {
-        if (IsTickControlled)
-            return;
+        if (!commands.TryConsumeSkillControlLock(
+                out float duration))
+        {
+            return false;
+        }
 
-        TickLateAction();
+        LockSkillControl(
+            duration);
+
+        return true;
     }
 
 
-    public override void Render()
+    public override void Present(in PlayerTickState tickState)
     {
-        _skill1?.Render();
-        _skill2?.Render();
+        foreach (Skill skill in _skills)
+        {
+            skill?.Render();
+        }
     }
 
 
@@ -273,41 +201,27 @@ public sealed class PlayerSkillController :
     }
 
 
-    internal void TickLateAction()
+    private void TickLateAction(bool isAlive)
     {
-        TickLateAction(
-            _healthState != null &&
-            _healthState.IsAlive,
-            true);
-    }
 
-
-    private void TickLateAction(
-        bool isAlive,
-        bool requireContext)
-    {
-        if (requireContext &&
-            !IsContextReady)
-            return;
-
-
-        // °øÅë Runtime State¸¦ ¸ÕÀú °»½ÅÇÕ´Ï´Ù.
+        // ê³µí†µ Runtime Stateë¥¼ ë¨¼ì € ê°±ì‹ í•©ë‹ˆë‹¤.
         UpdateSlotRuntime(
             SkillSlot.Skill1,
-            _skill1);
+            Skill1,
+            isAlive);
 
         UpdateSlotRuntime(
             SkillSlot.Skill2,
-            _skill2);
+            Skill2,
+            isAlive);
 
 
-        // °»½ÅµÈ Phase¸¦ ±âÁØÀ¸·Î
-        // ½ÇÁ¦ Skill Çàµ¿À» ¼öÇàÇÕ´Ï´Ù.
-        _skill1?
-            .FixedUpdateNetwork();
-
-        _skill2?
-            .FixedUpdateNetwork();
+        // ê°±ì‹ ëœ Phaseë¥¼ ê¸°ì¤€ìœ¼ë¡œ
+        // ì‹¤ì œ Skill í–‰ë™ì„ ìˆ˜í–‰í•©ë‹ˆë‹¤.
+        foreach (Skill skill in _skills)
+        {
+            skill?.FixedUpdateNetwork();
+        }
 
 
         bool hasInput =
@@ -321,6 +235,9 @@ public sealed class PlayerSkillController :
 
         if (!isAlive)
         {
+            SkillControlLockTimer =
+                TickTimer.None;
+
             CancelAll();
 
             if (hasInput)
@@ -393,6 +310,9 @@ public sealed class PlayerSkillController :
         SkillSlot slot,
         in SkillUseContext useContext)
     {
+        if (IsSkillControlLocked)
+            return false;
+
         Skill skill =
             GetSkill(
                 slot);
@@ -420,6 +340,13 @@ public sealed class PlayerSkillController :
             return false;
         }
 
+        if (!HasRequiredMeter(
+                slot,
+                skill))
+        {
+            return false;
+        }
+
         if (!skill.CanUse(
                 in useContext))
         {
@@ -428,6 +355,10 @@ public sealed class PlayerSkillController :
 
 
         ConsumeCharge(
+            slot,
+            skill);
+
+        ConsumeMeter(
             slot,
             skill);
 
@@ -463,6 +394,8 @@ public sealed class PlayerSkillController :
         {
             FireballSkill => PlayerSkillAnimationId.Fireball,
             AwakeningSkill => PlayerSkillAnimationId.Awakening,
+            UltimateAwakeningSkill =>
+                PlayerSkillAnimationId.Awakening,
             _ => PlayerSkillAnimationId.None
         };
     }
@@ -474,10 +407,16 @@ public sealed class PlayerSkillController :
 
     private void UpdateSlotRuntime(
         SkillSlot slot,
-        Skill skill)
+        Skill skill,
+        bool isAlive)
     {
         if (skill == null)
             return;
+
+        UpdateMeter(
+            slot,
+            skill,
+            isAlive);
 
         UpdateRecharge(
             slot,
@@ -656,17 +595,9 @@ public sealed class PlayerSkillController :
     public int GetCurrentCharges(
         SkillSlot slot)
     {
-        return slot switch
-        {
-            SkillSlot.Skill1 =>
-                Skill1Charges,
-
-            SkillSlot.Skill2 =>
-                Skill2Charges,
-
-            _ =>
-                0
-        };
+        return GetSlotState(
+                slot)
+            .Charges;
     }
 
 
@@ -724,6 +655,169 @@ public sealed class PlayerSkillController :
             1f -
             remaining /
             duration);
+    }
+
+
+    // =========================================================
+    // Meter
+    // =========================================================
+
+    private bool HasRequiredMeter(
+        SkillSlot slot,
+        Skill skill)
+    {
+        if (skill is not
+            IMeterSkill meterSkill)
+        {
+            return true;
+        }
+
+        float cost =
+            Mathf.Max(
+                0f,
+                meterSkill.MeterCost);
+
+        return GetCurrentMeter(
+                   slot) >=
+               cost;
+    }
+
+
+    private void ConsumeMeter(
+        SkillSlot slot,
+        Skill skill)
+    {
+        if (skill is not
+            IMeterSkill meterSkill)
+        {
+            return;
+        }
+
+        SetCurrentMeter(
+            slot,
+            GetCurrentMeter(slot) -
+            Mathf.Max(
+                0f,
+                meterSkill.MeterCost));
+    }
+
+
+    private void UpdateMeter(
+        SkillSlot slot,
+        Skill skill,
+        bool isAlive)
+    {
+        if (!isAlive ||
+            skill is not
+                IMeterSkill meterSkill)
+        {
+            return;
+        }
+
+        float gainPerSecond =
+            Mathf.Max(
+                0f,
+                meterSkill
+                    .PassiveGainPerSecond);
+
+        if (gainPerSecond <= 0f ||
+            GetCurrentMeter(slot) >=
+                GetMaxMeter(slot))
+        {
+            return;
+        }
+
+        SetCurrentMeter(
+            slot,
+            GetCurrentMeter(slot) +
+            gainPerSecond *
+            Runner.DeltaTime);
+    }
+
+
+    public float GetCurrentMeter(
+        SkillSlot slot)
+    {
+        return GetSlotState(
+                slot)
+            .Meter;
+    }
+
+
+    public float GetMaxMeter(
+        SkillSlot slot)
+    {
+        return GetSkill(slot) is
+            IMeterSkill meterSkill
+                ? Mathf.Max(
+                    0f,
+                    meterSkill.MaxMeter)
+                : 0f;
+    }
+
+
+    public float GetMeterNormalized(
+        SkillSlot slot)
+    {
+        float maximum =
+            GetMaxMeter(
+                slot);
+
+        return maximum > 0f
+            ? Mathf.Clamp01(
+                GetCurrentMeter(slot) /
+                maximum)
+            : 0f;
+    }
+
+
+    public void GrantMeter(
+        SkillSlot slot,
+        float amount)
+    {
+        if (!HasStateAuthority ||
+            amount <= 0f)
+        {
+            return;
+        }
+
+        SetCurrentMeter(
+            slot,
+            GetCurrentMeter(slot) +
+            amount);
+    }
+
+
+    void IDamageDealtReceiver.ReceiveDamageDealt(
+        int appliedDamage)
+    {
+        if (!HasStateAuthority ||
+            appliedDamage <= 0)
+        {
+            return;
+        }
+
+        for (int index = 0;
+             index < _skills.Length;
+             index++)
+        {
+            if (_skills[index] is not
+                IMeterSkill meterSkill)
+            {
+                continue;
+            }
+
+            float gain =
+                appliedDamage *
+                Mathf.Max(
+                    0f,
+                    meterSkill
+                        .DamageGainPerDamage);
+
+            GrantMeter(
+                (SkillSlot)index,
+                gain);
+        }
     }
 
 
@@ -884,8 +978,8 @@ public sealed class PlayerSkillController :
 
 
     /// <summary>
-    /// SkillÀÌ Active »óÅÂ¸¦ Á¶±â¿¡ Á¾·áÇÒ ¶§ »ç¿ëÇÕ´Ï´Ù.
-    /// Ãæµ¹·Î Dash¸¦ ¸ØÃß´Â °æ¿ì µîÀÌ ÇØ´çµË´Ï´Ù.
+    /// Skillì´ Active ìƒíƒœë¥¼ ì¡°ê¸°ì— ì¢…ë£Œí•  ë•Œ ì‚¬ìš©í•©ë‹ˆë‹¤.
+    /// ì¶©ëŒë¡œ Dashë¥¼ ë©ˆì¶”ëŠ” ê²½ìš° ë“±ì´ í•´ë‹¹ë©ë‹ˆë‹¤.
     /// </summary>
     internal void EndActiveEarly(
         SkillSlot slot)
@@ -910,17 +1004,9 @@ public sealed class PlayerSkillController :
     public SkillUsePhase GetUsePhase(
         SkillSlot slot)
     {
-        return slot switch
-        {
-            SkillSlot.Skill1 =>
-                Skill1Phase,
-
-            SkillSlot.Skill2 =>
-                Skill2Phase,
-
-            _ =>
-                SkillUsePhase.None
-        };
+        return GetSlotState(
+                slot)
+            .Phase;
     }
 
 
@@ -956,28 +1042,25 @@ public sealed class PlayerSkillController :
                 ? direction.normalized
                 : Vector2.zero;
 
-        switch (slot)
-        {
-            case SkillSlot.Skill1:
-                Skill1AimDirection = direction;
-                break;
+        SkillSlotRuntimeState state =
+            GetSlotState(
+                slot);
 
-            case SkillSlot.Skill2:
-                Skill2AimDirection = direction;
-                break;
-        }
+        state.AimDirection =
+            direction;
+
+        SetSlotState(
+            slot,
+            state);
     }
 
 
     internal Vector2 GetSkillAimDirection(
         SkillSlot slot)
     {
-        return slot switch
-        {
-            SkillSlot.Skill1 => Skill1AimDirection,
-            SkillSlot.Skill2 => Skill2AimDirection,
-            _ => Vector2.zero
-        };
+        return GetSlotState(
+                slot)
+            .AimDirection;
     }
 
 
@@ -988,12 +1071,12 @@ public sealed class PlayerSkillController :
 
         CombineActiveStatModifiers(
             SkillSlot.Skill1,
-            _skill1,
+            Skill1,
             ref result);
 
         CombineActiveStatModifiers(
             SkillSlot.Skill2,
-            _skill2,
+            Skill2,
             ref result);
 
         return result;
@@ -1020,6 +1103,27 @@ public sealed class PlayerSkillController :
     }
 
 
+    private void LockSkillControl(
+        float duration)
+    {
+        if (duration <= 0f)
+            return;
+
+        float remaining =
+            SkillControlLockTimer
+                .RemainingTime(Runner) ??
+            0f;
+
+        if (duration <= remaining)
+            return;
+
+        SkillControlLockTimer =
+            TickTimer.CreateFromSeconds(
+                Runner,
+                duration);
+    }
+
+
     private bool IsActionLocked(
         SkillSlot slot,
         Skill skill)
@@ -1040,17 +1144,11 @@ public sealed class PlayerSkillController :
     public Skill GetSkill(
         SkillSlot slot)
     {
-        return slot switch
-        {
-            SkillSlot.Skill1 =>
-                _skill1,
-
-            SkillSlot.Skill2 =>
-                _skill2,
-
-            _ =>
-                null
-        };
+        return TryGetSlotIndex(
+            slot,
+            out int index)
+                ? _skills[index]
+                : null;
     }
 
 
@@ -1174,28 +1272,6 @@ public sealed class PlayerSkillController :
         SkillSlot slot,
         Skill skill)
     {
-        SetCooldownTimer(
-            slot,
-            TickTimer.None);
-
-        SetRechargeTimer(
-            slot,
-            TickTimer.None);
-
-        SetUsePhase(
-            slot,
-            SkillUsePhase.None);
-
-        SetPhaseTimer(
-            slot,
-            TickTimer.None);
-
-
-        SetSkillAimDirection(
-            slot,
-            Vector2.zero);
-
-
         int charges =
             skill is
                 IChargeSkill chargeSkill
@@ -1205,9 +1281,28 @@ public sealed class PlayerSkillController :
                     byte.MaxValue)
                 : 0;
 
-        SetCurrentCharges(
+        SkillSlotRuntimeState state =
+            new()
+            {
+                Phase =
+                    SkillUsePhase.None,
+                Charges =
+                    (byte)charges,
+                Meter =
+                    0f,
+                AimDirection =
+                    Vector2.zero,
+                CooldownTimer =
+                    TickTimer.None,
+                PhaseTimer =
+                    TickTimer.None,
+                RechargeTimer =
+                    TickTimer.None
+            };
+
+        SetSlotState(
             slot,
-            charges);
+            state);
     }
 
 
@@ -1229,8 +1324,8 @@ public sealed class PlayerSkillController :
         {
             Debug.LogError(
                 $"[{nameof(PlayerSkillController)}] " +
-                $"{data.name}ÀÌ Runtime SkillÀ» " +
-                "»ı¼ºÇÏÁö ¸øÇß½À´Ï´Ù.",
+                $"{data.name}ì´ Runtime Skillì„ " +
+                "ìƒì„±í•˜ì§€ ëª»í–ˆìŠµë‹ˆë‹¤.",
                 data);
 
             return null;
@@ -1239,8 +1334,7 @@ public sealed class PlayerSkillController :
         skill.Initialize(
             data,
             slot,
-            this,
-            Context);
+            this);
 
         return skill;
     }
@@ -1250,18 +1344,15 @@ public sealed class PlayerSkillController :
         SkillSlot slot,
         Skill skill)
     {
-        switch (slot)
+        if (!TryGetSlotIndex(
+                slot,
+                out int index))
         {
-            case SkillSlot.Skill1:
-                _skill1 =
-                    skill;
-                break;
-
-            case SkillSlot.Skill2:
-                _skill2 =
-                    skill;
-                break;
+            return;
         }
+
+        _skills[index] =
+            skill;
     }
 
 
@@ -1269,20 +1360,40 @@ public sealed class PlayerSkillController :
     // Internal State Access
     // =========================================================
 
+    private SkillSlotRuntimeState GetSlotState(
+        SkillSlot slot)
+    {
+        return TryGetSlotIndex(
+            slot,
+            out int index)
+                ? SlotStates[index]
+                : default;
+    }
+
+
+    private void SetSlotState(
+        SkillSlot slot,
+        SkillSlotRuntimeState state)
+    {
+        if (!TryGetSlotIndex(
+                slot,
+                out int index))
+        {
+            return;
+        }
+
+        SlotStates.Set(
+            index,
+            state);
+    }
+
+
     private TickTimer GetCooldownTimer(
         SkillSlot slot)
     {
-        return slot switch
-        {
-            SkillSlot.Skill1 =>
-                Skill1CooldownTimer,
-
-            SkillSlot.Skill2 =>
-                Skill2CooldownTimer,
-
-            _ =>
-                TickTimer.None
-        };
+        return GetSlotState(
+                slot)
+            .CooldownTimer;
     }
 
 
@@ -1290,35 +1401,25 @@ public sealed class PlayerSkillController :
         SkillSlot slot,
         TickTimer timer)
     {
-        switch (slot)
-        {
-            case SkillSlot.Skill1:
-                Skill1CooldownTimer =
-                    timer;
-                break;
+        SkillSlotRuntimeState state =
+            GetSlotState(
+                slot);
 
-            case SkillSlot.Skill2:
-                Skill2CooldownTimer =
-                    timer;
-                break;
-        }
+        state.CooldownTimer =
+            timer;
+
+        SetSlotState(
+            slot,
+            state);
     }
 
 
     private TickTimer GetRechargeTimer(
         SkillSlot slot)
     {
-        return slot switch
-        {
-            SkillSlot.Skill1 =>
-                Skill1RechargeTimer,
-
-            SkillSlot.Skill2 =>
-                Skill2RechargeTimer,
-
-            _ =>
-                TickTimer.None
-        };
+        return GetSlotState(
+                slot)
+            .RechargeTimer;
     }
 
 
@@ -1326,18 +1427,16 @@ public sealed class PlayerSkillController :
         SkillSlot slot,
         TickTimer timer)
     {
-        switch (slot)
-        {
-            case SkillSlot.Skill1:
-                Skill1RechargeTimer =
-                    timer;
-                break;
+        SkillSlotRuntimeState state =
+            GetSlotState(
+                slot);
 
-            case SkillSlot.Skill2:
-                Skill2RechargeTimer =
-                    timer;
-                break;
-        }
+        state.RechargeTimer =
+            timer;
+
+        SetSlotState(
+            slot,
+            state);
     }
 
 
@@ -1351,35 +1450,45 @@ public sealed class PlayerSkillController :
                 0,
                 byte.MaxValue);
 
-        switch (slot)
-        {
-            case SkillSlot.Skill1:
-                Skill1Charges =
-                    value;
-                break;
+        SkillSlotRuntimeState state =
+            GetSlotState(
+                slot);
 
-            case SkillSlot.Skill2:
-                Skill2Charges =
-                    value;
-                break;
-        }
+        state.Charges =
+            value;
+
+        SetSlotState(
+            slot,
+            state);
+    }
+
+
+    private void SetCurrentMeter(
+        SkillSlot slot,
+        float meter)
+    {
+        SkillSlotRuntimeState state =
+            GetSlotState(
+                slot);
+
+        state.Meter =
+            Mathf.Clamp(
+                meter,
+                0f,
+                GetMaxMeter(slot));
+
+        SetSlotState(
+            slot,
+            state);
     }
 
 
     private TickTimer GetPhaseTimer(
         SkillSlot slot)
     {
-        return slot switch
-        {
-            SkillSlot.Skill1 =>
-                Skill1PhaseTimer,
-
-            SkillSlot.Skill2 =>
-                Skill2PhaseTimer,
-
-            _ =>
-                TickTimer.None
-        };
+        return GetSlotState(
+                slot)
+            .PhaseTimer;
     }
 
 
@@ -1387,18 +1496,16 @@ public sealed class PlayerSkillController :
         SkillSlot slot,
         TickTimer timer)
     {
-        switch (slot)
-        {
-            case SkillSlot.Skill1:
-                Skill1PhaseTimer =
-                    timer;
-                break;
+        SkillSlotRuntimeState state =
+            GetSlotState(
+                slot);
 
-            case SkillSlot.Skill2:
-                Skill2PhaseTimer =
-                    timer;
-                break;
-        }
+        state.PhaseTimer =
+            timer;
+
+        SetSlotState(
+            slot,
+            state);
     }
 
 
@@ -1406,24 +1513,34 @@ public sealed class PlayerSkillController :
         SkillSlot slot,
         SkillUsePhase phase)
     {
-        switch (slot)
-        {
-            case SkillSlot.Skill1:
-                Skill1Phase =
-                    phase;
-                break;
+        SkillSlotRuntimeState state =
+            GetSlotState(
+                slot);
 
-            case SkillSlot.Skill2:
-                Skill2Phase =
-                    phase;
-                break;
-        }
+        state.Phase =
+            phase;
+
+        SetSlotState(
+            slot,
+            state);
     }
 
 
     // =========================================================
     // Utility
     // =========================================================
+
+    private static bool TryGetSlotIndex(
+        SkillSlot slot,
+        out int index)
+    {
+        index =
+            (int)slot;
+
+        return index >= 0 &&
+               index < SkillSlotCount;
+    }
+
 
     private TickTimer CreateTimer(
         float duration)
@@ -1442,16 +1559,15 @@ public sealed class PlayerSkillController :
 
     private void DisposeSkills()
     {
-        _skill1?
-            .Dispose();
+        for (int i = 0;
+             i < _skills.Length;
+             i++)
+        {
+            _skills[i]?
+                .Dispose();
 
-        _skill2?
-            .Dispose();
-
-        _skill1 =
-            null;
-
-        _skill2 =
-            null;
+            _skills[i] =
+                null;
+        }
     }
 }

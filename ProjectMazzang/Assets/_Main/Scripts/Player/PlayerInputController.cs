@@ -75,6 +75,7 @@ public sealed class PlayerInputController :
         _inputActions.Player.Skill2.canceled +=
             OnSkill2;
 
+        Debug.Log("Input Created");
 
         _inputActions.Enable();
     }
@@ -152,6 +153,8 @@ public sealed class PlayerInputController :
 
     public override void Spawned()
     {
+        Debug.Log("InputCtrl Spawned");
+
         if (!HasInputAuthority)
             return;
 
@@ -276,7 +279,8 @@ public sealed class PlayerInputController :
         NetworkRunner runner,
         NetworkInput input)
     {
-        if (SettingsMenuUI.IsInputBlocked)
+        if (AppRoot.Instance &&
+                SettingsMenuUI.IsInputBlocked)
         {
             _move = Vector2.zero;
             _buttons = default;

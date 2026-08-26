@@ -11,10 +11,8 @@ public enum DeathCause : byte
 
 [DefaultExecutionOrder(-300)]
 public sealed class PlayerHealth :
-    PlayerModule,
-    IPlayerHealthState,
-    IPlayerDamageReceiver,
-    IPlayerTickModule,
+    PlayerTickModule,
+    IDamageable,
     IPlayerTickStateSource
 {
     [Header("Health")]
@@ -28,6 +26,7 @@ public sealed class PlayerHealth :
 
 
     [Header("Respawn")]
+    [Min(0.01f)]
     [SerializeField]
     private float respawnDelay = 2f;
 
@@ -46,12 +45,6 @@ public sealed class PlayerHealth :
 
 
     private float _lastHealth;
-
-    private IPlayerKnockbackReceiver
-        _knockbackReceiver;
-
-    private IPlayerCombatControl
-        _combatControl;
 
     private PlayerSkillController
         _skillController;
@@ -137,42 +130,10 @@ public sealed class PlayerHealth :
         !InvulnerabilityTimer
             .ExpiredOrNotRunning(Runner);
 
-
-    bool IPlayerHealthState.IsDead =>
-        IsDead;
-
     public Transform CameraTarget =>
         cameraTarget != null
             ? cameraTarget
             : transform;
-
-    // =========================================================
-    // Context
-    // =========================================================
-
-    protected override void RegisterContextUnits()
-    {
-        Context.Register<
-            IPlayerHealthState>(
-            this);
-
-        Context.Register<
-            IPlayerDamageReceiver>(
-            this);
-    }
-
-
-    protected override void OnContextReady()
-    {
-        _knockbackReceiver =
-            Context.Get<
-                IPlayerKnockbackReceiver>();
-
-        _combatControl =
-            Context.Get<
-                IPlayerCombatControl>();
-    }
-
 
     // =========================================================
     // Fusion
@@ -238,11 +199,11 @@ public sealed class PlayerHealth :
     }
 
 
-    PlayerTickStage IPlayerTickModule.Stage =>
+    public override PlayerTickStage Stage =>
         PlayerTickStage.Begin;
 
 
-    void IPlayerTickModule.Simulate(
+    public override void Simulate(
         in PlayerTick tick)
     {
         TickBegin();
@@ -253,16 +214,12 @@ public sealed class PlayerHealth :
         PlayerTickState state)
     {
         state.HasHealth = true;
+        state.Health = Health;
+        state.MaxHealth = MaxHealth;
+        state.Lives = Lives;
+        state.IsInvulnerable = IsInvulnerable;
         state.IsAlive = IsAlive;
-    }
-
-
-    public override void FixedUpdateNetwork()
-    {
-        if (IsTickControlled)
-            return;
-
-        TickBegin();
+        state.DeathSequence = DeathSequence;
     }
 
 
@@ -293,17 +250,20 @@ public sealed class PlayerHealth :
     // Damage
     // =========================================================
 
-    public void ApplyDamage(
+    public DamageResult ApplyDamage(
         in DamageInfo info)
     {
         if (!HasStateAuthority)
-            return;
+            return DamageResult.Rejected;
 
         if (!IsAlive)
-            return;
+            return DamageResult.Rejected;
 
         if (IsInvulnerable)
-            return;
+            return DamageResult.Rejected;
+
+        int previousHealth =
+            Health;
 
         RegisterLastAttacker(
             info.Source.InputAuthority);
@@ -318,8 +278,12 @@ public sealed class PlayerHealth :
                 Health -
                 effectiveDamage);
 
+        int appliedDamage =
+            previousHealth -
+            Health;
+
         // 유효한 피격이 들어오는 즉시 현재 공격을 끊는다.
-        // 이후 Movement의 control lock 동안 새 공격도 차단된다.
+        // 새 공격 차단 시간은 아래의 Attack control lock이 담당한다.
         RequestCancelAttack();
 
         if (info.Knockback
@@ -330,29 +294,32 @@ public sealed class PlayerHealth :
                 info.KnockbackControlLock);
         }
 
-        if (Health > 0)
-            return;
+        bool wasFatal =
+            Health <= 0;
 
-        PlayerRef deathAttacker =
-            ResolveDeathAttacker(
-                info.Source.InputAuthority);
+        if (wasFatal)
+        {
+            PlayerRef deathAttacker =
+                ResolveDeathAttacker(
+                    info.Source.InputAuthority);
 
-        Die(
-            deathAttacker,
-            DeathCause.Damage);
+            Die(
+                deathAttacker,
+                DeathCause.Damage);
+        }
+
+        return new DamageResult(
+            appliedDamage,
+            wasFatal);
     }
 
 
     private void RequestCancelAttack()
     {
-        if (TickCommands != null)
+        if (Commands != null)
         {
-            TickCommands.RequestCancelAttack();
-            return;
+            Commands.RequestCancelAttack();
         }
-
-        _combatControl?
-            .CancelAttack();
     }
 
 
@@ -360,19 +327,18 @@ public sealed class PlayerHealth :
         Vector2 velocity,
         float controlLockDuration)
     {
-        if (TickCommands != null)
-        {
-            TickCommands.RequestKnockback(
-                velocity,
-                controlLockDuration);
-
+        if (Commands == null)
             return;
-        }
 
-        _knockbackReceiver?
-            .ApplyKnockback(
-                velocity,
-                controlLockDuration);
+        // 기존 피격 규칙을 명시적으로 보존한다.
+        // 넉백은 이동과 기본 공격만 잠그며, 스킬은 별도 정책이다.
+        Commands.RequestControlLock(
+            PlayerControlLock.Movement |
+            PlayerControlLock.Attack,
+            controlLockDuration);
+
+        Commands.RequestKnockback(
+            velocity);
     }
 
 

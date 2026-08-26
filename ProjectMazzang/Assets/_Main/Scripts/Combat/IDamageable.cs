@@ -58,6 +58,6 @@ public interface IDamageable
         get;
     }
 
-    void ApplyDamage(
+    DamageResult ApplyDamage(
         in DamageInfo info);
 }

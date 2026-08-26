@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8c6db91d85f64e12b4e6202a9fa9a370, type: 3}
+  m_Name: UltimateAwakeningSkill
+  m_EditorClassIdentifier: Assembly-CSharp::UltimateAwakeningSkillData
+  cooldown: 0
+  icon: {fileID: 21300000, guid: 5e534de90d594a459dd6fe65cef42d89, type: 3}
+  maxMeter: 100
+  meterCost: 100
+  passiveGainPerSecond: 2
+  damageGainPerDamage: 1
+  duration: 8
+  moveSpeedMultiplier: 1.25
+  attackDamageMultiplier: 1.5
+  maxHealthMultiplier: 1.5
+  damageTakenMultiplier: 0.75
+  visualScaleMultiplier: 1.35

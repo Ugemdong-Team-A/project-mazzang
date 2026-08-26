@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f0edbc2adfc34dc5a593a5040521de47, type: 3}
   m_Name: BasicParry
   m_EditorClassIdentifier: Assembly-CSharp::ParryData
-  activeDuration: 0.18
+  activeDuration: 0.6
   cooldown: 3
   radius: 1.35
   arcAngle: 110

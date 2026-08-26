@@ -3,12 +3,9 @@ using Fusion;
 using UnityEngine;
 
 /// <summary>
-/// 한 플레이어가 공유할 PlayerContext를 생성하고
-/// 같은 NetworkObject 소속 PlayerModule들에게 동일한 Context를 연결합니다.
-///
+/// 같은 NetworkObject에 속한 PlayerTickModule을 수집하고
+/// Stage와 Order 순서로 네트워크 Tick을 실행합니다.
 /// 개별 모듈의 구체 타입과 시뮬레이션 로직은 알지 않습니다.
-/// Tick 단계, 상태 제공자, 명령 소비자 계약만 해석해
-/// 네트워크 Tick을 실행합니다.
 /// </summary>
 [DefaultExecutionOrder(-1000)]
 public sealed class PlayerController :
@@ -18,11 +15,10 @@ public sealed class PlayerController :
     private const int MaxCommandResolvePasses = 8;
 
 
-    private PlayerContext _context;
+    // private PlayerContext _context;
 
-    private PlayerModule[] _modules;
-
-    private IPlayerTickModule[] _tickModules;
+    [SerializeField]
+    private PlayerTickModule[] _modules;
 
     private IPlayerTickStateSource[] _tickStateSources;
 
@@ -41,15 +37,42 @@ public sealed class PlayerController :
     private bool _resolvingCommands;
 
 
-    public PlayerContext Context =>
-        _context;
+    /*public PlayerContext Context =>
+        _context;*/
+
+
+    /// <summary>
+    /// 장착 무기처럼 Tick Module 밖에 있는 게임플레이 객체가
+    /// 구체 플레이어 모듈을 직접 변경하지 않고 제어 잠금을 요청합니다.
+    /// 네트워크 시뮬레이션과 State Authority 이벤트에서만 호출합니다.
+    /// </summary>
+    public void RequestControlLock(
+        PlayerControlLock controls,
+        float duration)
+    {
+        _tickCommands.RequestControlLock(
+            controls,
+            duration);
+    }
+
+
+    /// <summary>
+    /// Tick Module 밖의 권위 게임플레이 객체가 Movement 속도 변경을 요청합니다.
+    /// 네트워크 시뮬레이션과 State Authority 이벤트에서만 호출합니다.
+    /// </summary>
+    public void RequestMovementVelocity(
+        Vector2 velocity)
+    {
+        _tickCommands.RequestSetMovementVelocity(
+            velocity);
+    }
 
 
     private void Awake()
     {
-        _context =
+        /*_context =
             new PlayerContext(
-                gameObject);
+                gameObject);*/
 
         CollectModules();
 
@@ -89,8 +112,8 @@ public sealed class PlayerController :
             CaptureCurrentTickState();
         }
 
-        foreach (IPlayerTickModule module
-                 in _tickModules)
+        foreach (PlayerTickModule module
+                 in _modules)
         {
             module.Simulate(
                 in tick);
@@ -104,6 +127,18 @@ public sealed class PlayerController :
         }
     }
 
+    public override void Render()
+    {
+        if (!_initialized ||
+            !_tickPipelineEnabled)
+        {
+            return;
+        }
+
+        foreach (PlayerTickModule module in _modules)
+            module.Present(in _tickState);
+    }
+
 
     // =========================================================
     // Module Collection
@@ -114,16 +149,16 @@ public sealed class PlayerController :
         NetworkObject ownerObject =
             GetComponent<NetworkObject>();
 
-        PlayerModule[] candidates =
+        PlayerTickModule[] candidates =
             GetComponentsInChildren<
-                PlayerModule>(
+                PlayerTickModule>(
                 true);
 
-        List<PlayerModule> modules =
+        List<PlayerTickModule> modules =
             new(
                 candidates.Length);
 
-        foreach (PlayerModule module
+        foreach (PlayerTickModule module
                  in candidates)
         {
             NetworkObject moduleObject =
@@ -149,17 +184,17 @@ public sealed class PlayerController :
 
     private void ConfigureTickPipeline()
     {
-        List<IPlayerTickModule> tickModules =
-            new();
+        _tickPipelineEnabled = false;
 
-        foreach (PlayerModule module
+        List<PlayerTickModule> tickModules =
+            new(
+                _modules.Length);
+
+        foreach (PlayerTickModule module
                  in _modules)
         {
-            if (module is IPlayerTickModule tickModule)
-            {
-                tickModules.Add(
-                    tickModule);
-            }
+            tickModules.Add(
+                module);
         }
 
         tickModules.Sort(
@@ -169,37 +204,39 @@ public sealed class PlayerController :
              i < tickModules.Count;
              i++)
         {
-            IPlayerTickModule previous =
+            PlayerTickModule previous =
                 tickModules[i - 1];
 
-            IPlayerTickModule current =
+            PlayerTickModule current =
                 tickModules[i];
 
-            if (previous.Stage !=
-                current.Stage)
+            if (previous.Stage != current.Stage ||
+                previous.Order != current.Order)
             {
                 continue;
             }
 
-            Debug.LogError(
-                $"Player Tick Stage {current.Stage}에 " +
-                "둘 이상의 모듈이 등록되었습니다. " +
-                "기존 실행 경로를 유지합니다.",
-                this);
-
-            _tickModules =
+            _modules =
                 tickModules.ToArray();
+
+            Debug.LogError(
+                $"Player Tick 순서가 충돌했습니다. " +
+                $"Stage: {current.Stage}, Order: {current.Order}, " +
+                $"Modules: {previous.GetType().Name}, " +
+                $"{current.GetType().Name}. " +
+                "같은 Stage의 모듈에는 서로 다른 Order를 지정해야 합니다.",
+                this);
 
             return;
         }
 
-        _tickModules =
+        _modules =
             tickModules.ToArray();
 
         List<IPlayerTickStateSource> stateSources =
             new();
 
-        foreach (PlayerModule module
+        foreach (PlayerTickModule module
                  in _modules)
         {
             if (module is IPlayerTickStateSource stateSource)
@@ -215,10 +252,10 @@ public sealed class PlayerController :
         List<IPlayerTickCommandSink> commandSinks =
             new();
 
-        foreach (PlayerModule module
+        foreach (PlayerTickModule module
                  in _modules)
         {
-            module.SetTickCommands(
+            module.BindCommands(
                 _tickCommands);
 
             if (module is IPlayerTickCommandSink commandSink)
@@ -234,15 +271,15 @@ public sealed class PlayerController :
         _tickCommands.SetDispatcher(
             this);
 
-        foreach (PlayerModule module
+        /*foreach (PlayerTickModule module
                  in _modules)
         {
-            if (module is IPlayerTickModule)
+            if (module is PlayerTickModule)
             {
                 module.SetTickControlled(
                     true);
             }
-        }
+        }*/
 
         _tickPipelineEnabled =
             true;
@@ -341,11 +378,18 @@ public sealed class PlayerController :
 
 
     private static int CompareTickModules(
-        IPlayerTickModule left,
-        IPlayerTickModule right)
+        PlayerTickModule left,
+        PlayerTickModule right)
     {
-        return left.Stage.CompareTo(
-            right.Stage);
+        int stageComparison =
+            left.Stage.CompareTo(
+                right.Stage);
+
+        if (stageComparison != 0)
+            return stageComparison;
+
+        return left.Order.CompareTo(
+            right.Order);
     }
 
 
@@ -358,21 +402,21 @@ public sealed class PlayerController :
         // 1차:
         // 모든 모듈에 동일 Context를 전달하고,
         // 각 모듈이 제공하는 Context Unit을 등록한다.
-        foreach (PlayerModule module
+        /*foreach (PlayerModule module
                  in _modules)
         {
             module.InitializeContext(
                 _context);
-        }
+        }*/
 
         // 2차:
         // 모든 Unit 등록이 완료된 뒤,
         // 각 모듈이 필요한 Unit을 Resolve한다.
-        foreach (PlayerModule module
+        /*foreach (PlayerModule module
                  in _modules)
         {
             module
                 .CompleteContextInitialization();
-        }
+        }*/
     }
 }

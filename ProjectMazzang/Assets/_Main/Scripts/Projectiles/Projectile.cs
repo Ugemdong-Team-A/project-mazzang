@@ -618,10 +618,12 @@ public class Projectile :
                 knockback,
                 KnockbackControlLock);
 
-        damageable.ApplyDamage(
-            in info);
+        DamageResult result =
+            CombatDamageService.ApplyDamage(
+                damageable,
+                in info);
 
-        return true;
+        return result.WasProcessed;
     }
 
 
