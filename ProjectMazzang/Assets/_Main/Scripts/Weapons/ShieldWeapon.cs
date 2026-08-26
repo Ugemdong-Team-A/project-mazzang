@@ -306,23 +306,21 @@ public sealed class ShieldWeapon :
     {
         if (Holder == null ||
             !Holder.TryGetComponent(
-                out PlayerMovement movement) ||
-            !Holder.TryGetComponent(
-                out PlayerController playerController))
+                out IPlayerTickCommandDispatcher playerTickCommander))
         {
             return;
         }
 
-        Vector2 velocity = movement.Velocity;
+        Vector2 velocity = playerTickCommander.TickState.MovementVelocity;
         velocity.x = direction.x * dashSpeed;
         velocity.y = Mathf.Max(
             velocity.y,
             direction.y * dashSpeed * 0.45f);
 
-        playerController.RequestMovementVelocity(
+        playerTickCommander.TickCommands.RequestSetMovementVelocity(
             velocity);
 
-        playerController.RequestControlLock(
+        playerTickCommander.TickCommands.RequestControlLock(
             PlayerControlLock.Movement |
             PlayerControlLock.Attack,
             dashControlLock);

@@ -109,8 +109,8 @@ public sealed class Standard2DRigIKSetup : MonoBehaviour
             Standard2DRigDefinition.EffectorReachGroup.Leg =>
                 LegEffectorReachScale,
 
-            Standard2DRigDefinition.EffectorReachGroup.Head =>
-                HeadEffectorReachScale,
+            /*Standard2DRigDefinition.EffectorReachGroup.Head =>
+                HeadEffectorReachScale,*/
 
             _ =>
                 1f

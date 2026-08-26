@@ -3233,6 +3233,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: -9019108726321967606, guid: beb26fa88a710e044800de3c4c59a0fd, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.99966496
+      objectReference: {fileID: 0}
+    - target: {fileID: -9019108726321967606, guid: beb26fa88a710e044800de3c4c59a0fd, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0.025885362
+      objectReference: {fileID: 0}
     - target: {fileID: -8653719598885068355, guid: beb26fa88a710e044800de3c4c59a0fd, type: 3}
       propertyPath: m_Name
       value: test1

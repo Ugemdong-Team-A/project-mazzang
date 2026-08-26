@@ -466,8 +466,7 @@ public sealed class PlayerWeaponController :
         if (!HasEquippedWeapon)
             return false;
 
-        return DropWeapon(
-            CalculateDropVelocity());
+        return DropWeapon(Vector2.zero);
     }
 
 
@@ -615,33 +614,6 @@ public sealed class PlayerWeaponController :
     // Drop Velocity
     // =========================================================
 
-    private Vector2 CalculateDropVelocity()
-    {
-        /*float facingSign =
-            _movementState == null ||
-            _movementState.FacingRight
-                ? 1f
-                : -1f;
-
-        Vector2 tossVelocity =
-            new Vector2(
-                dropVelocity.x *
-                facingSign,
-                dropVelocity.y);
-
-        if (_movementState == null)
-        {
-            return tossVelocity;
-        }
-
-        return
-            tossVelocity +
-            _movementState.Velocity *
-            inheritedVelocityFactor;*/
-
-        return Vector2.zero;
-    }
-
 
     private Vector2 CalculateDropVelocity(
         PlayerTickState state)
@@ -669,17 +641,6 @@ public sealed class PlayerWeaponController :
     // =========================================================
     // Use
     // =========================================================
-
-    public bool TryUseWeapon(
-        Vector2 aimDirection)
-    {
-        return true;/*TryUseWeapon(
-            aimDirection,
-            _healthState == null ||
-            _healthState.IsAlive,
-            _movementState != null &&
-            !_movementState.FacingRight);*/
-    }
 
 
     private bool TryUseSecondaryWeapon(
