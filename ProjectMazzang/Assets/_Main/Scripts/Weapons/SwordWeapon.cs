@@ -39,9 +39,23 @@ public sealed class SwordWeapon :
     [SerializeField]
     private float cooldown = 0.5f;
 
+    [Header("Attack Delay")]
+    [Min(0f)]
+    [SerializeField]
+    private float attackDelay = 0.5f;
 
     [Networked]
+    private TickTimer AttackDelayTimer
+    {
+        get;
+        set;
+    }
     private TickTimer CooldownTimer
+    {
+        get;
+        set;
+    }
+    private Vector2 AttackDirection
     {
         get;
         set;
@@ -65,30 +79,26 @@ public sealed class SwordWeapon :
 
 
     public override bool TryUse(
-        Vector2 origin,
-        Vector2 direction,
-        bool mirrored)
+     Vector2 origin,
+     Vector2 direction,
+     bool mirrored)
     {
-        Debug.Log(
-            $"[Sword] TryUse 호출 / " +
-            $"origin={origin} direction={direction}");
-
         if (!CanAttack())
         {
             Debug.Log("[Sword] CanAttack 실패");
             return false;
         }
 
-        direction =
-            NormalizeDirection(direction);
-
-        PerformAttack(
-            origin,
-            direction);
+        AttackDelayTimer =
+            attackDelay > 0f
+                ? TickTimer.CreateFromSeconds(
+                    Runner,
+                    attackDelay)
+                : TickTimer.None;
 
         StartCooldown();
 
-        Debug.Log("[Sword] 공격 실행");
+        Debug.Log("[Sword] 공격 준비");
 
         return true;
     }
@@ -116,6 +126,41 @@ public sealed class SwordWeapon :
                 : TickTimer.None;
     }
 
+    public override void FixedUpdateNetwork()
+    {
+        if (!HasStateAuthority)
+            return;
+
+        if (!AttackDelayTimer.Expired(Runner))
+            return;
+
+        AttackDelayTimer =
+            TickTimer.None;
+
+        if (Holder == null)
+            return;
+
+        if (!Holder.TryGetComponent(
+                out PlayerWeaponController controller))
+        {
+            return;
+        }
+
+        Vector2 origin =
+            controller.WeaponSocket != null
+                ? controller.WeaponSocket.position
+                : (Vector2)transform.position;
+
+        Vector2 direction =
+            NormalizeDirection(
+                controller.WeaponDirection);
+
+        PerformAttack(
+            origin,
+            direction);
+
+        Debug.Log("[Sword] 0.5초 후 공격 판정");
+    }
 
     private void PerformAttack(
         Vector2 origin,
