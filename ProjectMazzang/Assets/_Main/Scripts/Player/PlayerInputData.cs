@@ -17,8 +17,8 @@ public struct PlayerInputData :
     public Vector2 Move;
 
     /// <summary>
-    /// ·ÎÄÃ ÀÔ·Â¿¡¼­ °è»êÇÑ ¸¶¿ì½ºÀÇ ¿ùµå ÁÂÇ¥ÀÔ´Ï´Ù.
-    /// ½ÇÁ¦ Á¶ÁØ ¹æÇâ ÇØ¼®Àº PlayerAimÀÌ ´ã´çÇÕ´Ï´Ù.
+    /// ë¡œì»¬ ì…ë ¥ì—ì„œ ê³„ì‚°í•œ ë§ˆìš°ìŠ¤ì˜ ì›”ë“œ ì¢Œí‘œì…ë‹ˆë‹¤.
+    /// ì‹¤ì œ ì¡°ì¤€ ë°©í–¥ í•´ì„ì€ PlayerAimì´ ë‹´ë‹¹í•©ë‹ˆë‹¤.
     /// </summary>
     public Vector2 AimWorldPosition;
 

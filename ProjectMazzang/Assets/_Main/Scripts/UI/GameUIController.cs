@@ -404,9 +404,9 @@ public sealed class GameUIController : MonoBehaviour
 
     private void HandleFinished()
     {
-        // Scene Loading UI´Â AppRoot ÂÊ¿¡¼­
-        // ½ÇÁ¦ SceneLoadStarted¸¦ ¹Ş¾Æ Ç¥½ÃÇÏ¹Ç·Î
-        // ¿©±â¼­´Â Match UI¸¸ Á¤¸®.
+        // Scene Loading UIëŠ” AppRoot ìª½ì—ì„œ
+        // ì‹¤ì œ SceneLoadStartedë¥¼ ë°›ì•„ í‘œì‹œí•˜ë¯€ë¡œ
+        // ì—¬ê¸°ì„œëŠ” Match UIë§Œ ì •ë¦¬.
         ui.HideAll();
     }
 

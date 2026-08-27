@@ -47,28 +47,28 @@ public sealed class AppRoot : MonoBehaviour
         if (network == null)
         {
             Debug.LogError(
-                $"{nameof(FusionSessionController)}°¡ µî·ÏµÇÁö ¾Ê¾Ò½À´Ï´Ù.",
+                $"{nameof(FusionSessionController)}ê°€ ë“±ë¡ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.",
                 this);
         }
 
         if (popup == null)
         {
             Debug.LogError(
-                $"{nameof(PopupUI)}°¡ µî·ÏµÇÁö ¾Ê¾Ò½À´Ï´Ù.",
+                $"{nameof(PopupUI)}ê°€ ë“±ë¡ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.",
                 this);
         }
 
         if (sceneLoading == null)
         {
             Debug.LogError(
-                $"{nameof(SceneLoadingUI)}°¡ µî·ÏµÇÁö ¾Ê¾Ò½À´Ï´Ù.",
+                $"{nameof(SceneLoadingUI)}ê°€ ë“±ë¡ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.",
                 this);
         }
 
         if (systemNotice == null)
         {
             Debug.LogError(
-                $"{nameof(SystemNoticeUI)}°¡ µî·ÏµÇÁö ¾Ê¾Ò½À´Ï´Ù.",
+                $"{nameof(SystemNoticeUI)}ê°€ ë“±ë¡ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.",
                 this);
         }
 

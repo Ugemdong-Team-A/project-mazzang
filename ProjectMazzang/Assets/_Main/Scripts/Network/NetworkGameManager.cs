@@ -47,15 +47,15 @@ public sealed class NetworkGameManager : NetworkBehaviour
     // Local Events
     // =========================================================
 
-    // GameUIController °°Àº ¾À ·ÎÄÃ °´Ã¼°¡
-    // NetworkGameManagerÀÇ Spawn ½ÃÁ¡À» ¸ô¶óµµ
-    // ¾ÈÀüÇÏ°Ô ¹ÙÀÎµùÇÏ±â À§ÇÑ ÀÌº¥Æ®.
+    // GameUIController ê°™ì€ ì”¬ ë¡œì»¬ ê°ì²´ê°€
+    // NetworkGameManagerì˜ Spawn ì‹œì ì„ ëª°ë¼ë„
+    // ì•ˆì „í•˜ê²Œ ë°”ì¸ë”©í•˜ê¸° ìœ„í•œ ì´ë²¤íŠ¸.
     public static event Action<NetworkGameManager> LocalSpawned;
 
     public static event Action<NetworkGameManager> LocalDespawned;
 
-    // Network »óÅÂ°¡ °¢ ·ÎÄÃ¿¡ ¹İ¿µµÇ¾úÀ» ¶§ ¹ß»ı.
-    // UI / Camera µîÀÇ Presentation¿¡¼­ »ç¿ëÇÑ´Ù.
+    // Network ìƒíƒœê°€ ê° ë¡œì»¬ì— ë°˜ì˜ë˜ì—ˆì„ ë•Œ ë°œìƒ.
+    // UI / Camera ë“±ì˜ Presentationì—ì„œ ì‚¬ìš©í•œë‹¤.
     public event Action<MatchState> StateChanged;
 
 
@@ -153,8 +153,8 @@ public sealed class NetworkGameManager : NetworkBehaviour
         if (State != MatchState.Playing)
             return;
 
-        // eliminatedPlayer / attacker´Â
-        // ÀÌÈÄ KillFeed, Score µîÀÇ ¸ÅÄ¡ ±â·Ï¿¡ È°¿ë °¡´É.
+        // eliminatedPlayer / attackerëŠ”
+        // ì´í›„ KillFeed, Score ë“±ì˜ ë§¤ì¹˜ ê¸°ë¡ì— í™œìš© ê°€ëŠ¥.
         CheckMatchResult();
     }
 
@@ -194,9 +194,9 @@ public sealed class NetworkGameManager : NetworkBehaviour
                 continue;
             }
 
-            // Respawn ´ë±â ÁßÀÎ ÇÃ·¹ÀÌ¾îµµ
-            // ¾ÆÁ÷ ¸ÅÄ¡¿¡¼­ Å»¶ôÇÑ °ÍÀÌ ¾Æ´Ï¹Ç·Î
-            // IsAlive°¡ ¾Æ´Ñ Lives¸¦ »ç¿ëÇÑ´Ù.
+            // Respawn ëŒ€ê¸° ì¤‘ì¸ í”Œë ˆì´ì–´ë„
+            // ì•„ì§ ë§¤ì¹˜ì—ì„œ íƒˆë½í•œ ê²ƒì´ ì•„ë‹ˆë¯€ë¡œ
+            // IsAliveê°€ ì•„ë‹Œ Livesë¥¼ ì‚¬ìš©í•œë‹¤.
             if (health.Lives <= 0)
                 continue;
 
@@ -280,8 +280,8 @@ public sealed class NetworkGameManager : NetworkBehaviour
         if (State != MatchState.Playing)
             return;
 
-        // PresentationÀÌ EndingÀ» °¨ÁöÇßÀ» ¶§
-        // Winner°¡ ÀÌ¹Ì È®Á¤µÇ¾î ÀÖµµ·Ï ¸ÕÀú ¼³Á¤.
+        // Presentationì´ Endingì„ ê°ì§€í–ˆì„ ë•Œ
+        // Winnerê°€ ì´ë¯¸ í™•ì •ë˜ì–´ ìˆë„ë¡ ë¨¼ì € ì„¤ì •.
         Winner = winner;
 
         PhaseTimer =
@@ -347,7 +347,7 @@ public sealed class NetworkGameManager : NetworkBehaviour
         if (gameSession == null)
         {
             Debug.LogError(
-                "[GM] NetworkGameSessionÀ» Ã£À» ¼ö ¾ø½À´Ï´Ù.",
+                "[GM] NetworkGameSessionì„ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤.",
                 this);
 
             return;
@@ -356,7 +356,7 @@ public sealed class NetworkGameManager : NetworkBehaviour
         if (!gameSession.RequestReturnToLobby())
         {
             Debug.LogError(
-                "[GM] Lobby º¹±Í ¿äÃ»¿¡ ½ÇÆĞÇß½À´Ï´Ù.",
+                "[GM] Lobby ë³µê·€ ìš”ì²­ì— ì‹¤íŒ¨í–ˆìŠµë‹ˆë‹¤.",
                 this);
         }
     }
@@ -374,7 +374,7 @@ public sealed class NetworkGameManager : NetworkBehaviour
         if (gameSession == null)
         {
             Debug.LogError(
-                "[GM] NetworkGameSessionÀ» Ã£À» ¼ö ¾ø½À´Ï´Ù.",
+                "[GM] NetworkGameSessionì„ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤.",
                 this);
 
             return;
@@ -387,7 +387,7 @@ public sealed class NetworkGameManager : NetworkBehaviour
             mapData.MapPrefab == null)
         {
             Debug.LogError(
-                "¼±ÅÃµÈ MapData°¡ ¿Ã¹Ù¸£Áö ¾Ê½À´Ï´Ù.",
+                "ì„ íƒëœ MapDataê°€ ì˜¬ë°”ë¥´ì§€ ì•ŠìŠµë‹ˆë‹¤.",
                 this);
 
             return;
@@ -400,7 +400,7 @@ public sealed class NetworkGameManager : NetworkBehaviour
         if (mapObject == null)
         {
             Debug.LogError(
-                "[GM] Map Spawn¿¡ ½ÇÆĞÇß½À´Ï´Ù.",
+                "[GM] Map Spawnì— ì‹¤íŒ¨í–ˆìŠµë‹ˆë‹¤.",
                 this);
 
             return;
@@ -412,7 +412,7 @@ public sealed class NetworkGameManager : NetworkBehaviour
         if (map == null)
         {
             Debug.LogError(
-                "[GM] SpawnµÈ Map¿¡ MapRuntimeÀÌ ¾ø½À´Ï´Ù.",
+                "[GM] Spawnëœ Mapì— MapRuntimeì´ ì—†ìŠµë‹ˆë‹¤.",
                 mapObject);
 
             return;
@@ -499,7 +499,7 @@ public sealed class NetworkGameManager : NetworkBehaviour
             gameSession.CharacterCatalog == null)
         {
             Debug.LogError(
-                "[GM] CharacterCatalogÀ» Ã£À» ¼ö ¾ø½À´Ï´Ù.",
+                "[GM] CharacterCatalogì„ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤.",
                 this);
 
             return;
@@ -519,7 +519,7 @@ public sealed class NetworkGameManager : NetworkBehaviour
                     out NetworkPlayerData playerData))
             {
                 Debug.LogError(
-                    $"[GM] PlayerData¸¦ Ã£À» ¼ö ¾ø½À´Ï´Ù: {player}",
+                    $"[GM] PlayerDataë¥¼ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤: {player}",
                     this);
 
                 continue;
@@ -533,7 +533,7 @@ public sealed class NetworkGameManager : NetworkBehaviour
             {
                 Debug.LogError(
                     $"[GM] CharacterId " +
-                    $"{playerData.SelectedCharacterId}¸¦ Ã£À» ¼ö ¾ø½À´Ï´Ù.",
+                    $"{playerData.SelectedCharacterId}ë¥¼ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤.",
                     this);
 
                 continue;
@@ -545,8 +545,8 @@ public sealed class NetworkGameManager : NetworkBehaviour
             if (playerPrefab == null)
             {
                 Debug.LogError(
-                    $"[GM] {characterData.DisplayName}ÀÇ " +
-                    "PlayerPrefabÀÌ nullÀÔ´Ï´Ù.",
+                    $"[GM] {characterData.DisplayName}ì˜ " +
+                    "PlayerPrefabì´ nullì…ë‹ˆë‹¤.",
                     this);
 
                 continue;
@@ -559,7 +559,7 @@ public sealed class NetworkGameManager : NetworkBehaviour
             if (spawnPoint == null)
             {
                 Debug.LogError(
-                    $"SpawnPoint°¡ ºÎÁ·ÇÕ´Ï´Ù. Index: {index}",
+                    $"SpawnPointê°€ ë¶€ì¡±í•©ë‹ˆë‹¤. Index: {index}",
                     this);
 
                 spawnPoint = lastSpawnPoint; 
@@ -578,7 +578,7 @@ public sealed class NetworkGameManager : NetworkBehaviour
             if (playerObject == null)
             {
                 Debug.LogError(
-                    $"[GM] Player Spawn¿¡ ½ÇÆĞÇß½À´Ï´Ù: {player}",
+                    $"[GM] Player Spawnì— ì‹¤íŒ¨í–ˆìŠµë‹ˆë‹¤: {player}",
                     this);
 
                 continue;

@@ -44,7 +44,7 @@ public sealed class PopupUI : MonoBehaviour
 
     public void Show(
         string message,
-        string primaryLabel = "»Æ¿Œ",
+        string primaryLabel = "ÌôïÏù∏",
         Action onPrimary = null,
         bool allowClose = true)
     {
