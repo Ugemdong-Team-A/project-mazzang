@@ -100,6 +100,56 @@ CommandSink 목록을 Inspector 또는 개발 로그에서 한 번에 확인하�
 
 **도입 시점:** 캐릭터별 모듈 구성이 달라져 순서 파악이 어려워질 때.
 
+### 8. 전신 공격 클립과 조준 리그의 합성 정책
+
+**목표:** 아트는 팔·다리·허리를 포함한 전신 공격 클립을 자유롭게 만든다.
+아트가 게임의 조준 제한, CCD, 무기 소켓 구조를 알거나 Animation Event/별도 컴포넌트 키를
+추가할 필요는 없다. 어떤 뼈를 얼마나 게임이 덮어쓸지는 공격 정의가 결정한다.
+
+**현재:** `PlayerAttackAimDefinition`은 `ProceduralAim`(CCD 사용)과 `Animation`(CCD 비활성화)
+두 선택지만 제공한다. `PlayerAim`의 `BodyAimAngle`은 제한과 보간을 가지지만, 클립 자세에
+허리 조준을 자연스럽게 합성하는 전용 경로는 없다.
+
+**검토안:**
+
+- Pose 모드를 `FullProcedural`, `AnimationOnly`, `AnimationWithBodyAim`처럼 의미가 드러나는
+  세 정책으로 정리한다. 기존 값의 직렬화 호환은 별도 확인한다.
+- `AnimationWithBodyAim`은 Animator가 만든 전신 포즈를 기본으로 두고, 기준 척추 본의
+  **클립 회전** 위에 제한·보간된 `BodyAimAngle`의 차이만 가산한다. 따라서 AimDir은 정확히
+  향하되 클립에 있던 보행/반동/자세의 리듬은 유지한다.
+- CCD와 팔 IK는 이 정책과 독립적인 후처리 계층으로 둔다. 필요하면 공격 정의에서
+  `Off / Blend / Full` 같은 별도 가중치를 선택하며, 기본값은 클립이 만든 손·발 IK 결과를
+  존중한다.
+- 합성은 Animator가 포즈를 적용한 뒤, IK Solver가 최종 손·발을 푸는 순서여야 한다.
+  `ResolvedAimPivot`은 계속 무기와 UI가 참조할 최종 상체 기준으로 유지한다.
+- 첫 구현은 허리 기준 본 하나와 0~1 가중치만 다룬다. 상체 마스크, 여러 척추 분배,
+  공격 시간별 커브는 실제 클립 요구가 생긴 뒤 추가한다.
+
+**검증:** 같은 전신 클립으로 `AnimationOnly`, `AnimationWithBodyAim`, `FullProcedural`을
+전환해 좌우 반전·상하 조준·무기 IK·네트워크 Render 보간에서 손발 튐과 무기 이탈이 없는지
+확인한다.
+
+### 9. 텍스트 인코딩과 코드 표현식 일괄 정비
+
+**현재:** 일부 오래된 C# 파일의 한글 주석/Tooltip이 CP949 등 UTF-8이 아닌 인코딩으로
+저장되어 있고, 편집기·터미널·GitHub가 서로 다른 인코딩으로 읽으면 글자가 깨질 수 있다.
+줄바꿈, 표현식, 주석·Tooltip의 문체도 파일마다 다르다.
+
+**검토안:**
+
+- `.cs`, `.md`, `.asmdef`, `.json`, `.yml/.yaml`, `.uxml`, `.uss`를 UTF-8로 일괄 변환하고
+  `.editorconfig`에 `charset = utf-8`, `end_of_line = lf`, `insert_final_newline = true`를
+  명시한다. Git에는 `.gitattributes`로 해당 텍스트 파일의 `text eol=lf`를 지정한다.
+- 변환 전에는 깨지지 않은 원문을 기준으로 백업/검증하고, Windows PowerShell의 기본 출력
+  인코딩에 의존하지 않는다. 자동 변환 도구와 IDE도 UTF-8 저장으로 통일한다.
+- 한 번의 대형 기능 리팩터링과 섞지 않고, 인코딩 변환만 하는 커밋과 표현식/주석 정리
+  커밋을 분리한다. YAML 프리팹·에셋은 Unity가 저장한 형식을 불필요하게 다시 쓰지 않는다.
+- 줄바꿈·체이닝·지역 변수 선언 패턴을 정하고, Tooltip은 Inspector에서 필요한 동작/단위/
+  기본값만 설명한다. 코드가 이미 말하는 내용을 반복하는 주석은 제거하고, 이유·제약·순서만
+  남긴다.
+
+**도입 시점:** 다음 대규모 Player/Combat 리팩터링 전에 별도 정비 작업으로 진행한다.
+
 ## 작업 전 판단 질문
 
 Backlog 항목을 시작하기 전에 다음을 확인한다.
