@@ -13,9 +13,10 @@ MonoBehaviour:
   m_Name: HunterTrapSkillData
   m_EditorClassIdentifier: Assembly-CSharp::DeployableSkillData
   cooldown: 5
-  icon: {fileID: 0}
-  castDuration: 0.35
+  icon: {fileID: 21300000, guid: bd47696c8ae4cb5438573d14547c2983, type: 3}
+  castDuration: 0
   recoveryDuration: 0.15
-  deployablePrefab: {fileID: 1000000000000000000, guid: f91e461183de409d8402ca2f847e7e0d, type: 3}
-  spawnForward: 0.45
+  deployablePrefab: {fileID: 1140000000000000000, guid: f91e461183de409d8402ca2f847e7e0d, type: 3}
+  requiresGrounded: 1
+  spawnForward: 0.15
   spawnUp: 0

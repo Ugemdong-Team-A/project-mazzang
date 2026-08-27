@@ -26,6 +26,13 @@ public sealed class DeployableSkill :
         NetworkObject prefab =
             DeployableData.DeployablePrefab;
 
+        if (DeployableData.RequiresGrounded &&
+            (!Controller.TickState.HasMovement ||
+             !Controller.TickState.IsGrounded))
+        {
+            return false;
+        }
+
         return base.CanUse(in useContext) &&
                prefab != null &&
                prefab.GetComponent<Deployable>() != null;

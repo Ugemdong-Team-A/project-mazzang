@@ -1011,6 +1011,10 @@ MonoBehaviour:
     movementMode: 1
   counterAttack:
     attack: {fileID: 0}
+    startupDuration: 0
+    activeDuration: 0
+    recoveryDuration: 0
+    cooldown: 0
     aim:
       aimMode: 0
       poseMode: 0
@@ -1060,6 +1064,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAim
   aimOrigin: {fileID: 405535938307882185}
   ccdTarget: {fileID: 5349236784287973008}
+  resolvedAimReferenceBone: {fileID: 0}
+  resolvedAimPivot: {fileID: 0}
   upperBodyAimRig: {fileID: 855167590607317003}
   ccdTargetRadius: 3
   rigAngleOffset: 90
@@ -1086,6 +1092,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerWeaponController
   weaponSocket: {fileID: 1119498991958727768}
+  resolvedAimPivot: {fileID: 0}
   weaponSortingOrder: 24
   leftHandLimb: {fileID: 3268336011809022708}
   rightHandLimb: {fileID: 1825635801981400533}
@@ -1106,8 +1113,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2efd521a00f4f02459ff1633a7dddc92, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerSkillController
-  mainSkill: {fileID: 11400000, guid: 3096fde69c3544369cbec685ac688d20, type: 2}
-  ultimateSkill: {fileID: 0}
+  mainSkill: {fileID: 11400000, guid: c2de8b60f28079c4d83e9e63e4c729b6, type: 2}
+  ultimateSkill: {fileID: 11400000, guid: 91b002f5cbd5aa74db8c229c54c722f2, type: 2}
   _SkillAnimationSequence: 0
   _LastSkillAnimation: 0
 --- !u!114 &700000000000000001

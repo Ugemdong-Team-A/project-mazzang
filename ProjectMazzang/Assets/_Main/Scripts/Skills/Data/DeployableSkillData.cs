@@ -23,6 +23,10 @@ public sealed class DeployableSkillData :
 
 
     [Header("Placement")]
+
+    [SerializeField]
+    private bool requiresGrounded = true;
+
     [Tooltip("플레이어가 바라보는 방향으로 떨어진 설치 거리입니다.")]
     [Min(0f)]
     [SerializeField]
@@ -41,6 +45,9 @@ public sealed class DeployableSkillData :
 
     public NetworkObject DeployablePrefab =>
         deployablePrefab;
+
+    public bool RequiresGrounded =>
+        requiresGrounded;
 
     public float SpawnForward =>
         spawnForward;
