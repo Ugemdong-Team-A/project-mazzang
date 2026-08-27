@@ -363,7 +363,7 @@ public sealed class ShieldWeapon :
                 bashAttack.Damage,
                 Holder,
                 knockback,
-                bashAttack.KnockbackControlLock);
+                bashAttack.CrowdControl);
 
             CombatDamageService.ApplyDamage(
                 damageable,

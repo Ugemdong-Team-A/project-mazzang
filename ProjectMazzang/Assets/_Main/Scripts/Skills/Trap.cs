@@ -17,7 +17,7 @@ public class Trap : Deployable
 
 
     [Header("Lifetime")]
-    [Tooltip("켜면 발동 직후 사라집니다. 끄면 AttackData의 조작 잠금 시간이 끝난 뒤 사라집니다.")]
+    [Tooltip("켜면 발동 직후 사라집니다. 끄면 AttackData의 CC 지연과 지속 시간이 끝난 뒤 사라집니다.")]
     [SerializeField]
     private bool despawnImmediatelyOnTrigger;
 
@@ -141,7 +141,7 @@ public class Trap : Deployable
                     attack.Damage,
                     source,
                     knockback,
-                    attack.KnockbackControlLock));
+                    attack.CrowdControl));
 
         if (!result.WasProcessed)
             return;
@@ -155,8 +155,12 @@ public class Trap : Deployable
         HasTriggered = true;
         RefreshTriggerCollider();
 
+        float effectLifetime =
+            attack.CrowdControl.ActivationDelay +
+            attack.CrowdControl.Duration;
+
         if (despawnImmediatelyOnTrigger ||
-            attack.KnockbackControlLock <= 0f)
+            effectLifetime <= 0f)
         {
             Runner.Despawn(Object);
             return;
@@ -165,7 +169,7 @@ public class Trap : Deployable
         TriggeredDespawnTimer =
             TickTimer.CreateFromSeconds(
                 Runner,
-                attack.KnockbackControlLock);
+                effectLifetime);
     }
 
 

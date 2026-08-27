@@ -789,7 +789,7 @@ namespace ProjectMazzang.Tests
 
 
         [Test]
-        public void AttackData_KeepsCurrentSerializedControlLockField()
+        public void AttackData_KeepsCrowdControlDefaults()
         {
             Type attackDataType =
                 GetRuntimeType(
@@ -807,17 +807,40 @@ namespace ProjectMazzang.Tests
 
                 SerializedProperty property =
                     serializedObject.FindProperty(
-                        "knockbackControlLock");
+                        "crowdControl");
 
                 Assert.That(
                     property,
                     Is.Not.Null,
-                    "현재 AttackData 직렬화 필드가 사라졌습니다.");
+                    "AttackData의 군중 제어 정의가 사라졌습니다.");
 
                 Assert.That(
-                    property.floatValue,
+                    property
+                        .FindPropertyRelative("type")
+                        .intValue,
+                    Is.EqualTo(1),
+                    "기본 CC는 HitStun이어야 합니다.");
+
+                Assert.That(
+                    property
+                        .FindPropertyRelative("duration")
+                        .floatValue,
                     Is.EqualTo(0.12f).Within(0.0001f),
-                    "기본 control lock 시간이 달라졌습니다.");
+                    "기본 경직 시간이 달라졌습니다.");
+
+                Assert.That(
+                    property
+                        .FindPropertyRelative("activationDelay")
+                        .floatValue,
+                    Is.EqualTo(0f).Within(0.0001f),
+                    "기본 CC는 즉시 발동해야 합니다.");
+
+                Assert.That(
+                    property
+                        .FindPropertyRelative("stopMovementOnApply")
+                        .boolValue,
+                    Is.False,
+                    "일반 공격은 적중 순간 속도를 강제로 지우지 않습니다.");
             }
             finally
             {
@@ -1019,7 +1042,7 @@ namespace ProjectMazzang.Tests
 
 
         [Test]
-        public void DamageInfo_KeepsKnockbackControlLockValue()
+        public void DamageInfo_KeepsCrowdControlDefinition()
         {
             Type damageInfoType =
                 GetRuntimeType(
@@ -1030,6 +1053,27 @@ namespace ProjectMazzang.Tests
                     .GetConstructors()
                     .Single();
 
+            Type crowdControlType =
+                GetRuntimeType(
+                    "CrowdControlDefinition");
+
+            Type crowdControlKind =
+                GetRuntimeType(
+                    "CrowdControlType");
+
+            object root =
+                Enum.Parse(
+                    crowdControlKind,
+                    "Root");
+
+            object crowdControl =
+                Activator.CreateInstance(
+                    crowdControlType,
+                    root,
+                    2f,
+                    0.35f,
+                    true);
+
             object damageInfo =
                 constructor.Invoke(
                     new object[]
@@ -1037,7 +1081,7 @@ namespace ProjectMazzang.Tests
                         17,
                         null,
                         new Vector2(3f, 4f),
-                        0.35f
+                        crowdControl
                     });
 
             AssertProperty(
@@ -1050,10 +1094,73 @@ namespace ProjectMazzang.Tests
                 "Knockback",
                 new Vector2(3f, 4f));
 
+            object storedCrowdControl =
+                damageInfoType
+                    .GetProperty("CrowdControl")
+                    .GetValue(damageInfo);
+
             AssertProperty(
-                damageInfo,
-                "KnockbackControlLock",
+                storedCrowdControl,
+                "Type",
+                root);
+
+            AssertProperty(
+                storedCrowdControl,
+                "Duration",
+                2f);
+
+            AssertProperty(
+                storedCrowdControl,
+                "ActivationDelay",
                 0.35f);
+
+            AssertProperty(
+                storedCrowdControl,
+                "StopMovementOnApply",
+                true);
+        }
+
+
+        [Test]
+        public void CrowdControlRules_MapSemanticTypesToCurrentLocks()
+        {
+            Type crowdControlKind =
+                GetRuntimeType(
+                    "CrowdControlType");
+
+            MethodInfo resolve =
+                GetRuntimeType(
+                        "CrowdControlRules")
+                    .GetMethod(
+                        "ResolveLocks",
+                        BindingFlags.Public |
+                        BindingFlags.Static);
+
+            Assert.That(resolve, Is.Not.Null);
+
+            Assert.That(
+                Convert.ToInt32(
+                    resolve.Invoke(
+                        null,
+                        new[]
+                        {
+                            Enum.Parse(
+                                crowdControlKind,
+                                "Root")
+                        })),
+                Is.EqualTo(1));
+
+            Assert.That(
+                Convert.ToInt32(
+                    resolve.Invoke(
+                        null,
+                        new[]
+                        {
+                            Enum.Parse(
+                                crowdControlKind,
+                                "Stun")
+                        })),
+                Is.EqualTo(7));
         }
 
 

@@ -807,7 +807,7 @@ public sealed class PlayerCombat :
                     attack.Damage,
                     Object,
                     knockback,
-                    attack.KnockbackControlLock);
+                    attack.CrowdControl);
 
 
             CombatDamageService.ApplyDamage(

@@ -9,10 +9,10 @@ public readonly struct DamageInfo
     }
 
     /// <summary>
-    /// ÀÌ Damage¸¦ ¹ß»ı½ÃÅ² NetworkObjectÀÔ´Ï´Ù.
+    /// ì´ Damageë¥¼ ë°œìƒì‹œí‚¨ NetworkObjectì…ë‹ˆë‹¤.
     ///
-    /// Player, Weapon, Projectile, Turret µî
-    /// ±¸Ã¼ÀûÀÎ Å¸ÀÔÀ» ÀüÁ¦·Î ÇÏÁö ¾Ê½À´Ï´Ù.
+    /// Player, Weapon, Projectile, Turret ë“±
+    /// êµ¬ì²´ì ì¸ íƒ€ì…ì„ ì „ì œë¡œ í•˜ì§€ ì•ŠìŠµë‹ˆë‹¤.
     /// </summary>
     public NetworkObject Source
     {
@@ -24,7 +24,7 @@ public readonly struct DamageInfo
         get;
     }
 
-    public float KnockbackControlLock
+    public CrowdControlDefinition CrowdControl
     {
         get;
     }
@@ -34,7 +34,7 @@ public readonly struct DamageInfo
         int damage,
         NetworkObject source,
         Vector2 knockback,
-        float knockbackControlLock)
+        CrowdControlDefinition crowdControl)
     {
         Damage =
             damage;
@@ -45,8 +45,8 @@ public readonly struct DamageInfo
         Knockback =
             knockback;
 
-        KnockbackControlLock =
-            knockbackControlLock;
+        CrowdControl =
+            crowdControl;
     }
 }
 

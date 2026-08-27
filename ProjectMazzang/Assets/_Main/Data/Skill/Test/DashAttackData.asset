@@ -21,4 +21,8 @@ MonoBehaviour:
   damage: 1
   knockbackForward: 15
   knockbackUp: 8
-  knockbackControlLock: 0.5
+  crowdControl:
+    type: 1
+    duration: 0.5
+    activationDelay: 0
+    stopMovementOnApply: 0

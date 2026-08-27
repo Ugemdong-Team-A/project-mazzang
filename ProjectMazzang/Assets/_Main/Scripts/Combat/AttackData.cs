@@ -28,9 +28,15 @@ public class AttackData :
     [SerializeField]
     private float knockbackUp = 4f;
 
+
+    [Header("Crowd Control")]
     [SerializeField]
-    [Min(0f)]
-    private float knockbackControlLock = 0.12f;
+    private CrowdControlDefinition crowdControl =
+        new(
+            CrowdControlType.HitStun,
+            0.12f,
+            0f,
+            false);
 
 
     public int AttackId =>
@@ -48,6 +54,6 @@ public class AttackData :
     public float KnockbackUp =>
         knockbackUp;
 
-    public float KnockbackControlLock =>
-        knockbackControlLock;
+    public CrowdControlDefinition CrowdControl =>
+        crowdControl;
 }

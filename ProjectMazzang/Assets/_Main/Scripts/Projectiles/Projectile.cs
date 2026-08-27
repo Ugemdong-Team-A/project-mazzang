@@ -133,7 +133,28 @@ public class Projectile :
     }
 
     [Networked]
-    protected float KnockbackControlLock
+    protected CrowdControlType CrowdControlType
+    {
+        get;
+        set;
+    }
+
+    [Networked]
+    protected float CrowdControlDuration
+    {
+        get;
+        set;
+    }
+
+    [Networked]
+    protected float CrowdControlActivationDelay
+    {
+        get;
+        set;
+    }
+
+    [Networked]
+    protected NetworkBool StopMovementOnApply
     {
         get;
         set;
@@ -333,10 +354,22 @@ public class Projectile :
                 knockback,
                 direction);
 
-        KnockbackControlLock =
+        CrowdControlDefinition crowdControl =
             attack != null
-                ? attack.KnockbackControlLock
-                : 0f;
+                ? attack.CrowdControl
+                : default;
+
+        CrowdControlType =
+            crowdControl.Type;
+
+        CrowdControlDuration =
+            crowdControl.Duration;
+
+        CrowdControlActivationDelay =
+            crowdControl.ActivationDelay;
+
+        StopMovementOnApply =
+            crowdControl.StopMovementOnApply;
 
         LifeTimer =
             lifetime > 0f
@@ -724,7 +757,11 @@ public class Projectile :
                 Damage,
                 Source,
                 knockback,
-                KnockbackControlLock);
+                new CrowdControlDefinition(
+                    CrowdControlType,
+                    CrowdControlDuration,
+                    CrowdControlActivationDelay,
+                    StopMovementOnApply));
 
         DamageResult result =
             CombatDamageService.ApplyDamage(

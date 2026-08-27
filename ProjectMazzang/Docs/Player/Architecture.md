@@ -89,7 +89,9 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
 
 ## 공격 데이터
 
-- `AttackData`는 공격 ID, 피해, 넉백처럼 대상에게 적용되는 공통 결과를 보관한다.
+- `AttackData`는 공격 ID, 피해, 넉백, CC처럼 대상에게 적용되는 공통 결과를 보관한다.
+- CC는 `CrowdControlType`으로 의미를 저장하고 `CrowdControlRules`가 현재의 `PlayerControlLock` 조합으로 변환한다. 외부 표를 연결할 때도 값이 없거나 읽기에 실패하면 코드의 기본 규칙을 사용한다.
+- `stopMovementOnApply`는 적중 즉시 속도 제거, `activationDelay`는 CC 잠금의 발동 시점을 담당한다.
 - `BoxAttackData`는 공통 결과에 박스 판정의 위치와 크기를 추가한다.
 - `PlayerAttackDefinition`은 플레이어가 공격을 실행하는 Startup, Active, Recovery,
   Cooldown과 Aim, Movement 규칙을 보관한다.

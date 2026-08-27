@@ -46,8 +46,8 @@ public sealed class DashSkill :
         if (_movementCollider == null)
         {
             Debug.LogError(
-                "[DashSkill] Player Root¿¡ " +
-                "ÀÌµ¿¿ë CapsuleCollider2D°¡ ¾ø½À´Ï´Ù.");
+                "[DashSkill] Player Rootì— " +
+                "ì´ë™ìš© CapsuleCollider2Dê°€ ì—†ìŠµë‹ˆë‹¤.");
         }
     }
 
@@ -96,8 +96,8 @@ public sealed class DashSkill :
                 useContext.AimWorldPosition);
 
 
-        // Dash°¡ ³¡³¯ ¶§±îÁö
-        // ½ÃÀü ¼ø°£ ¹æÇâÀ» Networked PlayerAim¿¡ °íÁ¤ÇÕ´Ï´Ù.
+        // Dashê°€ ëë‚  ë•Œê¹Œì§€
+        // ì‹œì „ ìˆœê°„ ë°©í–¥ì„ Networked PlayerAimì— ê³ ì •í•©ë‹ˆë‹¤.
 
         PlayerAimOverride aimOverride =
             new(
@@ -158,7 +158,7 @@ public sealed class DashSkill :
                 break;
 
 
-            // º®·ÂÀÏ¼¶ ÁØºñ »óÅÂ.
+            // ë²½ë ¥ì¼ì„¬ ì¤€ë¹„ ìƒíƒœ.
             case SkillUsePhase.Cast:
 
                 RequestMovementVelocity(
@@ -174,7 +174,7 @@ public sealed class DashSkill :
                 break;
 
 
-            // Dash°¡ ³¡³­ ÈÄ ¾ÆÁÖ ÂªÀº Á¤Áö.
+            // Dashê°€ ëë‚œ í›„ ì•„ì£¼ ì§§ì€ ì •ì§€.
             case SkillUsePhase.Recovery:
 
                 RequestMovementVelocity(
@@ -194,7 +194,7 @@ public sealed class DashSkill :
         if (TryHitPlayer(
                 direction))
         {
-            // Dash ÀÚÃ¼´Â Áï½Ã ³¡³»°í Recovery·Î ³Ñ¾î°¨
+            // Dash ìì²´ëŠ” ì¦‰ì‹œ ëë‚´ê³  Recoveryë¡œ ë„˜ì–´ê°
             RequestMovementVelocity(
                 Vector2.zero);
 
@@ -256,8 +256,8 @@ public sealed class DashSkill :
             colliderTransform.eulerAngles.z;
 
 
-        // ÀÌ¹ø Simulation Tick¿¡ ÀÌµ¿ÇÒ °Å¸®¸¦ ¹Ì¸® °Ë»çÇÕ´Ï´Ù.
-        // ´Ü¼ø ÇöÀç À§Ä¡ Overlapº¸´Ù ºü¸¥ Dash¿¡¼­ °üÅëÇÒ °¡´É¼ºÀÌ ³·½À´Ï´Ù.
+        // ì´ë²ˆ Simulation Tickì— ì´ë™í•  ê±°ë¦¬ë¥¼ ë¯¸ë¦¬ ê²€ì‚¬í•©ë‹ˆë‹¤.
+        // ë‹¨ìˆœ í˜„ì¬ ìœ„ì¹˜ Overlapë³´ë‹¤ ë¹ ë¥¸ Dashì—ì„œ ê´€í†µí•  ê°€ëŠ¥ì„±ì´ ë‚®ìŠµë‹ˆë‹¤.
         float distance =
             DashData.DashSpeed *
             Controller.Runner.DeltaTime;
@@ -359,7 +359,7 @@ public sealed class DashSkill :
                 attack.Damage,
                 Controller.Object,
                 knockback,
-                attack.KnockbackControlLock);
+                attack.CrowdControl);
 
 
         CombatDamageService.ApplyDamage(
