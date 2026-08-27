@@ -10,16 +10,16 @@ public class ProjectileSkill :
     protected bool _waitingToFire;
     protected FireballCastPresentation _presentation;
 
-    protected FireballSkillData FireballData =>
-        (FireballSkillData)Data;
+    protected ProjectileSkillData ProjectileData =>
+        (ProjectileSkillData)Data;
 
-    public float CastDuration => FireballData.CastDuration;
+    public float CastDuration => ProjectileData.CastDuration;
 
     public override bool CanUse(
         in SkillUseContext useContext)
     {
         return base.CanUse(in useContext) &&
-               FireballData.ProjectilePrefab != null;
+               ProjectileData.ProjectilePrefab != null;
     }
 
     public override void Activate(
@@ -113,7 +113,7 @@ public class ProjectileSkill :
     {
         Vector2 pivot =
             (Vector2)Controller.transform.position +
-            Vector2.up * FireballData.SpawnUp;
+            Vector2.up * ProjectileData.SpawnUp;
 
         Vector2 direction =
             aimWorldPosition -
@@ -125,7 +125,7 @@ public class ProjectileSkill :
 
             Vector2 origin =
                 pivot +
-                direction * FireballData.SpawnForward;
+                direction * ProjectileData.SpawnForward;
 
             Vector2 originToAim =
                 aimWorldPosition - origin;
@@ -144,7 +144,7 @@ public class ProjectileSkill :
     protected virtual void SpawnProjectile()
     {
         NetworkObject prefab =
-            FireballData.ProjectilePrefab;
+            ProjectileData.ProjectilePrefab;
 
         if (prefab == null)
             return;
@@ -169,10 +169,6 @@ public class ProjectileSkill :
             Mathf.Atan2(direction.y, direction.x) *
             Mathf.Rad2Deg;
 
-        Vector2 velocity =
-            direction *
-            FireballData.ProjectileSpeed;
-
         Controller.Runner.Spawn(
             prefab,
             origin,
@@ -186,11 +182,7 @@ public class ProjectileSkill :
                 projectile?.Initialize(
                     runner,
                     Controller.Object,
-                    velocity,
-                    FireballData.ProjectileLifetime,
-                    FireballData.Damage,
-                    FireballData.Knockback,
-                    FireballData.KnockbackControlLock);
+                    direction);
             });
     }
 
@@ -198,8 +190,8 @@ public class ProjectileSkill :
         Vector2 direction)
     {
         return (Vector2)Controller.transform.position +
-               direction * FireballData.SpawnForward +
-               Vector2.up * FireballData.SpawnUp;
+               direction * ProjectileData.SpawnForward +
+               Vector2.up * ProjectileData.SpawnUp;
     }
 
     protected void EnsurePresentation()
@@ -209,7 +201,7 @@ public class ProjectileSkill :
 
         _presentation =
             FireballCastPresentation.Create(
-                FireballData.CastVfxPrefab);
+                ProjectileData.CastVfxPrefab);
     }
 
     protected void DestroyPresentation()

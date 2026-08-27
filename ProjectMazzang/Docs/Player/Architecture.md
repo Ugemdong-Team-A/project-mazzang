@@ -95,6 +95,9 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
   Cooldown과 Aim, Movement 규칙을 보관한다.
 - 같은 `AttackData`를 사용하더라도 실행 주체에 따라 타이밍과 사용 규칙은 달라질 수 있으므로,
   플레이어 전용 실행 정보는 `AttackData`에 두지 않는다.
+- `Projectile` 프리팹은 자신의 초기 속도, 수명, `AttackData`를 보관하고 충돌 시 공격 결과를 전달한다.
+- `ProjectileSkillData`는 시전과 회복 시간, 생성 위치, 생성할 투사체 프리팹만 보관한다.
+- 스킬은 투사체의 방향과 소유자만 초기화하며, 투사체의 밸런스 값을 중복해서 보관하지 않는다.
 
 ## Control Lock
 

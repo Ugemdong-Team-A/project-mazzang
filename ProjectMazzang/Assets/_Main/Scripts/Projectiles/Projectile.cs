@@ -7,6 +7,19 @@ public class Projectile :
     NetworkBehaviour,
     IParryable
 {
+    [Header("Launch")]
+    [Min(0.01f)]
+    [SerializeField]
+    private float initialSpeed = 16f;
+
+    [Min(0.01f)]
+    [SerializeField]
+    private float lifetime = 2.5f;
+
+    [Header("Attack")]
+    [SerializeField]
+    private AttackData attack;
+
     [Header("Collision")]
     [SerializeField]
     private LayerMask collisionMask;
@@ -16,8 +29,8 @@ public class Projectile :
     private float collisionRadius = 0.05f;
 
     [Tooltip(
-        "??번의 Substep?�서 ?�용??최�? ?�동 거리?�니?? " +
-        "??Tick???�동?�이 ???�면 ?�러 ?�계�??�눠 ?��??�이?�합?�다.")]
+        "한 번의 Substep에서 허용할 최대 이동 거리입니다. " +
+        "한 Tick의 이동량이 더 크면 여러 단계로 나누어 시뮬레이션합니다.")]
     [Min(0.005f)]
     [SerializeField]
     private float maxSimulationStepDistance = 0.08f;
@@ -29,8 +42,8 @@ public class Projectile :
 
     [Header("Ballistics")]
     [Tooltip(
-        "?�드 ?�래 방향 중력 배율?�니?? " +
-        "0?�면 직선 ?�도, 1?�면 gravityAcceleration??그�?�??�용?�니??")]
+        "월드 아래 방향 중력 배율입니다. " +
+        "0이면 직선 궤도, 1이면 gravityAcceleration을 그대로 사용합니다.")]
     [Min(0f)]
     [SerializeField]
     private float gravityScale = 0f;
@@ -40,13 +53,13 @@ public class Projectile :
     private float gravityAcceleration = 9.81f;
 
     [Tooltip(
-        "?�도 감쇠 계수?�니?? 0?�면 공기 ?�??�� ?�용?��? ?�습?�다.")]
+        "속도 감쇠 계수입니다. 0이면 공기 저항을 적용하지 않습니다.")]
     [Min(0f)]
     [SerializeField]
     private float linearDrag = 0f;
 
     [Tooltip(
-        "진행 방향??맞춰 Projectile??+X 축을 ?�전?�킵?�다.")]
+        "진행 방향에 맞춰 Projectile의 +X 축을 회전시킵니다.")]
     [SerializeField]
     private bool alignRotationToVelocity = true;
 
@@ -214,13 +227,50 @@ public class Projectile :
 
 
     public virtual void Initialize(
-    NetworkRunner runner,
-    NetworkObject source,
-    Vector2 velocity,
-    float lifetime,
-    int damage,
-    Vector2 knockback,
-    float knockbackControlLock)
+        NetworkRunner runner,
+        NetworkObject source,
+        Vector2 direction)
+    {
+        direction =
+            NormalizeDirection(
+                direction);
+
+        if (direction == Vector2.zero)
+        {
+            direction =
+                transform.right;
+        }
+
+        Vector2 knockback =
+            attack != null
+                ? new Vector2(
+                    attack.KnockbackForward,
+                    attack.KnockbackUp)
+                : Vector2.zero;
+
+        Initialize(
+            runner,
+            source,
+            direction * initialSpeed,
+            lifetime,
+            attack != null
+                ? attack.Damage
+                : 0,
+            knockback,
+            attack != null
+                ? attack.KnockbackControlLock
+                : 0f);
+    }
+
+
+    public virtual void Initialize(
+        NetworkRunner runner,
+        NetworkObject source,
+        Vector2 velocity,
+        float lifetime,
+        int damage,
+        Vector2 knockback,
+        float knockbackControlLock)
     {
         if (!HasStateAuthority)
             return;

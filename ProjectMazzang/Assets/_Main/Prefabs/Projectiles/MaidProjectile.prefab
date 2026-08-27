@@ -167,6 +167,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0370609ec828fcf4699d714d7c78dfc5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Projectile
+  initialSpeed: 16
+  lifetime: 2.5
+  attack: {fileID: 11400000, guid: 4b9770a8e3d548e797d38a9dcf4cf612, type: 2}
   collisionMask:
     serializedVersion: 2
     m_Bits: 128
