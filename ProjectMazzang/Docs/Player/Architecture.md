@@ -87,6 +87,15 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
 - 하나의 모듈이 두 역할을 함께 가질 수 있다.
 - 새로운 Command를 추가할 때는 요청 API와 담당 Sink를 함께 정하고, 같은 Tick 안에 완전히 소비되는지 확인한다.
 
+## 공격 데이터
+
+- `AttackData`는 공격 ID, 피해, 넉백처럼 대상에게 적용되는 공통 결과를 보관한다.
+- `BoxAttackData`는 공통 결과에 박스 판정의 위치와 크기를 추가한다.
+- `PlayerAttackDefinition`은 플레이어가 공격을 실행하는 Startup, Active, Recovery,
+  Cooldown과 Aim, Movement 규칙을 보관한다.
+- 같은 `AttackData`를 사용하더라도 실행 주체에 따라 타이밍과 사용 규칙은 달라질 수 있으므로,
+  플레이어 전용 실행 정보는 `AttackData`에 두지 않는다.
+
 ## Control Lock
 
 `PlayerControlLock`은 Flags이며 현재 세 영역을 독립적으로 제어한다.

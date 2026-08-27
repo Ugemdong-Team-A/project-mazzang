@@ -8,9 +8,9 @@ public enum PlayerAttackMovementMode : byte
 }
 
 /// <summary>
-/// °ø¿ë AttackData¿¡ ÇÃ·¹ÀÌ¾î Àü¿ë »ç¿ë ±ÔÄ¢À» µ¡¾º¿ì´Â Á¤ÀÇÀÔ´Ï´Ù.
-/// AttackData ÀÚÃ¼´Â ÇÃ·¹ÀÌ¾î¸¦ ¸ğ¸£¸ç,
-/// PlayerCombatÀÌ °ø°İº° Aim / Movement ±ÔÄ¢À» ÇØ¼®ÇÕ´Ï´Ù.
+/// ê³µìš© AttackDataì— í”Œë ˆì´ì–´ ì „ìš© ì‚¬ìš© ê·œì¹™ì„ ë§ì”Œìš°ëŠ” ì •ì˜ì…ë‹ˆë‹¤.
+/// AttackData ìì²´ëŠ” í”Œë ˆì´ì–´ë¥¼ ëª¨ë¥´ë©°,
+/// PlayerCombatì´ ê³µê²©ë³„ Aim / Movement ê·œì¹™ì„ í•´ì„í•©ë‹ˆë‹¤.
 /// </summary>
 [Serializable]
 public struct PlayerAttackDefinition
@@ -18,6 +18,24 @@ public struct PlayerAttackDefinition
     [SerializeField]
     private AttackData attack;
 
+    [Header("Timing")]
+    [SerializeField]
+    [Min(0f)]
+    private float startupDuration;
+
+    [SerializeField]
+    [Min(0f)]
+    private float activeDuration;
+
+    [SerializeField]
+    [Min(0f)]
+    private float recoveryDuration;
+
+    [SerializeField]
+    [Min(0f)]
+    private float cooldown;
+
+    [Header("Player Rules")]
     [SerializeField]
     private PlayerAttackAimDefinition aim;
 
@@ -27,6 +45,18 @@ public struct PlayerAttackDefinition
 
     public AttackData Attack =>
         attack;
+
+    public float StartupDuration =>
+        startupDuration;
+
+    public float ActiveDuration =>
+        activeDuration;
+
+    public float RecoveryDuration =>
+        recoveryDuration;
+
+    public float Cooldown =>
+        cooldown;
 
     public PlayerAttackAimDefinition Aim =>
         aim;

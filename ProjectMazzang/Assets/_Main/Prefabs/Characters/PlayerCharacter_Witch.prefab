@@ -1001,6 +1001,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerCombat
   jabAttack:
     attack: {fileID: 11400000, guid: 98ddf7352baec8e4eb60d00b8fc824f1, type: 2}
+    startupDuration: 0.3
+    activeDuration: 0.1
+    recoveryDuration: 0.2
+    cooldown: 0.8
     aim:
       aimMode: 2
       poseMode: 1

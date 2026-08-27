@@ -14,10 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BoxAttackData
   attackId: 2
   displayName: Counter
-  startupDuration: 0.3
-  activeDuration: 0.1
-  recoveryDuration: 0.2
-  cooldown: 0.8
   damage: 10
   knockbackForward: 6
   knockbackUp: 4

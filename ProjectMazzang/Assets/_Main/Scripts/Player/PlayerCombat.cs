@@ -437,12 +437,12 @@ public sealed class PlayerCombat :
 
         AttackPhaseTimer =
             CreateTimer(
-                attack.StartupDuration);
+                definition.StartupDuration);
 
 
         AttackCooldownTimer =
             CreateTimer(
-                attack.Cooldown);
+                definition.Cooldown);
 
 
         ApplyAimRule(
@@ -560,7 +560,7 @@ public sealed class PlayerCombat :
 
         AttackPhaseTimer =
             CreateTimer(
-                attack.ActiveDuration);
+                definition.ActiveDuration);
     }
 
 
@@ -573,10 +573,8 @@ public sealed class PlayerCombat :
         }
 
 
-        AttackData attack =
-            GetCurrentAttack();
-
-        if (attack == null)
+        if (!TryGetCurrentAttackDefinition(
+                out PlayerAttackDefinition definition))
         {
             CancelAttack();
 
@@ -590,7 +588,7 @@ public sealed class PlayerCombat :
 
         AttackPhaseTimer =
             CreateTimer(
-                attack.RecoveryDuration);
+                definition.RecoveryDuration);
     }
 
 
@@ -684,16 +682,6 @@ public sealed class PlayerCombat :
             default;
 
         return false;
-    }
-
-
-    private AttackData GetCurrentAttack()
-    {
-        return
-            TryGetCurrentAttackDefinition(
-                out PlayerAttackDefinition definition)
-                ? definition.Attack
-                : null;
     }
 
 
