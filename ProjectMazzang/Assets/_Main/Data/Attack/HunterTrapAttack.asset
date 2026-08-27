@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21f1c6229570fa94ca578f2c054f9393, type: 3}
+  m_Name: HunterTrapAttack
+  m_EditorClassIdentifier: Assembly-CSharp::AttackData
+  attackId: 1005
+  displayName: Hunter Trap
+  damage: 5
+  knockbackForward: 0
+  knockbackUp: 0
+  knockbackControlLock: 2

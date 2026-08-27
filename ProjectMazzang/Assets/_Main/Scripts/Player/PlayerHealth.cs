@@ -286,12 +286,17 @@ public sealed class PlayerHealth :
         // 새 공격 차단 시간은 아래의 Attack control lock이 담당한다.
         RequestCancelAttack();
 
+        if (info.KnockbackControlLock > 0f)
+        {
+            RequestHitControlLock(
+                info.KnockbackControlLock);
+        }
+
         if (info.Knockback
                 .sqrMagnitude > 0f)
         {
             RequestKnockback(
-                info.Knockback,
-                info.KnockbackControlLock);
+                info.Knockback);
         }
 
         bool wasFatal =
@@ -323,19 +328,24 @@ public sealed class PlayerHealth :
     }
 
 
-    private void RequestKnockback(
-        Vector2 velocity,
-        float controlLockDuration)
+    private void RequestHitControlLock(
+        float duration)
     {
         if (Commands == null)
             return;
 
-        // 기존 피격 규칙을 명시적으로 보존한다.
-        // 넉백은 이동과 기본 공격만 잠그며, 스킬은 별도 정책이다.
         Commands.RequestControlLock(
             PlayerControlLock.Movement |
             PlayerControlLock.Attack,
-            controlLockDuration);
+            duration);
+    }
+
+
+    private void RequestKnockback(
+        Vector2 velocity)
+    {
+        if (Commands == null)
+            return;
 
         Commands.RequestKnockback(
             velocity);

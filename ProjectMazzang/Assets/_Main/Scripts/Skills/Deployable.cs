@@ -15,9 +15,12 @@ public abstract class Deployable : NetworkBehaviour
         float lifetime)
     {
         Owner = owner;
-        Lifetime = TickTimer.CreateFromSeconds(
-            Runner,
-            lifetime);
+        Lifetime =
+            lifetime > 0f
+                ? TickTimer.CreateFromSeconds(
+                    Runner,
+                    lifetime)
+                : TickTimer.None;
     }
 
     public override void FixedUpdateNetwork()
