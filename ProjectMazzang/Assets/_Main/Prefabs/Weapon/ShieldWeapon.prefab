@@ -401,7 +401,7 @@ MonoBehaviour:
   presentationTemplate: {fileID: 6732957340894770001}
   _Holder: {fileID: 0}
   sharedCooldown: 1.35
-  damage: 13
+  bashAttack: {fileID: 11400000, guid: e2a1f7c2b6d44a3fa92bc8e9d31f0104, type: 2}
   hitboxSize: {x: 1.25, y: 1.5}
   hitboxForwardOffset: 0.58
   hurtboxLayer:
@@ -409,9 +409,6 @@ MonoBehaviour:
     m_Bits: 256
   dashSpeed: 7.5
   dashControlLock: 0.1
-  knockbackForward: 7.5
-  knockbackUp: 2.5
-  knockbackControlLock: 0.12
   parryDuration: 0.22
   parryRadius: 1.15
   parryArcAngle: 92

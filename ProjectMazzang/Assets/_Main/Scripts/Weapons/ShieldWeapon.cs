@@ -12,9 +12,8 @@ public sealed class ShieldWeapon :
     private float sharedCooldown = 1.35f;
 
     [Header("Shield Bash")]
-    [Min(0)]
     [SerializeField]
-    private int damage = 13;
+    private AttackData bashAttack;
 
     [SerializeField]
     private Vector2 hitboxSize =
@@ -34,18 +33,6 @@ public sealed class ShieldWeapon :
     [Min(0f)]
     [SerializeField]
     private float dashControlLock = 0.1f;
-
-    [Min(0f)]
-    [SerializeField]
-    private float knockbackForward = 7.5f;
-
-    [Min(0f)]
-    [SerializeField]
-    private float knockbackUp = 2.5f;
-
-    [Min(0f)]
-    [SerializeField]
-    private float knockbackControlLock = 0.12f;
 
     [Header("Shield Parry")]
     [Min(0.01f)]
@@ -330,6 +317,9 @@ public sealed class ShieldWeapon :
         Vector2 origin,
         Vector2 direction)
     {
+        if (bashAttack == null)
+            return;
+
         float angle = Mathf.Atan2(
             direction.y,
             direction.x) * Mathf.Rad2Deg;
@@ -366,14 +356,14 @@ public sealed class ShieldWeapon :
                 continue;
 
             Vector2 knockback =
-                direction * knockbackForward +
-                Vector2.up * knockbackUp;
+                direction * bashAttack.KnockbackForward +
+                Vector2.up * bashAttack.KnockbackUp;
 
             DamageInfo info = new(
-                damage,
+                bashAttack.Damage,
                 Holder,
                 knockback,
-                knockbackControlLock);
+                bashAttack.KnockbackControlLock);
 
             CombatDamageService.ApplyDamage(
                 damageable,
