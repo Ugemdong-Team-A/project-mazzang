@@ -5,6 +5,7 @@ public sealed class ShieldWeaponPresentation :
 {
     private const int ArcSegments = 24;
     private const float FlashDuration = 0.18f;
+    private const float CooldownVerticalOffset = 0.05f;
 
     private Material _material;
     private LineRenderer _guardOuter;
@@ -82,7 +83,7 @@ public sealed class ShieldWeaponPresentation :
         {
             Vector2 meterOrigin =
                 holderPosition +
-                Vector2.down * 0.92f;
+                Vector2.up * CooldownVerticalOffset;
 
             SetArc(
                 _cooldownBack,

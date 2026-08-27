@@ -72,7 +72,7 @@ GameObject:
   m_Component:
   - component: {fileID: 636932328046927157}
   m_Layer: 0
-  m_Name: WallCheck Left
+  m_Name: WallCheckLeft
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -443,7 +443,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3239413066992619661}
   m_Layer: 7
-  m_Name: Visibles
+  m_Name: Visuals
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -797,7 +797,6 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children:
-  - {fileID: 405535938307882185}
   - {fileID: 3239413066992619661}
   - {fileID: 4423033987074635643}
   - {fileID: 9012758368865034393}
@@ -1398,7 +1397,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2338953937856615650}
   m_Layer: 0
-  m_Name: WallCheck Right
+  m_Name: WallCheckRight
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1529,7 +1528,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4423033987074635643}
   m_Layer: 7
-  m_Name: CheckObjects
+  m_Name: GameplayAnchors
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1551,6 +1550,7 @@ Transform:
   - {fileID: 534010410655661832}
   - {fileID: 2338953937856615650}
   - {fileID: 636932328046927157}
+  - {fileID: 405535938307882185}
   m_Father: {fileID: 1402181065297912930}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &5101602789152599527
@@ -1734,7 +1734,7 @@ Transform:
   m_LocalScale: {x: 0.24999996, y: 0.24999996, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
-  m_Father: {fileID: 1402181065297912930}
+  m_Father: {fileID: 4423033987074635643}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &5942426527009704737
 GameObject:

@@ -232,7 +232,7 @@ public sealed class ShieldWeapon :
             Holder.InputAuthority == Runner.LocalPlayer;
 
         _presentation.SetState(
-            ResolveHolderAnchor(),
+            ResolveStableHolderPosition(),
             ParryOrigin,
             ParryDirection,
             parryRadius,
@@ -393,6 +393,13 @@ public sealed class ShieldWeapon :
 
         return ActionOrigin.sqrMagnitude > 0.0001f
             ? ActionOrigin
+            : (Vector2)transform.position;
+    }
+
+    private Vector2 ResolveStableHolderPosition()
+    {
+        return Holder != null
+            ? (Vector2)Holder.transform.position
             : (Vector2)transform.position;
     }
 
