@@ -172,7 +172,7 @@ MonoBehaviour:
   attack: {fileID: 11400000, guid: 4b9770a8e3d548e797d38a9dcf4cf612, type: 2}
   collisionMask:
     serializedVersion: 2
-    m_Bits: 128
+    m_Bits: 192
   collisionRadius: 0.05
   maxSimulationStepDistance: 0.08
   maxSimulationStepsPerTick: 16
@@ -183,5 +183,7 @@ MonoBehaviour:
   projectileTrail: {fileID: 0}
   remotePresentationSharpness: 30
   remotePresentationSnapDistance: 1.5
+  impactShakeProfile: {fileID: 11400000, guid: 35dd6d2a16e64815be4a5c64a1d21f3b, type: 2}
+  impactPresentationDuration: 0.15
   _Velocity: {x: 0, y: 0}
   _Source: {fileID: 0}

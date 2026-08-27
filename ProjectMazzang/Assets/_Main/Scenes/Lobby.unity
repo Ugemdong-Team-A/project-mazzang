@@ -7605,7 +7605,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 16f52a7c9d1b4e2598800123456789ab, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SettingsMenuUI
   fontAsset: {fileID: 11400000, guid: e0c6fe70d7d704845b1a2c331de11e1e, type: 2}
 --- !u!1 &849658463

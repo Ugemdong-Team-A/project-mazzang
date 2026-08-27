@@ -84,6 +84,20 @@ public class Projectile :
     private Quaternion _remotePresentationRotation;
     private bool _hasRemotePresentationPose;
 
+    [Tooltip(
+        "충돌 시 카메라 진동 연출")]
+    [SerializeField]
+    private CameraShakeProfile impactShakeProfile;
+
+    [SerializeField]
+    private bool despawnOnImpact;
+
+    [Min(0.05f)]
+    [SerializeField]
+    private float impactPresentationDuration = 0.15f;
+    
+    private int _visibleImpactSequence;
+
 
     public Vector2 ParryVelocity => Velocity;
 
@@ -139,6 +153,34 @@ public class Projectile :
         set;
     }
 
+    [Networked]
+    private NetworkBool HasImpacted
+    {
+        get;
+        set;
+    }
+
+    [Networked]
+    private Vector2 LastImpactPosition
+    {
+        get;
+        set;
+    }
+
+    [Networked]
+    private int ImpactSequence
+    {
+        get;
+        set;
+    }
+
+    [Networked]
+    private TickTimer ImpactDespawnTimer
+    {
+        get;
+        set;
+    }
+
 
     protected virtual void Awake()
     {
@@ -154,6 +196,9 @@ public class Projectile :
     {
         ResetRemotePresentationPose();
         TryStartTrailPresentation();
+
+        _visibleImpactSequence =
+            ImpactSequence;
     }
 
 
@@ -161,6 +206,25 @@ public class Projectile :
     {
         SmoothRemotePresentation();
         TryStartTrailPresentation();
+
+        if (_visibleImpactSequence ==
+            ImpactSequence)
+        {
+            return;
+        }
+
+        _visibleImpactSequence =
+            ImpactSequence;
+
+        CameraShakeService.Play(
+            impactShakeProfile,
+            LastImpactPosition);
+
+        if (despawnOnImpact)
+        {
+            DespawnProjectile();
+            return;
+        }
     }
 
 
@@ -339,6 +403,17 @@ public class Projectile :
                 Runner))
         {
             DespawnProjectile();
+            return;
+        }
+
+        if (HasImpacted && !despawnOnImpact)
+        {
+            if (ImpactDespawnTimer.Expired(
+                    Runner))
+            {
+                DespawnProjectile();
+            }
+
             return;
         }
 
@@ -602,7 +677,20 @@ public class Projectile :
         TryApplyDamage(
             hit.collider);
 
-        DespawnProjectile();
+        LastImpactPosition =
+            transform.position;
+
+        HasImpacted =
+            true;
+
+        ImpactSequence++;
+
+        StopProjectile();
+
+        ImpactDespawnTimer =
+            TickTimer.CreateFromSeconds(
+                Runner,
+                impactPresentationDuration);
     }
 
 
