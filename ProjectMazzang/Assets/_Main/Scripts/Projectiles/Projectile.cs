@@ -231,6 +231,9 @@ public class Projectile :
         NetworkObject source,
         Vector2 direction)
     {
+        if (!HasStateAuthority)
+            return;
+
         direction =
             NormalizeDirection(
                 direction);
@@ -249,53 +252,17 @@ public class Projectile :
                   attack.KnockbackUp
                 : Vector2.zero;
 
-        Initialize(
-            runner,
-            source,
-            direction * initialSpeed,
-            lifetime,
-            attack != null
-                ? attack.Damage
-                : 0,
-            knockback,
-            attack != null
-                ? attack.KnockbackControlLock
-                : 0f);
-    }
-
-
-    public virtual void Initialize(
-        NetworkRunner runner,
-        NetworkObject source,
-        Vector2 velocity,
-        float lifetime,
-        int damage,
-        Vector2 knockback,
-        float knockbackControlLock)
-    {
-        if (!HasStateAuthority)
-            return;
-
-        Vector2 direction =
-            NormalizeDirection(
-                velocity);
-
-        if (direction ==
-            Vector2.zero)
-        {
-            direction =
-                transform.right;
-        }
-
         Source =
             source;
 
         Velocity =
             direction *
-            velocity.magnitude;
+            initialSpeed;
 
         Damage =
-            damage;
+            attack != null
+                ? attack.Damage
+                : 0;
 
         LocalKnockback =
             ToLocalDirectionSpace(
@@ -303,7 +270,9 @@ public class Projectile :
                 direction);
 
         KnockbackControlLock =
-            knockbackControlLock;
+            attack != null
+                ? attack.KnockbackControlLock
+                : 0f;
 
         LifeTimer =
             lifetime > 0f
