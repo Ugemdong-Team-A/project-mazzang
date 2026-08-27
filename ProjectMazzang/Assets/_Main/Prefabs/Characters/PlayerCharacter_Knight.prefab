@@ -93,6 +93,38 @@ Transform:
   m_Children: []
   m_Father: {fileID: 4423033987074635643}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &910000000000000001
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 910000000000000002}
+  m_Layer: 8
+  m_Name: ResolvedAimPivot
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &910000000000000002
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 910000000000000001}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 4, y: 4, z: 1}
+  m_ConstrainProportionsScale: 1
+  m_Children:
+  - {fileID: 1119498991958727768}
+  m_Father: {fileID: 5459021469249167873}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1073382927923127311
 GameObject:
   m_ObjectHideFlags: 0
@@ -704,10 +736,10 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0.000000014901158, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 4, y: 4, z: 1}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 5459021469249167873}
+  m_Father: {fileID: 910000000000000002}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &5348071517637358525
 MonoBehaviour:
@@ -1055,6 +1087,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAim
   aimOrigin: {fileID: 405535938307882185}
   ccdTarget: {fileID: 5349236784287973008}
+  resolvedAimReferenceBone: {fileID: 5459021469249167873}
+  resolvedAimPivot: {fileID: 910000000000000002}
   upperBodyAimRig: {fileID: 855167590607317003}
   ccdTargetRadius: 3
   rigAngleOffset: 90
@@ -1081,6 +1115,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerWeaponController
   weaponSocket: {fileID: 1119498991958727768}
+  resolvedAimPivot: {fileID: 910000000000000002}
   weaponSortingOrder: 24
   leftHandLimb: {fileID: 3268336011809022708}
   rightHandLimb: {fileID: 1825635801981400533}
@@ -1680,7 +1715,7 @@ GameObject:
   m_Component:
   - component: {fileID: 405535938307882185}
   m_Layer: 8
-  m_Name: AimTarget
+  m_Name: AimOrigin
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1695,7 +1730,7 @@ Transform:
   m_GameObject: {fileID: 5291373910231468205}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.16328545, y: 0.9702012, z: 0}
+  m_LocalPosition: {x: 0, y: 0.9702012, z: 0}
   m_LocalScale: {x: 0.24999996, y: 0.24999996, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
@@ -3916,7 +3951,7 @@ PrefabInstance:
       addedObject: {fileID: 979115207265107204}
     - targetCorrespondingSourceObject: {fileID: 5283110698140630313, guid: 8f519a0f7487d41cebc10ff177ee1436, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 1119498991958727768}
+      addedObject: {fileID: 910000000000000002}
     - targetCorrespondingSourceObject: {fileID: -6402243068667089341, guid: 8f519a0f7487d41cebc10ff177ee1436, type: 3}
       insertIndex: -1
       addedObject: {fileID: 3262839273893832244}

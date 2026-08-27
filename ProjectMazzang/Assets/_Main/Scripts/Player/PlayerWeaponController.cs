@@ -12,6 +12,11 @@ public sealed class PlayerWeaponController :
     [SerializeField]
     private Transform weaponSocket;
 
+    [Tooltip(
+        "PlayerAim이 허리 제한과 표시 보간을 적용해 회전시키는 피벗입니다.")]
+    [SerializeField]
+    private Transform resolvedAimPivot;
+
     [Header("Weapon Presentation")]
     [SerializeField]
     private int weaponSortingOrder = 24;
@@ -40,6 +45,8 @@ public sealed class PlayerWeaponController :
 
     private HeldWeaponView
         _boundIkView;
+
+    private PlayerAim _playerAim;
 
 
     // =========================================================
@@ -100,6 +107,8 @@ public sealed class PlayerWeaponController :
 
     public override void Spawned()
     {
+        _playerAim = GetComponent<PlayerAim>();
+
         StabilizeWeaponSocket();
 
         // Prefab에 저장된 IK target/enable 상태가 첫 Render까지 팔을
@@ -194,9 +203,6 @@ public sealed class PlayerWeaponController :
                 input.AimWorldPosition,
                 state,
                 useLegacyAim);
-
-            ApplyWeaponSocketRotation(
-                WeaponAngle);
         }
 
         if (!HasStateAuthority)
@@ -278,21 +284,6 @@ public sealed class PlayerWeaponController :
             return;
         }
 
-        float visualAngle =
-            WeaponAngle;
-
-        if (HasInputAuthority &&
-            tickState.AimDirection.sqrMagnitude >
-                0.0001f)
-        {
-            visualAngle =
-                DirectionToAngle(
-                    tickState.AimDirection);
-        }
-
-        ApplyWeaponSocketRotation(
-            visualAngle);
-
         Weapon equippedWeapon =
             EquippedWeapon;
 
@@ -313,15 +304,32 @@ public sealed class PlayerWeaponController :
 
     private void StabilizeWeaponSocket()
     {
-        if (weaponSocket == null ||
-            weaponSocket.parent == transform)
-        {
+        if (weaponSocket == null)
             return;
+
+        Transform stableParent =
+            resolvedAimPivot != null
+                ? resolvedAimPivot
+                : transform;
+
+        if (weaponSocket.parent != stableParent)
+        {
+            weaponSocket.SetParent(
+                stableParent,
+                true);
         }
 
-        weaponSocket.SetParent(
-            transform,
-            true);
+        if (resolvedAimPivot != null)
+        {
+            weaponSocket.localPosition =
+                Vector3.zero;
+
+            weaponSocket.localScale =
+                Vector3.one;
+        }
+
+        weaponSocket.localRotation =
+            Quaternion.identity;
     }
 
 
@@ -345,58 +353,18 @@ public sealed class PlayerWeaponController :
             return;
         }
 
+        if (_playerAim != null)
+        {
+            direction =
+                _playerAim.ResolveLimitedAimDirection(
+                    direction,
+                    !state.HasMovement ||
+                    state.FacingRight);
+        }
+
         WeaponAngle =
             DirectionToAngle(
                 direction);
-    }
-
-    private void ApplyWeaponSocketRotation(
-        float worldAngle)
-    {
-        Vector2 worldDirection =
-            AngleToDirection(
-                worldAngle);
-
-        Transform parent =
-            weaponSocket.parent;
-
-        if (parent == null)
-        {
-            weaponSocket.rotation =
-                Quaternion.Euler(
-                    0f,
-                    0f,
-                    worldAngle);
-
-            return;
-        }
-
-        Vector3 localDirection3 =
-            parent.InverseTransformVector(
-                worldDirection);
-
-        Vector2 localDirection =
-            new Vector2(
-                localDirection3.x,
-                localDirection3.y);
-
-        if (localDirection.sqrMagnitude <=
-            0.0001f)
-        {
-            return;
-        }
-
-        float localAngle =
-            Mathf.Atan2(
-                localDirection.y,
-                localDirection.x) *
-            Mathf.Rad2Deg;
-
-        weaponSocket.localRotation =
-            Quaternion.Euler(
-                0f,
-                0f,
-                localAngle);
     }
 
     private static float DirectionToAngle(

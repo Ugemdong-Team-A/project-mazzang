@@ -9,8 +9,8 @@ public sealed class PlayerAim :
 {
     [Header("Aim")]
     [Tooltip(
-        "Á¤È®ÇÑ Á¶ÁØ ¹æÇâÀÇ ±âÁØÁ¡ÀÔ´Ï´Ù. " +
-        "Rig/Bone °èÃş ¹ÛÀÇ »óÃ¼ À§Ä¡¿¡ µÓ´Ï´Ù.")]
+        "ì •í™•í•œ ì¡°ì¤€ ë°©í–¥ì˜ ê¸°ì¤€ì ì…ë‹ˆë‹¤. " +
+        "Rig/Bone ê³„ì¸µ ë°–ì˜ ìƒì²´ ìœ„ì¹˜ì— ë‘¡ë‹ˆë‹¤.")]
     [SerializeField]
     private Transform aimOrigin;
 
@@ -18,8 +18,18 @@ public sealed class PlayerAim :
     private Transform ccdTarget;
 
     [Tooltip(
-        "»óÃ¼ Á¶ÁØÀ» ´ã´çÇÏ´Â CCD µîÀÇ BehaviourÀÔ´Ï´Ù. " +
-        "AnimationDriven »óÅÂ¿¡¼­´Â ºñÈ°¼ºÈ­µË´Ï´Ù.")]
+        "ResolvedAimPivotì´ ìœ„ì¹˜ì™€ íšŒì „ì„ ìƒì†í•  ê¸°ì¤€ ì²™ì¶” ë³¸ì…ë‹ˆë‹¤.")]
+    [SerializeField]
+    private Transform resolvedAimReferenceBone;
+
+    [Tooltip(
+        "ê¸°ì¤€ ì²™ì¶” ë³¸ì˜ ë¡œì»¬ ì›ì ì—ì„œ ìµœì¢… ìƒì²´ ìì„¸ë¥¼ ë”°ë¼ê°€ëŠ” í”¼ë²—ì…ë‹ˆë‹¤.")]
+    [SerializeField]
+    private Transform resolvedAimPivot;
+
+    [Tooltip(
+        "ìƒì²´ ì¡°ì¤€ì„ ë‹´ë‹¹í•˜ëŠ” CCD ë“±ì˜ Behaviourì…ë‹ˆë‹¤. " +
+        "AnimationDriven ìƒíƒœì—ì„œëŠ” ë¹„í™œì„±í™”ë©ë‹ˆë‹¤.")]
     [SerializeField]
     private UnityEngine.Behaviour upperBodyAimRig;
 
@@ -28,7 +38,7 @@ public sealed class PlayerAim :
     private float ccdTargetRadius = 3f;
 
     [Tooltip(
-        "Ä³¸¯ÅÍ Á¤¸éÃà°ú CCD Effector º» Ãà »çÀÌÀÇ °¢µµ Â÷ÀÌÀÔ´Ï´Ù.")]
+        "ìºë¦­í„° ì •ë©´ì¶•ê³¼ CCD Effector ë³¸ ì¶• ì‚¬ì´ì˜ ê°ë„ ì°¨ì´ì…ë‹ˆë‹¤.")]
     [SerializeField]
     private float rigAngleOffset = 90f;
 
@@ -127,6 +137,9 @@ public sealed class PlayerAim :
             PlayerAimFacingMode.FollowAim ||
         RigMode !=
             PlayerAimRigMode.Procedural;
+
+    public Transform ResolvedAimPivot =>
+        resolvedAimPivot;
 
 
     // =========================================================
@@ -269,8 +282,8 @@ public sealed class PlayerAim :
             ResolveSourceDirection(
                 sourceAimDirection, facingRight);
 
-        // ¹æÇâÀ» °íÁ¤ÇÏ±â Àü¿¡
-        // ÇØ´ç °ø°İ ¹æÇâ¿¡ ¸Â°Ô FacingÀ» ÇÑ ¹ø È®Á¤ÇÑ´Ù.
+        // ë°©í–¥ì„ ê³ ì •í•˜ê¸° ì „ì—
+        // í•´ë‹¹ ê³µê²© ë°©í–¥ì— ë§ê²Œ Facingì„ í•œ ë²ˆ í™•ì •í•œë‹¤.
         if (aimOverride.FacingMode ==
             PlayerAimFacingMode.Locked)
         {
@@ -345,8 +358,8 @@ public sealed class PlayerAim :
     // =========================================================
 
     /// <summary>
-    /// AimOrigin¿¡¼­ ¿ùµå Å¸°Ù±îÁöÀÇ Á¤È®ÇÑ Á¶ÁØ ¹æÇâÀ» °è»êÇÕ´Ï´Ù.
-    /// InputÀº ¿ùµå ÁÂÇ¥¸¸ Á¦°øÇÏ°í, Á¶ÁØ ±âÁØÁ¡ÀÇ ÀÇ¹Ì´Â PlayerAimÀÌ ¼ÒÀ¯ÇÕ´Ï´Ù.
+    /// AimOriginì—ì„œ ì›”ë“œ íƒ€ê²Ÿê¹Œì§€ì˜ ì •í™•í•œ ì¡°ì¤€ ë°©í–¥ì„ ê³„ì‚°í•©ë‹ˆë‹¤.
+    /// Inputì€ ì›”ë“œ ì¢Œí‘œë§Œ ì œê³µí•˜ê³ , ì¡°ì¤€ ê¸°ì¤€ì ì˜ ì˜ë¯¸ëŠ” PlayerAimì´ ì†Œìœ í•©ë‹ˆë‹¤.
     /// </summary>
 
     private Vector2 ResolveDirectionTo(
@@ -602,6 +615,32 @@ public sealed class PlayerAim :
     }
 
 
+    public Vector2 ResolveLimitedAimDirection(
+        Vector2 direction,
+        bool facingRight)
+    {
+        direction = NormalizeDirection(direction);
+
+        if (direction.sqrMagnitude <= 0.0001f)
+        {
+            return GetWorldBodyDirection(
+                BodyAimAngle,
+                facingRight);
+        }
+
+        float localAngle = Mathf.Clamp(
+            CalculateLocalAimAngle(
+                direction,
+                facingRight),
+            -maxBodyAimAngle,
+            maxBodyAimAngle);
+
+        return GetWorldBodyDirection(
+            localAngle,
+            facingRight);
+    }
+
+
     // =========================================================
     // Four Way
     // =========================================================
@@ -697,10 +736,7 @@ public sealed class PlayerAim :
     private void ApplyCcdTarget(bool facingRight)
     {
         Vector2 bodyDirection =
-            GetWorldBodyDirection(
-                _hasPresentedBodyAimAngle
-                    ? _presentedBodyAimAngle
-                    : BodyAimAngle, facingRight);
+            GetPresentedBodyDirection(facingRight);
 
         float signedRigOffset =
             facingRight
@@ -717,6 +753,17 @@ public sealed class PlayerAim :
             (Vector3)(
                 rigDirection *
                 ccdTargetRadius);
+    }
+
+
+    private Vector2 GetPresentedBodyDirection(
+        bool facingRight)
+    {
+        return GetWorldBodyDirection(
+            _hasPresentedBodyAimAngle
+                ? _presentedBodyAimAngle
+                : BodyAimAngle,
+            facingRight);
     }
 
 
@@ -755,6 +802,17 @@ public sealed class PlayerAim :
             Mathf.Max(
                 facingFlipAngle,
                 minimumFlipAngle);
+
+        if (resolvedAimReferenceBone != null &&
+            resolvedAimPivot != null &&
+            resolvedAimPivot.parent !=
+                resolvedAimReferenceBone)
+        {
+            Debug.LogWarning(
+                "ResolvedAimPivotì€ ì§€ì •í•œ ê¸°ì¤€ ì²™ì¶” ë³¸ì˜ " +
+                "ì§ì ‘ ìì‹ì´ì–´ì•¼ í•©ë‹ˆë‹¤.",
+                this);
+        }
     }
 
 
