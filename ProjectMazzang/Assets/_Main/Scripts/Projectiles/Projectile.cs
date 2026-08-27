@@ -243,9 +243,10 @@ public class Projectile :
 
         Vector2 knockback =
             attack != null
-                ? new Vector2(
-                    attack.KnockbackForward,
-                    attack.KnockbackUp)
+                ? direction *
+                  attack.KnockbackForward +
+                  Vector2.up *
+                  attack.KnockbackUp
                 : Vector2.zero;
 
         Initialize(
