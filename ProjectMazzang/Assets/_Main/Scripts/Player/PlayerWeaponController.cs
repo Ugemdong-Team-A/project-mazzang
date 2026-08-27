@@ -291,6 +291,7 @@ public sealed class PlayerWeaponController :
         {
             equippedWeapon
                 .RefreshHeldPresentation(
+                    resolvedAimPivot == null &&
                     !tickState.FacingRight);
         }
 
@@ -329,7 +330,10 @@ public sealed class PlayerWeaponController :
         }
 
         weaponSocket.localRotation =
-            Quaternion.identity;
+            Quaternion.Euler(
+                0f,
+                0f,
+                -90f);
     }
 
 
