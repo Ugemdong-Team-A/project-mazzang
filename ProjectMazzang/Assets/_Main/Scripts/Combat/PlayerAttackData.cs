@@ -39,6 +39,18 @@ public sealed class PlayerAttackData :
     [SerializeField]
     private PlayerAttackMovementMode movementMode;
 
+    [Header("Combo")]
+    [Tooltip(
+        "이 공격의 Active 시작부터 Recovery 종료까지 공격 입력을 받으면 이어서 실행할 공격입니다.")]
+    [SerializeField]
+    private PlayerAttackData comboFollowUp;
+
+    [Tooltip(
+        "켜면 콤보 입력을 여러 번 눌러도 한 번 입력한 것으로 취급합니다. " +
+        "끄면 정확히 한 번 입력해야 콤보가 실행됩니다.")]
+    [SerializeField]
+    private bool allowRepeatedComboInput = true;
+
 
     public AttackData Attack =>
         attack;
@@ -60,6 +72,12 @@ public sealed class PlayerAttackData :
 
     public PlayerAttackMovementMode MovementMode =>
         movementMode;
+
+    public PlayerAttackData ComboFollowUp =>
+        comboFollowUp;
+
+    public bool AllowRepeatedComboInput =>
+        allowRepeatedComboInput;
 
 
     public bool IsValid =>

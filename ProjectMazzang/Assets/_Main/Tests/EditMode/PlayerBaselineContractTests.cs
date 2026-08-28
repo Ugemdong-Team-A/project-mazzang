@@ -288,6 +288,81 @@ namespace ProjectMazzang.Tests
 
 
         [Test]
+        public void PlayerAttackData_KeepsComboConfiguration()
+        {
+            Type attackDataType =
+                GetRuntimeType(
+                    "PlayerAttackData");
+
+            ScriptableObject attackData =
+                ScriptableObject.CreateInstance(
+                    attackDataType);
+
+            try
+            {
+                SerializedObject serializedObject =
+                    new(
+                        attackData);
+
+                Assert.That(
+                    serializedObject.FindProperty(
+                        "comboFollowUp"),
+                    Is.Not.Null);
+
+                SerializedProperty repeatedInput =
+                    serializedObject.FindProperty(
+                        "allowRepeatedComboInput");
+
+                Assert.That(
+                    repeatedInput,
+                    Is.Not.Null);
+
+                Assert.That(
+                    repeatedInput.boolValue,
+                    Is.True,
+                    "기본 콤보는 연속 입력을 한 번의 예약으로 취급해야 합니다.");
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(
+                    attackData);
+            }
+        }
+
+
+        [Test]
+        public void PlayerCombat_ValidatesRepeatedComboInputPolicy()
+        {
+            MethodInfo method =
+                GetRuntimeType("PlayerCombat")
+                    .GetMethod(
+                        "IsComboInputSatisfied",
+                        BindingFlags.Static |
+                        BindingFlags.NonPublic);
+
+            Assert.That(method, Is.Not.Null);
+
+            Assert.That(
+                method.Invoke(
+                    null,
+                    new object[] { (byte)1, false }),
+                Is.EqualTo(true));
+
+            Assert.That(
+                method.Invoke(
+                    null,
+                    new object[] { (byte)2, false }),
+                Is.EqualTo(false));
+
+            Assert.That(
+                method.Invoke(
+                    null,
+                    new object[] { (byte)2, true }),
+                Is.EqualTo(true));
+        }
+
+
+        [Test]
         public void PlayerSkillController_CreatesRuntimeSkillsOnEveryPeer()
         {
             Type controllerType =

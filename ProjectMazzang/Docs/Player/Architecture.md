@@ -115,6 +115,9 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
 - 양손 Limb Solver는 평상시 `ProceduralAim`에서 꺼 두어 고정된 손 Target이 Animator의 팔
   자세를 덮지 않게 한다. `AnimationOnly`와 `AnimationWithBodyAim` 공격 중에는 클립이 움직이는
   원래 손 Target을 복원하며, 무기를 장착했다면 각 손의 Grip이 해당 Target보다 우선한다.
+- `PlayerAttackData.ComboFollowUp`이 있으면 Active 시작부터 Recovery 종료까지 공격 입력을
+  예약하고, Recovery가 끝날 때 후속 공격으로 직접 전환한다. `AllowRepeatedComboInput`이 켜지면
+  연속 입력을 한 번의 예약으로 취급하며, 런타임 콤보 깊이는 1단계로 제한한다.
 - 같은 `AttackData`를 사용하더라도 실행 주체에 따라 타이밍과 사용 규칙은 달라질 수 있으므로,
   플레이어 전용 실행 정보는 `AttackData`에 두지 않는다.
 - `Projectile` 프리팹은 자신의 초기 속도, 수명, `AttackData`를 보관하고 충돌 시 공격 결과를 전달한다.
