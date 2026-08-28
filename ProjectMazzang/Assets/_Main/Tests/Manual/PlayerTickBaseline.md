@@ -69,7 +69,8 @@
 - Aim에서 확정된 방향과 각도를 Animation이 같은 Tick에 읽는다.
 - Aim override가 끝난 뒤 일반 입력 Aim으로 복귀한다.
 - 공격의 Aim override와 Weapon 사용 요청이 요청된 Tick 안에서 처리된다.
-- `ProceduralAim`은 기본 상체 포즈에서 CCD 조준을 적용한다.
+- `ProceduralAim` 공격은 기본 상체 포즈에서 CCD 조준을 적용한다.
+- 공격하지 않고 달리거나 대기할 때는 CCD 조준 중에도 클립의 가슴과 팔 움직임이 유지된다.
 - `AnimationOnly`는 상체 CCD를 끄고 공격 클립의 자세를 그대로 사용한다.
 - `AnimationWithBodyAim`은 공격 클립의 상체 상대 자세를 유지한 채 기준 척추에
   필요한 회전만 더해 최종 조준 방향을 맞춘다.
