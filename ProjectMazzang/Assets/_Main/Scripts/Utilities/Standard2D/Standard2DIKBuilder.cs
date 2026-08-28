@@ -108,6 +108,12 @@ public static class Standard2DIKBuilder
                 spec);
         }
 
+        CreateCcd(
+            setup,
+            rig,
+            manager,
+            Standard2DRigDefinition.BodyAimCcd);
+
         EditorUtility.SetDirty(manager);
         EditorUtility.SetDirty(setup);
 
@@ -129,9 +135,9 @@ public static class Standard2DIKBuilder
             $"[{nameof(Standard2DRigIKSetup)} v{Standard2DRigIKSetup.ToolVersion}] " +
             $"'{setup.name}' IK 생성 완료\n" +
             "Player Root: IKManager2D\n" +
-            "Player Root 직계 자식: LimbSolver2D x7 (Arm 2 / Leg 2 / Foot 2 / Head 1)\n" +
+            "Player Root 직계 자식: LimbSolver2D x6 (Arm 2 / Leg 2 / Foot 2) + CCDSolver2D x1 (Body Aim)\n" +
             "각 Solver 직계 자식: Target x1\n" +
-            "Skeleton: Effector x6\n" +
+            "Skeleton: Effector x7\n" +
             "Manager/Solver/Target/Effector 참조 연결 완료" +
             aliases,
             setup);
@@ -244,7 +250,8 @@ public static class Standard2DIKBuilder
         float localReach =
             CalculateLocalReach(
                 rig,
-                spec,
+                spec.TipReference,
+                spec.PreviousBone,
                 effectorParent);
 
         effector.localPosition =
@@ -413,6 +420,172 @@ public static class Standard2DIKBuilder
         }
     }
 
+    private static void CreateCcd(
+        Standard2DRigIKSetup setup,
+        Standard2DRigResolver.Result rig,
+        IKManager2D manager,
+        Standard2DRigDefinition.CcdSpec spec)
+    {
+        Transform effectorParent =
+            rig.Bones[spec.EffectorParent];
+
+        GameObject effectorObject =
+            new(spec.EffectorName);
+
+        Undo.RegisterCreatedObjectUndo(
+            effectorObject,
+            $"Create {spec.EffectorName}");
+
+        Transform effector =
+            effectorObject.transform;
+
+        effector.SetParent(
+            effectorParent,
+            false);
+
+        float localReach =
+            CalculateLocalReach(
+                rig,
+                null,
+                spec.PreviousBone,
+                effectorParent);
+
+        effector.localPosition =
+            Vector3.right *
+            localReach *
+            setup.GetEffectorReachScale(
+                spec.ReachGroup);
+
+        effector.localRotation =
+            Quaternion.identity;
+
+        effector.localScale =
+            Vector3.one;
+
+        AddMarker(
+            effectorObject,
+            setup,
+            Standard2DGeneratedIKMarker.GeneratedKind.Effector);
+
+        GameObject solverObject =
+            new(spec.SolverName);
+
+        Undo.RegisterCreatedObjectUndo(
+            solverObject,
+            $"Create {spec.SolverName}");
+
+        Transform solverTransform =
+            solverObject.transform;
+
+        solverTransform.SetParent(
+            setup.PlayerRoot,
+            false);
+
+        solverTransform.localPosition =
+            Vector3.zero;
+
+        solverTransform.localRotation =
+            Quaternion.identity;
+
+        solverTransform.localScale =
+            Vector3.one;
+
+        CCDSolver2D solver =
+            Undo.AddComponent<CCDSolver2D>(
+                solverObject);
+
+        Undo.RecordObject(
+            solver,
+            $"Configure {spec.SolverName}");
+
+        solver.weight = 1f;
+
+        // Animator가 만든 현재 포즈 위에서 남은 각도만 풀기 위한 설정.
+        solver.constrainRotation = false;
+        solver.solveFromDefaultPose = false;
+        solver.iterations = setup.CcdIterations;
+        solver.tolerance = setup.CcdTolerance;
+        solver.velocity = setup.CcdVelocity;
+
+        AddMarker(
+            solverObject,
+            setup,
+            Standard2DGeneratedIKMarker.GeneratedKind.Solver);
+
+        GameObject targetObject =
+            new(spec.TargetName);
+
+        Undo.RegisterCreatedObjectUndo(
+            targetObject,
+            $"Create {spec.TargetName}");
+
+        Transform target =
+            targetObject.transform;
+
+        target.SetParent(
+            solverTransform,
+            false);
+
+        target.position =
+            effector.position;
+
+        target.rotation =
+            effector.rotation;
+
+        target.localScale =
+            Vector3.one;
+
+        AddMarker(
+            targetObject,
+            setup,
+            Standard2DGeneratedIKMarker.GeneratedKind.Target);
+
+        IKChain2D chain =
+            solver.GetChain(0);
+
+        chain.effector = effector;
+        chain.target = target;
+        chain.transformCount = spec.TransformCount;
+
+        solver.Initialize();
+
+        chain =
+            solver.GetChain(0);
+
+        chain.effector = effector;
+        chain.target = target;
+        chain.transformCount = spec.TransformCount;
+
+        manager.AddSolver(
+            solver);
+
+        EditorUtility.SetDirty(
+            solver);
+
+        EditorUtility.SetDirty(
+            manager);
+
+        PrefabUtility.RecordPrefabInstancePropertyModifications(
+            solver);
+
+        PrefabUtility.RecordPrefabInstancePropertyModifications(
+            manager);
+
+        IKChain2D verifyChain =
+            solver.GetChain(0);
+
+        if (verifyChain.effector != effector ||
+            verifyChain.target != target ||
+            verifyChain.transformCount != spec.TransformCount ||
+            verifyChain.rootTransform != rig.Bones[spec.ChainRoot])
+        {
+            Debug.LogError(
+                $"[{nameof(Standard2DIKBuilder)}] " +
+                $"{spec.SolverName} CCD 참조 연결 검증 실패.",
+                solver);
+        }
+    }
+
     /// <summary>
     /// EffectorParent의 local +X 방향으로 사용할 실제 길이.
     ///
@@ -432,16 +605,17 @@ public static class Standard2DIKBuilder
     /// </summary>
     private static float CalculateLocalReach(
         Standard2DRigResolver.Result rig,
-        Standard2DRigDefinition.LimbSpec spec,
+        string tipReference,
+        string previousBone,
         Transform effectorParent)
     {
         const float minimumReach = 0.001f;
 
         if (!string.IsNullOrEmpty(
-                spec.TipReference))
+                tipReference))
         {
             Transform tip =
-                rig.Bones[spec.TipReference];
+                rig.Bones[tipReference];
 
             Vector3 tipLocal =
                 effectorParent.InverseTransformPoint(
@@ -454,7 +628,7 @@ public static class Standard2DIKBuilder
         }
 
         Transform previous =
-            rig.Bones[spec.PreviousBone];
+            rig.Bones[previousBone];
 
         Vector3 previousLocal =
             effectorParent.InverseTransformPoint(
@@ -577,12 +751,17 @@ public static class Standard2DIKBuilder
                     spec => spec.SolverName)
                 .ToHashSet();
 
-        LimbSolver2D[] allLimbSolvers =
-            setup.GetComponentsInChildren<LimbSolver2D>(
+        solverNames.Add(
+            Standard2DRigDefinition
+                .BodyAimCcd
+                .SolverName);
+
+        Solver2D[] allSolvers =
+            setup.GetComponentsInChildren<Solver2D>(
                 true);
 
-        foreach (LimbSolver2D solver
-                 in allLimbSolvers)
+        foreach (Solver2D solver
+                 in allSolvers)
         {
             if (solver == null ||
                 !solverNames.Contains(
@@ -622,6 +801,25 @@ public static class Standard2DIKBuilder
             {
                 Undo.DestroyObjectImmediate(
                     effector.gameObject);
+            }
+        }
+
+        Standard2DRigDefinition.CcdSpec ccdSpec =
+            Standard2DRigDefinition.BodyAimCcd;
+
+        if (rig.Bones.TryGetValue(
+                ccdSpec.EffectorParent,
+                out Transform ccdEffectorParent))
+        {
+            Transform ccdEffector =
+                FindDirectChildExact(
+                    ccdEffectorParent,
+                    ccdSpec.EffectorName);
+
+            if (ccdEffector != null)
+            {
+                Undo.DestroyObjectImmediate(
+                    ccdEffector.gameObject);
             }
         }
     }

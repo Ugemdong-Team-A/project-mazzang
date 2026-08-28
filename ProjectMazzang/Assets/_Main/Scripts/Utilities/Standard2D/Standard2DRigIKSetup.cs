@@ -11,7 +11,7 @@ using UnityEngine.U2D.IK;
 [RequireComponent(typeof(IKManager2D))]
 public sealed class Standard2DRigIKSetup : MonoBehaviour
 {
-    public const string ToolVersion = "5.0-Head-PerPartReach";
+    public const string ToolVersion = "6.0-BodyAim-CCD";
 
     [Header("Rig Search")]
     [Tooltip(
@@ -62,6 +62,26 @@ public sealed class Standard2DRigIKSetup : MonoBehaviour
     [SerializeField]
     private bool _solveFromDefaultPose = true;
 
+    [Header("Body Aim CCD Solver")]
+    [Tooltip(
+        "상체 조준 CCD의 반복 횟수입니다.\n" +
+        "체인 길이는 head Effector 기준 4로 고정됩니다.")]
+    [Range(1, 50)]
+    [SerializeField]
+    private int _ccdIterations = 10;
+
+    [Tooltip("CCD Target에 도달했다고 판단할 거리 오차입니다.")]
+    [Range(0.001f, 0.1f)]
+    [SerializeField]
+    private float _ccdTolerance = 0.01f;
+
+    [Tooltip(
+        "한 반복에서 상체가 Target 쪽으로 회전하는 비율입니다.\n" +
+        "먼 조준 Target을 정확히 향하도록 기본값은 1입니다.")]
+    [Range(0f, 1f)]
+    [SerializeField]
+    private float _ccdVelocity = 1f;
+
     public Transform RigSearchRoot =>
         _rigSearchRoot != null
             ? _rigSearchRoot
@@ -98,6 +118,22 @@ public sealed class Standard2DRigIKSetup : MonoBehaviour
     public bool SolveFromDefaultPose =>
         _solveFromDefaultPose;
 
+    public int CcdIterations =>
+        Mathf.Clamp(
+            _ccdIterations,
+            1,
+            50);
+
+    public float CcdTolerance =>
+        Mathf.Clamp(
+            _ccdTolerance,
+            0.001f,
+            0.1f);
+
+    public float CcdVelocity =>
+        Mathf.Clamp01(
+            _ccdVelocity);
+
     public float GetEffectorReachScale(
         Standard2DRigDefinition.EffectorReachGroup group)
     {
@@ -109,8 +145,8 @@ public sealed class Standard2DRigIKSetup : MonoBehaviour
             Standard2DRigDefinition.EffectorReachGroup.Leg =>
                 LegEffectorReachScale,
 
-            /*Standard2DRigDefinition.EffectorReachGroup.Head =>
-                HeadEffectorReachScale,*/
+            Standard2DRigDefinition.EffectorReachGroup.Head =>
+                HeadEffectorReachScale,
 
             _ =>
                 1f
