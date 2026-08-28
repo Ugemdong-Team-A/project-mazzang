@@ -41,6 +41,16 @@ public sealed class PlayerWeaponController :
     private HeldWeaponView
         _boundIkView;
 
+    private PlayerAim _playerAim;
+
+    private Transform _leftHandAnimationTarget;
+
+    private Transform _rightHandAnimationTarget;
+
+    private bool _hasCapturedAnimationHandTargets;
+
+    private bool _animationHandIkAllowed;
+
 
     // =========================================================
     // Network State
@@ -87,6 +97,11 @@ public sealed class PlayerWeaponController :
     public Transform WeaponSocket =>
         weaponSocket;
 
+    private Transform ResolvedAimPivot =>
+        _playerAim != null
+            ? _playerAim.ResolvedAimPivot
+            : null;
+
     public int WeaponSortingOrder =>
         weaponSortingOrder;
 
@@ -100,10 +115,14 @@ public sealed class PlayerWeaponController :
 
     public override void Spawned()
     {
+        _playerAim = GetComponent<PlayerAim>();
+
         StabilizeWeaponSocket();
 
-        // Prefab에 저장된 IK target/enable 상태가 첫 Render까지 팔을
-        // 고정하지 않도록 권한과 관계없이 초기 바인딩을 해제한다.
+        CaptureAnimationHandIkTargets();
+
+        // 평상시에는 손 Target이 Animator의 팔 자세를 덮지 않게 해제합니다.
+        // 공격 클립이 손 Target을 사용하는 동안에는 Present에서 복원합니다.
         UnbindWeaponIk();
 
         if (!HasStateAuthority)
@@ -170,7 +189,9 @@ public sealed class PlayerWeaponController :
             !state.HasHealth ||
             state.IsAlive,
             state.HasMovement &&
-            !state.FacingRight);
+            !state.FacingRight,
+            ResolveGameplayWeaponOrigin(
+                state));
 
         return true;
     }
@@ -194,9 +215,6 @@ public sealed class PlayerWeaponController :
                 input.AimWorldPosition,
                 state,
                 useLegacyAim);
-
-            ApplyWeaponSocketRotation(
-                WeaponAngle);
         }
 
         if (!HasStateAuthority)
@@ -213,7 +231,9 @@ public sealed class PlayerWeaponController :
                         : Vector2.zero;
 
                 DropWeapon(
-                    deathDropVelocity);
+                    deathDropVelocity,
+                    ResolveGameplayWeaponOrigin(
+                        state));
             }
 
             if (hasInput)
@@ -254,6 +274,8 @@ public sealed class PlayerWeaponController :
         {
             DropWeapon(
                 CalculateDropVelocity(
+                    state),
+                ResolveGameplayWeaponOrigin(
                     state));
 
             return;
@@ -264,7 +286,9 @@ public sealed class PlayerWeaponController :
         {
             TryUseSecondaryWeapon(
                 state.HasMovement &&
-                !state.FacingRight);
+                !state.FacingRight,
+                ResolveGameplayWeaponOrigin(
+                    state));
         }
     }
 
@@ -278,21 +302,6 @@ public sealed class PlayerWeaponController :
             return;
         }
 
-        float visualAngle =
-            WeaponAngle;
-
-        if (HasInputAuthority &&
-            tickState.AimDirection.sqrMagnitude >
-                0.0001f)
-        {
-            visualAngle =
-                DirectionToAngle(
-                    tickState.AimDirection);
-        }
-
-        ApplyWeaponSocketRotation(
-            visualAngle);
-
         Weapon equippedWeapon =
             EquippedWeapon;
 
@@ -300,6 +309,7 @@ public sealed class PlayerWeaponController :
         {
             equippedWeapon
                 .RefreshHeldPresentation(
+                    ResolvedAimPivot == null &&
                     !tickState.FacingRight);
         }
 
@@ -313,15 +323,38 @@ public sealed class PlayerWeaponController :
 
     private void StabilizeWeaponSocket()
     {
-        if (weaponSocket == null ||
-            weaponSocket.parent == transform)
-        {
+        if (weaponSocket == null)
             return;
+
+        Transform resolvedAimPivot =
+            ResolvedAimPivot;
+
+        Transform stableParent =
+            resolvedAimPivot != null
+                ? resolvedAimPivot
+                : transform;
+
+        if (weaponSocket.parent != stableParent)
+        {
+            weaponSocket.SetParent(
+                stableParent,
+                true);
         }
 
-        weaponSocket.SetParent(
-            transform,
-            true);
+        if (resolvedAimPivot != null)
+        {
+            weaponSocket.localPosition =
+                Vector3.zero;
+
+            weaponSocket.localScale =
+                Vector3.one;
+        }
+
+        weaponSocket.localRotation =
+            Quaternion.Euler(
+                0f,
+                0f,
+                -90f);
     }
 
 
@@ -345,58 +378,18 @@ public sealed class PlayerWeaponController :
             return;
         }
 
+        if (_playerAim != null)
+        {
+            direction =
+                _playerAim.ResolveLimitedAimDirection(
+                    direction,
+                    !state.HasMovement ||
+                    state.FacingRight);
+        }
+
         WeaponAngle =
             DirectionToAngle(
                 direction);
-    }
-
-    private void ApplyWeaponSocketRotation(
-        float worldAngle)
-    {
-        Vector2 worldDirection =
-            AngleToDirection(
-                worldAngle);
-
-        Transform parent =
-            weaponSocket.parent;
-
-        if (parent == null)
-        {
-            weaponSocket.rotation =
-                Quaternion.Euler(
-                    0f,
-                    0f,
-                    worldAngle);
-
-            return;
-        }
-
-        Vector3 localDirection3 =
-            parent.InverseTransformVector(
-                worldDirection);
-
-        Vector2 localDirection =
-            new Vector2(
-                localDirection3.x,
-                localDirection3.y);
-
-        if (localDirection.sqrMagnitude <=
-            0.0001f)
-        {
-            return;
-        }
-
-        float localAngle =
-            Mathf.Atan2(
-                localDirection.y,
-                localDirection.x) *
-            Mathf.Rad2Deg;
-
-        weaponSocket.localRotation =
-            Quaternion.Euler(
-                0f,
-                0f,
-                localAngle);
     }
 
     private static float DirectionToAngle(
@@ -467,12 +460,14 @@ public sealed class PlayerWeaponController :
             return false;
 
         return DropWeapon(
-            CalculateDropVelocity());
+            Vector2.zero,
+            transform.position);
     }
 
 
     private bool DropWeapon(
-        Vector2 velocity)
+        Vector2 velocity,
+        Vector2 origin)
     {
         Weapon weapon =
             EquippedWeapon;
@@ -495,9 +490,7 @@ public sealed class PlayerWeaponController :
 
         weapon.Drop(
             previousHolder,
-            weaponSocket != null
-                ? (Vector2)weaponSocket.position
-                : (Vector2)transform.position,
+            origin,
             WeaponAngle,
             velocity,
             repickupBlockDuration);
@@ -520,24 +513,45 @@ public sealed class PlayerWeaponController :
                 ? equippedWeapon.HeldView
                 : null;
 
+        bool allowAnimationHandIk =
+            _playerAim != null &&
+            (_playerAim.RigMode ==
+                PlayerAimRigMode.AnimationOnly ||
+             _playerAim.RigMode ==
+                PlayerAimRigMode.AnimationWithBodyAim);
+
         if (_boundIkView ==
-            heldView)
+                heldView &&
+            _animationHandIkAllowed ==
+                allowAnimationHandIk)
         {
             return;
         }
 
         UnbindWeaponIk();
 
-        if (heldView == null)
-            return;
+        _animationHandIkAllowed =
+            allowAnimationHandIk;
 
-        BindWeaponIk(
-            heldView);
+        if (heldView != null)
+        {
+            BindWeaponIk(
+                heldView,
+                allowAnimationHandIk);
+
+            return;
+        }
+
+        if (allowAnimationHandIk)
+        {
+            BindAnimationHandIk();
+        }
     }
 
 
     private void BindWeaponIk(
-        HeldWeaponView heldView)
+        HeldWeaponView heldView,
+        bool allowAnimationFallback)
     {
         if (heldView == null)
             return;
@@ -547,11 +561,49 @@ public sealed class PlayerWeaponController :
 
         BindHandLimb(
             leftHandLimb,
-            heldView.LeftHandGrip);
+            heldView.LeftHandGrip != null
+                ? heldView.LeftHandGrip
+                : allowAnimationFallback
+                    ? _leftHandAnimationTarget
+                    : null);
 
         BindHandLimb(
             rightHandLimb,
-            heldView.RightHandGrip);
+            heldView.RightHandGrip != null
+                ? heldView.RightHandGrip
+                : allowAnimationFallback
+                    ? _rightHandAnimationTarget
+                    : null);
+    }
+
+
+    private void BindAnimationHandIk()
+    {
+        BindHandLimb(
+            leftHandLimb,
+            _leftHandAnimationTarget);
+
+        BindHandLimb(
+            rightHandLimb,
+            _rightHandAnimationTarget);
+    }
+
+
+    private void CaptureAnimationHandIkTargets()
+    {
+        if (_hasCapturedAnimationHandTargets)
+            return;
+
+        _leftHandAnimationTarget =
+            GetHandLimbTarget(
+                leftHandLimb);
+
+        _rightHandAnimationTarget =
+            GetHandLimbTarget(
+                rightHandLimb);
+
+        _hasCapturedAnimationHandTargets =
+            true;
     }
 
 
@@ -565,6 +617,9 @@ public sealed class PlayerWeaponController :
 
         _boundIkView =
             null;
+
+        _animationHandIkAllowed =
+            false;
     }
 
 
@@ -587,6 +642,22 @@ public sealed class PlayerWeaponController :
 
         limb.enabled =
             target != null;
+    }
+
+
+    private static Transform GetHandLimbTarget(
+        LimbSolver2D limb)
+    {
+        if (limb == null)
+            return null;
+
+        IKChain2D chain =
+            limb.GetChain(
+                0);
+
+        return chain != null
+            ? chain.target
+            : null;
     }
 
 
@@ -614,33 +685,6 @@ public sealed class PlayerWeaponController :
     // =========================================================
     // Drop Velocity
     // =========================================================
-
-    private Vector2 CalculateDropVelocity()
-    {
-        /*float facingSign =
-            _movementState == null ||
-            _movementState.FacingRight
-                ? 1f
-                : -1f;
-
-        Vector2 tossVelocity =
-            new Vector2(
-                dropVelocity.x *
-                facingSign,
-                dropVelocity.y);
-
-        if (_movementState == null)
-        {
-            return tossVelocity;
-        }
-
-        return
-            tossVelocity +
-            _movementState.Velocity *
-            inheritedVelocityFactor;*/
-
-        return Vector2.zero;
-    }
 
 
     private Vector2 CalculateDropVelocity(
@@ -670,20 +714,10 @@ public sealed class PlayerWeaponController :
     // Use
     // =========================================================
 
-    public bool TryUseWeapon(
-        Vector2 aimDirection)
-    {
-        return true;/*TryUseWeapon(
-            aimDirection,
-            _healthState == null ||
-            _healthState.IsAlive,
-            _movementState != null &&
-            !_movementState.FacingRight);*/
-    }
-
 
     private bool TryUseSecondaryWeapon(
-        bool mirrored)
+        bool mirrored,
+        Vector2 origin)
     {
         if (!HasStateAuthority)
             return false;
@@ -697,11 +731,6 @@ public sealed class PlayerWeaponController :
             return false;
         }
 
-        Vector2 origin =
-            weaponSocket != null
-                ? weaponSocket.position
-                : transform.position;
-
         return weapon.TryUseSecondary(
             origin,
             WeaponDirection,
@@ -712,7 +741,8 @@ public sealed class PlayerWeaponController :
     private bool TryUseWeapon(
         Vector2 aimDirection,
         bool isAlive,
-        bool mirrored)
+        bool mirrored,
+        Vector2 origin)
     {
         // 기존 aimDirection 인자는 호출 호환성을 위해 유지하지만,
         // 실제 판정 방향은 StateAuthority가 확정한 WeaponAngle을 사용한다.
@@ -730,14 +760,22 @@ public sealed class PlayerWeaponController :
         if (weapon == null)
             return false;
 
-        Vector2 origin =
-            weaponSocket != null
-                ? weaponSocket.position
-                : transform.position;
-
         return weapon.TryUse(
             origin,
             WeaponDirection,
             mirrored);
+    }
+
+
+    private Vector2 ResolveGameplayWeaponOrigin(
+        PlayerTickState state)
+    {
+        Vector2 fallbackPosition =
+            transform.position;
+
+        return state != null
+            ? state.ResolveAimOrigin(
+                fallbackPosition)
+            : fallbackPosition;
     }
 }

@@ -1,7 +1,7 @@
 using UnityEngine;
 
 /// <summary>
-/// ¾ÀÀÌ ÀüÈ¯µÇ¾îµµ À¯ÁöµÇ´Â ½Ì±ÛÅÏ MonoBehaviour.
+/// ì”¬ì´ ì „í™˜ë˜ì–´ë„ ìœ ì§€ë˜ëŠ” ì‹±ê¸€í„´ MonoBehaviour.
 /// </summary>
 public abstract class PersistentSingleton<T> : MonoBehaviour
     where T : PersistentSingleton<T>

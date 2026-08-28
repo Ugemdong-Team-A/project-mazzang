@@ -81,7 +81,7 @@ public sealed class PlayerMovement :
         new Vector2(0.2f, 0.8f);
 
     [SerializeField]
-    private float wallSlideSpeed = 3f;
+    private float wallSlideSpeed = 1f;
 
     [SerializeField]
     private float wallJumpHorizontalSpeed = 6f;

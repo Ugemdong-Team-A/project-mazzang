@@ -19,18 +19,15 @@ public sealed class PlayerCombat :
     private const int NoneAttackId = 0;
 
 
-    [Header("Test Attacks")]
+    [Header("Attack Data")]
     [SerializeField]
-    private PlayerAttackDefinition jabAttack;
+    private PlayerAttackData jabAttack;
 
     [SerializeField]
-    private PlayerAttackDefinition counterAttack;
+    private PlayerAttackData counterAttack;
 
 
     [Header("Hit")]
-    [SerializeField]
-    private Transform attackSocket;
-
     [SerializeField]
     private LayerMask hurtboxLayer;
 
@@ -45,6 +42,22 @@ public sealed class PlayerCombat :
 
     [Networked]
     private NetworkButtons PreviousButtons
+    {
+        get;
+        set;
+    }
+
+
+    [Networked]
+    private byte ComboInputCount
+    {
+        get;
+        set;
+    }
+
+
+    [Networked]
+    private byte ComboDepth
     {
         get;
         set;
@@ -127,14 +140,14 @@ public sealed class PlayerCombat :
             if (!IsAttacking)
                 return false;
 
-            if (!TryGetCurrentAttackDefinition(
-                    out PlayerAttackDefinition definition))
+            if (!TryGetCurrentAttackData(
+                    out PlayerAttackData attackData))
             {
                 return false;
             }
 
             return
-                definition.MovementMode ==
+                attackData.MovementMode ==
                 PlayerAttackMovementMode.Locked;
         }
     }
@@ -150,6 +163,9 @@ public sealed class PlayerCombat :
 
         PreviousButtons =
             default;
+
+        ComboInputCount = 0;
+        ComboDepth = 0;
 
         AttackState =
             PlayerAttackState.None;
@@ -249,6 +265,18 @@ public sealed class PlayerCombat :
             GetInput(
                 out PlayerInputData input);
 
+        bool attackPressed =
+            hasInput &&
+            input.Buttons.WasPressed(
+                PreviousButtons,
+                PlayerButton.Attack);
+
+        if (hasInput)
+        {
+            PreviousButtons =
+                input.Buttons;
+        }
+
 
         // ==========================================
         // Dead
@@ -260,12 +288,6 @@ public sealed class PlayerCombat :
                 TickTimer.None;
 
             CancelAttack();
-
-            if (hasInput)
-            {
-                PreviousButtons =
-                    input.Buttons;
-            }
 
             return;
         }
@@ -279,12 +301,6 @@ public sealed class PlayerCombat :
         {
             CancelAttack();
 
-            if (hasInput)
-            {
-                PreviousButtons =
-                    input.Buttons;
-            }
-
             return;
         }
 
@@ -293,8 +309,12 @@ public sealed class PlayerCombat :
         // Attack State
         // ==========================================
 
-        UpdateAttack(
-            facingRight);
+        bool comboInputConsumed =
+            UpdateAttack(
+                facingRight,
+                tickState,
+                attackPressed &&
+                !isAttackControlLocked);
 
 
         if (!hasInput)
@@ -307,9 +327,6 @@ public sealed class PlayerCombat :
 
         if (isAttackControlLocked)
         {
-            PreviousButtons =
-                input.Buttons;
-
             return;
         }
 
@@ -318,15 +335,8 @@ public sealed class PlayerCombat :
         // Attack Input
         // ==========================================
 
-        bool attackPressed =
-            input.Buttons.WasPressed(
-                PreviousButtons,
-                PlayerButton.Attack);
-
-        PreviousButtons =
-            input.Buttons;
-
-        if (!attackPressed)
+        if (!attackPressed ||
+            comboInputConsumed)
             return;
 
 
@@ -378,11 +388,12 @@ public sealed class PlayerCombat :
             return;
 
 
-        PlayerAttackDefinition definition =
+        PlayerAttackData attackData =
             SelectTestAttack(
                 input.Move);
 
-        if (!definition.IsValid)
+        if (attackData == null ||
+            !attackData.IsValid)
             return;
 
 
@@ -394,15 +405,16 @@ public sealed class PlayerCombat :
 
 
         StartAttack(
-            in definition,
+            attackData,
             sourceAimDirection);
     }
 
 
-    private PlayerAttackDefinition SelectTestAttack(
+    private PlayerAttackData SelectTestAttack(
         Vector2 moveInput)
     {
         if (moveInput.y > 0.5f &&
+            counterAttack != null &&
             counterAttack.IsValid)
         {
             return counterAttack;
@@ -417,11 +429,12 @@ public sealed class PlayerCombat :
     // =========================================================
 
     private void StartAttack(
-        in PlayerAttackDefinition definition,
-        Vector2 sourceAimDirection)
+        PlayerAttackData attackData,
+        Vector2 sourceAimDirection,
+        bool isComboFollowUp = false)
     {
         AttackData attack =
-            definition.Attack;
+            attackData.Attack;
 
         if (attack == null)
             return;
@@ -430,6 +443,12 @@ public sealed class PlayerCombat :
         CurrentAttackId =
             attack.AttackId;
 
+        ComboInputCount = 0;
+        ComboDepth =
+            isComboFollowUp
+                ? (byte)1
+                : (byte)0;
+
 
         AttackState =
             PlayerAttackState.Startup;
@@ -437,16 +456,16 @@ public sealed class PlayerCombat :
 
         AttackPhaseTimer =
             CreateTimer(
-                attack.StartupDuration);
+                attackData.StartupDuration);
 
 
         AttackCooldownTimer =
             CreateTimer(
-                attack.Cooldown);
+                attackData.Cooldown);
 
 
         ApplyAimRule(
-            in definition,
+            attackData,
             sourceAimDirection);
 
 
@@ -455,14 +474,14 @@ public sealed class PlayerCombat :
 
 
     private void ApplyAimRule(
-        in PlayerAttackDefinition definition,
+        PlayerAttackData attackData,
         Vector2 sourceAimDirection)
     {
-        PlayerAttackAimDefinition aimDefinition =
-            definition.Aim;
+        PlayerAttackAimData aimData =
+            attackData.Aim;
 
 
-        if (!aimDefinition.RequiresOverride)
+        if (!aimData.RequiresOverride)
         {
             RequestClearAimOverride();
 
@@ -471,7 +490,7 @@ public sealed class PlayerCombat :
 
 
         PlayerAimOverride aimOverride =
-            aimDefinition.CreateOverride();
+            aimData.CreateOverride();
 
 
         if (Commands != null)
@@ -487,53 +506,69 @@ public sealed class PlayerCombat :
     // Attack Update
     // =========================================================
 
-    private void UpdateAttack(
-        bool facingRight)
+    private bool UpdateAttack(
+        bool facingRight,
+        PlayerTickState tickState,
+        bool attackPressed)
     {
         switch (AttackState)
         {
             case PlayerAttackState.None:
-                break;
+                return false;
 
 
             case PlayerAttackState.Startup:
-                UpdateStartup(
-                    facingRight);
-                break;
+                return UpdateStartup(
+                    facingRight,
+                    tickState,
+                    attackPressed);
 
 
             case PlayerAttackState.Active:
-                UpdateActive();
-                break;
+                return UpdateActive(
+                    attackPressed);
 
 
             case PlayerAttackState.Recovery:
-                UpdateRecovery();
-                break;
+                return UpdateRecovery(
+                    facingRight,
+                    tickState,
+                    attackPressed);
+
+
+            default:
+                return false;
         }
     }
 
 
-    private void UpdateStartup(
-        bool facingRight)
+    private bool UpdateStartup(
+        bool facingRight,
+        PlayerTickState tickState,
+        bool attackPressed)
     {
         if (!AttackPhaseTimer
                 .Expired(Runner))
         {
-            return;
+            return false;
         }
 
 
         BeginActive(
-            facingRight);
+            facingRight,
+            tickState);
+
+        return TryBufferComboInput(
+            attackPressed);
     }
 
 
     private void BeginActive(
-        bool facingRight)
+        bool facingRight,
+        PlayerTickState tickState)
     {
-        if (!TryGetCurrentAttackDefinition(
-                out PlayerAttackDefinition definition))
+        if (!TryGetCurrentAttackData(
+                out PlayerAttackData attackData))
         {
             CancelAttack();
 
@@ -542,7 +577,7 @@ public sealed class PlayerCombat :
 
 
         AttackData attack =
-            definition.Attack;
+            attackData.Attack;
 
 
         AttackState =
@@ -554,33 +589,38 @@ public sealed class PlayerCombat :
         {
             PerformBoxAttackHit(
                 boxAttack,
-                facingRight);
+                facingRight,
+                ResolveGameplayAttackOrigin(
+                    tickState));
         }
 
 
         AttackPhaseTimer =
             CreateTimer(
-                attack.ActiveDuration);
+                attackData.ActiveDuration);
     }
 
 
-    private void UpdateActive()
+    private bool UpdateActive(
+        bool attackPressed)
     {
+        bool comboInputConsumed =
+            TryBufferComboInput(
+                attackPressed);
+
         if (!AttackPhaseTimer
                 .Expired(Runner))
         {
-            return;
+            return comboInputConsumed;
         }
 
 
-        AttackData attack =
-            GetCurrentAttack();
-
-        if (attack == null)
+        if (!TryGetCurrentAttackData(
+                out PlayerAttackData attackData))
         {
             CancelAttack();
 
-            return;
+            return comboInputConsumed;
         }
 
 
@@ -590,20 +630,147 @@ public sealed class PlayerCombat :
 
         AttackPhaseTimer =
             CreateTimer(
-                attack.RecoveryDuration);
+                attackData.RecoveryDuration);
+
+        return comboInputConsumed;
     }
 
 
-    private void UpdateRecovery()
+    private bool UpdateRecovery(
+        bool facingRight,
+        PlayerTickState tickState,
+        bool attackPressed)
     {
+        bool comboInputConsumed =
+            TryBufferComboInput(
+                attackPressed);
+
         if (!AttackPhaseTimer
                 .Expired(Runner))
         {
-            return;
+            return comboInputConsumed;
         }
 
 
+        if (TryStartComboFollowUp(
+                facingRight,
+                tickState))
+        {
+            return comboInputConsumed;
+        }
+
         CancelAttack();
+
+        return comboInputConsumed;
+    }
+
+
+    // =========================================================
+    // Combo
+    // =========================================================
+
+    private bool TryBufferComboInput(
+        bool attackPressed)
+    {
+        if (!attackPressed ||
+            ComboDepth > 0 ||
+            !TryGetCurrentAttackData(
+                out PlayerAttackData attackData) ||
+            ResolveComboFollowUp(
+                attackData) == null)
+        {
+            return false;
+        }
+
+        if (attackData.AllowRepeatedComboInput)
+        {
+            ComboInputCount = 1;
+        }
+        else
+        {
+            ComboInputCount =
+                (byte)Mathf.Min(
+                    ComboInputCount + 1,
+                    2);
+        }
+
+        return true;
+    }
+
+
+    private bool TryStartComboFollowUp(
+        bool facingRight,
+        PlayerTickState tickState)
+    {
+        if (ComboDepth > 0 ||
+            !TryGetCurrentAttackData(
+                out PlayerAttackData attackData) ||
+            !IsComboInputSatisfied(
+                ComboInputCount,
+                attackData.AllowRepeatedComboInput))
+        {
+            return false;
+        }
+
+        PlayerAttackData followUp =
+            ResolveComboFollowUp(
+                attackData);
+
+        if (followUp == null ||
+            !followUp.IsValid)
+        {
+            return false;
+        }
+
+        Vector2 sourceAimDirection =
+            tickState != null &&
+            tickState.AimDirection.sqrMagnitude >
+                0.0001f
+                ? tickState.AimDirection.normalized
+                : facingRight
+                    ? Vector2.right
+                    : Vector2.left;
+
+        StartAttack(
+            followUp,
+            sourceAimDirection,
+            true);
+
+        return true;
+    }
+
+
+    private PlayerAttackData ResolveComboFollowUp(
+        PlayerAttackData attackData)
+    {
+        PlayerAttackData configuredFollowUp =
+            attackData != null
+                ? attackData.ComboFollowUp
+                : null;
+
+        if (configuredFollowUp != null &&
+            configuredFollowUp.IsValid)
+        {
+            return configuredFollowUp;
+        }
+
+        // 기존 프리팹과 SO를 다시 설정하지 않아도
+        // 현재 기본 잽은 PlayerCombat의 Counter 슬롯으로 이어집니다.
+        return attackData == jabAttack &&
+               counterAttack != null &&
+               counterAttack.IsValid
+            ? counterAttack
+            : null;
+    }
+
+
+    private static bool IsComboInputSatisfied(
+        byte inputCount,
+        bool allowRepeatedInput)
+    {
+        return allowRepeatedInput
+            ? inputCount >= 1
+            : inputCount == 1;
     }
 
 
@@ -618,6 +785,9 @@ public sealed class PlayerCombat :
             CurrentAttackId ==
                 NoneAttackId)
         {
+            ComboInputCount = 0;
+            ComboDepth = 0;
+
             return;
         }
 
@@ -632,6 +802,9 @@ public sealed class PlayerCombat :
 
         CurrentAttackId =
             NoneAttackId;
+
+        ComboInputCount = 0;
+        ComboDepth = 0;
 
 
         RequestClearAimOverride();
@@ -648,52 +821,78 @@ public sealed class PlayerCombat :
 
 
     // =========================================================
-    // Attack Definition
+    // Attack Data
     // =========================================================
 
-    private bool TryGetCurrentAttackDefinition(
-        out PlayerAttackDefinition definition)
+    private bool TryGetCurrentAttackData(
+        out PlayerAttackData attackData)
     {
-        if (CurrentAttackId !=
-                NoneAttackId &&
-            jabAttack.IsValid &&
-            jabAttack.Attack.AttackId ==
-                CurrentAttackId)
+        if (MatchesCurrentAttack(
+                jabAttack))
         {
-            definition =
+            attackData =
                 jabAttack;
 
             return true;
         }
 
 
-        if (CurrentAttackId !=
-                NoneAttackId &&
-            counterAttack.IsValid &&
-            counterAttack.Attack.AttackId ==
-                CurrentAttackId)
+        if (MatchesCurrentAttack(
+                counterAttack))
         {
-            definition =
+            attackData =
                 counterAttack;
 
             return true;
         }
 
 
-        definition =
-            default;
+        PlayerAttackData jabFollowUp =
+            jabAttack != null
+                ? jabAttack.ComboFollowUp
+                : null;
+
+        if (MatchesCurrentAttack(
+                jabFollowUp))
+        {
+            attackData =
+                jabFollowUp;
+
+            return true;
+        }
+
+
+        PlayerAttackData counterFollowUp =
+            counterAttack != null
+                ? counterAttack.ComboFollowUp
+                : null;
+
+        if (MatchesCurrentAttack(
+                counterFollowUp))
+        {
+            attackData =
+                counterFollowUp;
+
+            return true;
+        }
+
+
+        attackData =
+            null;
 
         return false;
     }
 
 
-    private AttackData GetCurrentAttack()
+    private bool MatchesCurrentAttack(
+        PlayerAttackData attackData)
     {
-        return
-            TryGetCurrentAttackDefinition(
-                out PlayerAttackDefinition definition)
-                ? definition.Attack
-                : null;
+        return CurrentAttackId !=
+                   NoneAttackId &&
+               attackData != null &&
+               attackData.IsValid &&
+               attackData.Attack.AttackId ==
+                   CurrentAttackId;
     }
 
 
@@ -747,7 +946,8 @@ public sealed class PlayerCombat :
 
     private void PerformBoxAttackHit(
         BoxAttackData attack,
-        bool facingRight)
+        bool facingRight,
+        Vector2 attackOrigin)
     {
         if (attack == null)
             return;
@@ -762,7 +962,8 @@ public sealed class PlayerCombat :
         Vector2 center =
             CalculateBoxCenter(
                 attack,
-                facingRight);
+                facingRight,
+                attackOrigin);
 
 
         Collider2D[] hits =
@@ -819,7 +1020,7 @@ public sealed class PlayerCombat :
                     attack.Damage,
                     Object,
                     knockback,
-                    attack.KnockbackControlLock);
+                    attack.CrowdControl);
 
 
             CombatDamageService.ApplyDamage(
@@ -831,7 +1032,8 @@ public sealed class PlayerCombat :
 
     private Vector2 CalculateBoxCenter(
         BoxAttackData attack,
-        bool facingRight)
+        bool facingRight,
+        Vector2 attackOrigin)
     {
         Vector2 offset =
             attack.HitboxOffset;
@@ -845,17 +1047,21 @@ public sealed class PlayerCombat :
 
 
         return
-            GetAttackOriginPosition() +
+            attackOrigin +
             offset;
     }
 
 
-    private Vector2 GetAttackOriginPosition()
+    private Vector2 ResolveGameplayAttackOrigin(
+        PlayerTickState tickState)
     {
-        return
-            attackSocket != null
-                ? attackSocket.position
-                : transform.position;
+        Vector2 fallbackPosition =
+            transform.position;
+
+        return tickState != null
+            ? tickState.ResolveAimOrigin(
+                fallbackPosition)
+            : fallbackPosition;
     }
 
 
@@ -907,8 +1113,13 @@ public sealed class PlayerCombat :
 
     private void OnDrawGizmosSelected()
     {
+        PlayerAim playerAim =
+            GetComponent<PlayerAim>();
+
         Vector2 origin =
-            GetAttackOriginPosition();
+            playerAim != null
+                ? playerAim.AimOriginPosition
+                : (Vector2)transform.position;
 
 
         Gizmos.DrawWireSphere(
@@ -924,12 +1135,14 @@ public sealed class PlayerCombat :
 
             DrawAttackGizmo(
                 jabAttack,
-                facingRight);
+                facingRight,
+                origin);
 
 
             DrawAttackGizmo(
                 counterAttack,
-                facingRight);
+                facingRight,
+                origin);
 
 
             return;
@@ -938,34 +1151,40 @@ public sealed class PlayerCombat :
 
         DrawAttackGizmo(
             jabAttack,
-            true);
+            true,
+            origin);
 
 
         DrawAttackGizmo(
             jabAttack,
-            false);
+            false,
+            origin);
 
 
         DrawAttackGizmo(
             counterAttack,
-            true);
+            true,
+            origin);
 
 
         DrawAttackGizmo(
             counterAttack,
-            false);
+            false,
+            origin);
     }
 
 
     private void DrawAttackGizmo(
-        PlayerAttackDefinition definition,
-        bool facingRight)
+        PlayerAttackData attackData,
+        bool facingRight,
+        Vector2 attackOrigin)
     {
-        if (!definition.IsValid)
+        if (attackData == null ||
+            !attackData.IsValid)
             return;
 
 
-        if (definition.Attack is not
+        if (attackData.Attack is not
             BoxAttackData boxAttack)
         {
             return;
@@ -975,7 +1194,8 @@ public sealed class PlayerCombat :
         Vector2 center =
             CalculateBoxCenter(
                 boxAttack,
-                facingRight);
+                facingRight,
+                attackOrigin);
 
 
         Gizmos.DrawWireCube(

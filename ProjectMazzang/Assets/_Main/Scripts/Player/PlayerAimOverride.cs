@@ -17,7 +17,8 @@ public enum PlayerAimFacingMode : byte
 public enum PlayerAimRigMode : byte
 {
     Procedural = 0,
-    AnimationDriven
+    AnimationOnly,
+    AnimationWithBodyAim
 }
 
 public enum PlayerAimCardinalDirection : byte
@@ -61,7 +62,7 @@ public readonly struct PlayerAimOverride
 
 
 // =========================================================
-// Attack Definition
+// Attack Data
 // =========================================================
 
 public enum PlayerAttackAimMode : byte
@@ -69,13 +70,13 @@ public enum PlayerAttackAimMode : byte
     Free = 0,
 
     /// <summary>
-    /// °ø°İ ½ÃÀÛ ´ç½ÃÀÇ ÀÚÀ¯ Á¶ÁØ ¹æÇâÀ» ±×´ë·Î °íÁ¤ÇÕ´Ï´Ù.
+    /// ê³µê²© ì‹œì‘ ë‹¹ì‹œì˜ ììœ  ì¡°ì¤€ ë°©í–¥ì„ ê·¸ëŒ€ë¡œ ê³ ì •í•©ë‹ˆë‹¤.
     /// </summary>
     DirectionLocked,
 
     /// <summary>
-    /// °ø°İ ½ÃÀÛ ´ç½ÃÀÇ Á¶ÁØ ¹æÇâÀ»
-    /// »óÇÏÁÂ¿ì Áß ÇÏ³ª·Î ¾çÀÚÈ­ÇÏ¿© °íÁ¤ÇÕ´Ï´Ù.
+    /// ê³µê²© ì‹œì‘ ë‹¹ì‹œì˜ ì¡°ì¤€ ë°©í–¥ì„
+    /// ìƒí•˜ì¢Œìš° ì¤‘ í•˜ë‚˜ë¡œ ì–‘ìí™”í•˜ì—¬ ê³ ì •í•©ë‹ˆë‹¤.
     /// </summary>
     FourWayLocked
 }
@@ -83,19 +84,25 @@ public enum PlayerAttackAimMode : byte
 public enum PlayerAttackPoseMode : byte
 {
     /// <summary>
-    /// Æò»ó½ÃÃ³·³ PlayerAimÀÇ CCD°¡ »óÃ¼¸¦ Á¦¾îÇÕ´Ï´Ù.
+    /// í‰ìƒì‹œì²˜ëŸ¼ PlayerAimì˜ CCDê°€ ìƒì²´ë¥¼ ì œì–´í•©ë‹ˆë‹¤.
     /// </summary>
     ProceduralAim = 0,
 
     /// <summary>
-    /// °ø°İ ¾Ö´Ï¸ŞÀÌ¼ÇÀÌ »óÃ¼ Æ÷Áî¸¦ ÀüÀûÀ¸·Î Á¦¾îÇÕ´Ï´Ù.
+    /// ê³µê²© ì• ë‹ˆë©”ì´ì…˜ì´ ìƒì²´ í¬ì¦ˆë¥¼ ì „ì ìœ¼ë¡œ ì œì–´í•©ë‹ˆë‹¤.
     /// </summary>
-    Animation
+    AnimationOnly,
+
+    /// <summary>
+    /// ì• ë‹ˆë©”ì´ì…˜ì´ ë§Œë“  ìƒì²´ ìì„¸ë¥¼ ì‹œì‘ì ìœ¼ë¡œ ì‚¬ìš©í•˜ê³ ,
+    /// CCDê°€ ì¡°ì¤€ ë°©í–¥ê¹Œì§€ ë‚¨ì€ ê°ë„ë¥¼ ë³´ì •í•©ë‹ˆë‹¤.
+    /// </summary>
+    AnimationWithBodyAim
 }
 
 
 [Serializable]
-public struct PlayerAttackAimDefinition
+public struct PlayerAttackAimData
 {
     [SerializeField]
     private PlayerAttackAimMode aimMode;
@@ -140,10 +147,17 @@ public struct PlayerAttackAimDefinition
                 : PlayerAimFacingMode.Locked;
 
         PlayerAimRigMode rigMode =
-            poseMode ==
-            PlayerAttackPoseMode.Animation
-                ? PlayerAimRigMode.AnimationDriven
-                : PlayerAimRigMode.Procedural;
+            poseMode switch
+            {
+                PlayerAttackPoseMode.AnimationOnly =>
+                    PlayerAimRigMode.AnimationOnly,
+
+                PlayerAttackPoseMode.AnimationWithBodyAim =>
+                    PlayerAimRigMode.AnimationWithBodyAim,
+
+                _ =>
+                    PlayerAimRigMode.Procedural
+            };
 
         return new PlayerAimOverride(
             trackingMode,

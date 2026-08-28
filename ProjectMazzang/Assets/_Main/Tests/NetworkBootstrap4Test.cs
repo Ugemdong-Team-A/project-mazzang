@@ -12,23 +12,26 @@ public class NetworkBootstrap4Test : MonoBehaviour
 
     async void StartTest()
     {
-        Debug.Log("Å×½ºÆ® ¸Ş¼­µå ½ÃÀÛ!");
+        Debug.Log("í…ŒìŠ¤íŠ¸ ë©”ì„œë“œ ì‹œì‘!");
 
         await _runner.StartGame(
             new StartGameArgs
             {
                 GameMode = GameMode.AutoHostOrClient,
-                SessionName = "69¾¾¹ß74",
+                SessionName = "69ì”¨ë°œ74",
                 IsVisible = false,
                 IsOpen = true,
                 PlayerCount = 3,
                 SceneManager = _runner.AddBehaviour<NetworkSceneManagerDefault>()
             });
 
-        Debug.Log("·¯³Ê ½ºÆùµÊ, Å×½ºÆ® ¿ÀºêÁ§Æ® »ı¼º Áß..");
+        Debug.Log("ëŸ¬ë„ˆ ìŠ¤í°ë¨, í…ŒìŠ¤íŠ¸ ì˜¤ë¸Œì íŠ¸ ìƒì„± ì¤‘..");
 
-        _runner.Spawn(testPlayer, inputAuthority: _runner.LocalPlayer);
-        _runner.Spawn(weapon4Test, inputAuthority: _runner.LocalPlayer, position: new Vector3(-3f, 0f));
+        if (testPlayer != null)
+            _runner.Spawn(testPlayer, inputAuthority: _runner.LocalPlayer);
+
+        if (weapon4Test != null)
+            _runner.Spawn(weapon4Test, inputAuthority: _runner.LocalPlayer, position: new Vector3(-3f, 0f));
     }
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created

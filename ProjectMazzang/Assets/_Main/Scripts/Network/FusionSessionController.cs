@@ -85,11 +85,11 @@ public sealed class FusionSessionController :
         OperationFailed;
 
     /// <summary>
-    /// Host»Ó ¾Æ´Ï¶ó Client¿¡¼­µµ º¹Á¦µÈ NetworkGameSessionÀ»
-    /// FSC°¡ È®º¸ÇßÀ» ¶§ ¹ß»ıÇÕ´Ï´Ù.
+    /// Hostë¿ ì•„ë‹ˆë¼ Clientì—ì„œë„ ë³µì œëœ NetworkGameSessionì„
+    /// FSCê°€ í™•ë³´í–ˆì„ ë•Œ ë°œìƒí•©ë‹ˆë‹¤.
     ///
-    /// LobbyUIController´Â ÀÌ ÀÌº¥Æ®¸¦ ÅëÇØ
-    /// ´Ê°Ô º¹Á¦µÈ GameSession¿¡µµ ¾ÈÀüÇÏ°Ô ¹ÙÀÎµùÇÒ ¼ö ÀÖ½À´Ï´Ù.
+    /// LobbyUIControllerëŠ” ì´ ì´ë²¤íŠ¸ë¥¼ í†µí•´
+    /// ëŠ¦ê²Œ ë³µì œëœ GameSessionì—ë„ ì•ˆì „í•˜ê²Œ ë°”ì¸ë”©í•  ìˆ˜ ìˆìŠµë‹ˆë‹¤.
     /// </summary>
     public event Action<NetworkGameSession>
         GameSessionChanged;
@@ -182,8 +182,8 @@ public sealed class FusionSessionController :
                 return false;
             }
 
-            // await µµÁß ´Ù¸¥ ÀÌÀ¯·Î ÇöÀç Runner°¡ ±³Ã¼µÆ´Ù¸é
-            // ÀÌ °á°ú¸¦ »ç¿ëÇÏÁö ¾Ê´Â´Ù.
+            // await ë„ì¤‘ ë‹¤ë¥¸ ì´ìœ ë¡œ í˜„ì¬ Runnerê°€ êµì²´ëë‹¤ë©´
+            // ì´ ê²°ê³¼ë¥¼ ì‚¬ìš©í•˜ì§€ ì•ŠëŠ”ë‹¤.
             if (runner != newRunner)
                 return false;
 
@@ -227,7 +227,7 @@ public sealed class FusionSessionController :
         if (networkPlayerDataPrefab == null)
         {
             Debug.LogError(
-                "NetworkPlayerData PrefabÀÌ µî·ÏµÇÁö ¾Ê¾Ò½À´Ï´Ù.",
+                "NetworkPlayerData Prefabì´ ë“±ë¡ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.",
                 this);
 
             return;
@@ -250,7 +250,7 @@ public sealed class FusionSessionController :
         if (playerData == null)
         {
             Debug.LogError(
-                $"PlayerData Spawn ½ÇÆĞ: {player}",
+                $"PlayerData Spawn ì‹¤íŒ¨: {player}",
                 this);
 
             return;
@@ -359,8 +359,8 @@ public sealed class FusionSessionController :
             CurrentRoomName =
                 roomName;
 
-            // StartGame ÀÌÈÄ ActivePlayers°¡ À¯È¿ÇØÁø ½ÃÁ¡¿¡¼­
-            // Host ÀÚ½ÅÀÇ PlayerData±îÁö ÇÑ ¹ø ´õ º¸ÀåÇÑ´Ù.
+            // StartGame ì´í›„ ActivePlayersê°€ ìœ íš¨í•´ì§„ ì‹œì ì—ì„œ
+            // Host ìì‹ ì˜ PlayerDataê¹Œì§€ í•œ ë²ˆ ë” ë³´ì¥í•œë‹¤.
             EnsurePlayerDataForActivePlayers(
                 currentRunner);
 
@@ -432,8 +432,8 @@ public sealed class FusionSessionController :
                         SessionName =
                             sessionName,
 
-                        // Client°¡ ´ë»ó RoomÀ» ¸ø Ã£¾Ò´Ù°í
-                        // »õ SessionÀ» ¸¸µé¾î ¹ö¸®´Â ÀÇµµ°¡ ¾Æ´Ô.
+                        // Clientê°€ ëŒ€ìƒ Roomì„ ëª» ì°¾ì•˜ë‹¤ê³ 
+                        // ìƒˆ Sessionì„ ë§Œë“¤ì–´ ë²„ë¦¬ëŠ” ì˜ë„ê°€ ì•„ë‹˜.
                         EnableClientSessionCreation =
                             false,
 
@@ -528,9 +528,9 @@ public sealed class FusionSessionController :
 
             await currentRunner.Shutdown();
 
-            // Á¤»óÀûÀ¸·Î´Â Shutdown °úÁ¤¿¡¼­ OnShutdownÀÌ È£ÃâµÇ¾î
-            // Runner Á¤¸®°¡ ³¡³­´Ù.
-            // È¤½Ã callbackÀ» Å¸Áö ¸øÇÑ °æ¿ì¸¸ ¿©±â¼­ º¸Á¤ÇÑ´Ù.
+            // ì •ìƒì ìœ¼ë¡œëŠ” Shutdown ê³¼ì •ì—ì„œ OnShutdownì´ í˜¸ì¶œë˜ì–´
+            // Runner ì •ë¦¬ê°€ ëë‚œë‹¤.
+            // í˜¹ì‹œ callbackì„ íƒ€ì§€ ëª»í•œ ê²½ìš°ë§Œ ì—¬ê¸°ì„œ ë³´ì •í•œë‹¤.
             if (runner ==
                 currentRunner)
             {
@@ -573,13 +573,13 @@ public sealed class FusionSessionController :
         if (runner != null)
         {
             throw new InvalidOperationException(
-                "ÀÌ¹Ì NetworkRunner°¡ Á¸ÀçÇÕ´Ï´Ù.");
+                "ì´ë¯¸ NetworkRunnerê°€ ì¡´ì¬í•©ë‹ˆë‹¤.");
         }
 
         if (runnerPrefab == null)
         {
             throw new InvalidOperationException(
-                "NetworkRunner PrefabÀÌ µî·ÏµÇÁö ¾Ê¾Ò½À´Ï´Ù.");
+                "NetworkRunner Prefabì´ ë“±ë¡ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.");
         }
 
         runner =
@@ -645,7 +645,7 @@ public sealed class FusionSessionController :
         catch (Exception e)
         {
             Debug.LogError(
-                $"[Fusion] Scene Load ¿äÃ» ½ÇÆĞ: {e.Message}",
+                $"[Fusion] Scene Load ìš”ì²­ ì‹¤íŒ¨: {e.Message}",
                 this);
 
             return false;
@@ -668,7 +668,7 @@ public sealed class FusionSessionController :
         if (networkGameSessionPrefab == null)
         {
             Debug.LogError(
-                "NetworkGameSession PrefabÀÌ µî·ÏµÇÁö ¾Ê¾Ò½À´Ï´Ù.",
+                "NetworkGameSession Prefabì´ ë“±ë¡ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.",
                 this);
 
             return;
@@ -683,7 +683,7 @@ public sealed class FusionSessionController :
         if (spawnedSession == null)
         {
             Debug.LogError(
-                "NetworkGameSession Spawn¿¡ ½ÇÆĞÇß½À´Ï´Ù.",
+                "NetworkGameSession Spawnì— ì‹¤íŒ¨í–ˆìŠµë‹ˆë‹¤.",
                 this);
 
             return;
@@ -699,8 +699,8 @@ public sealed class FusionSessionController :
         if (session == null)
             return;
 
-        // Host/Client °øÅë.
-        // ÇöÀç FSC°¡ °ü¸® ÁßÀÎ RunnerÀÇ NGS¸¸ ÀúÀåÇÑ´Ù.
+        // Host/Client ê³µí†µ.
+        // í˜„ì¬ FSCê°€ ê´€ë¦¬ ì¤‘ì¸ Runnerì˜ NGSë§Œ ì €ì¥í•œë‹¤.
         if (runner == null ||
             session.Runner != runner)
         {
@@ -756,11 +756,11 @@ public sealed class FusionSessionController :
         }
         catch
         {
-            // ½ÇÆĞ Runner´Â ¾îÂ÷ÇÇ Àç»ç¿ëÇÏÁö ¾Ê´Â´Ù.
+            // ì‹¤íŒ¨ RunnerëŠ” ì–´ì°¨í”¼ ì¬ì‚¬ìš©í•˜ì§€ ì•ŠëŠ”ë‹¤.
         }
 
-        // Á¤»ó Shutdown callbackÀÌ ÀÌ¹Ì Á¤¸®Çß´Ù¸é
-        // ÇöÀç runner´Â targetÀÌ ¾Æ´Ï´Ù.
+        // ì •ìƒ Shutdown callbackì´ ì´ë¯¸ ì •ë¦¬í–ˆë‹¤ë©´
+        // í˜„ì¬ runnerëŠ” targetì´ ì•„ë‹ˆë‹¤.
         if (runner ==
             target)
         {
@@ -943,9 +943,9 @@ public sealed class FusionSessionController :
                 out playerData);
         }
 
-        // PlayerData¸¦ ¸ÕÀú Áö¿ì¸é
-        // CharacterObject ÂüÁ¶±îÁö ÀÒÀ¸¹Ç·Î
-        // Gameplay Á¤¸® ±âÈ¸¸¦ ¸ÕÀú ÁØ´Ù.
+        // PlayerDataë¥¼ ë¨¼ì € ì§€ìš°ë©´
+        // CharacterObject ì°¸ì¡°ê¹Œì§€ ìƒìœ¼ë¯€ë¡œ
+        // Gameplay ì •ë¦¬ ê¸°íšŒë¥¼ ë¨¼ì € ì¤€ë‹¤.
         PlayerLeaving?.Invoke(
             player,
             playerData);
@@ -959,8 +959,8 @@ public sealed class FusionSessionController :
             return;
         }
 
-        // PlayerData´Â FSC°¡ »ı¼ºÇßÀ¸¹Ç·Î
-        // FSC°¡ Á÷Á¢ Á¤¸®.
+        // PlayerDataëŠ” FSCê°€ ìƒì„±í–ˆìœ¼ë¯€ë¡œ
+        // FSCê°€ ì§ì ‘ ì •ë¦¬.
         callbackRunner.Despawn(
             dataObject);
     }
@@ -1006,8 +1006,8 @@ public sealed class FusionSessionController :
             return;
         }
 
-        // ½ÇÁ¦ »óÅÂ Á¤¸®¿Í ConnectionLost ¹ß»ıÀº
-        // OnShutdown¿¡¼­ ÀÏ°ı Ã³¸®ÇÑ´Ù.
+        // ì‹¤ì œ ìƒíƒœ ì •ë¦¬ì™€ ConnectionLost ë°œìƒì€
+        // OnShutdownì—ì„œ ì¼ê´„ ì²˜ë¦¬í•œë‹¤.
         Debug.LogWarning(
             $"[Fusion] Disconnected: {reason}",
             this);
@@ -1025,8 +1025,8 @@ public sealed class FusionSessionController :
             return;
         }
 
-        // ÇöÀç´Â º°µµ ÀÔÀå Á¤Ã¥ÀÌ ¾øÀ¸¹Ç·Î Çã¿ëÇÑ´Ù.
-        // SessionÀÇ PlayerCount Á¦ÇÑÀº Fusion Session ¼³Á¤ÀÌ ´ã´çÇÑ´Ù.
+        // í˜„ì¬ëŠ” ë³„ë„ ì…ì¥ ì •ì±…ì´ ì—†ìœ¼ë¯€ë¡œ í—ˆìš©í•œë‹¤.
+        // Sessionì˜ PlayerCount ì œí•œì€ Fusion Session ì„¤ì •ì´ ë‹´ë‹¹í•œë‹¤.
         request.Accept();
     }
 
@@ -1087,7 +1087,7 @@ public sealed class FusionSessionController :
         NetworkRunner stoppedRunner =
             callbackRunner;
 
-        // ¸ÕÀú FSCÀÇ ÇöÀç ³×Æ®¿öÅ© »óÅÂ¸¦ Á¤¸®ÇÑ´Ù.
+        // ë¨¼ì € FSCì˜ í˜„ì¬ ë„¤íŠ¸ì›Œí¬ ìƒíƒœë¥¼ ì •ë¦¬í•œë‹¤.
         runner =
             null;
 
@@ -1105,18 +1105,18 @@ public sealed class FusionSessionController :
         SetState(
             NetworkSessionState.Offline);
 
-        // NetworkRunner´Â Shutdown ÈÄ Àç»ç¿ëÇÏÁö ¾Ê´Â´Ù.
+        // NetworkRunnerëŠ” Shutdown í›„ ì¬ì‚¬ìš©í•˜ì§€ ì•ŠëŠ”ë‹¤.
         if (stoppedRunner != null)
         {
             Destroy(
                 stoppedRunner.gameObject);
         }
 
-        // Á¤»ó LeaveRoomAsync¿¡¼­´Â activeOperationÀÌ LeaveRoomÀÌ°í
-        // stateµµ ShuttingDownÀÌ¹Ç·Î ¿©±â·Î µé¾î¿ÀÁö ¾Ê´Â´Ù.
+        // ì •ìƒ LeaveRoomAsyncì—ì„œëŠ” activeOperationì´ LeaveRoomì´ê³ 
+        // stateë„ ShuttingDownì´ë¯€ë¡œ ì—¬ê¸°ë¡œ ë“¤ì–´ì˜¤ì§€ ì•ŠëŠ”ë‹¤.
         //
-        // Host°¡ Á¾·áµÇ°Å³ª ¿¬°áÀÌ ²÷±ä Client¸¸
-        // ConnectionLost¸¦ UI¿¡ ¾Ë¸°´Ù.
+        // Hostê°€ ì¢…ë£Œë˜ê±°ë‚˜ ì—°ê²°ì´ ëŠê¸´ Clientë§Œ
+        // ConnectionLostë¥¼ UIì— ì•Œë¦°ë‹¤.
         if (wasUnexpected)
         {
             UnexpectedShutdown?.Invoke(
@@ -1124,7 +1124,7 @@ public sealed class FusionSessionController :
 
             RaiseFailure(
                 NetworkOperation.ConnectionLost,
-                $"³×Æ®¿öÅ© ¿¬°áÀÌ Á¾·áµÇ¾ú½À´Ï´Ù. ({shutdownReason})",
+                $"ë„¤íŠ¸ì›Œí¬ ì—°ê²°ì´ ì¢…ë£Œë˜ì—ˆìŠµë‹ˆë‹¤. ({shutdownReason})",
                 shutdownReason);
 
             if (previousState ==
@@ -1141,8 +1141,8 @@ public sealed class FusionSessionController :
     private IEnumerator RecoverLobbySceneNextFrame(
         string lobbySceneName)
     {
-        // Fusion callback ¾È¿¡¼­ Áï½Ã SceneÀ» °¥¾Æ¾şÁö ¾Ê°í
-        // Runner Á¤¸®°¡ ³¡³­ ´ÙÀ½ ÇÁ·¹ÀÓ¿¡ ·ÎÄÃ º¹±¸ÇÑ´Ù.
+        // Fusion callback ì•ˆì—ì„œ ì¦‰ì‹œ Sceneì„ ê°ˆì•„ì—ì§€ ì•Šê³ 
+        // Runner ì •ë¦¬ê°€ ëë‚œ ë‹¤ìŒ í”„ë ˆì„ì— ë¡œì»¬ ë³µêµ¬í•œë‹¤.
         yield return null;
 
         if (string.IsNullOrWhiteSpace(
@@ -1238,7 +1238,7 @@ public sealed class FusionSessionController :
         NetworkRunner callbackRunner,
         HostMigrationToken hostMigrationToken)
     {
-        // ÇöÀç ÇÁ·ÎÁ§Æ®¿¡¼­´Â Host Migration ¹Ì±¸Çö.
+        // í˜„ì¬ í”„ë¡œì íŠ¸ì—ì„œëŠ” Host Migration ë¯¸êµ¬í˜„.
     }
 
     public void OnReliableDataReceived(

@@ -116,8 +116,8 @@ public sealed class NetworkPlayerData :
         NetworkPlayerData> LocalChanged;
 
     /// <summary>
-    /// StateAuthority¿¡¼­ ½ÇÁ¦ ´Ğ³×ÀÓÀÌ ÃÖÃÊ È®Á¤µÈ ¼ø°£ ÇÑ ¹ø ¹ß»ıÇÕ´Ï´Ù.
-    /// NPD´Â UI¸¦ ¸ğ¸£°í, È®Á¤ »ç½Ç¸¸ ¿ÜºÎ¿¡ ¾Ë¸³´Ï´Ù.
+    /// StateAuthorityì—ì„œ ì‹¤ì œ ë‹‰ë„¤ì„ì´ ìµœì´ˆ í™•ì •ëœ ìˆœê°„ í•œ ë²ˆ ë°œìƒí•©ë‹ˆë‹¤.
+    /// NPDëŠ” UIë¥¼ ëª¨ë¥´ê³ , í™•ì • ì‚¬ì‹¤ë§Œ ì™¸ë¶€ì— ì•Œë¦½ë‹ˆë‹¤.
     /// </summary>
     public static event Action<
         NetworkPlayerData> NicknameConfirmed;
@@ -156,15 +156,15 @@ public sealed class NetworkPlayerData :
         NetworkRunner runner,
         bool hasState)
     {
-        // ¿©±â¼­´Â ´Ù¸¥ NetworkObject¸¦ DespawnÇÏÁö ¾Ê´Â´Ù.
+        // ì—¬ê¸°ì„œëŠ” ë‹¤ë¥¸ NetworkObjectë¥¼ Despawní•˜ì§€ ì•ŠëŠ”ë‹¤.
         //
-        // ¼­¹öÀÇ Player ÀÌÅ» ¼ø¼­´Â:
+        // ì„œë²„ì˜ Player ì´íƒˆ ìˆœì„œëŠ”:
         // 1. FSC.OnPlayerLeft
-        // 2. NetworkGameManager°¡ Character Despawn
-        // 3. FSC°¡ ÀÌ PlayerData Despawn
+        // 2. NetworkGameManagerê°€ Character Despawn
+        // 3. FSCê°€ ì´ PlayerData Despawn
         //
-        // Despawned´Â °¢ ·ÎÄÃÀÇ UI/Presentation¿¡°Ô
-        // µ¥ÀÌÅÍ°¡ »ç¶óÁ³´Ù´Â »ç½Ç¸¸ ¾Ë¸®´Â ¿ªÇÒ·Î À¯ÁöÇÑ´Ù.
+        // DespawnedëŠ” ê° ë¡œì»¬ì˜ UI/Presentationì—ê²Œ
+        // ë°ì´í„°ê°€ ì‚¬ë¼ì¡Œë‹¤ëŠ” ì‚¬ì‹¤ë§Œ ì•Œë¦¬ëŠ” ì—­í• ë¡œ ìœ ì§€í•œë‹¤.
         LocalDespawned?.Invoke(
             runner,
             Object.InputAuthority);
@@ -199,8 +199,8 @@ public sealed class NetworkPlayerData :
     // ==================================================
 
     /// <summary>
-    /// ¹æ ÀüÃ¼ ¼±ÅÃ ±ÔÄ¢Àº NetworkGameSessionÀÌ °Ë»çÇÏ°í,
-    /// NetworkPlayerData´Â È®Á¤µÈ °³ÀÎ »óÅÂ¸¸ ÀúÀåÇÕ´Ï´Ù.
+    /// ë°© ì „ì²´ ì„ íƒ ê·œì¹™ì€ NetworkGameSessionì´ ê²€ì‚¬í•˜ê³ ,
+    /// NetworkPlayerDataëŠ” í™•ì •ëœ ê°œì¸ ìƒíƒœë§Œ ì €ì¥í•©ë‹ˆë‹¤.
     /// </summary>
     public void SetCharacterSelection(
         int characterId,

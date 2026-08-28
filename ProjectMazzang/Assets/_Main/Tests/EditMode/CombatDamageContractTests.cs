@@ -54,13 +54,18 @@ namespace ProjectMazzang.Tests
                 GetRuntimeType(
                     "DamageInfo");
 
+            object crowdControl =
+                Activator.CreateInstance(
+                    GetRuntimeType(
+                        "CrowdControlDefinition"));
+
             object damageInfo =
                 Activator.CreateInstance(
                     damageInfoType,
                     10,
                     null,
                     Vector2.zero,
-                    0f);
+                    crowdControl);
 
             MethodInfo applyDamage =
                 GetRuntimeType(

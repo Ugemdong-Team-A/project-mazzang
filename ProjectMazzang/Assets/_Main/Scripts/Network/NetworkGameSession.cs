@@ -74,8 +74,8 @@ public sealed class NetworkGameSession :
     // Local Events
     // ==================================================
 
-    // ¾À ·ÎÄÃ UI°¡ Spawn ¼ø¼­¸¦ ¸ô¶óµµ ¹ÙÀÎµùÇÏ±â À§ÇÑ lifecycle event.
-    // Instance Á¢±Ù¿ë singletonÀº µÎÁö ¾Ê½À´Ï´Ù.
+    // ì”¬ ë¡œì»¬ UIê°€ Spawn ìˆœì„œë¥¼ ëª°ë¼ë„ ë°”ì¸ë”©í•˜ê¸° ìœ„í•œ lifecycle event.
+    // Instance ì ‘ê·¼ìš© singletonì€ ë‘ì§€ ì•ŠìŠµë‹ˆë‹¤.
     public static event Action<
         NetworkGameSession> LocalSpawned;
 
@@ -402,7 +402,7 @@ public sealed class NetworkGameSession :
             mapCatalog.Maps.Count == 0)
         {
             Debug.LogError(
-                "[NGS] MapCatalog¿¡ ¸ÊÀÌ ¾ø½À´Ï´Ù.",
+                "[NGS] MapCatalogì— ë§µì´ ì—†ìŠµë‹ˆë‹¤.",
                 this);
 
             return false;
@@ -502,16 +502,16 @@ public sealed class NetworkGameSession :
 
     private void UpdateMapVote()
     {
-        // ÅõÇ¥ µµÁß »õ ÇÃ·¹ÀÌ¾î°¡ µé¾î¿À¸é
-        // »õ ÇÃ·¹ÀÌ¾î°¡ Ä³¸¯ÅÍ¸¦ ¼±ÅÃÇÒ ¼ö ÀÖµµ·Ï ¼±ÅÃ ´Ü°è·Î µÇµ¹¸³´Ï´Ù.
+        // íˆ¬í‘œ ë„ì¤‘ ìƒˆ í”Œë ˆì´ì–´ê°€ ë“¤ì–´ì˜¤ë©´
+        // ìƒˆ í”Œë ˆì´ì–´ê°€ ìºë¦­í„°ë¥¼ ì„ íƒí•  ìˆ˜ ìˆë„ë¡ ì„ íƒ ë‹¨ê³„ë¡œ ë˜ëŒë¦½ë‹ˆë‹¤.
         if (!AreAllCharactersConfirmed())
         {
             ReturnToCharacterSelectForLateJoin();
             return;
         }
 
-        // ¸ğµç ÇöÀç ÇÃ·¹ÀÌ¾î°¡ À¯È¿ÇÑ ÅõÇ¥¸¦ ¸¶ÃÆ´Ù¸é
-        // ³²Àº Ä«¿îÆ®´Ù¿îÀ» ±â´Ù¸®Áö ¾Ê°í Áï½Ã °á°ú¸¦ È®Á¤ÇÑ´Ù.
+        // ëª¨ë“  í˜„ì¬ í”Œë ˆì´ì–´ê°€ ìœ íš¨í•œ íˆ¬í‘œë¥¼ ë§ˆì³¤ë‹¤ë©´
+        // ë‚¨ì€ ì¹´ìš´íŠ¸ë‹¤ìš´ì„ ê¸°ë‹¤ë¦¬ì§€ ì•Šê³  ì¦‰ì‹œ ê²°ê³¼ë¥¼ í™•ì •í•œë‹¤.
         if (AreAllMapVotesSubmitted())
         {
             ResolveMapVote();
@@ -578,7 +578,7 @@ public sealed class NetworkGameSession :
         if (candidates.Count == 0)
         {
             Debug.LogError(
-                "[NGS] ¼±ÅÃ °¡´ÉÇÑ ¸Ê ÈÄº¸°¡ ¾ø½À´Ï´Ù.",
+                "[NGS] ì„ íƒ ê°€ëŠ¥í•œ ë§µ í›„ë³´ê°€ ì—†ìŠµë‹ˆë‹¤.",
                 this);
 
             return;
@@ -691,8 +691,8 @@ public sealed class NetworkGameSession :
 
     private void UpdateMapRoulette()
     {
-        // ·ê·¿ ¿¬Ãâ Áß »õ ÇÃ·¹ÀÌ¾î°¡ µé¾î¿Â °æ¿ì¿¡µµ
-        // ¾ÆÁ÷ Gameplay ·Îµå¸¦ ¿äÃ»ÇÏ±â ÀüÀÌ¶ó¸é ¼±ÅÃ ´Ü°è·Î µÇµ¹¸°´Ù.
+        // ë£°ë › ì—°ì¶œ ì¤‘ ìƒˆ í”Œë ˆì´ì–´ê°€ ë“¤ì–´ì˜¨ ê²½ìš°ì—ë„
+        // ì•„ì§ Gameplay ë¡œë“œë¥¼ ìš”ì²­í•˜ê¸° ì „ì´ë¼ë©´ ì„ íƒ ë‹¨ê³„ë¡œ ë˜ëŒë¦°ë‹¤.
         if (!AreAllCharactersConfirmed())
         {
             ReturnToCharacterSelectForLateJoin();
@@ -723,7 +723,7 @@ public sealed class NetworkGameSession :
             selectedMap.MapPrefab == null)
         {
             Debug.LogError(
-                "[NGS] È®Á¤µÈ MapData°¡ ¿Ã¹Ù¸£Áö ¾Ê½À´Ï´Ù.",
+                "[NGS] í™•ì •ëœ MapDataê°€ ì˜¬ë°”ë¥´ì§€ ì•ŠìŠµë‹ˆë‹¤.",
                 this);
 
             return;
@@ -733,7 +733,7 @@ public sealed class NetworkGameSession :
                 gameplaySceneName))
         {
             Debug.LogError(
-                "[NGS] Gameplay Scene ÀÌ¸§ÀÌ ºñ¾î ÀÖ½À´Ï´Ù.",
+                "[NGS] Gameplay Scene ì´ë¦„ì´ ë¹„ì–´ ìˆìŠµë‹ˆë‹¤.",
                 this);
 
             return;
@@ -783,7 +783,7 @@ public sealed class NetworkGameSession :
                 lobbySceneName))
         {
             Debug.LogError(
-                "[NGS] Lobby Scene ÀÌ¸§ÀÌ ºñ¾î ÀÖ½À´Ï´Ù.",
+                "[NGS] Lobby Scene ì´ë¦„ì´ ë¹„ì–´ ìˆìŠµë‹ˆë‹¤.",
                 this);
 
             return false;
@@ -806,7 +806,7 @@ public sealed class NetworkGameSession :
         if (loadStarted)
         {
             BroadcastSystemNotice(
-                "°ÔÀÓÀÌ Á¾·áµÇ¾î ·Îºñ·Î µ¹¾Æ°©´Ï´Ù.");
+                "ê²Œì„ì´ ì¢…ë£Œë˜ì–´ ë¡œë¹„ë¡œ ëŒì•„ê°‘ë‹ˆë‹¤.");
 
             return true;
         }
@@ -864,14 +864,14 @@ public sealed class NetworkGameSession :
             return;
 
         BroadcastSystemNotice(
-            $"{playerData.DisplayName}´ÔÀÌ Âü°¡Çß½À´Ï´Ù.");
+            $"{playerData.DisplayName}ë‹˜ì´ ì°¸ê°€í–ˆìŠµë‹ˆë‹¤.");
     }
 
 
     private bool CanShowPlayerPresenceNotice()
     {
-        // Returning Áß¿¡´Â ¾À Á¤¸® °úÁ¤ÀÇ ÀÔ/ÅğÀå ¾Ë¸²À» Ç¥½ÃÇÏÁö ¾Ê½À´Ï´Ù.
-        // PlayingÀ» Æ÷ÇÔÇÑ ³ª¸ÓÁö ¼¼¼Ç ´Ü°è¿¡¼­´Â Ç¥½ÃÇÕ´Ï´Ù.
+        // Returning ì¤‘ì—ëŠ” ì”¬ ì •ë¦¬ ê³¼ì •ì˜ ì…/í‡´ì¥ ì•Œë¦¼ì„ í‘œì‹œí•˜ì§€ ì•ŠìŠµë‹ˆë‹¤.
+        // Playingì„ í¬í•¨í•œ ë‚˜ë¨¸ì§€ ì„¸ì…˜ ë‹¨ê³„ì—ì„œëŠ” í‘œì‹œí•©ë‹ˆë‹¤.
         return Phase !=
                LobbySelectionPhase.Returning;
     }
@@ -893,7 +893,7 @@ public sealed class NetworkGameSession :
                 playerData);
 
         BroadcastSystemNotice(
-            $"{playerName}´ÔÀÌ ³ª°¬½À´Ï´Ù.");
+            $"{playerName}ë‹˜ì´ ë‚˜ê°”ìŠµë‹ˆë‹¤.");
     }
 
 

@@ -108,6 +108,12 @@ public static class Standard2DIKBuilder
                 spec);
         }
 
+        CreateCcd(
+            setup,
+            rig,
+            manager,
+            Standard2DRigDefinition.BodyAimCcd);
+
         EditorUtility.SetDirty(manager);
         EditorUtility.SetDirty(setup);
 
@@ -128,10 +134,10 @@ public static class Standard2DIKBuilder
         Debug.Log(
             $"[{nameof(Standard2DRigIKSetup)} v{Standard2DRigIKSetup.ToolVersion}] " +
             $"'{setup.name}' IK 생성 완료\n" +
-            "Player Root: IKManager2D\n" +
-            "Player Root 직계 자식: LimbSolver2D x7 (Arm 2 / Leg 2 / Foot 2 / Head 1)\n" +
+            "Setup Root: IKManager2D\n" +
+            "Setup Root 직계 자식: LimbSolver2D x6 (Arm 2 / Leg 2 / Foot 2) + CCDSolver2D x1 (Body Aim)\n" +
             "각 Solver 직계 자식: Target x1\n" +
-            "Skeleton: Effector x6\n" +
+            "Skeleton: Effector x7\n" +
             "Manager/Solver/Target/Effector 참조 연결 완료" +
             aliases,
             setup);
@@ -244,7 +250,8 @@ public static class Standard2DIKBuilder
         float localReach =
             CalculateLocalReach(
                 rig,
-                spec,
+                spec.TipReference,
+                spec.PreviousBone,
                 effectorParent);
 
         effector.localPosition =
@@ -268,7 +275,7 @@ public static class Standard2DIKBuilder
         // 2) Solver
         // -------------------------------------------------------------
         //
-        // 요청한 구조대로 Player Root 바로 아래.
+        // 요청한 구조대로 Setup Root 바로 아래.
         GameObject solverObject =
             new(spec.SolverName);
 
@@ -280,7 +287,7 @@ public static class Standard2DIKBuilder
             solverObject.transform;
 
         solverTransform.SetParent(
-            setup.PlayerRoot,
+            setup.SetupRoot,
             false);
 
         solverTransform.localPosition =
@@ -411,6 +418,176 @@ public static class Standard2DIKBuilder
                 $"{spec.SolverName} 참조 연결 검증 실패.",
                 solver);
         }
+
+    }
+
+    private static void CreateCcd(
+        Standard2DRigIKSetup setup,
+        Standard2DRigResolver.Result rig,
+        IKManager2D manager,
+        Standard2DRigDefinition.CcdSpec spec)
+    {
+        Transform effectorParent =
+            rig.Bones[spec.EffectorParent];
+
+        GameObject effectorObject =
+            new(spec.EffectorName);
+
+        Undo.RegisterCreatedObjectUndo(
+            effectorObject,
+            $"Create {spec.EffectorName}");
+
+        Transform effector =
+            effectorObject.transform;
+
+        effector.SetParent(
+            effectorParent,
+            false);
+
+        float localReach =
+            CalculateLocalReach(
+                rig,
+                null,
+                spec.PreviousBone,
+                effectorParent);
+
+        effector.localPosition =
+            Vector3.right *
+            localReach *
+            setup.GetEffectorReachScale(
+                spec.ReachGroup);
+
+        effector.localRotation =
+            Quaternion.identity;
+
+        effector.localScale =
+            Vector3.one;
+
+        AddMarker(
+            effectorObject,
+            setup,
+            Standard2DGeneratedIKMarker.GeneratedKind.Effector);
+
+        GameObject solverObject =
+            new(spec.SolverName);
+
+        Undo.RegisterCreatedObjectUndo(
+            solverObject,
+            $"Create {spec.SolverName}");
+
+        Transform solverTransform =
+            solverObject.transform;
+
+        solverTransform.SetParent(
+            setup.SetupRoot,
+            false);
+
+        solverTransform.localPosition =
+            Vector3.zero;
+
+        solverTransform.localRotation =
+            Quaternion.identity;
+
+        solverTransform.localScale =
+            Vector3.one;
+
+        CCDSolver2D solver =
+            Undo.AddComponent<CCDSolver2D>(
+                solverObject);
+
+        Undo.RecordObject(
+            solver,
+            $"Configure {spec.SolverName}");
+
+        solver.weight = 1f;
+
+        // 편집 중에는 클립 미리보기를 건드리지 않고,
+        // 런타임 조준 표현이 필요할 때만 켭니다.
+        solver.enabled = false;
+        solver.constrainRotation = false;
+        solver.solveFromDefaultPose = true;
+        solver.iterations = setup.CcdIterations;
+        solver.tolerance = setup.CcdTolerance;
+        solver.velocity = setup.CcdVelocity;
+
+        AddMarker(
+            solverObject,
+            setup,
+            Standard2DGeneratedIKMarker.GeneratedKind.Solver);
+
+        GameObject targetObject =
+            new(spec.TargetName);
+
+        Undo.RegisterCreatedObjectUndo(
+            targetObject,
+            $"Create {spec.TargetName}");
+
+        Transform target =
+            targetObject.transform;
+
+        target.SetParent(
+            solverTransform,
+            false);
+
+        target.position =
+            effector.position;
+
+        target.rotation =
+            effector.rotation;
+
+        target.localScale =
+            Vector3.one;
+
+        AddMarker(
+            targetObject,
+            setup,
+            Standard2DGeneratedIKMarker.GeneratedKind.Target);
+
+        IKChain2D chain =
+            solver.GetChain(0);
+
+        chain.effector = effector;
+        chain.target = target;
+        chain.transformCount = spec.TransformCount;
+
+        solver.Initialize();
+
+        chain =
+            solver.GetChain(0);
+
+        chain.effector = effector;
+        chain.target = target;
+        chain.transformCount = spec.TransformCount;
+
+        manager.AddSolver(
+            solver);
+
+        EditorUtility.SetDirty(
+            solver);
+
+        EditorUtility.SetDirty(
+            manager);
+
+        PrefabUtility.RecordPrefabInstancePropertyModifications(
+            solver);
+
+        PrefabUtility.RecordPrefabInstancePropertyModifications(
+            manager);
+
+        IKChain2D verifyChain =
+            solver.GetChain(0);
+
+        if (verifyChain.effector != effector ||
+            verifyChain.target != target ||
+            verifyChain.transformCount != spec.TransformCount ||
+            verifyChain.rootTransform != rig.Bones[spec.ChainRoot])
+        {
+            Debug.LogError(
+                $"[{nameof(Standard2DIKBuilder)}] " +
+                $"{spec.SolverName} CCD 참조 연결 검증 실패.",
+                solver);
+        }
+
     }
 
     /// <summary>
@@ -432,16 +609,17 @@ public static class Standard2DIKBuilder
     /// </summary>
     private static float CalculateLocalReach(
         Standard2DRigResolver.Result rig,
-        Standard2DRigDefinition.LimbSpec spec,
+        string tipReference,
+        string previousBone,
         Transform effectorParent)
     {
         const float minimumReach = 0.001f;
 
         if (!string.IsNullOrEmpty(
-                spec.TipReference))
+                tipReference))
         {
             Transform tip =
-                rig.Bones[spec.TipReference];
+                rig.Bones[tipReference];
 
             Vector3 tipLocal =
                 effectorParent.InverseTransformPoint(
@@ -454,7 +632,7 @@ public static class Standard2DIKBuilder
         }
 
         Transform previous =
-            rig.Bones[spec.PreviousBone];
+            rig.Bones[previousBone];
 
         Vector3 previousLocal =
             effectorParent.InverseTransformPoint(
@@ -476,7 +654,7 @@ public static class Standard2DIKBuilder
                 target);
 
         marker.Initialize(
-            setup.PlayerRoot,
+            setup.SetupRoot,
             kind);
 
         EditorUtility.SetDirty(
@@ -496,7 +674,7 @@ public static class Standard2DIKBuilder
                 .Where(
                     marker =>
                         marker != null &&
-                        marker.OwnerRoot == setup.PlayerRoot)
+                        marker.OwnerRoot == setup.SetupRoot)
                 .ToList();
 
         IKManager2D manager =
@@ -555,7 +733,7 @@ public static class Standard2DIKBuilder
     {
         // 예전 __ik_generated wrapper 제거.
         Transform legacyRoot =
-            setup.PlayerRoot.Find(
+            setup.SetupRoot.Find(
                 "__ik_generated");
 
         if (legacyRoot != null)
@@ -577,12 +755,17 @@ public static class Standard2DIKBuilder
                     spec => spec.SolverName)
                 .ToHashSet();
 
-        LimbSolver2D[] allLimbSolvers =
-            setup.GetComponentsInChildren<LimbSolver2D>(
+        solverNames.Add(
+            Standard2DRigDefinition
+                .BodyAimCcd
+                .SolverName);
+
+        Solver2D[] allSolvers =
+            setup.GetComponentsInChildren<Solver2D>(
                 true);
 
-        foreach (LimbSolver2D solver
-                 in allLimbSolvers)
+        foreach (Solver2D solver
+                 in allSolvers)
         {
             if (solver == null ||
                 !solverNames.Contains(
@@ -622,6 +805,25 @@ public static class Standard2DIKBuilder
             {
                 Undo.DestroyObjectImmediate(
                     effector.gameObject);
+            }
+        }
+
+        Standard2DRigDefinition.CcdSpec ccdSpec =
+            Standard2DRigDefinition.BodyAimCcd;
+
+        if (rig.Bones.TryGetValue(
+                ccdSpec.EffectorParent,
+                out Transform ccdEffectorParent))
+        {
+            Transform ccdEffector =
+                FindDirectChildExact(
+                    ccdEffectorParent,
+                    ccdSpec.EffectorName);
+
+            if (ccdEffector != null)
+            {
+                Undo.DestroyObjectImmediate(
+                    ccdEffector.gameObject);
             }
         }
     }

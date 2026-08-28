@@ -77,7 +77,7 @@ public sealed class SceneLoadingUI : MonoBehaviour
 
     private void OnSceneLoadStarted()
     {
-        Show("°ÔÀÓÀ» ºÒ·¯¿À´Â Áß...");
+        Show("ê²Œì„ì„ ë¶ˆëŸ¬ì˜¤ëŠ” ì¤‘...");
     }
 
     private void OnSceneLoadCompleted()

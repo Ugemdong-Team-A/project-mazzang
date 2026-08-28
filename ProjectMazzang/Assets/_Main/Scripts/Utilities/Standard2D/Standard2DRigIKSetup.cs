@@ -2,21 +2,22 @@ using UnityEngine;
 using UnityEngine.U2D.IK;
 
 /// <summary>
-/// 아티스트가 캐릭터 Root에 붙여 버튼 한 번으로
+/// 아티스트가 대상 Rig의 기준 Root에 붙여 버튼 한 번으로
 /// 표준 2D IK를 생성하기 위한 진입점 컴포넌트.
 ///
 /// 실제 Rig 탐색 / 검증 / IK 생성 로직은 별도 클래스로 분리되어 있다.
+/// 런타임 캐릭터 컴포넌트는 이 도구를 참조하지 않는다.
 /// </summary>
 [DisallowMultipleComponent]
 [RequireComponent(typeof(IKManager2D))]
 public sealed class Standard2DRigIKSetup : MonoBehaviour
 {
-    public const string ToolVersion = "5.0-Head-PerPartReach";
+    public const string ToolVersion = "6.0-BodyAim-CCD";
 
     [Header("Rig Search")]
     [Tooltip(
         "보통 비워두세요.\n" +
-        "이 컴포넌트가 붙은 Player Root 아래에서 실제 Skeleton root를 자동 탐색합니다.\n" +
+        "이 컴포넌트가 붙은 Setup Root 아래에서 실제 Skeleton root를 자동 탐색합니다.\n" +
         "자동 탐색이 실패할 때만 Skeleton root 또는 그것을 포함하는 부모를 지정하세요.")]
     [SerializeField]
     private Transform _rigSearchRoot;
@@ -62,12 +63,32 @@ public sealed class Standard2DRigIKSetup : MonoBehaviour
     [SerializeField]
     private bool _solveFromDefaultPose = true;
 
+    [Header("Body Aim CCD Solver")]
+    [Tooltip(
+        "상체 조준 CCD의 반복 횟수입니다.\n" +
+        "체인 길이는 head Effector 기준 4로 고정됩니다.")]
+    [Range(1, 50)]
+    [SerializeField]
+    private int _ccdIterations = 10;
+
+    [Tooltip("CCD Target에 도달했다고 판단할 거리 오차입니다.")]
+    [Range(0.001f, 0.1f)]
+    [SerializeField]
+    private float _ccdTolerance = 0.01f;
+
+    [Tooltip(
+        "한 반복에서 상체가 Target 쪽으로 회전하는 비율입니다.\n" +
+        "먼 조준 Target을 정확히 향하도록 기본값은 1입니다.")]
+    [Range(0f, 1f)]
+    [SerializeField]
+    private float _ccdVelocity = 1f;
+
     public Transform RigSearchRoot =>
         _rigSearchRoot != null
             ? _rigSearchRoot
             : transform;
 
-    public Transform PlayerRoot =>
+    public Transform SetupRoot =>
         transform;
 
     public float ArmEffectorReachScale =>
@@ -97,6 +118,22 @@ public sealed class Standard2DRigIKSetup : MonoBehaviour
 
     public bool SolveFromDefaultPose =>
         _solveFromDefaultPose;
+
+    public int CcdIterations =>
+        Mathf.Clamp(
+            _ccdIterations,
+            1,
+            50);
+
+    public float CcdTolerance =>
+        Mathf.Clamp(
+            _ccdTolerance,
+            0.001f,
+            0.1f);
+
+    public float CcdVelocity =>
+        Mathf.Clamp01(
+            _ccdVelocity);
 
     public float GetEffectorReachScale(
         Standard2DRigDefinition.EffectorReachGroup group)

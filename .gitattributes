@@ -1,0 +1,8 @@
+*.cs text eol=lf
+*.md text eol=lf
+*.asmdef text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.uxml text eol=lf
+*.uss text eol=lf

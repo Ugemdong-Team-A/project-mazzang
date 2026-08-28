@@ -51,8 +51,8 @@ public sealed class LobbyUIController :
 
         RestoreLocalNickname();
 
-        // ¹öÀü È®ÀÎÀÌ ³¡³ª±â Àü¿¡´Â
-        // Å¸ÀÌÆ² ÀÔ·Â/ÁøÀÔÀ» ¸ğµÎ Àá±Ù´Ù.
+        // ë²„ì „ í™•ì¸ì´ ëë‚˜ê¸° ì „ì—ëŠ”
+        // íƒ€ì´í‹€ ì…ë ¥/ì§„ì…ì„ ëª¨ë‘ ì ê·¼ë‹¤.
         _versionAvailable =
             false;
 
@@ -342,7 +342,7 @@ public sealed class LobbyUIController :
                     string.Empty);
 
                 ui.Title.SetConnectionState(
-                    "¹öÀüÀ» È®ÀÎÇÏ´Â ÁßÀÔ´Ï´Ù...");
+                    "ë²„ì „ì„ í™•ì¸í•˜ëŠ” ì¤‘ì…ë‹ˆë‹¤...");
 
                 break;
 
@@ -355,8 +355,8 @@ public sealed class LobbyUIController :
 
                 RefreshNicknameValidation();
 
-                // ÀÌ¹Ì Room¿¡ ÀÖ´Â »óÅÂ·Î Lobby Scene¿¡
-                // µ¹¾Æ¿Â °æ¿ì¿¡´Â »õ ¿¬°áÀ» ¸¸µéÁö ¾Ê´Â´Ù.
+                // ì´ë¯¸ Roomì— ìˆëŠ” ìƒíƒœë¡œ Lobby Sceneì—
+                // ëŒì•„ì˜¨ ê²½ìš°ì—ëŠ” ìƒˆ ì—°ê²°ì„ ë§Œë“¤ì§€ ì•ŠëŠ”ë‹¤.
                 if (_network.State ==
                     NetworkSessionState.Offline)
                 {
@@ -380,8 +380,8 @@ public sealed class LobbyUIController :
                     string.Empty);
 
                 ui.Title.SetConnectionState(
-                    "Áö¿øµÇÁö ¾Ê´Â ¹öÀüÀÔ´Ï´Ù.\n" +
-                    $"ÃÖ½Å ¹öÀü: {versionChecker.LatestVersion}");
+                    "ì§€ì›ë˜ì§€ ì•ŠëŠ” ë²„ì „ì…ë‹ˆë‹¤.\n" +
+                    $"ìµœì‹  ë²„ì „: {versionChecker.LatestVersion}");
 
                 break;
 
@@ -399,8 +399,8 @@ public sealed class LobbyUIController :
                     string.Empty);
 
                 ui.Title.SetConnectionState(
-                    "¹öÀü È®ÀÎ¿¡ ½ÇÆĞÇß½À´Ï´Ù.\n" +
-                    "¿Â¶óÀÎ ±â´ÉÀ» »ç¿ëÇÒ ¼ö ¾ø½À´Ï´Ù.");
+                    "ë²„ì „ í™•ì¸ì— ì‹¤íŒ¨í–ˆìŠµë‹ˆë‹¤.\n" +
+                    "ì˜¨ë¼ì¸ ê¸°ëŠ¥ì„ ì‚¬ìš©í•  ìˆ˜ ì—†ìŠµë‹ˆë‹¤.");
 
                 break;
 
@@ -443,7 +443,7 @@ public sealed class LobbyUIController :
         if (!nicknameValid)
         {
             ui.Title.SetValidationMessage(
-                "´Ğ³×ÀÓÀº 2~16ÀÚ·Î ÀÔ·ÂÇØ ÁÖ¼¼¿ä.");
+                "ë‹‰ë„¤ì„ì€ 2~16ìë¡œ ì…ë ¥í•´ ì£¼ì„¸ìš”.");
         }
         else
         {
@@ -568,7 +568,7 @@ public sealed class LobbyUIController :
         if (_versionAvailable)
         {
             ui.Title.SetConnectionState(
-                "¿Â¶óÀÎ ¿¬°á ¾øÀ½");
+                "ì˜¨ë¼ì¸ ì—°ê²° ì—†ìŒ");
         }
 
         if (_currentPage ==
@@ -594,14 +594,14 @@ public sealed class LobbyUIController :
         if (_versionAvailable)
         {
             ui.Title.SetConnectionState(
-                "¿Â¶óÀÎ ·Îºñ ¿¬°á Áß...");
+                "ì˜¨ë¼ì¸ ë¡œë¹„ ì—°ê²° ì¤‘...");
         }
 
         if (_currentPage ==
             LobbyPage.SessionBrowser)
         {
             ui.ShowLoading(
-                "¿Â¶óÀÎ ·Îºñ¿¡ ¿¬°á Áß...");
+                "ì˜¨ë¼ì¸ ë¡œë¹„ì— ì—°ê²° ì¤‘...");
         }
 
         ui.Browser.SetInteractable(
@@ -613,7 +613,7 @@ public sealed class LobbyUIController :
         if (_versionAvailable)
         {
             ui.Title.SetConnectionState(
-                "¿Â¶óÀÎ ¿¬°á ¿Ï·á");
+                "ì˜¨ë¼ì¸ ì—°ê²° ì™„ë£Œ");
         }
 
         ui.HideLoading();
@@ -641,7 +641,7 @@ public sealed class LobbyUIController :
             false);
 
         ui.ShowLoading(
-            "¹æ¿¡ ¿¬°á Áß...");
+            "ë°©ì— ì—°ê²° ì¤‘...");
     }
 
     private void HandleInRoomState()
@@ -671,7 +671,7 @@ public sealed class LobbyUIController :
     private void HandleShuttingDownState()
     {
         ui.ShowLoading(
-            "¿¬°áÀ» Á¾·áÇÏ´Â Áß...");
+            "ì—°ê²°ì„ ì¢…ë£Œí•˜ëŠ” ì¤‘...");
 
         ui.Browser.SetInteractable(
             false);
@@ -982,8 +982,8 @@ public sealed class LobbyUIController :
         _mapVoteRequestPending =
             true;
 
-        // Å¬¸¯ Ã¼°¨Àº Áï½Ã À¯ÁöÇÏ°í,
-        // È®Á¤ °ªÀº NetworkPlayerData.LocalChanged¿¡¼­ ´Ù½Ã ¸ÂÃá´Ù.
+        // í´ë¦­ ì²´ê°ì€ ì¦‰ì‹œ ìœ ì§€í•˜ê³ ,
+        // í™•ì • ê°’ì€ NetworkPlayerData.LocalChangedì—ì„œ ë‹¤ì‹œ ë§ì¶˜ë‹¤.
         ui.Room.SetLocalMapVote(
             mapId);
 
@@ -1182,7 +1182,7 @@ public sealed class LobbyUIController :
                     0);
 
                 ui.Room.SetMapVoteStatus(
-                    "¸Ê¿¡ ÅõÇ¥ÇÏ¼¼¿ä");
+                    "ë§µì— íˆ¬í‘œí•˜ì„¸ìš”");
 
                 ui.Room.SetMapVoteInteractable(
                     !_mapVoteRequestPending);
@@ -1276,9 +1276,9 @@ public sealed class LobbyUIController :
     private void ShowLobbyConnectionFailedPopup()
     {
         AppRoot.Instance.Popup.Show(
-            "¿Â¶óÀÎ ·Îºñ¿¡ ¿¬°áÇÏÁö ¸øÇß½À´Ï´Ù.\n" +
-            "³×Æ®¿öÅ© »óÅÂ¸¦ È®ÀÎÇÑ µÚ ´Ù½Ã ½ÃµµÇØ ÁÖ¼¼¿ä.",
-            "´Ù½Ã ½Ãµµ",
+            "ì˜¨ë¼ì¸ ë¡œë¹„ì— ì—°ê²°í•˜ì§€ ëª»í–ˆìŠµë‹ˆë‹¤.\n" +
+            "ë„¤íŠ¸ì›Œí¬ ìƒíƒœë¥¼ í™•ì¸í•œ ë’¤ ë‹¤ì‹œ ì‹œë„í•´ ì£¼ì„¸ìš”.",
+            "ë‹¤ì‹œ ì‹œë„",
             RetryLobbyConnection,
             allowClose: false);
     }
@@ -1297,9 +1297,9 @@ public sealed class LobbyUIController :
 
     private async Task RecoverFromConnectionLostAsync()
     {
-        // OnShutdown¿¡¼­ FSC°¡ Offline±îÁö Á¤¸®ÇÑ µÚ
-        // ConnectionLost°¡ ¹ß»ıÇÏ¹Ç·Î ¿©±â¼­ »õ Runner·Î
-        // Session Lobby¿¡ ´Ù½Ã ¿¬°áÇÑ´Ù.
+        // OnShutdownì—ì„œ FSCê°€ Offlineê¹Œì§€ ì •ë¦¬í•œ ë’¤
+        // ConnectionLostê°€ ë°œìƒí•˜ë¯€ë¡œ ì—¬ê¸°ì„œ ìƒˆ Runnerë¡œ
+        // Session Lobbyì— ë‹¤ì‹œ ì—°ê²°í•œë‹¤.
         if (_network.State !=
             NetworkSessionState.Offline)
         {
@@ -1311,14 +1311,14 @@ public sealed class LobbyUIController :
 
         if (!connected)
         {
-            // ConnectLobbyAsync ÀÚÃ¼°¡ ½ÇÆĞ ¿øÀÎÀ»
-            // OperationFailed·Î ¿Ã¸®¹Ç·Î ¿©±â¼­ Áßº¹ ÆË¾÷Àº ¶ç¿ìÁö ¾Ê´Â´Ù.
+            // ConnectLobbyAsync ìì²´ê°€ ì‹¤íŒ¨ ì›ì¸ì„
+            // OperationFailedë¡œ ì˜¬ë¦¬ë¯€ë¡œ ì—¬ê¸°ì„œ ì¤‘ë³µ íŒì—…ì€ ë„ìš°ì§€ ì•ŠëŠ”ë‹¤.
             return;
         }
 
         AppRoot.Instance.Popup.Show(
-            "¹æ°úÀÇ ¿¬°áÀÌ Á¾·áµÇ¾î ¿Â¶óÀÎ ·Îºñ·Î µ¹¾Æ¿Ô½À´Ï´Ù.",
-            "È®ÀÎ");
+            "ë°©ê³¼ì˜ ì—°ê²°ì´ ì¢…ë£Œë˜ì–´ ì˜¨ë¼ì¸ ë¡œë¹„ë¡œ ëŒì•„ì™”ìŠµë‹ˆë‹¤.",
+            "í™•ì¸");
     }
 
     private void HandleNetworkOperationFailed(
@@ -1346,27 +1346,27 @@ public sealed class LobbyUIController :
 
             case NetworkOperation.CreateRoom:
                 AppRoot.Instance.Popup.Show(
-                    "¹æÀ» »ı¼ºÇÏÁö ¸øÇß½À´Ï´Ù.",
-                    "È®ÀÎ");
+                    "ë°©ì„ ìƒì„±í•˜ì§€ ëª»í–ˆìŠµë‹ˆë‹¤.",
+                    "í™•ì¸");
                 break;
 
             case NetworkOperation.JoinRoom:
                 AppRoot.Instance.Popup.Show(
-                    "¹æ¿¡ Âü°¡ÇÏÁö ¸øÇß½À´Ï´Ù.\n" +
-                    "¹æÀÌ °¡µæ Ã¡°Å³ª Á¾·áµÇ¾úÀ» ¼ö ÀÖ½À´Ï´Ù.",
-                    "È®ÀÎ");
+                    "ë°©ì— ì°¸ê°€í•˜ì§€ ëª»í–ˆìŠµë‹ˆë‹¤.\n" +
+                    "ë°©ì´ ê°€ë“ ì°¼ê±°ë‚˜ ì¢…ë£Œë˜ì—ˆì„ ìˆ˜ ìˆìŠµë‹ˆë‹¤.",
+                    "í™•ì¸");
                 break;
 
             case NetworkOperation.LeaveRoom:
                 AppRoot.Instance.Popup.Show(
-                    "¹æ¿¡¼­ ³ª°¡´Â Áß ¹®Á¦°¡ ¹ß»ıÇß½À´Ï´Ù.",
-                    "È®ÀÎ");
+                    "ë°©ì—ì„œ ë‚˜ê°€ëŠ” ì¤‘ ë¬¸ì œê°€ ë°œìƒí–ˆìŠµë‹ˆë‹¤.",
+                    "í™•ì¸");
                 break;
 
             default:
                 AppRoot.Instance.Popup.Show(
-                    "³×Æ®¿öÅ© ÀÛ¾÷ Áß ¹®Á¦°¡ ¹ß»ıÇß½À´Ï´Ù.",
-                    "È®ÀÎ");
+                    "ë„¤íŠ¸ì›Œí¬ ì‘ì—… ì¤‘ ë¬¸ì œê°€ ë°œìƒí–ˆìŠµë‹ˆë‹¤.",
+                    "í™•ì¸");
                 break;
         }
     }

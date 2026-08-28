@@ -897,6 +897,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 63fc1447623e4ba438aad4182dbe9893, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
+  _modules: []
 --- !u!114 &8816412148498283450
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -941,7 +942,7 @@ MonoBehaviour:
   fastFallAcceleration: 40
   fastFallInputThreshold: -0.5
   wallCheckSize: {x: 0.4, y: 1.1}
-  wallSlideSpeed: 3
+  wallSlideSpeed: 1
   wallJumpHorizontalSpeed: 3
   wallJumpVerticalSpeed: 5
   wallJumpControlDelay: 0.1
@@ -998,18 +999,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 324ce644ce6398e44b3a825b871c9bd8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerCombat
-  jabAttack:
-    attack: {fileID: 11400000, guid: 98ddf7352baec8e4eb60d00b8fc824f1, type: 2}
-    aim:
-      aimMode: 2
-      poseMode: 1
-    movementMode: 1
-  counterAttack:
-    attack: {fileID: 0}
-    aim:
-      aimMode: 0
-      poseMode: 0
-    movementMode: 0
+  jabAttack: {fileID: 11400000, guid: 5f0c8b1f020743859f5dd89bd20195f1, type: 2}
+  counterAttack: {fileID: 0}
   attackSocket: {fileID: 1119498991958727768}
   hurtboxLayer:
     serializedVersion: 2
@@ -1055,12 +1046,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAim
   aimOrigin: {fileID: 405535938307882185}
   ccdTarget: {fileID: 5349236784287973008}
+  resolvedAimReferenceBone: {fileID: 0}
+  resolvedAimPivot: {fileID: 0}
   upperBodyAimRig: {fileID: 855167590607317003}
   ccdTargetRadius: 3
   rigAngleOffset: 90
   maxBodyAimAngle: 80
   facingFlipAngle: 100
   bodyAimSpeed: 540
+  bodyAimPresentationSharpness: 24
   _AimDirection: {x: 0, y: 0}
   _BodyAimAngle: 0
   _TrackingMode: 0
@@ -1080,6 +1074,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerWeaponController
   weaponSocket: {fileID: 1119498991958727768}
+  resolvedAimPivot: {fileID: 0}
   weaponSortingOrder: 24
   leftHandLimb: {fileID: 3268336011809022708}
   rightHandLimb: {fileID: 1825635801981400533}
@@ -1100,8 +1095,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2efd521a00f4f02459ff1633a7dddc92, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerSkillController
-  skill1: {fileID: 11400000, guid: 3096fde69c3544369cbec685ac688d20, type: 2}
-  skill2: {fileID: 0}
+  mainSkill: {fileID: 11400000, guid: c2de8b60f28079c4d83e9e63e4c729b6, type: 2}
+  ultimateSkill: {fileID: 11400000, guid: 91b002f5cbd5aa74db8c229c54c722f2, type: 2}
+  _SkillAnimationSequence: 0
+  _LastSkillAnimation: 0
 --- !u!114 &700000000000000001
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1112,7 +1109,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f9078c419aa14d00a53d3022190a8d67, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerParry
   data: {fileID: 11400000, guid: c48b830f40244f729f86a3b2ddb52c09, type: 2}
   weaponSocket: {fileID: 1119498991958727768}

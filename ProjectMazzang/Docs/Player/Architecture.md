@@ -87,6 +87,43 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
 - 하나의 모듈이 두 역할을 함께 가질 수 있다.
 - 새로운 Command를 추가할 때는 요청 API와 담당 Sink를 함께 정하고, 같은 Tick 안에 완전히 소비되는지 확인한다.
 
+## 공격 데이터
+
+- `AttackData`는 공격 ID, 피해, 넉백, CC처럼 대상에게 적용되는 공통 결과를 보관한다.
+- CC는 `CrowdControlType`으로 의미를 저장하고 `CrowdControlRules`가 현재의 `PlayerControlLock` 조합으로 변환한다. 외부 표를 연결할 때도 값이 없거나 읽기에 실패하면 코드의 기본 규칙을 사용한다.
+- `stopMovementOnApply`는 적중 즉시 속도 제거, `activationDelay`는 CC 잠금의 발동 시점을 담당한다.
+- `BoxAttackData`는 공통 결과에 박스 판정의 위치와 크기를 추가한다.
+- `PlayerAttackData`는 플레이어가 공격을 실행하는 Startup, Active, Recovery,
+  Cooldown과 Aim, Movement 규칙을 SO로 보관한다. `PlayerCombat`은 인라인 공격 설정을
+  보관하지 않고 이 에셋만 참조한다.
+- 공격 자세는 `ProceduralAim`, `AnimationOnly`, `AnimationWithBodyAim` 중 하나를 선택한다.
+  `ProceduralAim` 공격은 기본 포즈에서 4본 CCD를 풀고, `AnimationOnly`는 상체 조준 보정을 끈다.
+  `AnimationWithBodyAim`은 4본 CCD로 각 본을 다시 분배하지 않고, Animator가 만든 상체를
+  하나의 포즈처럼 Aim 방향까지 추가 회전한다.
+- 공격 중이 아닌 평상시 CCD는 현재 Animator 포즈에서 풀어 달리기와 대기의 가슴·팔 움직임을
+  보존한다.
+- 상체 CCD는 프리팹에서 꺼 두어 Animation 창의 클립 미리보기를 침범하지 않고,
+  플레이 중 `ProceduralAim`이 선택됐을 때 `PlayerAim`이 켠다.
+- `Standard2DRigIKSetup`은 편집기에서 표준 IK 구조를 생성하는 도구일 뿐이며, 플레이어 런타임
+  컴포넌트는 이 도구의 존재나 보관 위치에 의존하지 않는다.
+- `PlayerAim`은 상체 CCD Solver만 명시적으로 참조하고 Target과 기준 본은 Solver 체인에서 얻는다.
+  `PlayerWeaponController`는 손 Solver와 표시용 `WeaponSocket`만 명시적으로 참조한다.
+- 실제 `AimOrigin` 트랜스폼은 `PlayerAim`만 소유한다. 같은 Tick의 `PlayerCombat`과
+  `PlayerWeaponController`는 `PlayerTickState`에 복사된 위치를 판정·발사·드롭 기준으로 재사용하며,
+  애니메이션을 따라 움직이는 `WeaponSocket`은 게임플레이 원점으로 사용하지 않는다.
+- Render에서 얻은 `WeaponSocket` 좌표는 외관에만 사용하고 다음 Tick의 판정 값으로 넘기지 않는다.
+- 양손 Limb Solver는 평상시 `ProceduralAim`에서 꺼 두어 고정된 손 Target이 Animator의 팔
+  자세를 덮지 않게 한다. `AnimationOnly`와 `AnimationWithBodyAim` 공격 중에는 클립이 움직이는
+  원래 손 Target을 복원하며, 무기를 장착했다면 각 손의 Grip이 해당 Target보다 우선한다.
+- `PlayerAttackData.ComboFollowUp`이 있으면 Active 시작부터 Recovery 종료까지 공격 입력을
+  예약하고, Recovery가 끝날 때 후속 공격으로 직접 전환한다. `AllowRepeatedComboInput`이 켜지면
+  연속 입력을 한 번의 예약으로 취급하며, 런타임 콤보 깊이는 1단계로 제한한다.
+- 같은 `AttackData`를 사용하더라도 실행 주체에 따라 타이밍과 사용 규칙은 달라질 수 있으므로,
+  플레이어 전용 실행 정보는 `AttackData`에 두지 않는다.
+- `Projectile` 프리팹은 자신의 초기 속도, 수명, `AttackData`를 보관하고 충돌 시 공격 결과를 전달한다.
+- `ProjectileSkillData`는 시전과 회복 시간, 생성 위치, 생성할 투사체 프리팹만 보관한다.
+- 스킬은 투사체의 방향과 소유자만 초기화하며, 투사체의 밸런스 값을 중복해서 보관하지 않는다.
+
 ## Control Lock
 
 `PlayerControlLock`은 Flags이며 현재 세 영역을 독립적으로 제어한다.

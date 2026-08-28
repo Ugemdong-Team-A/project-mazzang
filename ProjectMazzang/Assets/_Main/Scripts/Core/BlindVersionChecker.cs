@@ -81,7 +81,7 @@ public sealed class BuildVersionChecker :
                 UnityWebRequest.Result.Success)
             {
                 Debug.LogWarning(
-                    $"[Version] ¹öÀü È®ÀÎ ½ÇÆĞ: {request.error}",
+                    $"[Version] ë²„ì „ í™•ì¸ ì‹¤íŒ¨: {request.error}",
                     this);
 
                 SetState(

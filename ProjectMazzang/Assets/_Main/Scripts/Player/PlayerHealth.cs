@@ -15,6 +15,9 @@ public sealed class PlayerHealth :
     IDamageable,
     IPlayerTickStateSource
 {
+    private const int PendingCrowdControlCapacity = 8;
+
+
     [Header("Health")]
     [SerializeField]
     private int maxHealth = 100;
@@ -97,6 +100,12 @@ public sealed class PlayerHealth :
 
     [Networked]
     private int AppliedMaxHealth { get; set; }
+
+
+    [Networked, Capacity(PendingCrowdControlCapacity)]
+    private NetworkArray<PendingCrowdControlState>
+        PendingCrowdControls =>
+            default;
 
 
     // =========================================================
@@ -186,6 +195,8 @@ public sealed class PlayerHealth :
 
         InvulnerabilityTimer =
             TickTimer.None;
+
+        ClearPendingCrowdControls();
     }
 
 
@@ -229,6 +240,8 @@ public sealed class PlayerHealth :
             return;
 
         RefreshMaxHealthModifier();
+
+        ProcessPendingCrowdControls();
 
         if (!IsDead)
             return;
@@ -286,16 +299,26 @@ public sealed class PlayerHealth :
         // 새 공격 차단 시간은 아래의 Attack control lock이 담당한다.
         RequestCancelAttack();
 
+        bool wasFatal =
+            Health <= 0;
+
+        if (info.CrowdControl.StopMovementOnApply)
+        {
+            RequestStopMovement();
+        }
+
+        if (!wasFatal)
+        {
+            ApplyOrQueueCrowdControl(
+                info.CrowdControl);
+        }
+
         if (info.Knockback
                 .sqrMagnitude > 0f)
         {
             RequestKnockback(
-                info.Knockback,
-                info.KnockbackControlLock);
+                info.Knockback);
         }
-
-        bool wasFatal =
-            Health <= 0;
 
         if (wasFatal)
         {
@@ -323,19 +346,146 @@ public sealed class PlayerHealth :
     }
 
 
-    private void RequestKnockback(
-        Vector2 velocity,
-        float controlLockDuration)
+    private void RequestCrowdControl(
+        CrowdControlType type,
+        float duration)
     {
         if (Commands == null)
             return;
 
-        // 기존 피격 규칙을 명시적으로 보존한다.
-        // 넉백은 이동과 기본 공격만 잠그며, 스킬은 별도 정책이다.
         Commands.RequestControlLock(
-            PlayerControlLock.Movement |
-            PlayerControlLock.Attack,
-            controlLockDuration);
+            CrowdControlRules.ResolveLocks(
+                type),
+            duration);
+    }
+
+
+    private void RequestStopMovement()
+    {
+        if (Commands == null)
+            return;
+
+        Commands.RequestSetMovementVelocity(
+            Vector2.zero);
+    }
+
+
+    private void ApplyOrQueueCrowdControl(
+        CrowdControlDefinition definition)
+    {
+        if (definition.Type ==
+                CrowdControlType.None ||
+            definition.Duration <= 0f)
+        {
+            return;
+        }
+
+        if (definition.IsImmediate)
+        {
+            RequestCrowdControl(
+                definition.Type,
+                definition.Duration);
+
+            return;
+        }
+
+        QueueCrowdControl(
+            definition);
+    }
+
+
+    private void QueueCrowdControl(
+        CrowdControlDefinition definition)
+    {
+        int targetIndex = -1;
+        float latestRemaining =
+            float.MinValue;
+
+        for (int i = 0;
+             i < PendingCrowdControlCapacity;
+             i++)
+        {
+            PendingCrowdControlState state =
+                PendingCrowdControls[i];
+
+            if (!state.IsActive)
+            {
+                targetIndex = i;
+                break;
+            }
+
+            float remaining =
+                state.ActivationTimer
+                    .RemainingTime(Runner) ??
+                0f;
+
+            if (remaining <= latestRemaining)
+                continue;
+
+            latestRemaining = remaining;
+            targetIndex = i;
+        }
+
+        PendingCrowdControls.Set(
+            targetIndex,
+            new PendingCrowdControlState
+            {
+                IsActive = true,
+                Type = definition.Type,
+                Duration = definition.Duration,
+                ActivationTimer =
+                    TickTimer.CreateFromSeconds(
+                        Runner,
+                        definition.ActivationDelay)
+            });
+    }
+
+
+    private void ProcessPendingCrowdControls()
+    {
+        for (int i = 0;
+             i < PendingCrowdControlCapacity;
+             i++)
+        {
+            PendingCrowdControlState state =
+                PendingCrowdControls[i];
+
+            if (!state.IsActive ||
+                !state.ActivationTimer
+                    .Expired(Runner))
+            {
+                continue;
+            }
+
+            RequestCrowdControl(
+                state.Type,
+                state.Duration);
+
+            PendingCrowdControls.Set(
+                i,
+                default);
+        }
+    }
+
+
+    private void ClearPendingCrowdControls()
+    {
+        for (int i = 0;
+             i < PendingCrowdControlCapacity;
+             i++)
+        {
+            PendingCrowdControls.Set(
+                i,
+                default);
+        }
+    }
+
+
+    private void RequestKnockback(
+        Vector2 velocity)
+    {
+        if (Commands == null)
+            return;
 
         Commands.RequestKnockback(
             velocity);
@@ -473,6 +623,8 @@ public sealed class PlayerHealth :
 
         DeathSequence++;
 
+        ClearPendingCrowdControls();
+
         // 사망한 틱에 이미 진행 중인 공격도 즉시 취소한다.
         RequestCancelAttack();
 
@@ -523,6 +675,8 @@ public sealed class PlayerHealth :
 
     private void CompleteRespawn()
     {
+        ClearPendingCrowdControls();
+
         Health =
             MaxHealth;
 

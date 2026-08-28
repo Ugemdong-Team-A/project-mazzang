@@ -43,7 +43,9 @@
 - 피해가 적용된 Tick에 진행 중인 공격이 취소된다.
 - Knockback이 0이 아니면 동일한 피해 정보의 속도가 Movement에 적용된다.
 - 공격 취소와 Knockback 명령이 다음 Tick까지 남지 않고 요청된 시뮬레이션 호출에서 처리된다.
-- KnockbackControlLock 동안 이동 및 일반 공격 입력이 적용되지 않는다.
+- HitStun CC 지속 시간 동안 이동 및 일반 공격 입력이 적용되지 않는다.
+- `stopMovementOnApply`가 켜진 공격은 CC 지연 여부와 관계없이 적중 즉시 현재 이동 속도를 0으로 만든다.
+- `activationDelay` 후에 CC가 발동하고, 같은 틱의 여러 지연 CC가 서로 덮어쓰지 않는다.
 - Timer 만료 뒤 다음 유효 Tick부터 이동과 일반 공격이 가능하다.
 - 같은 종류의 더 짧은 후속 잠금이 기존의 긴 잠금 시간을 줄이지 않는다.
 
@@ -67,6 +69,23 @@
 - Aim에서 확정된 방향과 각도를 Animation이 같은 Tick에 읽는다.
 - Aim override가 끝난 뒤 일반 입력 Aim으로 복귀한다.
 - 공격의 Aim override와 Weapon 사용 요청이 요청된 Tick 안에서 처리된다.
+- `ProceduralAim` 공격은 기본 상체 포즈에서 CCD 조준을 적용한다.
+- 공격하지 않고 달리거나 대기할 때는 CCD 조준 중에도 클립의 가슴과 팔 움직임이 유지된다.
+- `AnimationOnly`는 상체 CCD를 끄고 공격 클립의 자세를 그대로 사용한다.
+- `AnimationWithBodyAim`은 공격 클립의 상체 상대 자세를 유지한 채 기준 척추에
+  필요한 회전만 더해 최종 조준 방향을 맞춘다.
+- 무기가 없는 평상시 `ProceduralAim`에서는 양손 Limb Solver가 꺼져 판토마임 자세가 생기지 않는다.
+- `AnimationOnly`와 `AnimationWithBodyAim` 공격 중에는 클립의 원래 손 IK Target이 복원되고,
+  공격이 끝나면 두 Solver가 다시 꺼진다.
+- 무기를 장착하면 각 손은 클립 Target보다 무기의 Grip을 우선하며, Grip이 없는 손만 공격 중
+  클립 Target을 사용한다.
+- 잽의 Active 시작부터 Recovery 종료까지 공격을 한 번 이상 누르면 Counter가 이어지고,
+  중복 입력 허용을 끈 데이터는 정확히 한 번 눌렀을 때만 이어진다.
+- Counter 이후에는 후속 공격 참조가 잘못 연결되어 있어도 콤보가 다시 이어지지 않는다.
+- 상체 조준과 공격 애니메이션으로 `WeaponSocket`이 움직여도 근접 판정, 무기 발사, 무기 드롭의
+  기준점은 같은 Tick의 `AimOrigin`에서 흔들리지 않는다.
+- 캐릭터에서 `Standard2DRigIKSetup`을 제거하거나 별도 에디터 작업용 오브젝트로 옮겨도,
+  런타임에 명시적으로 연결한 상체 CCD와 손 Solver가 정상 동작한다.
 - 재시뮬레이션 횟수와 관계없이 Aim 보간, 피격 색상, 무적 깜빡임 속도가 일정하다.
 - 처음 표시할 때 이미 존재하던 Jump, Attack, Skill, Death Sequence를 새 이벤트로 재생하지 않는다.
 - Health, MaxHealth, Lives와 생존 여부가 상태 UI 및 캐릭터 표시와 일치한다.

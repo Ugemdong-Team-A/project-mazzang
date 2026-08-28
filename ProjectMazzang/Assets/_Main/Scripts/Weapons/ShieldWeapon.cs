@@ -12,9 +12,8 @@ public sealed class ShieldWeapon :
     private float sharedCooldown = 1.35f;
 
     [Header("Shield Bash")]
-    [Min(0)]
     [SerializeField]
-    private int damage = 13;
+    private AttackData bashAttack;
 
     [SerializeField]
     private Vector2 hitboxSize =
@@ -34,18 +33,6 @@ public sealed class ShieldWeapon :
     [Min(0f)]
     [SerializeField]
     private float dashControlLock = 0.1f;
-
-    [Min(0f)]
-    [SerializeField]
-    private float knockbackForward = 7.5f;
-
-    [Min(0f)]
-    [SerializeField]
-    private float knockbackUp = 2.5f;
-
-    [Min(0f)]
-    [SerializeField]
-    private float knockbackControlLock = 0.12f;
 
     [Header("Shield Parry")]
     [Min(0.01f)]
@@ -232,7 +219,7 @@ public sealed class ShieldWeapon :
             Holder.InputAuthority == Runner.LocalPlayer;
 
         _presentation.SetState(
-            ResolveHolderAnchor(),
+            ResolveStableHolderPosition(),
             ParryOrigin,
             ParryDirection,
             parryRadius,
@@ -306,23 +293,21 @@ public sealed class ShieldWeapon :
     {
         if (Holder == null ||
             !Holder.TryGetComponent(
-                out PlayerMovement movement) ||
-            !Holder.TryGetComponent(
-                out PlayerController playerController))
+                out IPlayerTickCommandDispatcher playerTickCommander))
         {
             return;
         }
 
-        Vector2 velocity = movement.Velocity;
+        Vector2 velocity = playerTickCommander.TickState.MovementVelocity;
         velocity.x = direction.x * dashSpeed;
         velocity.y = Mathf.Max(
             velocity.y,
             direction.y * dashSpeed * 0.45f);
 
-        playerController.RequestMovementVelocity(
+        playerTickCommander.TickCommands.RequestSetMovementVelocity(
             velocity);
 
-        playerController.RequestControlLock(
+        playerTickCommander.TickCommands.RequestControlLock(
             PlayerControlLock.Movement |
             PlayerControlLock.Attack,
             dashControlLock);
@@ -332,6 +317,9 @@ public sealed class ShieldWeapon :
         Vector2 origin,
         Vector2 direction)
     {
+        if (bashAttack == null)
+            return;
+
         float angle = Mathf.Atan2(
             direction.y,
             direction.x) * Mathf.Rad2Deg;
@@ -368,14 +356,14 @@ public sealed class ShieldWeapon :
                 continue;
 
             Vector2 knockback =
-                direction * knockbackForward +
-                Vector2.up * knockbackUp;
+                direction * bashAttack.KnockbackForward +
+                Vector2.up * bashAttack.KnockbackUp;
 
             DamageInfo info = new(
-                damage,
+                bashAttack.Damage,
                 Holder,
                 knockback,
-                knockbackControlLock);
+                bashAttack.CrowdControl);
 
             CombatDamageService.ApplyDamage(
                 damageable,
@@ -395,6 +383,13 @@ public sealed class ShieldWeapon :
 
         return ActionOrigin.sqrMagnitude > 0.0001f
             ? ActionOrigin
+            : (Vector2)transform.position;
+    }
+
+    private Vector2 ResolveStableHolderPosition()
+    {
+        return Holder != null
+            ? (Vector2)Holder.transform.position
             : (Vector2)transform.position;
     }
 

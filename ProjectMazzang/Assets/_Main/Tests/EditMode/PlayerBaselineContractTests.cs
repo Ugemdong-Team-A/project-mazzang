@@ -233,6 +233,136 @@ namespace ProjectMazzang.Tests
 
 
         [Test]
+        public void AttackPoseModes_KeepSerializedValues()
+        {
+            Type poseMode =
+                GetRuntimeType(
+                    "PlayerAttackPoseMode");
+
+            Type rigMode =
+                GetRuntimeType(
+                    "PlayerAimRigMode");
+
+            Assert.That(
+                Convert.ToInt32(
+                    Enum.Parse(
+                        poseMode,
+                        "ProceduralAim")),
+                Is.EqualTo(0));
+
+            Assert.That(
+                Convert.ToInt32(
+                    Enum.Parse(
+                        poseMode,
+                        "AnimationOnly")),
+                Is.EqualTo(1));
+
+            Assert.That(
+                Convert.ToInt32(
+                    Enum.Parse(
+                        poseMode,
+                        "AnimationWithBodyAim")),
+                Is.EqualTo(2));
+
+            Assert.That(
+                Convert.ToInt32(
+                    Enum.Parse(
+                        rigMode,
+                        "Procedural")),
+                Is.EqualTo(0));
+
+            Assert.That(
+                Convert.ToInt32(
+                    Enum.Parse(
+                        rigMode,
+                        "AnimationOnly")),
+                Is.EqualTo(1));
+
+            Assert.That(
+                Convert.ToInt32(
+                    Enum.Parse(
+                        rigMode,
+                        "AnimationWithBodyAim")),
+                Is.EqualTo(2));
+        }
+
+
+        [Test]
+        public void PlayerAttackData_KeepsComboConfiguration()
+        {
+            Type attackDataType =
+                GetRuntimeType(
+                    "PlayerAttackData");
+
+            ScriptableObject attackData =
+                ScriptableObject.CreateInstance(
+                    attackDataType);
+
+            try
+            {
+                SerializedObject serializedObject =
+                    new(
+                        attackData);
+
+                Assert.That(
+                    serializedObject.FindProperty(
+                        "comboFollowUp"),
+                    Is.Not.Null);
+
+                SerializedProperty repeatedInput =
+                    serializedObject.FindProperty(
+                        "allowRepeatedComboInput");
+
+                Assert.That(
+                    repeatedInput,
+                    Is.Not.Null);
+
+                Assert.That(
+                    repeatedInput.boolValue,
+                    Is.True,
+                    "기본 콤보는 연속 입력을 한 번의 예약으로 취급해야 합니다.");
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(
+                    attackData);
+            }
+        }
+
+
+        [Test]
+        public void PlayerCombat_ValidatesRepeatedComboInputPolicy()
+        {
+            MethodInfo method =
+                GetRuntimeType("PlayerCombat")
+                    .GetMethod(
+                        "IsComboInputSatisfied",
+                        BindingFlags.Static |
+                        BindingFlags.NonPublic);
+
+            Assert.That(method, Is.Not.Null);
+
+            Assert.That(
+                method.Invoke(
+                    null,
+                    new object[] { (byte)1, false }),
+                Is.EqualTo(true));
+
+            Assert.That(
+                method.Invoke(
+                    null,
+                    new object[] { (byte)2, false }),
+                Is.EqualTo(false));
+
+            Assert.That(
+                method.Invoke(
+                    null,
+                    new object[] { (byte)2, true }),
+                Is.EqualTo(true));
+        }
+
+
+        [Test]
         public void PlayerSkillController_CreatesRuntimeSkillsOnEveryPeer()
         {
             Type controllerType =
@@ -789,7 +919,44 @@ namespace ProjectMazzang.Tests
 
 
         [Test]
-        public void AttackData_KeepsCurrentSerializedControlLockField()
+        public void PlayerTickState_ReusesCapturedAimOrigin()
+        {
+            Type tickStateType =
+                GetRuntimeType(
+                    "PlayerTickState");
+
+            object tickState =
+                Activator.CreateInstance(
+                    tickStateType);
+
+            tickStateType
+                .GetProperty("HasAimOrigin")
+                .SetValue(tickState, true);
+
+            tickStateType
+                .GetProperty("AimOriginPosition")
+                .SetValue(
+                    tickState,
+                    new Vector2(2f, 3f));
+
+            Vector2 origin =
+                (Vector2)tickStateType
+                    .GetMethod("ResolveAimOrigin")
+                    .Invoke(
+                        tickState,
+                        new object[]
+                        {
+                            new Vector2(9f, 9f)
+                        });
+
+            Assert.That(
+                origin,
+                Is.EqualTo(new Vector2(2f, 3f)));
+        }
+
+
+        [Test]
+        public void AttackData_KeepsCrowdControlDefaults()
         {
             Type attackDataType =
                 GetRuntimeType(
@@ -807,17 +974,40 @@ namespace ProjectMazzang.Tests
 
                 SerializedProperty property =
                     serializedObject.FindProperty(
-                        "knockbackControlLock");
+                        "crowdControl");
 
                 Assert.That(
                     property,
                     Is.Not.Null,
-                    "현재 AttackData 직렬화 필드가 사라졌습니다.");
+                    "AttackData의 군중 제어 정의가 사라졌습니다.");
 
                 Assert.That(
-                    property.floatValue,
+                    property
+                        .FindPropertyRelative("type")
+                        .intValue,
+                    Is.EqualTo(1),
+                    "기본 CC는 HitStun이어야 합니다.");
+
+                Assert.That(
+                    property
+                        .FindPropertyRelative("duration")
+                        .floatValue,
                     Is.EqualTo(0.12f).Within(0.0001f),
-                    "기본 control lock 시간이 달라졌습니다.");
+                    "기본 경직 시간이 달라졌습니다.");
+
+                Assert.That(
+                    property
+                        .FindPropertyRelative("activationDelay")
+                        .floatValue,
+                    Is.EqualTo(0f).Within(0.0001f),
+                    "기본 CC는 즉시 발동해야 합니다.");
+
+                Assert.That(
+                    property
+                        .FindPropertyRelative("stopMovementOnApply")
+                        .boolValue,
+                    Is.False,
+                    "일반 공격은 적중 순간 속도를 강제로 지우지 않습니다.");
             }
             finally
             {
@@ -1019,7 +1209,7 @@ namespace ProjectMazzang.Tests
 
 
         [Test]
-        public void DamageInfo_KeepsKnockbackControlLockValue()
+        public void DamageInfo_KeepsCrowdControlDefinition()
         {
             Type damageInfoType =
                 GetRuntimeType(
@@ -1030,6 +1220,27 @@ namespace ProjectMazzang.Tests
                     .GetConstructors()
                     .Single();
 
+            Type crowdControlType =
+                GetRuntimeType(
+                    "CrowdControlDefinition");
+
+            Type crowdControlKind =
+                GetRuntimeType(
+                    "CrowdControlType");
+
+            object root =
+                Enum.Parse(
+                    crowdControlKind,
+                    "Root");
+
+            object crowdControl =
+                Activator.CreateInstance(
+                    crowdControlType,
+                    root,
+                    2f,
+                    0.35f,
+                    true);
+
             object damageInfo =
                 constructor.Invoke(
                     new object[]
@@ -1037,7 +1248,7 @@ namespace ProjectMazzang.Tests
                         17,
                         null,
                         new Vector2(3f, 4f),
-                        0.35f
+                        crowdControl
                     });
 
             AssertProperty(
@@ -1050,10 +1261,73 @@ namespace ProjectMazzang.Tests
                 "Knockback",
                 new Vector2(3f, 4f));
 
+            object storedCrowdControl =
+                damageInfoType
+                    .GetProperty("CrowdControl")
+                    .GetValue(damageInfo);
+
             AssertProperty(
-                damageInfo,
-                "KnockbackControlLock",
+                storedCrowdControl,
+                "Type",
+                root);
+
+            AssertProperty(
+                storedCrowdControl,
+                "Duration",
+                2f);
+
+            AssertProperty(
+                storedCrowdControl,
+                "ActivationDelay",
                 0.35f);
+
+            AssertProperty(
+                storedCrowdControl,
+                "StopMovementOnApply",
+                true);
+        }
+
+
+        [Test]
+        public void CrowdControlRules_MapSemanticTypesToCurrentLocks()
+        {
+            Type crowdControlKind =
+                GetRuntimeType(
+                    "CrowdControlType");
+
+            MethodInfo resolve =
+                GetRuntimeType(
+                        "CrowdControlRules")
+                    .GetMethod(
+                        "ResolveLocks",
+                        BindingFlags.Public |
+                        BindingFlags.Static);
+
+            Assert.That(resolve, Is.Not.Null);
+
+            Assert.That(
+                Convert.ToInt32(
+                    resolve.Invoke(
+                        null,
+                        new[]
+                        {
+                            Enum.Parse(
+                                crowdControlKind,
+                                "Root")
+                        })),
+                Is.EqualTo(1));
+
+            Assert.That(
+                Convert.ToInt32(
+                    resolve.Invoke(
+                        null,
+                        new[]
+                        {
+                            Enum.Parse(
+                                crowdControlKind,
+                                "Stun")
+                        })),
+                Is.EqualTo(7));
         }
 
 

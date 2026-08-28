@@ -70,8 +70,8 @@ public sealed class RoomLobbyPanel :
     [SerializeField]
     private Button leaveButton;
 
-    // ±âÁ¸ Start ¹öÆ° Serialized ÂüÁ¶¸¦ ÀÒÁö ¾Ê±â À§ÇÑ ¸¶ÀÌ±×·¹ÀÌ¼Ç ½½·Ô.
-    // ÀÚµ¿ ÁøÇà ±¸Á¶¿¡¼­´Â »ç¿ëÇÏÁö ¾Ê°í Ç×»ó ¼û±é´Ï´Ù.
+    // ê¸°ì¡´ Start ë²„íŠ¼ Serialized ì°¸ì¡°ë¥¼ ìƒì§€ ì•Šê¸° ìœ„í•œ ë§ˆì´ê·¸ë ˆì´ì…˜ ìŠ¬ë¡¯.
+    // ìë™ ì§„í–‰ êµ¬ì¡°ì—ì„œëŠ” ì‚¬ìš©í•˜ì§€ ì•Šê³  í•­ìƒ ìˆ¨ê¹ë‹ˆë‹¤.
     [FormerlySerializedAs("startButton")]
     [SerializeField]
     private Button legacyStartButton;
@@ -270,8 +270,8 @@ public sealed class RoomLobbyPanel :
                 item);
         }
 
-        // ±âÁ¸ PlayerListItemÀÇ Ready Ç¥½Ã´Â
-        // ÀÌÁ¦ Ä³¸¯ÅÍ È®Á¤ »óÅÂ¸¦ ÀÇ¹ÌÇÕ´Ï´Ù.
+        // ê¸°ì¡´ PlayerListItemì˜ Ready í‘œì‹œëŠ”
+        // ì´ì œ ìºë¦­í„° í™•ì • ìƒíƒœë¥¼ ì˜ë¯¸í•©ë‹ˆë‹¤.
         item.SetView(
             nickname,
             characterConfirmed,
@@ -464,8 +464,8 @@ public sealed class RoomLobbyPanel :
         {
             characterConfirmButtonText.text =
                 confirmed
-                    ? "È®Á¤ Ãë¼Ò"
-                    : "Ä³¸¯ÅÍ È®Á¤";
+                    ? "í™•ì • ì·¨ì†Œ"
+                    : "ìºë¦­í„° í™•ì •";
         }
     }
 
@@ -514,14 +514,14 @@ public sealed class RoomLobbyPanel :
         if (!allCharactersConfirmed)
         {
             _startButtonText.text =
-                $"Ä³¸¯ÅÍ ¼±ÅÃ ´ë±â Áß ({confirmedCount}/{playerCount})";
+                $"ìºë¦­í„° ì„ íƒ ëŒ€ê¸° ì¤‘ ({confirmedCount}/{playerCount})";
             return;
         }
 
         _startButtonText.text =
             isHost
-                ? "¸Ê ÅõÇ¥ ½ÃÀÛ"
-                : "¹æÀåÀÌ ¸Ê ÅõÇ¥¸¦ ½ÃÀÛÇÏ±â¸¦ ±â´Ù¸®´Â Áß...";
+                ? "ë§µ íˆ¬í‘œ ì‹œì‘"
+                : "ë°©ì¥ì´ ë§µ íˆ¬í‘œë¥¼ ì‹œì‘í•˜ê¸°ë¥¼ ê¸°ë‹¤ë¦¬ëŠ” ì¤‘...";
     }
 
     private void OnMapVoteStartClicked()
@@ -739,8 +739,8 @@ public sealed class RoomLobbyPanel :
 
         SetMapVoteStatus(
             candidates.Count > 1
-                ? "µ¿·ü ÈÄº¸ Áß ¸ÊÀ» ¼±ÅÃÇÕ´Ï´Ù..."
-                : "¼±ÅÃµÈ ¸Ê");
+                ? "ë™ë¥  í›„ë³´ ì¤‘ ë§µì„ ì„ íƒí•©ë‹ˆë‹¤..."
+                : "ì„ íƒëœ ë§µ");
 
         float safeDuration =
             Mathf.Max(
@@ -796,8 +796,8 @@ public sealed class RoomLobbyPanel :
 
         SetMapVoteStatus(
             winnerData != null
-                ? $"{winnerData.DisplayName} ¼±ÅÃ!"
-                : "¸Ê ¼±ÅÃ ¿Ï·á");
+                ? $"{winnerData.DisplayName} ì„ íƒ!"
+                : "ë§µ ì„ íƒ ì™„ë£Œ");
 
         _rouletteRoutine = null;
     }

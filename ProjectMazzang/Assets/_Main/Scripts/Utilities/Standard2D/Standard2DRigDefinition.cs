@@ -33,7 +33,7 @@ public static class Standard2DRigDefinition
 
         /// <summary>
         /// IK Chain의 가장 위 본.
-        /// arm_l / thigh_l / foot_01_l / neck 등.
+        /// arm_l / thigh_l / foot_01_l 등.
         /// </summary>
         public readonly string ChainRoot;
 
@@ -42,7 +42,6 @@ public static class Standard2DRigDefinition
         /// 팔 = forearm
         /// 다리 = calf
         /// 발 = foot_02
-        /// 머리 = head
         /// </summary>
         public readonly string EffectorParent;
 
@@ -51,14 +50,13 @@ public static class Standard2DRigDefinition
         /// 팔 = hand
         /// 다리 = foot_01
         ///
-        /// terminal 본인 foot_02 / head에는 다음 본이 없으므로 null.
+        /// terminal 본인 foot_02에는 다음 본이 없으므로 null.
         /// </summary>
         public readonly string TipReference;
 
         /// <summary>
         /// TipReference가 없을 때 길이 추정에 사용할 이전 본.
         /// 발 = foot_01
-        /// 머리 = neck
         /// </summary>
         public readonly string PreviousBone;
 
@@ -81,6 +79,46 @@ public static class Standard2DRigDefinition
             TipReference = tipReference;
             PreviousBone = previousBone;
             Flip = flip;
+            ReachGroup = reachGroup;
+        }
+
+        public string SolverName =>
+            Prefix + "_solver";
+
+        public string TargetName =>
+            Prefix + "_solver_Target";
+
+        public string EffectorName =>
+            Prefix + "_effector";
+    }
+
+    public readonly struct CcdSpec
+    {
+        public readonly string Prefix;
+
+        public readonly string ChainRoot;
+
+        public readonly string EffectorParent;
+
+        public readonly string PreviousBone;
+
+        public readonly int TransformCount;
+
+        public readonly EffectorReachGroup ReachGroup;
+
+        public CcdSpec(
+            string prefix,
+            string chainRoot,
+            string effectorParent,
+            string previousBone,
+            int transformCount,
+            EffectorReachGroup reachGroup)
+        {
+            Prefix = prefix;
+            ChainRoot = chainRoot;
+            EffectorParent = effectorParent;
+            PreviousBone = previousBone;
+            TransformCount = transformCount;
             ReachGroup = reachGroup;
         }
 
@@ -130,7 +168,7 @@ public static class Standard2DRigDefinition
         };
 
     /// <summary>
-    /// Arm 2 + Leg 2 + Foot 2 + Head 1 = 7 Limb Solver 구성.
+    /// Arm 2 + Leg 2 + Foot 2 = 6 Limb Solver 구성.
     ///
     /// Arm:
     /// arm -> forearm -> effector
@@ -140,9 +178,6 @@ public static class Standard2DRigDefinition
     ///
     /// Foot:
     /// foot_01 -> foot_02 -> effector
-    ///
-    /// Head:
-    /// neck -> head -> effector
     ///
     /// 모두 transformCount = 3으로 구성한다.
     /// </summary>
@@ -201,15 +236,20 @@ public static class Standard2DRigDefinition
                 null,
                 "foot_01_r",
                 true,
-                EffectorReachGroup.Leg),
-
-            new(
-                "head",
-                "neck",
-                "head",
-                null,
-                "neck",
-                false,
-                EffectorReachGroup.Head)
+                EffectorReachGroup.Leg)
         };
+
+    /// <summary>
+    /// head 자식 Effector를 끝으로
+    /// chest -> neck -> head -> effector를 제어하는 상체 조준 CCD.
+    /// 캐릭터마다 동일한 체인을 사용하므로 TransformCount는 4로 고정한다.
+    /// </summary>
+    public static CcdSpec BodyAimCcd { get; } =
+        new(
+            "head",
+            "chest",
+            "head",
+            "neck",
+            4,
+            EffectorReachGroup.Head);
 }

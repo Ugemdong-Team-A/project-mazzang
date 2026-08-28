@@ -26,26 +26,6 @@ public sealed class ProjectileGun :
     [SerializeField]
     private NetworkObject projectilePrefab;
 
-    [Min(0.01f)]
-    [SerializeField]
-    private float projectileSpeed = 24f;
-
-    [Min(0.01f)]
-    [SerializeField]
-    private float projectileLifetime = 2f;
-
-    [Min(0)]
-    [SerializeField]
-    private int damage = 12;
-
-    [SerializeField]
-    private Vector2 knockback =
-        new Vector2(5f, 1.5f);
-
-    [Min(0f)]
-    [SerializeField]
-    private float knockbackControlLock = 0.08f;
-
 
     [Header("Presentation")]
     [SerializeField]
@@ -207,14 +187,10 @@ public sealed class ProjectileGun :
             direction;
 
         Quaternion rotation =
-            Quaternion.Euler(0f,0f,angle);
-
-        Vector2 projectileVelocity =direction *projectileSpeed;
-
-        Vector2 projectileKnockback =
-            ResolveKnockback(
-                direction);
-
+            Quaternion.Euler(
+                0f,
+                0f,
+                angle);
 
         NetworkObject spawned =
             Runner.Spawn(
@@ -234,11 +210,7 @@ public sealed class ProjectileGun :
                     projectile.Initialize(
                         runner,
                         source,
-                        projectileVelocity,
-                        projectileLifetime,
-                        damage,
-                        projectileKnockback,
-                        knockbackControlLock);
+                        direction);
                 });
 
 
@@ -332,22 +304,6 @@ public sealed class ProjectileGun :
 
             value.x * sin +
             value.y * cos);
-    }
-
-
-    private Vector2 ResolveKnockback(
-        Vector2 direction)
-    {
-        Vector2 perpendicular =
-            new Vector2(
-                -direction.y,
-                direction.x);
-
-        return
-            direction *
-            knockback.x +
-            perpendicular *
-            knockback.y;
     }
 
 

@@ -151,4 +151,13 @@ public sealed class PlayerTickState
             ? Vector2.right
             : Vector2.left;
     }
+
+
+    public Vector2 ResolveAimOrigin(
+        Vector2 fallbackPosition)
+    {
+        return HasAimOrigin
+            ? AimOriginPosition
+            : fallbackPosition;
+    }
 }

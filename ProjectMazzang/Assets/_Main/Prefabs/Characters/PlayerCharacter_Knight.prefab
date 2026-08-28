@@ -72,7 +72,7 @@ GameObject:
   m_Component:
   - component: {fileID: 636932328046927157}
   m_Layer: 0
-  m_Name: WallCheck Left
+  m_Name: WallCheckLeft
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -92,6 +92,38 @@ Transform:
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 4423033987074635643}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &910000000000000001
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 910000000000000002}
+  m_Layer: 8
+  m_Name: ResolvedAimPivot
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &910000000000000002
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 910000000000000001}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 4, y: 4, z: 1}
+  m_ConstrainProportionsScale: 1
+  m_Children:
+  - {fileID: 1119498991958727768}
+  m_Father: {fileID: 5459021469249167873}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1073382927923127311
 GameObject:
@@ -411,7 +443,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3239413066992619661}
   m_Layer: 7
-  m_Name: Visibles
+  m_Name: Visuals
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -702,13 +734,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2938815468716240850}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0.000000014901158, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: -0.7071068, w: 0.7071068}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 4, y: 4, z: 1}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 5459021469249167873}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_Father: {fileID: 910000000000000002}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: -90}
 --- !u!114 &5348071517637358525
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -765,7 +797,6 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children:
-  - {fileID: 405535938307882185}
   - {fileID: 3239413066992619661}
   - {fileID: 4423033987074635643}
   - {fileID: 9012758368865034393}
@@ -941,7 +972,7 @@ MonoBehaviour:
   fastFallAcceleration: 40
   fastFallInputThreshold: -0.5
   wallCheckSize: {x: 0.4, y: 1.1}
-  wallSlideSpeed: 2
+  wallSlideSpeed: 1
   wallJumpHorizontalSpeed: 3
   wallJumpVerticalSpeed: 5
   wallJumpControlDelay: 0.1
@@ -998,18 +1029,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 324ce644ce6398e44b3a825b871c9bd8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerCombat
-  jabAttack:
-    attack: {fileID: 11400000, guid: 98ddf7352baec8e4eb60d00b8fc824f1, type: 2}
-    aim:
-      aimMode: 2
-      poseMode: 1
-    movementMode: 1
-  counterAttack:
-    attack: {fileID: 0}
-    aim:
-      aimMode: 0
-      poseMode: 0
-    movementMode: 0
+  jabAttack: {fileID: 11400000, guid: 37fd7c36d2fa4a27ba1c3ad20fa275c8, type: 2}
+  counterAttack: {fileID: 11400000, guid: 5f0c8b1f020743859f5dd89bd20195f1, type: 2}
   attackSocket: {fileID: 1119498991958727768}
   hurtboxLayer:
     serializedVersion: 2
@@ -1055,6 +1076,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAim
   aimOrigin: {fileID: 405535938307882185}
   ccdTarget: {fileID: 5349236784287973008}
+  resolvedAimReferenceBone: {fileID: 5459021469249167873}
+  resolvedAimPivot: {fileID: 910000000000000002}
   upperBodyAimRig: {fileID: 855167590607317003}
   ccdTargetRadius: 3
   rigAngleOffset: 90
@@ -1081,6 +1104,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerWeaponController
   weaponSocket: {fileID: 1119498991958727768}
+  resolvedAimPivot: {fileID: 910000000000000002}
   weaponSortingOrder: 24
   leftHandLimb: {fileID: 3268336011809022708}
   rightHandLimb: {fileID: 1825635801981400533}
@@ -1101,8 +1125,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2efd521a00f4f02459ff1633a7dddc92, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerSkillController
-  mainSkill: {fileID: 11400000, guid: d47edf51b4312c14fa9b46f8f5656320, type: 2}
-  ultimateSkill: {fileID: 0}
+  mainSkill: {fileID: 11400000, guid: de166367786245dcacf3f3fac4569c54, type: 2}
+  ultimateSkill: {fileID: 11400000, guid: b9d8a13a65202084a83904577c3e52e4, type: 2}
   _SkillAnimationSequence: 0
   _LastSkillAnimation: 0
 --- !u!114 &700000000000000001
@@ -1363,7 +1387,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2338953937856615650}
   m_Layer: 0
-  m_Name: WallCheck Right
+  m_Name: WallCheckRight
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1494,7 +1518,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4423033987074635643}
   m_Layer: 7
-  m_Name: CheckObjects
+  m_Name: GameplayAnchors
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1516,6 +1540,7 @@ Transform:
   - {fileID: 534010410655661832}
   - {fileID: 2338953937856615650}
   - {fileID: 636932328046927157}
+  - {fileID: 405535938307882185}
   m_Father: {fileID: 1402181065297912930}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &5101602789152599527
@@ -1680,7 +1705,7 @@ GameObject:
   m_Component:
   - component: {fileID: 405535938307882185}
   m_Layer: 8
-  m_Name: AimTarget
+  m_Name: AimOrigin
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1695,11 +1720,11 @@ Transform:
   m_GameObject: {fileID: 5291373910231468205}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.16328545, y: 0.9702012, z: 0}
+  m_LocalPosition: {x: 0, y: 0.9702012, z: 0}
   m_LocalScale: {x: 0.24999996, y: 0.24999996, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
-  m_Father: {fileID: 1402181065297912930}
+  m_Father: {fileID: 4423033987074635643}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &5942426527009704737
 GameObject:
@@ -2388,26 +2413,24 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8512599940718622732}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ef93bb9fe9d240e418a7fb8b476f3d34, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.2D.IK.Runtime::UnityEngine.U2D.IK.CCDSolver2D
-  m_ConstrainRotation: 1
+  m_ConstrainRotation: 0
   m_SolveFromDefaultPose: 1
   m_Weight: 1
   m_Chain:
     m_EffectorTransform: {fileID: 3262839273893832244}
     m_TargetTransform: {fileID: 5349236784287973008}
-    m_TransformCount: 5
+    m_TransformCount: 4
     m_Transforms:
-    - {fileID: 4944641326907003310}
     - {fileID: 5459021469249167873}
     - {fileID: 4342340767913044070}
     - {fileID: 2717253817523188075}
     - {fileID: 3262839273893832244}
     m_DefaultLocalRotations:
-    - {x: -0, y: -0, z: -0.0020997447, w: 0.99999785}
     - {x: 0, y: 0, z: -0.10115897, w: 0.9948703}
     - {x: 0, y: 0, z: 0.007650471, w: 0.99997073}
     - {x: 0, y: 0, z: 0.017288078, w: 0.99985063}
@@ -2417,10 +2440,9 @@ MonoBehaviour:
     - {x: 0, y: 0, z: 0, w: 0}
     - {x: 0, y: 0, z: 0, w: 0}
     - {x: 0, y: 0, z: 0, w: 0}
-    - {x: 0, y: 0, z: 0, w: 0}
   m_Iterations: 10
   m_Tolerance: 0.01
-  m_Velocity: 0.5
+  m_Velocity: 1
 --- !u!1 &8597574261526507876
 GameObject:
   m_ObjectHideFlags: 0
@@ -3916,7 +3938,7 @@ PrefabInstance:
       addedObject: {fileID: 979115207265107204}
     - targetCorrespondingSourceObject: {fileID: 5283110698140630313, guid: 8f519a0f7487d41cebc10ff177ee1436, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 1119498991958727768}
+      addedObject: {fileID: 910000000000000002}
     - targetCorrespondingSourceObject: {fileID: -6402243068667089341, guid: 8f519a0f7487d41cebc10ff177ee1436, type: 3}
       insertIndex: -1
       addedObject: {fileID: 3262839273893832244}

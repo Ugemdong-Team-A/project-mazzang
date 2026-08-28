@@ -9,10 +9,10 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2393009542442378329}
+  - component: {fileID: 7299139703883796452}
   - component: {fileID: 8924830545036125615}
   - component: {fileID: 4736335658398493549}
   - component: {fileID: 5066833325426414888}
-  - component: {fileID: 7299139703883796452}
   - component: {fileID: 1124852924467508756}
   - component: {fileID: 219069381915196619}
   m_Layer: 0
@@ -37,6 +37,39 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &7299139703883796452
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6337874308675872314}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ab9fd870fc0f498fa44aefbb3847a8d1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FireballProjectile
+  initialSpeed: 15
+  lifetime: 2.5
+  attack: {fileID: 11400000, guid: c8e16b8aa4f44a4bb1c0f81c6c53d201, type: 2}
+  collisionMask:
+    serializedVersion: 2
+    m_Bits: 320
+  collisionRadius: 0.12
+  maxSimulationStepDistance: 0.08
+  maxSimulationStepsPerTick: 16
+  gravityScale: 0
+  gravityAcceleration: 25
+  linearDrag: 0
+  alignRotationToVelocity: 1
+  projectileTrail: {fileID: 0}
+  remotePresentationSharpness: 30
+  remotePresentationSnapDistance: 1.5
+  impactShakeProfile: {fileID: 11400000, guid: 35dd6d2a16e64815be4a5c64a1d21f3b, type: 2}
+  despawnOnImpact: 0
+  impactPresentationDuration: 0.15
+  _Velocity: {x: 0, y: 0}
+  _Source: {fileID: 0}
 --- !u!212 &8924830545036125615
 SpriteRenderer:
   serializedVersion: 2
@@ -157,35 +190,6 @@ MonoBehaviour:
     MinImpactfulCollisionAlignment: 0.3
     ImpactStartCorrectionTime: 0.1
     ImpactCorrectionTimeComplete: 0.3
---- !u!114 &7299139703883796452
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6337874308675872314}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ab9fd870fc0f498fa44aefbb3847a8d1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FireballProjectile
-  collisionMask:
-    serializedVersion: 2
-    m_Bits: 320
-  collisionRadius: 0.12
-  maxSimulationStepDistance: 0.08
-  maxSimulationStepsPerTick: 16
-  gravityScale: 0
-  gravityAcceleration: 25
-  linearDrag: 0
-  alignRotationToVelocity: 1
-  projectileTrail: {fileID: 0}
-  remotePresentationSharpness: 30
-  remotePresentationSnapDistance: 1.5
-  _Velocity: {x: 0, y: 0}
-  _Source: {fileID: 0}
-  impactShakeProfile: {fileID: 11400000, guid: 35dd6d2a16e64815be4a5c64a1d21f3b, type: 2}
-  impactPresentationDuration: 0.15
 --- !u!96 &1124852924467508756
 TrailRenderer:
   serializedVersion: 4

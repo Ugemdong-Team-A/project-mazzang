@@ -14,13 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BoxAttackData
   attackId: 2
   displayName: Counter
-  startupDuration: 0.3
-  activeDuration: 0.1
-  recoveryDuration: 0.2
-  cooldown: 0.8
   damage: 10
   knockbackForward: 6
   knockbackUp: 4
-  knockbackControlLock: 0.12
+  crowdControl:
+    type: 1
+    duration: 0.12
+    activationDelay: 0
+    stopMovementOnApply: 0
   hitboxOffset: {x: 0.57, y: 0}
   hitboxSize: {x: 1.5, y: 1}

@@ -169,6 +169,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c0c8849eaf121df418ee825c5987a662, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BulletProjectile
+  initialSpeed: 30
+  lifetime: 4
+  attack: {fileID: 11400000, guid: 78221498c5a74492bca7d0d8d8e70003, type: 2}
   collisionMask:
     serializedVersion: 2
     m_Bits: 320
@@ -182,6 +185,9 @@ MonoBehaviour:
   projectileTrail: {fileID: 0}
   remotePresentationSharpness: 30
   remotePresentationSnapDistance: 1.5
+  impactShakeProfile: {fileID: 0}
+  despawnOnImpact: 0
+  impactPresentationDuration: 0.15
   _Velocity: {x: 0, y: 0}
   _Source: {fileID: 0}
 --- !u!96 &1124852924467508756

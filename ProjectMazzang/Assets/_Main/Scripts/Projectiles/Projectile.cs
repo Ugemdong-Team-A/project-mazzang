@@ -7,6 +7,19 @@ public class Projectile :
     NetworkBehaviour,
     IParryable
 {
+    [Header("Launch")]
+    [Min(0.01f)]
+    [SerializeField]
+    private float initialSpeed = 16f;
+
+    [Min(0.01f)]
+    [SerializeField]
+    private float lifetime = 2.5f;
+
+    [Header("Attack")]
+    [SerializeField]
+    private AttackData attack;
+
     [Header("Collision")]
     [SerializeField]
     private LayerMask collisionMask;
@@ -16,8 +29,8 @@ public class Projectile :
     private float collisionRadius = 0.05f;
 
     [Tooltip(
-        "??번의 Substep?�서 ?�용??최�? ?�동 거리?�니?? " +
-        "??Tick???�동?�이 ???�면 ?�러 ?�계�??�눠 ?��??�이?�합?�다.")]
+        "한 번의 Substep에서 허용할 최대 이동 거리입니다. " +
+        "한 Tick의 이동량이 더 크면 여러 단계로 나누어 시뮬레이션합니다.")]
     [Min(0.005f)]
     [SerializeField]
     private float maxSimulationStepDistance = 0.08f;
@@ -29,8 +42,8 @@ public class Projectile :
 
     [Header("Ballistics")]
     [Tooltip(
-        "?�드 ?�래 방향 중력 배율?�니?? " +
-        "0?�면 직선 ?�도, 1?�면 gravityAcceleration??그�?�??�용?�니??")]
+        "월드 아래 방향 중력 배율입니다. " +
+        "0이면 직선 궤도, 1이면 gravityAcceleration을 그대로 사용합니다.")]
     [Min(0f)]
     [SerializeField]
     private float gravityScale = 0f;
@@ -40,13 +53,13 @@ public class Projectile :
     private float gravityAcceleration = 9.81f;
 
     [Tooltip(
-        "?�도 감쇠 계수?�니?? 0?�면 공기 ?�??�� ?�용?��? ?�습?�다.")]
+        "속도 감쇠 계수입니다. 0이면 공기 저항을 적용하지 않습니다.")]
     [Min(0f)]
     [SerializeField]
     private float linearDrag = 0f;
 
     [Tooltip(
-        "진행 방향??맞춰 Projectile??+X 축을 ?�전?�킵?�다.")]
+        "진행 방향에 맞춰 Projectile의 +X 축을 회전시킵니다.")]
     [SerializeField]
     private bool alignRotationToVelocity = true;
 
@@ -70,6 +83,20 @@ public class Projectile :
     private Vector3 _remotePresentationPosition;
     private Quaternion _remotePresentationRotation;
     private bool _hasRemotePresentationPose;
+
+    [Tooltip(
+        "충돌 시 카메라 진동 연출")]
+    [SerializeField]
+    private CameraShakeProfile impactShakeProfile;
+
+    [SerializeField]
+    private bool despawnOnImpact;
+
+    [Min(0.05f)]
+    [SerializeField]
+    private float impactPresentationDuration = 0.15f;
+    
+    private int _visibleImpactSequence;
 
 
     public Vector2 ParryVelocity => Velocity;
@@ -106,7 +133,28 @@ public class Projectile :
     }
 
     [Networked]
-    protected float KnockbackControlLock
+    protected CrowdControlType CrowdControlType
+    {
+        get;
+        set;
+    }
+
+    [Networked]
+    protected float CrowdControlDuration
+    {
+        get;
+        set;
+    }
+
+    [Networked]
+    protected float CrowdControlActivationDelay
+    {
+        get;
+        set;
+    }
+
+    [Networked]
+    protected NetworkBool StopMovementOnApply
     {
         get;
         set;
@@ -121,6 +169,34 @@ public class Projectile :
 
     [Networked]
     protected NetworkBool IsInitialized
+    {
+        get;
+        set;
+    }
+
+    [Networked]
+    private NetworkBool HasImpacted
+    {
+        get;
+        set;
+    }
+
+    [Networked]
+    private Vector2 LastImpactPosition
+    {
+        get;
+        set;
+    }
+
+    [Networked]
+    private int ImpactSequence
+    {
+        get;
+        set;
+    }
+
+    [Networked]
+    private TickTimer ImpactDespawnTimer
     {
         get;
         set;
@@ -141,6 +217,9 @@ public class Projectile :
     {
         ResetRemotePresentationPose();
         TryStartTrailPresentation();
+
+        _visibleImpactSequence =
+            ImpactSequence;
     }
 
 
@@ -148,6 +227,25 @@ public class Projectile :
     {
         SmoothRemotePresentation();
         TryStartTrailPresentation();
+
+        if (_visibleImpactSequence ==
+            ImpactSequence)
+        {
+            return;
+        }
+
+        _visibleImpactSequence =
+            ImpactSequence;
+
+        CameraShakeService.Play(
+            impactShakeProfile,
+            LastImpactPosition);
+
+        if (despawnOnImpact)
+        {
+            DespawnProjectile();
+            return;
+        }
     }
 
 
@@ -214,45 +312,64 @@ public class Projectile :
 
 
     public virtual void Initialize(
-    NetworkRunner runner,
-    NetworkObject source,
-    Vector2 velocity,
-    float lifetime,
-    int damage,
-    Vector2 knockback,
-    float knockbackControlLock)
+        NetworkRunner runner,
+        NetworkObject source,
+        Vector2 direction)
     {
         if (!HasStateAuthority)
             return;
 
-        Vector2 direction =
+        direction =
             NormalizeDirection(
-                velocity);
+                direction);
 
-        if (direction ==
-            Vector2.zero)
+        if (direction == Vector2.zero)
         {
             direction =
                 transform.right;
         }
+
+        Vector2 knockback =
+            attack != null
+                ? direction *
+                  attack.KnockbackForward +
+                  Vector2.up *
+                  attack.KnockbackUp
+                : Vector2.zero;
 
         Source =
             source;
 
         Velocity =
             direction *
-            velocity.magnitude;
+            initialSpeed;
 
         Damage =
-            damage;
+            attack != null
+                ? attack.Damage
+                : 0;
 
         LocalKnockback =
             ToLocalDirectionSpace(
                 knockback,
                 direction);
 
-        KnockbackControlLock =
-            knockbackControlLock;
+        CrowdControlDefinition crowdControl =
+            attack != null
+                ? attack.CrowdControl
+                : default;
+
+        CrowdControlType =
+            crowdControl.Type;
+
+        CrowdControlDuration =
+            crowdControl.Duration;
+
+        CrowdControlActivationDelay =
+            crowdControl.ActivationDelay;
+
+        StopMovementOnApply =
+            crowdControl.StopMovementOnApply;
 
         LifeTimer =
             lifetime > 0f
@@ -319,6 +436,17 @@ public class Projectile :
                 Runner))
         {
             DespawnProjectile();
+            return;
+        }
+
+        if (HasImpacted && !despawnOnImpact)
+        {
+            if (ImpactDespawnTimer.Expired(
+                    Runner))
+            {
+                DespawnProjectile();
+            }
+
             return;
         }
 
@@ -582,7 +710,20 @@ public class Projectile :
         TryApplyDamage(
             hit.collider);
 
-        DespawnProjectile();
+        LastImpactPosition =
+            transform.position;
+
+        HasImpacted =
+            true;
+
+        ImpactSequence++;
+
+        StopProjectile();
+
+        ImpactDespawnTimer =
+            TickTimer.CreateFromSeconds(
+                Runner,
+                impactPresentationDuration);
     }
 
 
@@ -616,7 +757,11 @@ public class Projectile :
                 Damage,
                 Source,
                 knockback,
-                KnockbackControlLock);
+                new CrowdControlDefinition(
+                    CrowdControlType,
+                    CrowdControlDuration,
+                    CrowdControlActivationDelay,
+                    StopMovementOnApply));
 
         DamageResult result =
             CombatDamageService.ApplyDamage(

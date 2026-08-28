@@ -1,5 +1,7 @@
 using Fusion;
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.U2D.IK;
 
 [DefaultExecutionOrder(-90)]
 public sealed class PlayerAim :
@@ -9,26 +11,33 @@ public sealed class PlayerAim :
 {
     [Header("Aim")]
     [Tooltip(
-        "��Ȯ�� ���� ������ �������Դϴ�. " +
-        "Rig/Bone ���� ���� ��ü ��ġ�� �Ӵϴ�.")]
+        "정확한 조준 방향의 기준점입니다. " +
+        "Rig/Bone 계층 밖의 상체 위치에 둡니다.")]
     [SerializeField]
     private Transform aimOrigin;
 
+    [Tooltip(
+        "기준 척추 본의 로컬 원점에서 최종 상체 자세를 따라가는 피벗입니다.")]
     [SerializeField]
-    private Transform ccdTarget;
+    private Transform resolvedAimPivot;
 
     [Tooltip(
-        "��ü ������ ����ϴ� CCD ���� Behaviour�Դϴ�. " +
-        "AnimationDriven ���¿����� ��Ȱ��ȭ�˴ϴ�.")]
+        "상체 조준을 담당하는 CCD입니다. " +
+        "ProceduralAim은 이 CCD를 사용하고, " +
+        "AnimationWithBodyAim은 같은 Effector를 방향 기준으로 사용합니다.")]
     [SerializeField]
-    private UnityEngine.Behaviour upperBodyAimRig;
+    private CCDSolver2D upperBodyAimRig;
+
+    private Transform ccdTarget;
+
+    private Transform resolvedAimReferenceBone;
 
     [Min(0.01f)]
     [SerializeField]
     private float ccdTargetRadius = 3f;
 
     [Tooltip(
-        "ĳ���� ������� CCD Effector �� �� ������ ���� �����Դϴ�.")]
+        "캐릭터 정면축과 CCD Effector 본 축 사이의 각도 차이입니다.")]
     [SerializeField]
     private float rigAngleOffset = 90f;
 
@@ -55,6 +64,28 @@ public sealed class PlayerAim :
     private float _presentedBodyAimAngle;
     private bool _hasPresentedBodyAimAngle;
     private bool _presentedFacingRight;
+
+    private bool _applyAnimationBodyAim;
+    private bool _hasAppliedAnimationBodyAim;
+    private Quaternion _animationBodyAimBaseRotation;
+
+    private readonly List<AnimatedIkTargetPose>
+        _animatedIkTargetPoses = new();
+
+    private readonly struct AnimatedIkTargetPose
+    {
+        public readonly Transform Target;
+        public readonly Vector3 LocalPosition;
+        public readonly Quaternion LocalRotation;
+
+        public AnimatedIkTargetPose(
+            Transform target)
+        {
+            Target = target;
+            LocalPosition = target.localPosition;
+            LocalRotation = target.localRotation;
+        }
+    }
 
     // =========================================================
     // Network State
@@ -128,10 +159,24 @@ public sealed class PlayerAim :
         RigMode !=
             PlayerAimRigMode.Procedural;
 
+    public Transform ResolvedAimPivot =>
+        resolvedAimPivot;
+
+    public Vector2 AimOriginPosition =>
+        aimOrigin != null
+            ? (Vector2)aimOrigin.position
+            : transform.position;
+
 
     // =========================================================
     // Fusion
     // =========================================================
+
+    public override void Spawned()
+    {
+        ResolveAimRigReferences();
+    }
+
 
     public override PlayerTickStage Stage =>
         PlayerTickStage.Aim;
@@ -151,7 +196,7 @@ public sealed class PlayerAim :
         state.HasAimOrigin = aimOrigin != null;
         state.AimOriginPosition =
             aimOrigin != null
-                ? (Vector2)aimOrigin.position
+                ? AimOriginPosition
                 : Vector2.zero;
         state.AimDirection = AimDirection;
     }
@@ -226,7 +271,33 @@ public sealed class PlayerAim :
         bool facingRight = tickState.FacingRight;
 
         UpdateBodyAimPresentation(facingRight);
-        UpdateRigPresentation(facingRight);
+        UpdateRigPresentation(
+            facingRight,
+            tickState.HasCombat &&
+            tickState.IsAttacking);
+    }
+
+
+    private void Update()
+    {
+        // Animator가 이번 프레임의 클립 포즈를 계산하기 전에
+        // 이전 프레임에 더했던 표현 전용 회전을 제거합니다.
+        RestoreAnimationBodyAimPose();
+    }
+
+
+    private void LateUpdate()
+    {
+        if (!_applyAnimationBodyAim)
+            return;
+
+        ApplyAnimationBodyAimPose();
+    }
+
+
+    private void OnDisable()
+    {
+        RestoreAnimationBodyAimPose();
     }
 
 
@@ -269,8 +340,8 @@ public sealed class PlayerAim :
             ResolveSourceDirection(
                 sourceAimDirection, facingRight);
 
-        // ������ �����ϱ� ����
-        // �ش� ���� ���⿡ �°� Facing�� �� �� Ȯ���Ѵ�.
+        // 방향을 고정하기 전에
+        // 해당 공격 방향에 맞게 Facing을 한 번 확정한다.
         if (aimOverride.FacingMode ==
             PlayerAimFacingMode.Locked)
         {
@@ -345,8 +416,8 @@ public sealed class PlayerAim :
     // =========================================================
 
     /// <summary>
-    /// AimOrigin���� ���� Ÿ�ٱ����� ��Ȯ�� ���� ������ ����մϴ�.
-    /// Input�� ���� ��ǥ�� �����ϰ�, ���� �������� �ǹ̴� PlayerAim�� �����մϴ�.
+    /// AimOrigin에서 월드 타겟까지의 정확한 조준 방향을 계산합니다.
+    /// Input은 월드 좌표만 제공하고, 조준 기준점의 의미는 PlayerAim이 소유합니다.
     /// </summary>
 
     private Vector2 ResolveDirectionTo(
@@ -602,6 +673,32 @@ public sealed class PlayerAim :
     }
 
 
+    public Vector2 ResolveLimitedAimDirection(
+        Vector2 direction,
+        bool facingRight)
+    {
+        direction = NormalizeDirection(direction);
+
+        if (direction.sqrMagnitude <= 0.0001f)
+        {
+            return GetWorldBodyDirection(
+                BodyAimAngle,
+                facingRight);
+        }
+
+        float localAngle = Mathf.Clamp(
+            CalculateLocalAimAngle(
+                direction,
+                facingRight),
+            -maxBodyAimAngle,
+            maxBodyAimAngle);
+
+        return GetWorldBodyDirection(
+            localAngle,
+            facingRight);
+    }
+
+
     // =========================================================
     // Four Way
     // =========================================================
@@ -659,13 +756,16 @@ public sealed class PlayerAim :
     // Rig
     // =========================================================
 
-    private void UpdateRigPresentation(bool facingRight)
+    private void UpdateRigPresentation(
+        bool facingRight,
+        bool isAttacking)
     {
-        bool useProceduralRig =
+        _applyAnimationBodyAim =
             RigMode ==
-            PlayerAimRigMode.Procedural;
+            PlayerAimRigMode.AnimationWithBodyAim;
 
-        if (!useProceduralRig)
+        if (RigMode ==
+            PlayerAimRigMode.AnimationOnly)
         {
             if (upperBodyAimRig != null &&
                 upperBodyAimRig.enabled)
@@ -685,8 +785,27 @@ public sealed class PlayerAim :
 
         ApplyCcdTarget(facingRight);
 
-        if (upperBodyAimRig != null &&
-            !upperBodyAimRig.enabled)
+        if (upperBodyAimRig == null)
+            return;
+
+        if (_applyAnimationBodyAim)
+        {
+            // 4본 CCD는 클립의 허리/목/머리 비율을 다시 분배하므로
+            // 합성 모드에서는 끄고 LateUpdate에서 포즈 전체를 돌립니다.
+            upperBodyAimRig.enabled = false;
+            return;
+        }
+
+        // 평상시에는 달리기와 대기 클립의 가슴 움직임을 보존합니다.
+        // 공격의 ProceduralAim만 기본 포즈에서 풀어 상체를 완전히 덮습니다.
+        upperBodyAimRig.solveFromDefaultPose =
+            isAttacking;
+
+        // Target 회전이 아니라 Effector 위치로 상체 방향을 풉니다.
+        upperBodyAimRig.constrainRotation = false;
+        upperBodyAimRig.weight = 1f;
+
+        if (!upperBodyAimRig.enabled)
         {
             upperBodyAimRig.enabled =
                 true;
@@ -694,13 +813,194 @@ public sealed class PlayerAim :
     }
 
 
+    private void ApplyAnimationBodyAimPose()
+    {
+        if (resolvedAimReferenceBone == null ||
+            ccdTarget == null ||
+            upperBodyAimRig == null)
+        {
+            return;
+        }
+
+        IKChain2D bodyChain =
+            upperBodyAimRig.GetChain(0);
+
+        Transform bodyEffector =
+            bodyChain?.effector;
+
+        if (bodyEffector == null)
+            return;
+
+        Vector2 animatedDirection =
+            bodyEffector.position -
+            resolvedAimReferenceBone.position;
+
+        Vector2 targetDirection =
+            ccdTarget.position -
+            resolvedAimReferenceBone.position;
+
+        if (animatedDirection.sqrMagnitude <= 0.0001f ||
+            targetDirection.sqrMagnitude <= 0.0001f)
+        {
+            return;
+        }
+
+        float worldDelta =
+            Vector2.SignedAngle(
+                animatedDirection,
+                targetDirection);
+
+        _animationBodyAimBaseRotation =
+            resolvedAimReferenceBone.localRotation;
+
+        CaptureAnimatedUpperBodyIkTargets();
+
+        float parentHandedness =
+            GetParentHandedness(
+                resolvedAimReferenceBone);
+
+        resolvedAimReferenceBone.localRotation *=
+            Quaternion.Euler(
+                0f,
+                0f,
+                worldDelta * parentHandedness);
+
+        // 클립이 팔 IK Target을 키로 저장한 경우에도 상체와 함께 돌려
+        // 팔 자세가 원래 클립과 같은 상대 배치를 유지하게 합니다.
+        foreach (AnimatedIkTargetPose pose
+                 in _animatedIkTargetPoses)
+        {
+            if (pose.Target == null)
+                continue;
+
+            pose.Target.RotateAround(
+                resolvedAimReferenceBone.position,
+                Vector3.forward,
+                worldDelta);
+        }
+
+        _hasAppliedAnimationBodyAim = true;
+    }
+
+
+    private void CaptureAnimatedUpperBodyIkTargets()
+    {
+        _animatedIkTargetPoses.Clear();
+
+        IKManager2D manager =
+            upperBodyAimRig.GetComponentInParent<IKManager2D>();
+
+        if (manager == null)
+            return;
+
+        foreach (Solver2D solver in manager.solvers)
+        {
+            if (solver == null ||
+                solver == upperBodyAimRig ||
+                !solver.isActiveAndEnabled ||
+                solver.weight <= 0f)
+            {
+                continue;
+            }
+
+            for (int index = 0;
+                 index < solver.chainCount;
+                 index++)
+            {
+                IKChain2D chain =
+                    solver.GetChain(index);
+
+                Transform chainRoot =
+                    chain?.rootTransform;
+
+                Transform target =
+                    chain?.target;
+
+                if (chainRoot == null ||
+                    target == null ||
+                    !chainRoot.IsChildOf(
+                        resolvedAimReferenceBone) ||
+                    target.IsChildOf(
+                        resolvedAimReferenceBone))
+                {
+                    continue;
+                }
+
+                _animatedIkTargetPoses.Add(
+                    new AnimatedIkTargetPose(
+                        target));
+            }
+        }
+    }
+
+
+    private void RestoreAnimationBodyAimPose()
+    {
+        if (!_hasAppliedAnimationBodyAim)
+            return;
+
+        if (resolvedAimReferenceBone != null)
+        {
+            resolvedAimReferenceBone.localRotation =
+                _animationBodyAimBaseRotation;
+        }
+
+        foreach (AnimatedIkTargetPose pose
+                 in _animatedIkTargetPoses)
+        {
+            if (pose.Target == null)
+                continue;
+
+            pose.Target.localPosition =
+                pose.LocalPosition;
+
+            pose.Target.localRotation =
+                pose.LocalRotation;
+        }
+
+        _animatedIkTargetPoses.Clear();
+        _hasAppliedAnimationBodyAim = false;
+    }
+
+
+    private static float GetParentHandedness(
+        Transform target)
+    {
+        if (target.parent == null)
+            return 1f;
+
+        Vector3 parentScale =
+            target.parent.lossyScale;
+
+        return parentScale.x * parentScale.y < 0f
+            ? -1f
+            : 1f;
+    }
+
+
+    private void ResolveAimRigReferences()
+    {
+        ccdTarget = null;
+        resolvedAimReferenceBone = null;
+
+        if (upperBodyAimRig == null)
+            return;
+
+        IKChain2D chain =
+            upperBodyAimRig.GetChain(0);
+
+        ccdTarget =
+            chain?.target;
+
+        resolvedAimReferenceBone =
+            chain?.rootTransform;
+    }
+
+
     private void ApplyCcdTarget(bool facingRight)
     {
         Vector2 bodyDirection =
-            GetWorldBodyDirection(
-                _hasPresentedBodyAimAngle
-                    ? _presentedBodyAimAngle
-                    : BodyAimAngle, facingRight);
+            GetPresentedBodyDirection(facingRight);
 
         float signedRigOffset =
             facingRight
@@ -717,6 +1017,17 @@ public sealed class PlayerAim :
             (Vector3)(
                 rigDirection *
                 ccdTargetRadius);
+    }
+
+
+    private Vector2 GetPresentedBodyDirection(
+        bool facingRight)
+    {
+        return GetWorldBodyDirection(
+            _hasPresentedBodyAimAngle
+                ? _presentedBodyAimAngle
+                : BodyAimAngle,
+            facingRight);
     }
 
 
@@ -747,6 +1058,8 @@ public sealed class PlayerAim :
 
     private void OnValidate()
     {
+        ResolveAimRigReferences();
+
         float minimumFlipAngle =
             180f -
             maxBodyAimAngle;
@@ -755,6 +1068,17 @@ public sealed class PlayerAim :
             Mathf.Max(
                 facingFlipAngle,
                 minimumFlipAngle);
+
+        if (resolvedAimReferenceBone != null &&
+            resolvedAimPivot != null &&
+            resolvedAimPivot.parent !=
+                resolvedAimReferenceBone)
+        {
+            Debug.LogWarning(
+                "ResolvedAimPivot은 지정한 기준 척추 본의 " +
+                "직접 자식이어야 합니다.",
+                this);
+        }
     }
 
 
@@ -767,6 +1091,8 @@ public sealed class PlayerAim :
             aimOrigin.position;
 
         if (Application.isPlaying &&
+            Object != null &&
+            Object.IsValid &&
             AimDirection.sqrMagnitude >
             0.0001f)
         {
