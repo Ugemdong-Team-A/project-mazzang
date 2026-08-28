@@ -71,7 +71,10 @@
 - 공격의 Aim override와 Weapon 사용 요청이 요청된 Tick 안에서 처리된다.
 - `ProceduralAim`은 기본 상체 포즈에서 CCD 조준을 적용한다.
 - `AnimationOnly`는 상체 CCD를 끄고 공격 클립의 자세를 그대로 사용한다.
-- `AnimationWithBodyAim`은 공격 클립의 상체 자세에서 시작해 CCD가 최종 조준 방향을 맞춘다.
+- `AnimationWithBodyAim`은 공격 클립의 상체 상대 자세를 유지한 채 기준 척추에
+  필요한 회전만 더해 최종 조준 방향을 맞춘다.
+- 무기가 없으면 양손 Limb Solver가 꺼져 Animator의 팔 자세가 그대로 보인다.
+  무기를 장착하면 Grip을 따라가고 해제하면 두 Solver가 다시 꺼진다.
 - 재시뮬레이션 횟수와 관계없이 Aim 보간, 피격 색상, 무적 깜빡임 속도가 일정하다.
 - 처음 표시할 때 이미 존재하던 Jump, Attack, Skill, Death Sequence를 새 이벤트로 재생하지 않는다.
 - Health, MaxHealth, Lives와 생존 여부가 상태 UI 및 캐릭터 표시와 일치한다.

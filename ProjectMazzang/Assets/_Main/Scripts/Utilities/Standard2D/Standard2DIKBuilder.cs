@@ -98,14 +98,26 @@ public static class Standard2DIKBuilder
             manager,
             setup);
 
+        LimbSolver2D leftHandSolver = null;
+        LimbSolver2D rightHandSolver = null;
+
         foreach (Standard2DRigDefinition.LimbSpec spec
                  in Standard2DRigDefinition.LimbSpecs)
         {
-            CreateLimb(
+            LimbSolver2D solver = CreateLimb(
                 setup,
                 rig,
                 manager,
                 spec);
+
+            if (spec.Prefix == "arm_l")
+            {
+                leftHandSolver = solver;
+            }
+            else if (spec.Prefix == "arm_r")
+            {
+                rightHandSolver = solver;
+            }
         }
 
         CreateCcd(
@@ -113,6 +125,11 @@ public static class Standard2DIKBuilder
             rig,
             manager,
             Standard2DRigDefinition.BodyAimCcd);
+
+        ConfigurePlayerWeaponRig(
+            setup,
+            leftHandSolver,
+            rightHandSolver);
 
         EditorUtility.SetDirty(manager);
         EditorUtility.SetDirty(setup);
@@ -201,7 +218,7 @@ public static class Standard2DIKBuilder
             setup.AlwaysUpdate;
     }
 
-    private static void CreateLimb(
+    private static LimbSolver2D CreateLimb(
         Standard2DRigIKSetup setup,
         Standard2DRigResolver.Result rig,
         IKManager2D manager,
@@ -418,6 +435,8 @@ public static class Standard2DIKBuilder
                 $"{spec.SolverName} 참조 연결 검증 실패.",
                 solver);
         }
+
+        return solver;
     }
 
     private static void CreateCcd(
@@ -500,9 +519,11 @@ public static class Standard2DIKBuilder
 
         solver.weight = 1f;
 
-        // Animator가 만든 현재 포즈 위에서 남은 각도만 풀기 위한 설정.
+        // 편집 중에는 클립 미리보기를 건드리지 않고,
+        // 런타임 PlayerAim의 ProceduralAim에서만 켭니다.
+        solver.enabled = false;
         solver.constrainRotation = false;
-        solver.solveFromDefaultPose = false;
+        solver.solveFromDefaultPose = true;
         solver.iterations = setup.CcdIterations;
         solver.tolerance = setup.CcdTolerance;
         solver.velocity = setup.CcdVelocity;
@@ -604,6 +625,39 @@ public static class Standard2DIKBuilder
                 $"{spec.SolverName} CCD 참조 연결 검증 실패.",
                 solver);
         }
+    }
+
+
+    private static void ConfigurePlayerWeaponRig(
+        Standard2DRigIKSetup setup,
+        LimbSolver2D leftHandSolver,
+        LimbSolver2D rightHandSolver)
+    {
+        PlayerWeaponController weaponController =
+            setup.GetComponent<PlayerWeaponController>();
+
+        if (weaponController == null)
+            return;
+
+        PlayerAim playerAim =
+            setup.GetComponent<PlayerAim>();
+
+        Undo.RecordObject(
+            weaponController,
+            "Connect Player Weapon Rig");
+
+        weaponController.ConfigureWeaponPresentationRig(
+            playerAim != null
+                ? playerAim.ResolvedAimPivot
+                : null,
+            leftHandSolver,
+            rightHandSolver);
+
+        EditorUtility.SetDirty(
+            weaponController);
+
+        PrefabUtility.RecordPrefabInstancePropertyModifications(
+            weaponController);
     }
 
     /// <summary>

@@ -107,8 +107,9 @@ CommandSink 목록을 Inspector 또는 개발 로그에서 한 번에 확인하�
 추가할 필요는 없다. 어떤 뼈를 얼마나 게임이 덮어쓸지는 공격 정의가 결정한다.
 
 **현재:** `PlayerAttackAimData`는 `ProceduralAim`, `AnimationOnly`,
-`AnimationWithBodyAim`을 제공한다. 마지막 모드는 Animator 포즈 위에서 CCD를 풀어
-Aim 방향을 맞추며, 아트의 Animation Event나 별도 프로퍼티 키를 요구하지 않는다.
+`AnimationWithBodyAim`을 제공한다. 마지막 모드는 Animator의 상체 포즈를 유지한 채
+기준 척추에서 Aim 방향까지 필요한 회전만 더하며, 아트의 Animation Event나
+별도 프로퍼티 키를 요구하지 않는다.
 
 **검토안:**
 

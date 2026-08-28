@@ -111,8 +111,9 @@ public sealed class PlayerWeaponController :
 
         StabilizeWeaponSocket();
 
-        // Prefab에 저장된 IK target/enable 상태가 첫 Render까지 팔을
-        // 고정하지 않도록 권한과 관계없이 초기 바인딩을 해제한다.
+        // 손 IK는 무기 Grip을 잡는 동안에만 사용합니다.
+        // 애니메이션 클립의 팔 자세를 고정 Target이 덮지 않도록
+        // 무기가 없는 기본 상태에서는 항상 해제합니다.
         UnbindWeaponIk();
 
         if (!HasStateAuthority)
@@ -580,6 +581,21 @@ public sealed class PlayerWeaponController :
         limb.enabled =
             false;
     }
+
+
+#if UNITY_EDITOR
+
+    internal void ConfigureWeaponPresentationRig(
+        Transform aimPivot,
+        LimbSolver2D leftHand,
+        LimbSolver2D rightHand)
+    {
+        resolvedAimPivot = aimPivot;
+        leftHandLimb = leftHand;
+        rightHandLimb = rightHand;
+    }
+
+#endif
 
 
     // =========================================================
