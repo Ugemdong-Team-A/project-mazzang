@@ -171,6 +171,12 @@ public sealed class PlayerAim :
     // Fusion
     // =========================================================
 
+    public override void Spawned()
+    {
+        ResolveStandardRigReferences();
+    }
+
+
     public override PlayerTickStage Stage =>
         PlayerTickStage.Aim;
 
@@ -963,17 +969,26 @@ public sealed class PlayerAim :
     }
 
 
-#if UNITY_EDITOR
-
-    internal void ConfigureUpperBodyAimRig(
-        Transform target,
-        CCDSolver2D solver)
+    private void ResolveStandardRigReferences()
     {
-        ccdTarget = target;
-        upperBodyAimRig = solver;
-    }
+        Standard2DRigIKSetup setup =
+            GetComponent<Standard2DRigIKSetup>();
 
-#endif
+        if (setup == null)
+            return;
+
+        if (ccdTarget == null)
+        {
+            ccdTarget =
+                setup.GeneratedBodyAimTarget;
+        }
+
+        if (upperBodyAimRig == null)
+        {
+            upperBodyAimRig =
+                setup.GeneratedBodyAimSolver;
+        }
+    }
 
 
     private void ApplyCcdTarget(bool facingRight)

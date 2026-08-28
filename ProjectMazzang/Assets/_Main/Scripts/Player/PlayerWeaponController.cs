@@ -48,6 +48,14 @@ public sealed class PlayerWeaponController :
 
     private PlayerAim _playerAim;
 
+    private Transform _leftHandAnimationTarget;
+
+    private Transform _rightHandAnimationTarget;
+
+    private bool _hasCapturedAnimationHandTargets;
+
+    private bool _animationHandIkAllowed;
+
 
     // =========================================================
     // Network State
@@ -109,11 +117,14 @@ public sealed class PlayerWeaponController :
     {
         _playerAim = GetComponent<PlayerAim>();
 
+        ResolveStandardRigReferences();
+
         StabilizeWeaponSocket();
 
-        // 손 IK는 무기 Grip을 잡는 동안에만 사용합니다.
-        // 애니메이션 클립의 팔 자세를 고정 Target이 덮지 않도록
-        // 무기가 없는 기본 상태에서는 항상 해제합니다.
+        CaptureAnimationHandIkTargets();
+
+        // 평상시에는 손 Target이 Animator의 팔 자세를 덮지 않게 해제합니다.
+        // 공격 클립이 손 Target을 사용하는 동안에는 Present에서 복원합니다.
         UnbindWeaponIk();
 
         if (!HasStateAuthority)
@@ -492,24 +503,45 @@ public sealed class PlayerWeaponController :
                 ? equippedWeapon.HeldView
                 : null;
 
+        bool allowAnimationHandIk =
+            _playerAim != null &&
+            (_playerAim.RigMode ==
+                PlayerAimRigMode.AnimationOnly ||
+             _playerAim.RigMode ==
+                PlayerAimRigMode.AnimationWithBodyAim);
+
         if (_boundIkView ==
-            heldView)
+                heldView &&
+            _animationHandIkAllowed ==
+                allowAnimationHandIk)
         {
             return;
         }
 
         UnbindWeaponIk();
 
-        if (heldView == null)
-            return;
+        _animationHandIkAllowed =
+            allowAnimationHandIk;
 
-        BindWeaponIk(
-            heldView);
+        if (heldView != null)
+        {
+            BindWeaponIk(
+                heldView,
+                allowAnimationHandIk);
+
+            return;
+        }
+
+        if (allowAnimationHandIk)
+        {
+            BindAnimationHandIk();
+        }
     }
 
 
     private void BindWeaponIk(
-        HeldWeaponView heldView)
+        HeldWeaponView heldView,
+        bool allowAnimationFallback)
     {
         if (heldView == null)
             return;
@@ -519,11 +551,49 @@ public sealed class PlayerWeaponController :
 
         BindHandLimb(
             leftHandLimb,
-            heldView.LeftHandGrip);
+            heldView.LeftHandGrip != null
+                ? heldView.LeftHandGrip
+                : allowAnimationFallback
+                    ? _leftHandAnimationTarget
+                    : null);
 
         BindHandLimb(
             rightHandLimb,
-            heldView.RightHandGrip);
+            heldView.RightHandGrip != null
+                ? heldView.RightHandGrip
+                : allowAnimationFallback
+                    ? _rightHandAnimationTarget
+                    : null);
+    }
+
+
+    private void BindAnimationHandIk()
+    {
+        BindHandLimb(
+            leftHandLimb,
+            _leftHandAnimationTarget);
+
+        BindHandLimb(
+            rightHandLimb,
+            _rightHandAnimationTarget);
+    }
+
+
+    private void CaptureAnimationHandIkTargets()
+    {
+        if (_hasCapturedAnimationHandTargets)
+            return;
+
+        _leftHandAnimationTarget =
+            GetHandLimbTarget(
+                leftHandLimb);
+
+        _rightHandAnimationTarget =
+            GetHandLimbTarget(
+                rightHandLimb);
+
+        _hasCapturedAnimationHandTargets =
+            true;
     }
 
 
@@ -537,6 +607,9 @@ public sealed class PlayerWeaponController :
 
         _boundIkView =
             null;
+
+        _animationHandIkAllowed =
+            false;
     }
 
 
@@ -562,6 +635,22 @@ public sealed class PlayerWeaponController :
     }
 
 
+    private static Transform GetHandLimbTarget(
+        LimbSolver2D limb)
+    {
+        if (limb == null)
+            return null;
+
+        IKChain2D chain =
+            limb.GetChain(
+                0);
+
+        return chain != null
+            ? chain.target
+            : null;
+    }
+
+
     private static void UnbindHandLimb(
         LimbSolver2D limb)
     {
@@ -583,19 +672,33 @@ public sealed class PlayerWeaponController :
     }
 
 
-#if UNITY_EDITOR
-
-    internal void ConfigureWeaponPresentationRig(
-        Transform aimPivot,
-        LimbSolver2D leftHand,
-        LimbSolver2D rightHand)
+    private void ResolveStandardRigReferences()
     {
-        resolvedAimPivot = aimPivot;
-        leftHandLimb = leftHand;
-        rightHandLimb = rightHand;
-    }
+        if (resolvedAimPivot == null &&
+            _playerAim != null)
+        {
+            resolvedAimPivot =
+                _playerAim.ResolvedAimPivot;
+        }
 
-#endif
+        Standard2DRigIKSetup setup =
+            GetComponent<Standard2DRigIKSetup>();
+
+        if (setup == null)
+            return;
+
+        if (leftHandLimb == null)
+        {
+            leftHandLimb =
+                setup.GeneratedLeftArmSolver;
+        }
+
+        if (rightHandLimb == null)
+        {
+            rightHandLimb =
+                setup.GeneratedRightArmSolver;
+        }
+    }
 
 
     // =========================================================

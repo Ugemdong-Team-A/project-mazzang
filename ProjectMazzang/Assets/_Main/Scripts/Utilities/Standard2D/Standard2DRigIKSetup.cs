@@ -82,6 +82,22 @@ public sealed class Standard2DRigIKSetup : MonoBehaviour
     [SerializeField]
     private float _ccdVelocity = 1f;
 
+    [SerializeField]
+    [HideInInspector]
+    private LimbSolver2D _generatedLeftArmSolver;
+
+    [SerializeField]
+    [HideInInspector]
+    private LimbSolver2D _generatedRightArmSolver;
+
+    [SerializeField]
+    [HideInInspector]
+    private Transform _generatedBodyAimTarget;
+
+    [SerializeField]
+    [HideInInspector]
+    private CCDSolver2D _generatedBodyAimSolver;
+
     public Transform RigSearchRoot =>
         _rigSearchRoot != null
             ? _rigSearchRoot
@@ -133,6 +149,37 @@ public sealed class Standard2DRigIKSetup : MonoBehaviour
     public float CcdVelocity =>
         Mathf.Clamp01(
             _ccdVelocity);
+
+    public LimbSolver2D GeneratedLeftArmSolver =>
+        _generatedLeftArmSolver;
+
+    public LimbSolver2D GeneratedRightArmSolver =>
+        _generatedRightArmSolver;
+
+    public Transform GeneratedBodyAimTarget =>
+        _generatedBodyAimTarget;
+
+    public CCDSolver2D GeneratedBodyAimSolver =>
+        _generatedBodyAimSolver;
+
+    internal void ConfigureGeneratedRig(
+        LimbSolver2D leftArmSolver,
+        LimbSolver2D rightArmSolver,
+        Transform bodyAimTarget,
+        CCDSolver2D bodyAimSolver)
+    {
+        _generatedLeftArmSolver =
+            leftArmSolver;
+
+        _generatedRightArmSolver =
+            rightArmSolver;
+
+        _generatedBodyAimTarget =
+            bodyAimTarget;
+
+        _generatedBodyAimSolver =
+            bodyAimSolver;
+    }
 
     public float GetEffectorReachScale(
         Standard2DRigDefinition.EffectorReachGroup group)

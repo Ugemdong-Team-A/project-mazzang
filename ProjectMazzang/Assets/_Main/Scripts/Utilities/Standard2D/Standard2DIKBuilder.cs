@@ -90,6 +90,10 @@ public static class Standard2DIKBuilder
         IKManager2D manager =
             EnsureManager(setup);
 
+        Undo.RecordObject(
+            setup,
+            "Connect Generated IK Rig");
+
         CleanupGenerated(
             setup,
             rig);
@@ -120,22 +124,31 @@ public static class Standard2DIKBuilder
             }
         }
 
-        CreateCcd(
+        CCDSolver2D bodyAimSolver = CreateCcd(
             setup,
             rig,
             manager,
             Standard2DRigDefinition.BodyAimCcd);
 
-        ConfigurePlayerWeaponRig(
-            setup,
+        IKChain2D bodyAimChain =
+            bodyAimSolver != null
+                ? bodyAimSolver.GetChain(0)
+                : null;
+
+        setup.ConfigureGeneratedRig(
             leftHandSolver,
-            rightHandSolver);
+            rightHandSolver,
+            bodyAimChain?.target,
+            bodyAimSolver);
 
         EditorUtility.SetDirty(manager);
         EditorUtility.SetDirty(setup);
 
         PrefabUtility.RecordPrefabInstancePropertyModifications(
             manager);
+
+        PrefabUtility.RecordPrefabInstancePropertyModifications(
+            setup);
 
         Undo.CollapseUndoOperations(
             undoGroup);
@@ -176,9 +189,25 @@ public static class Standard2DIKBuilder
         int undoGroup =
             Undo.GetCurrentGroup();
 
+        Undo.RecordObject(
+            setup,
+            "Clear Generated IK Rig");
+
         CleanupGenerated(
             setup,
             rig);
+
+        setup.ConfigureGeneratedRig(
+            null,
+            null,
+            null,
+            null);
+
+        EditorUtility.SetDirty(
+            setup);
+
+        PrefabUtility.RecordPrefabInstancePropertyModifications(
+            setup);
 
         Undo.CollapseUndoOperations(
             undoGroup);
@@ -439,7 +468,7 @@ public static class Standard2DIKBuilder
         return solver;
     }
 
-    private static void CreateCcd(
+    private static CCDSolver2D CreateCcd(
         Standard2DRigIKSetup setup,
         Standard2DRigResolver.Result rig,
         IKManager2D manager,
@@ -520,7 +549,7 @@ public static class Standard2DIKBuilder
         solver.weight = 1f;
 
         // 편집 중에는 클립 미리보기를 건드리지 않고,
-        // 런타임 PlayerAim의 ProceduralAim에서만 켭니다.
+        // 런타임 조준 표현이 필요할 때만 켭니다.
         solver.enabled = false;
         solver.constrainRotation = false;
         solver.solveFromDefaultPose = true;
@@ -592,26 +621,6 @@ public static class Standard2DIKBuilder
         PrefabUtility.RecordPrefabInstancePropertyModifications(
             manager);
 
-        PlayerAim playerAim =
-            setup.GetComponent<PlayerAim>();
-
-        if (playerAim != null)
-        {
-            Undo.RecordObject(
-                playerAim,
-                "Connect Body Aim CCD");
-
-            playerAim.ConfigureUpperBodyAimRig(
-                target,
-                solver);
-
-            EditorUtility.SetDirty(
-                playerAim);
-
-            PrefabUtility.RecordPrefabInstancePropertyModifications(
-                playerAim);
-        }
-
         IKChain2D verifyChain =
             solver.GetChain(0);
 
@@ -625,39 +634,8 @@ public static class Standard2DIKBuilder
                 $"{spec.SolverName} CCD 참조 연결 검증 실패.",
                 solver);
         }
-    }
 
-
-    private static void ConfigurePlayerWeaponRig(
-        Standard2DRigIKSetup setup,
-        LimbSolver2D leftHandSolver,
-        LimbSolver2D rightHandSolver)
-    {
-        PlayerWeaponController weaponController =
-            setup.GetComponent<PlayerWeaponController>();
-
-        if (weaponController == null)
-            return;
-
-        PlayerAim playerAim =
-            setup.GetComponent<PlayerAim>();
-
-        Undo.RecordObject(
-            weaponController,
-            "Connect Player Weapon Rig");
-
-        weaponController.ConfigureWeaponPresentationRig(
-            playerAim != null
-                ? playerAim.ResolvedAimPivot
-                : null,
-            leftHandSolver,
-            rightHandSolver);
-
-        EditorUtility.SetDirty(
-            weaponController);
-
-        PrefabUtility.RecordPrefabInstancePropertyModifications(
-            weaponController);
+        return solver;
     }
 
     /// <summary>
