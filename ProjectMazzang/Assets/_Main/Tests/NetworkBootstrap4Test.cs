@@ -27,8 +27,11 @@ public class NetworkBootstrap4Test : MonoBehaviour
 
         Debug.Log("러너 스폰됨, 테스트 오브젝트 생성 중..");
 
-        _runner.Spawn(testPlayer, inputAuthority: _runner.LocalPlayer);
-        _runner.Spawn(weapon4Test, inputAuthority: _runner.LocalPlayer, position: new Vector3(-3f, 0f));
+        if (testPlayer != null)
+            _runner.Spawn(testPlayer, inputAuthority: _runner.LocalPlayer);
+
+        if (weapon4Test != null)
+            _runner.Spawn(weapon4Test, inputAuthority: _runner.LocalPlayer, position: new Vector3(-3f, 0f));
     }
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
