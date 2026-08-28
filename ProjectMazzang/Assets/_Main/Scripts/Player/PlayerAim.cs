@@ -1,5 +1,6 @@
 using Fusion;
 using UnityEngine;
+using UnityEngine.U2D.IK;
 
 [DefaultExecutionOrder(-90)]
 public sealed class PlayerAim :
@@ -28,10 +29,10 @@ public sealed class PlayerAim :
     private Transform resolvedAimPivot;
 
     [Tooltip(
-        "상체 조준을 담당하는 CCD 등의 Behaviour입니다. " +
-        "AnimationDriven 상태에서는 비활성화됩니다.")]
+        "상체 조준을 담당하는 CCD입니다. " +
+        "공격의 Pose Mode에 따라 기본 포즈 또는 애니메이션 포즈에서 계산합니다.")]
     [SerializeField]
-    private UnityEngine.Behaviour upperBodyAimRig;
+    private CCDSolver2D upperBodyAimRig;
 
     [Min(0.01f)]
     [SerializeField]
@@ -700,11 +701,8 @@ public sealed class PlayerAim :
 
     private void UpdateRigPresentation(bool facingRight)
     {
-        bool useProceduralRig =
-            RigMode ==
-            PlayerAimRigMode.Procedural;
-
-        if (!useProceduralRig)
+        if (RigMode ==
+            PlayerAimRigMode.AnimationOnly)
         {
             if (upperBodyAimRig != null &&
                 upperBodyAimRig.enabled)
@@ -724,13 +722,36 @@ public sealed class PlayerAim :
 
         ApplyCcdTarget(facingRight);
 
-        if (upperBodyAimRig != null &&
-            !upperBodyAimRig.enabled)
+        if (upperBodyAimRig == null)
+            return;
+
+        upperBodyAimRig.solveFromDefaultPose =
+            RigMode ==
+            PlayerAimRigMode.Procedural;
+
+        // Target 회전이 아니라 Effector 위치로 상체 방향을 풉니다.
+        upperBodyAimRig.constrainRotation = false;
+        upperBodyAimRig.weight = 1f;
+
+        if (!upperBodyAimRig.enabled)
         {
             upperBodyAimRig.enabled =
                 true;
         }
     }
+
+
+#if UNITY_EDITOR
+
+    internal void ConfigureUpperBodyAimRig(
+        Transform target,
+        CCDSolver2D solver)
+    {
+        ccdTarget = target;
+        upperBodyAimRig = solver;
+    }
+
+#endif
 
 
     private void ApplyCcdTarget(bool facingRight)

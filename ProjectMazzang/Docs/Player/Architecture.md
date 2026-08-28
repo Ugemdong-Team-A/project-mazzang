@@ -96,6 +96,10 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
 - `PlayerAttackData`는 플레이어가 공격을 실행하는 Startup, Active, Recovery,
   Cooldown과 Aim, Movement 규칙을 SO로 보관한다. `PlayerCombat`은 인라인 공격 설정을
   보관하지 않고 이 에셋만 참조한다.
+- 공격 자세는 `ProceduralAim`, `AnimationOnly`, `AnimationWithBodyAim` 중 하나를 선택한다.
+  마지막 모드는 Animator가 만든 포즈를 보존한 채 CCD가 Aim 방향까지 남은 각도를 보정한다.
+- CCD 가중치는 정확한 조준을 위해 1로 유지한다. 자연스러운 합성은 가중치를 낮추는 대신
+  `solveFromDefaultPose`를 꺼서 애니메이션 포즈에서 계산을 시작하는 방식으로 처리한다.
 - 같은 `AttackData`를 사용하더라도 실행 주체에 따라 타이밍과 사용 규칙은 달라질 수 있으므로,
   플레이어 전용 실행 정보는 `AttackData`에 두지 않는다.
 - `Projectile` 프리팹은 자신의 초기 속도, 수명, `AttackData`를 보관하고 충돌 시 공격 결과를 전달한다.

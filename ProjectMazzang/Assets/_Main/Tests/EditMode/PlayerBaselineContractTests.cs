@@ -233,6 +233,61 @@ namespace ProjectMazzang.Tests
 
 
         [Test]
+        public void AttackPoseModes_KeepSerializedValues()
+        {
+            Type poseMode =
+                GetRuntimeType(
+                    "PlayerAttackPoseMode");
+
+            Type rigMode =
+                GetRuntimeType(
+                    "PlayerAimRigMode");
+
+            Assert.That(
+                Convert.ToInt32(
+                    Enum.Parse(
+                        poseMode,
+                        "ProceduralAim")),
+                Is.EqualTo(0));
+
+            Assert.That(
+                Convert.ToInt32(
+                    Enum.Parse(
+                        poseMode,
+                        "AnimationOnly")),
+                Is.EqualTo(1));
+
+            Assert.That(
+                Convert.ToInt32(
+                    Enum.Parse(
+                        poseMode,
+                        "AnimationWithBodyAim")),
+                Is.EqualTo(2));
+
+            Assert.That(
+                Convert.ToInt32(
+                    Enum.Parse(
+                        rigMode,
+                        "Procedural")),
+                Is.EqualTo(0));
+
+            Assert.That(
+                Convert.ToInt32(
+                    Enum.Parse(
+                        rigMode,
+                        "AnimationOnly")),
+                Is.EqualTo(1));
+
+            Assert.That(
+                Convert.ToInt32(
+                    Enum.Parse(
+                        rigMode,
+                        "AnimationWithBodyAim")),
+                Is.EqualTo(2));
+        }
+
+
+        [Test]
         public void PlayerSkillController_CreatesRuntimeSkillsOnEveryPeer()
         {
             Type controllerType =

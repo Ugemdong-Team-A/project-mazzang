@@ -17,7 +17,8 @@ public enum PlayerAimFacingMode : byte
 public enum PlayerAimRigMode : byte
 {
     Procedural = 0,
-    AnimationDriven
+    AnimationOnly,
+    AnimationWithBodyAim
 }
 
 public enum PlayerAimCardinalDirection : byte
@@ -90,7 +91,13 @@ public enum PlayerAttackPoseMode : byte
     /// <summary>
     /// 공격 애니메이션이 상체 포즈를 전적으로 제어합니다.
     /// </summary>
-    Animation
+    AnimationOnly,
+
+    /// <summary>
+    /// 애니메이션이 만든 상체 자세를 시작점으로 사용하고,
+    /// CCD가 조준 방향까지 남은 각도를 보정합니다.
+    /// </summary>
+    AnimationWithBodyAim
 }
 
 
@@ -140,10 +147,17 @@ public struct PlayerAttackAimData
                 : PlayerAimFacingMode.Locked;
 
         PlayerAimRigMode rigMode =
-            poseMode ==
-            PlayerAttackPoseMode.Animation
-                ? PlayerAimRigMode.AnimationDriven
-                : PlayerAimRigMode.Procedural;
+            poseMode switch
+            {
+                PlayerAttackPoseMode.AnimationOnly =>
+                    PlayerAimRigMode.AnimationOnly,
+
+                PlayerAttackPoseMode.AnimationWithBodyAim =>
+                    PlayerAimRigMode.AnimationWithBodyAim,
+
+                _ =>
+                    PlayerAimRigMode.Procedural
+            };
 
         return new PlayerAimOverride(
             trackingMode,

@@ -571,6 +571,26 @@ public static class Standard2DIKBuilder
         PrefabUtility.RecordPrefabInstancePropertyModifications(
             manager);
 
+        PlayerAim playerAim =
+            setup.GetComponent<PlayerAim>();
+
+        if (playerAim != null)
+        {
+            Undo.RecordObject(
+                playerAim,
+                "Connect Body Aim CCD");
+
+            playerAim.ConfigureUpperBodyAimRig(
+                target,
+                solver);
+
+            EditorUtility.SetDirty(
+                playerAim);
+
+            PrefabUtility.RecordPrefabInstancePropertyModifications(
+                playerAim);
+        }
+
         IKChain2D verifyChain =
             solver.GetChain(0);
 

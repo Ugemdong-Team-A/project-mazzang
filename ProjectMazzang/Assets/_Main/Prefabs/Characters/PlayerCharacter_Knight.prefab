@@ -1029,8 +1029,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 324ce644ce6398e44b3a825b871c9bd8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerCombat
-  jabAttack: {fileID: 11400000, guid: 5f0c8b1f020743859f5dd89bd20195f1, type: 2}
-  counterAttack: {fileID: 0}
+  jabAttack: {fileID: 11400000, guid: 37fd7c36d2fa4a27ba1c3ad20fa275c8, type: 2}
+  counterAttack: {fileID: 11400000, guid: 5f0c8b1f020743859f5dd89bd20195f1, type: 2}
   attackSocket: {fileID: 1119498991958727768}
   hurtboxLayer:
     serializedVersion: 2
@@ -2418,21 +2418,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ef93bb9fe9d240e418a7fb8b476f3d34, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.2D.IK.Runtime::UnityEngine.U2D.IK.CCDSolver2D
-  m_ConstrainRotation: 1
+  m_ConstrainRotation: 0
   m_SolveFromDefaultPose: 1
   m_Weight: 1
   m_Chain:
     m_EffectorTransform: {fileID: 3262839273893832244}
     m_TargetTransform: {fileID: 5349236784287973008}
-    m_TransformCount: 5
+    m_TransformCount: 4
     m_Transforms:
-    - {fileID: 4944641326907003310}
     - {fileID: 5459021469249167873}
     - {fileID: 4342340767913044070}
     - {fileID: 2717253817523188075}
     - {fileID: 3262839273893832244}
     m_DefaultLocalRotations:
-    - {x: -0, y: -0, z: -0.0020997447, w: 0.99999785}
     - {x: 0, y: 0, z: -0.10115897, w: 0.9948703}
     - {x: 0, y: 0, z: 0.007650471, w: 0.99997073}
     - {x: 0, y: 0, z: 0.017288078, w: 0.99985063}
@@ -2442,10 +2440,9 @@ MonoBehaviour:
     - {x: 0, y: 0, z: 0, w: 0}
     - {x: 0, y: 0, z: 0, w: 0}
     - {x: 0, y: 0, z: 0, w: 0}
-    - {x: 0, y: 0, z: 0, w: 0}
   m_Iterations: 10
   m_Tolerance: 0.01
-  m_Velocity: 0.5
+  m_Velocity: 1
 --- !u!1 &8597574261526507876
 GameObject:
   m_ObjectHideFlags: 0

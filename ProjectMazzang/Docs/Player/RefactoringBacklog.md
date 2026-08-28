@@ -100,32 +100,23 @@ CommandSink 목록을 Inspector 또는 개발 로그에서 한 번에 확인하�
 
 **도입 시점:** 캐릭터별 모듈 구성이 달라져 순서 파악이 어려워질 때.
 
-### 8. 전신 공격 클립과 조준 리그의 합성 정책
+### 8. 전신 공격 클립과 조준 리그의 후속 확장
 
 **목표:** 아트는 팔·다리·허리를 포함한 전신 공격 클립을 자유롭게 만든다.
 아트가 게임의 조준 제한, CCD, 무기 소켓 구조를 알거나 Animation Event/별도 컴포넌트 키를
 추가할 필요는 없다. 어떤 뼈를 얼마나 게임이 덮어쓸지는 공격 정의가 결정한다.
 
-**현재:** `PlayerAttackAimData`는 `ProceduralAim`(CCD 사용)과 `Animation`(CCD 비활성화)
-두 선택지만 제공한다. `PlayerAim`의 `BodyAimAngle`은 제한과 보간을 가지지만, 클립 자세에
-허리 조준을 자연스럽게 합성하는 전용 경로는 없다.
+**현재:** `PlayerAttackAimData`는 `ProceduralAim`, `AnimationOnly`,
+`AnimationWithBodyAim`을 제공한다. 마지막 모드는 Animator 포즈 위에서 CCD를 풀어
+Aim 방향을 맞추며, 아트의 Animation Event나 별도 프로퍼티 키를 요구하지 않는다.
 
 **검토안:**
 
-- Pose 모드를 `FullProcedural`, `AnimationOnly`, `AnimationWithBodyAim`처럼 의미가 드러나는
-  세 정책으로 정리한다. 기존 값의 직렬화 호환은 별도 확인한다.
-- `AnimationWithBodyAim`은 Animator가 만든 전신 포즈를 기본으로 두고, 기준 척추 본의
-  **클립 회전** 위에 제한·보간된 `BodyAimAngle`의 차이만 가산한다. 따라서 AimDir은 정확히
-  향하되 클립에 있던 보행/반동/자세의 리듬은 유지한다.
-- CCD와 팔 IK는 이 정책과 독립적인 후처리 계층으로 둔다. 필요하면 공격 정의에서
-  `Off / Blend / Full` 같은 별도 가중치를 선택하며, 기본값은 클립이 만든 손·발 IK 결과를
-  존중한다.
-- 합성은 Animator가 포즈를 적용한 뒤, IK Solver가 최종 손·발을 푸는 순서여야 한다.
-  `ResolvedAimPivot`은 계속 무기와 UI가 참조할 최종 상체 기준으로 유지한다.
-- 첫 구현은 허리 기준 본 하나와 0~1 가중치만 다룬다. 상체 마스크, 여러 척추 분배,
-  공격 시간별 커브는 실제 클립 요구가 생긴 뒤 추가한다.
+- 상체 마스크, 여러 척추 분배, 공격 시간별 가중치 커브는 실제 클립 요구가 생긴 뒤 추가한다.
+- 팔·다리 IK까지 공격별로 제어할 필요가 생기면 Body Aim과 분리된 정책으로 확장한다.
+- `ResolvedAimPivot`은 계속 무기와 UI가 참조할 최종 상체 기준으로 유지한다.
 
-**검증:** 같은 전신 클립으로 `AnimationOnly`, `AnimationWithBodyAim`, `FullProcedural`을
+**검증:** 같은 전신 클립으로 `AnimationOnly`, `AnimationWithBodyAim`, `ProceduralAim`을
 전환해 좌우 반전·상하 조준·무기 IK·네트워크 Render 보간에서 손발 튐과 무기 이탈이 없는지
 확인한다.
 
