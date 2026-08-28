@@ -19,10 +19,22 @@ public sealed class PlayerCombat :
     private const int NoneAttackId = 0;
 
 
-    [Header("Test Attacks")]
+    [Header("Attack Data")]
+    [SerializeField]
+    private PlayerAttackData jabAttackData;
+
+    [SerializeField]
+    private PlayerAttackData counterAttackData;
+
+
+    [Header("Legacy Inline Attacks")]
+    [Tooltip(
+        "PlayerAttackData가 비어 있을 때만 사용하는 이전 인라인 설정입니다.")]
     [SerializeField]
     private PlayerAttackDefinition jabAttack;
 
+    [Tooltip(
+        "PlayerAttackData가 비어 있을 때만 사용하는 이전 인라인 설정입니다.")]
     [SerializeField]
     private PlayerAttackDefinition counterAttack;
 
@@ -138,6 +150,17 @@ public sealed class PlayerCombat :
                 PlayerAttackMovementMode.Locked;
         }
     }
+
+
+    private PlayerAttackDefinition JabAttack =>
+        ResolveAttackDefinition(
+            jabAttackData,
+            in jabAttack);
+
+    private PlayerAttackDefinition CounterAttack =>
+        ResolveAttackDefinition(
+            counterAttackData,
+            in counterAttack);
 
     // =========================================================
     // Fusion
@@ -402,13 +425,16 @@ public sealed class PlayerCombat :
     private PlayerAttackDefinition SelectTestAttack(
         Vector2 moveInput)
     {
+        PlayerAttackDefinition resolvedCounterAttack =
+            CounterAttack;
+
         if (moveInput.y > 0.5f &&
-            counterAttack.IsValid)
+            resolvedCounterAttack.IsValid)
         {
-            return counterAttack;
+            return resolvedCounterAttack;
         }
 
-        return jabAttack;
+        return JabAttack;
     }
 
 
@@ -652,27 +678,33 @@ public sealed class PlayerCombat :
     private bool TryGetCurrentAttackDefinition(
         out PlayerAttackDefinition definition)
     {
+        PlayerAttackDefinition resolvedJabAttack =
+            JabAttack;
+
         if (CurrentAttackId !=
                 NoneAttackId &&
-            jabAttack.IsValid &&
-            jabAttack.Attack.AttackId ==
+            resolvedJabAttack.IsValid &&
+            resolvedJabAttack.Attack.AttackId ==
                 CurrentAttackId)
         {
             definition =
-                jabAttack;
+                resolvedJabAttack;
 
             return true;
         }
 
 
+        PlayerAttackDefinition resolvedCounterAttack =
+            CounterAttack;
+
         if (CurrentAttackId !=
                 NoneAttackId &&
-            counterAttack.IsValid &&
-            counterAttack.Attack.AttackId ==
+            resolvedCounterAttack.IsValid &&
+            resolvedCounterAttack.Attack.AttackId ==
                 CurrentAttackId)
         {
             definition =
-                counterAttack;
+                resolvedCounterAttack;
 
             return true;
         }
@@ -682,6 +714,16 @@ public sealed class PlayerCombat :
             default;
 
         return false;
+    }
+
+
+    private static PlayerAttackDefinition ResolveAttackDefinition(
+        PlayerAttackData data,
+        in PlayerAttackDefinition fallback)
+    {
+        return data != null
+            ? data.Definition
+            : fallback;
     }
 
 
@@ -911,12 +953,12 @@ public sealed class PlayerCombat :
 
 
             DrawAttackGizmo(
-                jabAttack,
+                JabAttack,
                 facingRight);
 
 
             DrawAttackGizmo(
-                counterAttack,
+                CounterAttack,
                 facingRight);
 
 
@@ -925,22 +967,22 @@ public sealed class PlayerCombat :
 
 
         DrawAttackGizmo(
-            jabAttack,
+            JabAttack,
             true);
 
 
         DrawAttackGizmo(
-            jabAttack,
+            JabAttack,
             false);
 
 
         DrawAttackGizmo(
-            counterAttack,
+            CounterAttack,
             true);
 
 
         DrawAttackGizmo(
-            counterAttack,
+            CounterAttack,
             false);
     }
 

@@ -999,6 +999,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 324ce644ce6398e44b3a825b871c9bd8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerCombat
+  jabAttackData: {fileID: 11400000, guid: 5f0c8b1f020743859f5dd89bd20195f1, type: 2}
+  counterAttackData: {fileID: 0}
   jabAttack:
     attack: {fileID: 11400000, guid: 98ddf7352baec8e4eb60d00b8fc824f1, type: 2}
     startupDuration: 0.3

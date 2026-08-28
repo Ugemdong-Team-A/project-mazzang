@@ -93,8 +93,11 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
 - CC는 `CrowdControlType`으로 의미를 저장하고 `CrowdControlRules`가 현재의 `PlayerControlLock` 조합으로 변환한다. 외부 표를 연결할 때도 값이 없거나 읽기에 실패하면 코드의 기본 규칙을 사용한다.
 - `stopMovementOnApply`는 적중 즉시 속도 제거, `activationDelay`는 CC 잠금의 발동 시점을 담당한다.
 - `BoxAttackData`는 공통 결과에 박스 판정의 위치와 크기를 추가한다.
-- `PlayerAttackDefinition`은 플레이어가 공격을 실행하는 Startup, Active, Recovery,
-  Cooldown과 Aim, Movement 규칙을 보관한다.
+- `PlayerAttackData`는 플레이어가 공격을 실행하는 Startup, Active, Recovery,
+  Cooldown과 Aim, Movement 규칙을 SO로 보관한다. 내부의
+  `PlayerAttackDefinition`은 런타임에서 읽는 값 묶음이다.
+- 기존 프리팹을 단계적으로 이관하는 동안 `PlayerCombat`은 `PlayerAttackData`가 없을 때만
+  인라인 `PlayerAttackDefinition`을 호환 설정으로 사용한다.
 - 같은 `AttackData`를 사용하더라도 실행 주체에 따라 타이밍과 사용 규칙은 달라질 수 있으므로,
   플레이어 전용 실행 정보는 `AttackData`에 두지 않는다.
 - `Projectile` 프리팹은 자신의 초기 속도, 수명, `AttackData`를 보관하고 충돌 시 공격 결과를 전달한다.
