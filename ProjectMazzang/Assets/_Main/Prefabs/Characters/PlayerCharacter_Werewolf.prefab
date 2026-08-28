@@ -999,24 +999,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 324ce644ce6398e44b3a825b871c9bd8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerCombat
-  jabAttackData: {fileID: 11400000, guid: 5f0c8b1f020743859f5dd89bd20195f1, type: 2}
-  counterAttackData: {fileID: 0}
-  jabAttack:
-    attack: {fileID: 11400000, guid: 98ddf7352baec8e4eb60d00b8fc824f1, type: 2}
-    startupDuration: 0.3
-    activeDuration: 0.1
-    recoveryDuration: 0.2
-    cooldown: 0.8
-    aim:
-      aimMode: 2
-      poseMode: 1
-    movementMode: 1
-  counterAttack:
-    attack: {fileID: 0}
-    aim:
-      aimMode: 0
-      poseMode: 0
-    movementMode: 0
+  jabAttack: {fileID: 11400000, guid: 5f0c8b1f020743859f5dd89bd20195f1, type: 2}
+  counterAttack: {fileID: 0}
   attackSocket: {fileID: 1119498991958727768}
   hurtboxLayer:
     serializedVersion: 2

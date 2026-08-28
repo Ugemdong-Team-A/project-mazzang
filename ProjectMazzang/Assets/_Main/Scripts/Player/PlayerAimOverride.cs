@@ -61,7 +61,7 @@ public readonly struct PlayerAimOverride
 
 
 // =========================================================
-// Attack Definition
+// Attack Data
 // =========================================================
 
 public enum PlayerAttackAimMode : byte
@@ -95,7 +95,7 @@ public enum PlayerAttackPoseMode : byte
 
 
 [Serializable]
-public struct PlayerAttackAimDefinition
+public struct PlayerAttackAimData
 {
     [SerializeField]
     private PlayerAttackAimMode aimMode;

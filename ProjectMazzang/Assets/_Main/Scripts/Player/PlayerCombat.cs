@@ -21,22 +21,10 @@ public sealed class PlayerCombat :
 
     [Header("Attack Data")]
     [SerializeField]
-    private PlayerAttackData jabAttackData;
+    private PlayerAttackData jabAttack;
 
     [SerializeField]
-    private PlayerAttackData counterAttackData;
-
-
-    [Header("Legacy Inline Attacks")]
-    [Tooltip(
-        "PlayerAttackData가 비어 있을 때만 사용하는 이전 인라인 설정입니다.")]
-    [SerializeField]
-    private PlayerAttackDefinition jabAttack;
-
-    [Tooltip(
-        "PlayerAttackData가 비어 있을 때만 사용하는 이전 인라인 설정입니다.")]
-    [SerializeField]
-    private PlayerAttackDefinition counterAttack;
+    private PlayerAttackData counterAttack;
 
 
     [Header("Hit")]
@@ -139,28 +127,17 @@ public sealed class PlayerCombat :
             if (!IsAttacking)
                 return false;
 
-            if (!TryGetCurrentAttackDefinition(
-                    out PlayerAttackDefinition definition))
+            if (!TryGetCurrentAttackData(
+                    out PlayerAttackData attackData))
             {
                 return false;
             }
 
             return
-                definition.MovementMode ==
+                attackData.MovementMode ==
                 PlayerAttackMovementMode.Locked;
         }
     }
-
-
-    private PlayerAttackDefinition JabAttack =>
-        ResolveAttackDefinition(
-            jabAttackData,
-            in jabAttack);
-
-    private PlayerAttackDefinition CounterAttack =>
-        ResolveAttackDefinition(
-            counterAttackData,
-            in counterAttack);
 
     // =========================================================
     // Fusion
@@ -401,11 +378,12 @@ public sealed class PlayerCombat :
             return;
 
 
-        PlayerAttackDefinition definition =
+        PlayerAttackData attackData =
             SelectTestAttack(
                 input.Move);
 
-        if (!definition.IsValid)
+        if (attackData == null ||
+            !attackData.IsValid)
             return;
 
 
@@ -417,24 +395,22 @@ public sealed class PlayerCombat :
 
 
         StartAttack(
-            in definition,
+            attackData,
             sourceAimDirection);
     }
 
 
-    private PlayerAttackDefinition SelectTestAttack(
+    private PlayerAttackData SelectTestAttack(
         Vector2 moveInput)
     {
-        PlayerAttackDefinition resolvedCounterAttack =
-            CounterAttack;
-
         if (moveInput.y > 0.5f &&
-            resolvedCounterAttack.IsValid)
+            counterAttack != null &&
+            counterAttack.IsValid)
         {
-            return resolvedCounterAttack;
+            return counterAttack;
         }
 
-        return JabAttack;
+        return jabAttack;
     }
 
 
@@ -443,11 +419,11 @@ public sealed class PlayerCombat :
     // =========================================================
 
     private void StartAttack(
-        in PlayerAttackDefinition definition,
+        PlayerAttackData attackData,
         Vector2 sourceAimDirection)
     {
         AttackData attack =
-            definition.Attack;
+            attackData.Attack;
 
         if (attack == null)
             return;
@@ -463,16 +439,16 @@ public sealed class PlayerCombat :
 
         AttackPhaseTimer =
             CreateTimer(
-                definition.StartupDuration);
+                attackData.StartupDuration);
 
 
         AttackCooldownTimer =
             CreateTimer(
-                definition.Cooldown);
+                attackData.Cooldown);
 
 
         ApplyAimRule(
-            in definition,
+            attackData,
             sourceAimDirection);
 
 
@@ -481,14 +457,14 @@ public sealed class PlayerCombat :
 
 
     private void ApplyAimRule(
-        in PlayerAttackDefinition definition,
+        PlayerAttackData attackData,
         Vector2 sourceAimDirection)
     {
-        PlayerAttackAimDefinition aimDefinition =
-            definition.Aim;
+        PlayerAttackAimData aimData =
+            attackData.Aim;
 
 
-        if (!aimDefinition.RequiresOverride)
+        if (!aimData.RequiresOverride)
         {
             RequestClearAimOverride();
 
@@ -497,7 +473,7 @@ public sealed class PlayerCombat :
 
 
         PlayerAimOverride aimOverride =
-            aimDefinition.CreateOverride();
+            aimData.CreateOverride();
 
 
         if (Commands != null)
@@ -558,8 +534,8 @@ public sealed class PlayerCombat :
     private void BeginActive(
         bool facingRight)
     {
-        if (!TryGetCurrentAttackDefinition(
-                out PlayerAttackDefinition definition))
+        if (!TryGetCurrentAttackData(
+                out PlayerAttackData attackData))
         {
             CancelAttack();
 
@@ -568,7 +544,7 @@ public sealed class PlayerCombat :
 
 
         AttackData attack =
-            definition.Attack;
+            attackData.Attack;
 
 
         AttackState =
@@ -586,7 +562,7 @@ public sealed class PlayerCombat :
 
         AttackPhaseTimer =
             CreateTimer(
-                definition.ActiveDuration);
+                attackData.ActiveDuration);
     }
 
 
@@ -599,8 +575,8 @@ public sealed class PlayerCombat :
         }
 
 
-        if (!TryGetCurrentAttackDefinition(
-                out PlayerAttackDefinition definition))
+        if (!TryGetCurrentAttackData(
+                out PlayerAttackData attackData))
         {
             CancelAttack();
 
@@ -614,7 +590,7 @@ public sealed class PlayerCombat :
 
         AttackPhaseTimer =
             CreateTimer(
-                definition.RecoveryDuration);
+                attackData.RecoveryDuration);
     }
 
 
@@ -672,58 +648,44 @@ public sealed class PlayerCombat :
 
 
     // =========================================================
-    // Attack Definition
+    // Attack Data
     // =========================================================
 
-    private bool TryGetCurrentAttackDefinition(
-        out PlayerAttackDefinition definition)
+    private bool TryGetCurrentAttackData(
+        out PlayerAttackData attackData)
     {
-        PlayerAttackDefinition resolvedJabAttack =
-            JabAttack;
-
         if (CurrentAttackId !=
                 NoneAttackId &&
-            resolvedJabAttack.IsValid &&
-            resolvedJabAttack.Attack.AttackId ==
+            jabAttack != null &&
+            jabAttack.IsValid &&
+            jabAttack.Attack.AttackId ==
                 CurrentAttackId)
         {
-            definition =
-                resolvedJabAttack;
+            attackData =
+                jabAttack;
 
             return true;
         }
 
 
-        PlayerAttackDefinition resolvedCounterAttack =
-            CounterAttack;
-
         if (CurrentAttackId !=
                 NoneAttackId &&
-            resolvedCounterAttack.IsValid &&
-            resolvedCounterAttack.Attack.AttackId ==
+            counterAttack != null &&
+            counterAttack.IsValid &&
+            counterAttack.Attack.AttackId ==
                 CurrentAttackId)
         {
-            definition =
-                resolvedCounterAttack;
+            attackData =
+                counterAttack;
 
             return true;
         }
 
 
-        definition =
-            default;
+        attackData =
+            null;
 
         return false;
-    }
-
-
-    private static PlayerAttackDefinition ResolveAttackDefinition(
-        PlayerAttackData data,
-        in PlayerAttackDefinition fallback)
-    {
-        return data != null
-            ? data.Definition
-            : fallback;
     }
 
 
@@ -953,12 +915,12 @@ public sealed class PlayerCombat :
 
 
             DrawAttackGizmo(
-                JabAttack,
+                jabAttack,
                 facingRight);
 
 
             DrawAttackGizmo(
-                CounterAttack,
+                counterAttack,
                 facingRight);
 
 
@@ -967,35 +929,36 @@ public sealed class PlayerCombat :
 
 
         DrawAttackGizmo(
-            JabAttack,
+            jabAttack,
             true);
 
 
         DrawAttackGizmo(
-            JabAttack,
+            jabAttack,
             false);
 
 
         DrawAttackGizmo(
-            CounterAttack,
+            counterAttack,
             true);
 
 
         DrawAttackGizmo(
-            CounterAttack,
+            counterAttack,
             false);
     }
 
 
     private void DrawAttackGizmo(
-        PlayerAttackDefinition definition,
+        PlayerAttackData attackData,
         bool facingRight)
     {
-        if (!definition.IsValid)
+        if (attackData == null ||
+            !attackData.IsValid)
             return;
 
 
-        if (definition.Attack is not
+        if (attackData.Attack is not
             BoxAttackData boxAttack)
         {
             return;

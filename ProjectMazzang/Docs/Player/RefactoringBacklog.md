@@ -106,7 +106,7 @@ CommandSink 목록을 Inspector 또는 개발 로그에서 한 번에 확인하�
 아트가 게임의 조준 제한, CCD, 무기 소켓 구조를 알거나 Animation Event/별도 컴포넌트 키를
 추가할 필요는 없다. 어떤 뼈를 얼마나 게임이 덮어쓸지는 공격 정의가 결정한다.
 
-**현재:** `PlayerAttackAimDefinition`은 `ProceduralAim`(CCD 사용)과 `Animation`(CCD 비활성화)
+**현재:** `PlayerAttackAimData`는 `ProceduralAim`(CCD 사용)과 `Animation`(CCD 비활성화)
 두 선택지만 제공한다. `PlayerAim`의 `BodyAimAngle`은 제한과 보간을 가지지만, 클립 자세에
 허리 조준을 자연스럽게 합성하는 전용 경로는 없다.
 
