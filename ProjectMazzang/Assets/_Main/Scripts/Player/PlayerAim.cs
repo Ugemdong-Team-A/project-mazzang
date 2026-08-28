@@ -16,14 +16,6 @@ public sealed class PlayerAim :
     [SerializeField]
     private Transform aimOrigin;
 
-    [SerializeField]
-    private Transform ccdTarget;
-
-    [Tooltip(
-        "ResolvedAimPivot이 위치와 회전을 상속할 기준 척추 본입니다.")]
-    [SerializeField]
-    private Transform resolvedAimReferenceBone;
-
     [Tooltip(
         "기준 척추 본의 로컬 원점에서 최종 상체 자세를 따라가는 피벗입니다.")]
     [SerializeField]
@@ -35,6 +27,10 @@ public sealed class PlayerAim :
         "AnimationWithBodyAim은 같은 Effector를 방향 기준으로 사용합니다.")]
     [SerializeField]
     private CCDSolver2D upperBodyAimRig;
+
+    private Transform ccdTarget;
+
+    private Transform resolvedAimReferenceBone;
 
     [Min(0.01f)]
     [SerializeField]
@@ -166,6 +162,11 @@ public sealed class PlayerAim :
     public Transform ResolvedAimPivot =>
         resolvedAimPivot;
 
+    public Vector2 AimOriginPosition =>
+        aimOrigin != null
+            ? (Vector2)aimOrigin.position
+            : transform.position;
+
 
     // =========================================================
     // Fusion
@@ -173,7 +174,7 @@ public sealed class PlayerAim :
 
     public override void Spawned()
     {
-        ResolveStandardRigReferences();
+        ResolveAimRigReferences();
     }
 
 
@@ -195,7 +196,7 @@ public sealed class PlayerAim :
         state.HasAimOrigin = aimOrigin != null;
         state.AimOriginPosition =
             aimOrigin != null
-                ? (Vector2)aimOrigin.position
+                ? AimOriginPosition
                 : Vector2.zero;
         state.AimDirection = AimDirection;
     }
@@ -969,25 +970,22 @@ public sealed class PlayerAim :
     }
 
 
-    private void ResolveStandardRigReferences()
+    private void ResolveAimRigReferences()
     {
-        Standard2DRigIKSetup setup =
-            GetComponent<Standard2DRigIKSetup>();
-
-        if (setup == null)
-            return;
-
-        if (ccdTarget == null)
-        {
-            ccdTarget =
-                setup.GeneratedBodyAimTarget;
-        }
+        ccdTarget = null;
+        resolvedAimReferenceBone = null;
 
         if (upperBodyAimRig == null)
-        {
-            upperBodyAimRig =
-                setup.GeneratedBodyAimSolver;
-        }
+            return;
+
+        IKChain2D chain =
+            upperBodyAimRig.GetChain(0);
+
+        ccdTarget =
+            chain?.target;
+
+        resolvedAimReferenceBone =
+            chain?.rootTransform;
     }
 
 
@@ -1052,6 +1050,8 @@ public sealed class PlayerAim :
 
     private void OnValidate()
     {
+        ResolveAimRigReferences();
+
         float minimumFlipAngle =
             180f -
             maxBodyAimAngle;

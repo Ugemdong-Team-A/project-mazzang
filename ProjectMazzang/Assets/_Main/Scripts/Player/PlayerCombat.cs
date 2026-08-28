@@ -29,9 +29,6 @@ public sealed class PlayerCombat :
 
     [Header("Hit")]
     [SerializeField]
-    private Transform attackSocket;
-
-    [SerializeField]
     private LayerMask hurtboxLayer;
 
 
@@ -294,7 +291,8 @@ public sealed class PlayerCombat :
         // ==========================================
 
         UpdateAttack(
-            facingRight);
+            facingRight,
+            tickState);
 
 
         if (!hasInput)
@@ -490,7 +488,8 @@ public sealed class PlayerCombat :
     // =========================================================
 
     private void UpdateAttack(
-        bool facingRight)
+        bool facingRight,
+        PlayerTickState tickState)
     {
         switch (AttackState)
         {
@@ -500,7 +499,8 @@ public sealed class PlayerCombat :
 
             case PlayerAttackState.Startup:
                 UpdateStartup(
-                    facingRight);
+                    facingRight,
+                    tickState);
                 break;
 
 
@@ -517,7 +517,8 @@ public sealed class PlayerCombat :
 
 
     private void UpdateStartup(
-        bool facingRight)
+        bool facingRight,
+        PlayerTickState tickState)
     {
         if (!AttackPhaseTimer
                 .Expired(Runner))
@@ -527,12 +528,14 @@ public sealed class PlayerCombat :
 
 
         BeginActive(
-            facingRight);
+            facingRight,
+            tickState);
     }
 
 
     private void BeginActive(
-        bool facingRight)
+        bool facingRight,
+        PlayerTickState tickState)
     {
         if (!TryGetCurrentAttackData(
                 out PlayerAttackData attackData))
@@ -556,7 +559,9 @@ public sealed class PlayerCombat :
         {
             PerformBoxAttackHit(
                 boxAttack,
-                facingRight);
+                facingRight,
+                ResolveGameplayAttackOrigin(
+                    tickState));
         }
 
 
@@ -739,7 +744,8 @@ public sealed class PlayerCombat :
 
     private void PerformBoxAttackHit(
         BoxAttackData attack,
-        bool facingRight)
+        bool facingRight,
+        Vector2 attackOrigin)
     {
         if (attack == null)
             return;
@@ -754,7 +760,8 @@ public sealed class PlayerCombat :
         Vector2 center =
             CalculateBoxCenter(
                 attack,
-                facingRight);
+                facingRight,
+                attackOrigin);
 
 
         Collider2D[] hits =
@@ -823,7 +830,8 @@ public sealed class PlayerCombat :
 
     private Vector2 CalculateBoxCenter(
         BoxAttackData attack,
-        bool facingRight)
+        bool facingRight,
+        Vector2 attackOrigin)
     {
         Vector2 offset =
             attack.HitboxOffset;
@@ -837,17 +845,21 @@ public sealed class PlayerCombat :
 
 
         return
-            GetAttackOriginPosition() +
+            attackOrigin +
             offset;
     }
 
 
-    private Vector2 GetAttackOriginPosition()
+    private Vector2 ResolveGameplayAttackOrigin(
+        PlayerTickState tickState)
     {
-        return
-            attackSocket != null
-                ? attackSocket.position
-                : transform.position;
+        Vector2 fallbackPosition =
+            transform.position;
+
+        return tickState != null
+            ? tickState.ResolveAimOrigin(
+                fallbackPosition)
+            : fallbackPosition;
     }
 
 
@@ -899,8 +911,13 @@ public sealed class PlayerCombat :
 
     private void OnDrawGizmosSelected()
     {
+        PlayerAim playerAim =
+            GetComponent<PlayerAim>();
+
         Vector2 origin =
-            GetAttackOriginPosition();
+            playerAim != null
+                ? playerAim.AimOriginPosition
+                : (Vector2)transform.position;
 
 
         Gizmos.DrawWireSphere(
@@ -916,12 +933,14 @@ public sealed class PlayerCombat :
 
             DrawAttackGizmo(
                 jabAttack,
-                facingRight);
+                facingRight,
+                origin);
 
 
             DrawAttackGizmo(
                 counterAttack,
-                facingRight);
+                facingRight,
+                origin);
 
 
             return;
@@ -930,28 +949,33 @@ public sealed class PlayerCombat :
 
         DrawAttackGizmo(
             jabAttack,
-            true);
+            true,
+            origin);
 
 
         DrawAttackGizmo(
             jabAttack,
-            false);
+            false,
+            origin);
 
 
         DrawAttackGizmo(
             counterAttack,
-            true);
+            true,
+            origin);
 
 
         DrawAttackGizmo(
             counterAttack,
-            false);
+            false,
+            origin);
     }
 
 
     private void DrawAttackGizmo(
         PlayerAttackData attackData,
-        bool facingRight)
+        bool facingRight,
+        Vector2 attackOrigin)
     {
         if (attackData == null ||
             !attackData.IsValid)
@@ -968,7 +992,8 @@ public sealed class PlayerCombat :
         Vector2 center =
             CalculateBoxCenter(
                 boxAttack,
-                facingRight);
+                facingRight,
+                attackOrigin);
 
 
         Gizmos.DrawWireCube(

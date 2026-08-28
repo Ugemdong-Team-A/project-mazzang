@@ -2,10 +2,11 @@ using UnityEngine;
 using UnityEngine.U2D.IK;
 
 /// <summary>
-/// 아티스트가 캐릭터 Root에 붙여 버튼 한 번으로
+/// 아티스트가 대상 Rig의 기준 Root에 붙여 버튼 한 번으로
 /// 표준 2D IK를 생성하기 위한 진입점 컴포넌트.
 ///
 /// 실제 Rig 탐색 / 검증 / IK 생성 로직은 별도 클래스로 분리되어 있다.
+/// 런타임 캐릭터 컴포넌트는 이 도구를 참조하지 않는다.
 /// </summary>
 [DisallowMultipleComponent]
 [RequireComponent(typeof(IKManager2D))]
@@ -16,7 +17,7 @@ public sealed class Standard2DRigIKSetup : MonoBehaviour
     [Header("Rig Search")]
     [Tooltip(
         "보통 비워두세요.\n" +
-        "이 컴포넌트가 붙은 Player Root 아래에서 실제 Skeleton root를 자동 탐색합니다.\n" +
+        "이 컴포넌트가 붙은 Setup Root 아래에서 실제 Skeleton root를 자동 탐색합니다.\n" +
         "자동 탐색이 실패할 때만 Skeleton root 또는 그것을 포함하는 부모를 지정하세요.")]
     [SerializeField]
     private Transform _rigSearchRoot;
@@ -82,28 +83,12 @@ public sealed class Standard2DRigIKSetup : MonoBehaviour
     [SerializeField]
     private float _ccdVelocity = 1f;
 
-    [SerializeField]
-    [HideInInspector]
-    private LimbSolver2D _generatedLeftArmSolver;
-
-    [SerializeField]
-    [HideInInspector]
-    private LimbSolver2D _generatedRightArmSolver;
-
-    [SerializeField]
-    [HideInInspector]
-    private Transform _generatedBodyAimTarget;
-
-    [SerializeField]
-    [HideInInspector]
-    private CCDSolver2D _generatedBodyAimSolver;
-
     public Transform RigSearchRoot =>
         _rigSearchRoot != null
             ? _rigSearchRoot
             : transform;
 
-    public Transform PlayerRoot =>
+    public Transform SetupRoot =>
         transform;
 
     public float ArmEffectorReachScale =>
@@ -149,37 +134,6 @@ public sealed class Standard2DRigIKSetup : MonoBehaviour
     public float CcdVelocity =>
         Mathf.Clamp01(
             _ccdVelocity);
-
-    public LimbSolver2D GeneratedLeftArmSolver =>
-        _generatedLeftArmSolver;
-
-    public LimbSolver2D GeneratedRightArmSolver =>
-        _generatedRightArmSolver;
-
-    public Transform GeneratedBodyAimTarget =>
-        _generatedBodyAimTarget;
-
-    public CCDSolver2D GeneratedBodyAimSolver =>
-        _generatedBodyAimSolver;
-
-    internal void ConfigureGeneratedRig(
-        LimbSolver2D leftArmSolver,
-        LimbSolver2D rightArmSolver,
-        Transform bodyAimTarget,
-        CCDSolver2D bodyAimSolver)
-    {
-        _generatedLeftArmSolver =
-            leftArmSolver;
-
-        _generatedRightArmSolver =
-            rightArmSolver;
-
-        _generatedBodyAimTarget =
-            bodyAimTarget;
-
-        _generatedBodyAimSolver =
-            bodyAimSolver;
-    }
 
     public float GetEffectorReachScale(
         Standard2DRigDefinition.EffectorReachGroup group)

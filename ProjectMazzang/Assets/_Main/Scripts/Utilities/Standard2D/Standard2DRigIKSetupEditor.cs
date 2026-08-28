@@ -29,7 +29,7 @@ public sealed class Standard2DRigIKSetupEditor : Editor
             "• Arm 2 / Leg 2 / Foot 2 = Limb Solver 6개 생성\n" +
             "• chest → neck → head → effector = Body Aim CCD 1개 생성\n" +
             "• Body Aim CCD Chain Length는 4로 고정\n" +
-            "• Solver는 Player Root 바로 아래\n" +
+            "• Solver는 Setup Root 바로 아래\n" +
             "• Target은 각 Solver 바로 아래\n" +
             "• Effector / Target / Solver / Manager 참조 자동 연결\n" +
             "• Effector는 각 끝 본의 Local +X 방향으로 생성\n" +

@@ -102,8 +102,13 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
   하나의 포즈처럼 Aim 방향까지 추가 회전한다.
 - 상체 CCD는 프리팹에서 꺼 두어 Animation 창의 클립 미리보기를 침범하지 않고,
   플레이 중 `ProceduralAim`이 선택됐을 때 `PlayerAim`이 켠다.
-- `Standard2DRigIKSetup`은 생성한 팔 Solver와 상체 CCD 참조만 보관한다. 범용 IK Builder는
-  플레이어 전용 클래스를 모르며, `PlayerAim`과 `PlayerWeaponController`가 필요한 참조를 읽는다.
+- `Standard2DRigIKSetup`은 편집기에서 표준 IK 구조를 생성하는 도구일 뿐이며, 플레이어 런타임
+  컴포넌트는 이 도구의 존재나 보관 위치에 의존하지 않는다.
+- `PlayerAim`은 상체 CCD Solver만 명시적으로 참조하고 Target과 기준 본은 Solver 체인에서 얻는다.
+  `PlayerWeaponController`는 손 Solver와 표시용 `WeaponSocket`만 명시적으로 참조한다.
+- 실제 `AimOrigin` 트랜스폼은 `PlayerAim`만 소유한다. 같은 Tick의 `PlayerCombat`과
+  `PlayerWeaponController`는 `PlayerTickState`에 복사된 위치를 판정·발사·드롭 기준으로 재사용하며,
+  애니메이션을 따라 움직이는 `WeaponSocket`은 게임플레이 원점으로 사용하지 않는다.
 - 양손 Limb Solver는 평상시 `ProceduralAim`에서 꺼 두어 고정된 손 Target이 Animator의 팔
   자세를 덮지 않게 한다. `AnimationOnly`와 `AnimationWithBodyAim` 공격 중에는 클립이 움직이는
   원래 손 Target을 복원하며, 무기를 장착했다면 각 손의 Grip이 해당 Target보다 우선한다.

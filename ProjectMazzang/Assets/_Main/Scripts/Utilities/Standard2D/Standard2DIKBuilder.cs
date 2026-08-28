@@ -90,10 +90,6 @@ public static class Standard2DIKBuilder
         IKManager2D manager =
             EnsureManager(setup);
 
-        Undo.RecordObject(
-            setup,
-            "Connect Generated IK Rig");
-
         CleanupGenerated(
             setup,
             rig);
@@ -102,53 +98,27 @@ public static class Standard2DIKBuilder
             manager,
             setup);
 
-        LimbSolver2D leftHandSolver = null;
-        LimbSolver2D rightHandSolver = null;
-
         foreach (Standard2DRigDefinition.LimbSpec spec
                  in Standard2DRigDefinition.LimbSpecs)
         {
-            LimbSolver2D solver = CreateLimb(
+            CreateLimb(
                 setup,
                 rig,
                 manager,
                 spec);
-
-            if (spec.Prefix == "arm_l")
-            {
-                leftHandSolver = solver;
-            }
-            else if (spec.Prefix == "arm_r")
-            {
-                rightHandSolver = solver;
-            }
         }
 
-        CCDSolver2D bodyAimSolver = CreateCcd(
+        CreateCcd(
             setup,
             rig,
             manager,
             Standard2DRigDefinition.BodyAimCcd);
-
-        IKChain2D bodyAimChain =
-            bodyAimSolver != null
-                ? bodyAimSolver.GetChain(0)
-                : null;
-
-        setup.ConfigureGeneratedRig(
-            leftHandSolver,
-            rightHandSolver,
-            bodyAimChain?.target,
-            bodyAimSolver);
 
         EditorUtility.SetDirty(manager);
         EditorUtility.SetDirty(setup);
 
         PrefabUtility.RecordPrefabInstancePropertyModifications(
             manager);
-
-        PrefabUtility.RecordPrefabInstancePropertyModifications(
-            setup);
 
         Undo.CollapseUndoOperations(
             undoGroup);
@@ -164,8 +134,8 @@ public static class Standard2DIKBuilder
         Debug.Log(
             $"[{nameof(Standard2DRigIKSetup)} v{Standard2DRigIKSetup.ToolVersion}] " +
             $"'{setup.name}' IK 생성 완료\n" +
-            "Player Root: IKManager2D\n" +
-            "Player Root 직계 자식: LimbSolver2D x6 (Arm 2 / Leg 2 / Foot 2) + CCDSolver2D x1 (Body Aim)\n" +
+            "Setup Root: IKManager2D\n" +
+            "Setup Root 직계 자식: LimbSolver2D x6 (Arm 2 / Leg 2 / Foot 2) + CCDSolver2D x1 (Body Aim)\n" +
             "각 Solver 직계 자식: Target x1\n" +
             "Skeleton: Effector x7\n" +
             "Manager/Solver/Target/Effector 참조 연결 완료" +
@@ -189,25 +159,9 @@ public static class Standard2DIKBuilder
         int undoGroup =
             Undo.GetCurrentGroup();
 
-        Undo.RecordObject(
-            setup,
-            "Clear Generated IK Rig");
-
         CleanupGenerated(
             setup,
             rig);
-
-        setup.ConfigureGeneratedRig(
-            null,
-            null,
-            null,
-            null);
-
-        EditorUtility.SetDirty(
-            setup);
-
-        PrefabUtility.RecordPrefabInstancePropertyModifications(
-            setup);
 
         Undo.CollapseUndoOperations(
             undoGroup);
@@ -247,7 +201,7 @@ public static class Standard2DIKBuilder
             setup.AlwaysUpdate;
     }
 
-    private static LimbSolver2D CreateLimb(
+    private static void CreateLimb(
         Standard2DRigIKSetup setup,
         Standard2DRigResolver.Result rig,
         IKManager2D manager,
@@ -321,7 +275,7 @@ public static class Standard2DIKBuilder
         // 2) Solver
         // -------------------------------------------------------------
         //
-        // 요청한 구조대로 Player Root 바로 아래.
+        // 요청한 구조대로 Setup Root 바로 아래.
         GameObject solverObject =
             new(spec.SolverName);
 
@@ -333,7 +287,7 @@ public static class Standard2DIKBuilder
             solverObject.transform;
 
         solverTransform.SetParent(
-            setup.PlayerRoot,
+            setup.SetupRoot,
             false);
 
         solverTransform.localPosition =
@@ -465,10 +419,9 @@ public static class Standard2DIKBuilder
                 solver);
         }
 
-        return solver;
     }
 
-    private static CCDSolver2D CreateCcd(
+    private static void CreateCcd(
         Standard2DRigIKSetup setup,
         Standard2DRigResolver.Result rig,
         IKManager2D manager,
@@ -526,7 +479,7 @@ public static class Standard2DIKBuilder
             solverObject.transform;
 
         solverTransform.SetParent(
-            setup.PlayerRoot,
+            setup.SetupRoot,
             false);
 
         solverTransform.localPosition =
@@ -635,7 +588,6 @@ public static class Standard2DIKBuilder
                 solver);
         }
 
-        return solver;
     }
 
     /// <summary>
@@ -702,7 +654,7 @@ public static class Standard2DIKBuilder
                 target);
 
         marker.Initialize(
-            setup.PlayerRoot,
+            setup.SetupRoot,
             kind);
 
         EditorUtility.SetDirty(
@@ -722,7 +674,7 @@ public static class Standard2DIKBuilder
                 .Where(
                     marker =>
                         marker != null &&
-                        marker.OwnerRoot == setup.PlayerRoot)
+                        marker.OwnerRoot == setup.SetupRoot)
                 .ToList();
 
         IKManager2D manager =
@@ -781,7 +733,7 @@ public static class Standard2DIKBuilder
     {
         // 예전 __ik_generated wrapper 제거.
         Transform legacyRoot =
-            setup.PlayerRoot.Find(
+            setup.SetupRoot.Find(
                 "__ik_generated");
 
         if (legacyRoot != null)

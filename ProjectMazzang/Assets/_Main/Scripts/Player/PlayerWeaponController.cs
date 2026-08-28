@@ -12,11 +12,6 @@ public sealed class PlayerWeaponController :
     [SerializeField]
     private Transform weaponSocket;
 
-    [Tooltip(
-        "PlayerAim이 허리 제한과 표시 보간을 적용해 회전시키는 피벗입니다.")]
-    [SerializeField]
-    private Transform resolvedAimPivot;
-
     [Header("Weapon Presentation")]
     [SerializeField]
     private int weaponSortingOrder = 24;
@@ -102,6 +97,11 @@ public sealed class PlayerWeaponController :
     public Transform WeaponSocket =>
         weaponSocket;
 
+    private Transform ResolvedAimPivot =>
+        _playerAim != null
+            ? _playerAim.ResolvedAimPivot
+            : null;
+
     public int WeaponSortingOrder =>
         weaponSortingOrder;
 
@@ -116,8 +116,6 @@ public sealed class PlayerWeaponController :
     public override void Spawned()
     {
         _playerAim = GetComponent<PlayerAim>();
-
-        ResolveStandardRigReferences();
 
         StabilizeWeaponSocket();
 
@@ -191,7 +189,9 @@ public sealed class PlayerWeaponController :
             !state.HasHealth ||
             state.IsAlive,
             state.HasMovement &&
-            !state.FacingRight);
+            !state.FacingRight,
+            ResolveGameplayWeaponOrigin(
+                state));
 
         return true;
     }
@@ -231,7 +231,9 @@ public sealed class PlayerWeaponController :
                         : Vector2.zero;
 
                 DropWeapon(
-                    deathDropVelocity);
+                    deathDropVelocity,
+                    ResolveGameplayWeaponOrigin(
+                        state));
             }
 
             if (hasInput)
@@ -272,6 +274,8 @@ public sealed class PlayerWeaponController :
         {
             DropWeapon(
                 CalculateDropVelocity(
+                    state),
+                ResolveGameplayWeaponOrigin(
                     state));
 
             return;
@@ -282,7 +286,9 @@ public sealed class PlayerWeaponController :
         {
             TryUseSecondaryWeapon(
                 state.HasMovement &&
-                !state.FacingRight);
+                !state.FacingRight,
+                ResolveGameplayWeaponOrigin(
+                    state));
         }
     }
 
@@ -303,7 +309,7 @@ public sealed class PlayerWeaponController :
         {
             equippedWeapon
                 .RefreshHeldPresentation(
-                    resolvedAimPivot == null &&
+                    ResolvedAimPivot == null &&
                     !tickState.FacingRight);
         }
 
@@ -319,6 +325,9 @@ public sealed class PlayerWeaponController :
     {
         if (weaponSocket == null)
             return;
+
+        Transform resolvedAimPivot =
+            ResolvedAimPivot;
 
         Transform stableParent =
             resolvedAimPivot != null
@@ -450,12 +459,15 @@ public sealed class PlayerWeaponController :
         if (!HasEquippedWeapon)
             return false;
 
-        return DropWeapon(Vector2.zero);
+        return DropWeapon(
+            Vector2.zero,
+            transform.position);
     }
 
 
     private bool DropWeapon(
-        Vector2 velocity)
+        Vector2 velocity,
+        Vector2 origin)
     {
         Weapon weapon =
             EquippedWeapon;
@@ -478,9 +490,7 @@ public sealed class PlayerWeaponController :
 
         weapon.Drop(
             previousHolder,
-            weaponSocket != null
-                ? (Vector2)weaponSocket.position
-                : (Vector2)transform.position,
+            origin,
             WeaponAngle,
             velocity,
             repickupBlockDuration);
@@ -672,35 +682,6 @@ public sealed class PlayerWeaponController :
     }
 
 
-    private void ResolveStandardRigReferences()
-    {
-        if (resolvedAimPivot == null &&
-            _playerAim != null)
-        {
-            resolvedAimPivot =
-                _playerAim.ResolvedAimPivot;
-        }
-
-        Standard2DRigIKSetup setup =
-            GetComponent<Standard2DRigIKSetup>();
-
-        if (setup == null)
-            return;
-
-        if (leftHandLimb == null)
-        {
-            leftHandLimb =
-                setup.GeneratedLeftArmSolver;
-        }
-
-        if (rightHandLimb == null)
-        {
-            rightHandLimb =
-                setup.GeneratedRightArmSolver;
-        }
-    }
-
-
     // =========================================================
     // Drop Velocity
     // =========================================================
@@ -735,7 +716,8 @@ public sealed class PlayerWeaponController :
 
 
     private bool TryUseSecondaryWeapon(
-        bool mirrored)
+        bool mirrored,
+        Vector2 origin)
     {
         if (!HasStateAuthority)
             return false;
@@ -749,11 +731,6 @@ public sealed class PlayerWeaponController :
             return false;
         }
 
-        Vector2 origin =
-            weaponSocket != null
-                ? weaponSocket.position
-                : transform.position;
-
         return weapon.TryUseSecondary(
             origin,
             WeaponDirection,
@@ -764,7 +741,8 @@ public sealed class PlayerWeaponController :
     private bool TryUseWeapon(
         Vector2 aimDirection,
         bool isAlive,
-        bool mirrored)
+        bool mirrored,
+        Vector2 origin)
     {
         // 기존 aimDirection 인자는 호출 호환성을 위해 유지하지만,
         // 실제 판정 방향은 StateAuthority가 확정한 WeaponAngle을 사용한다.
@@ -782,14 +760,22 @@ public sealed class PlayerWeaponController :
         if (weapon == null)
             return false;
 
-        Vector2 origin =
-            weaponSocket != null
-                ? weaponSocket.position
-                : transform.position;
-
         return weapon.TryUse(
             origin,
             WeaponDirection,
             mirrored);
+    }
+
+
+    private Vector2 ResolveGameplayWeaponOrigin(
+        PlayerTickState state)
+    {
+        Vector2 fallbackPosition =
+            transform.position;
+
+        return state != null
+            ? state.ResolveAimOrigin(
+                fallbackPosition)
+            : fallbackPosition;
     }
 }

@@ -844,6 +844,43 @@ namespace ProjectMazzang.Tests
 
 
         [Test]
+        public void PlayerTickState_ReusesCapturedAimOrigin()
+        {
+            Type tickStateType =
+                GetRuntimeType(
+                    "PlayerTickState");
+
+            object tickState =
+                Activator.CreateInstance(
+                    tickStateType);
+
+            tickStateType
+                .GetProperty("HasAimOrigin")
+                .SetValue(tickState, true);
+
+            tickStateType
+                .GetProperty("AimOriginPosition")
+                .SetValue(
+                    tickState,
+                    new Vector2(2f, 3f));
+
+            Vector2 origin =
+                (Vector2)tickStateType
+                    .GetMethod("ResolveAimOrigin")
+                    .Invoke(
+                        tickState,
+                        new object[]
+                        {
+                            new Vector2(9f, 9f)
+                        });
+
+            Assert.That(
+                origin,
+                Is.EqualTo(new Vector2(2f, 3f)));
+        }
+
+
+        [Test]
         public void AttackData_KeepsCrowdControlDefaults()
         {
             Type attackDataType =
