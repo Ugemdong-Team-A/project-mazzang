@@ -36,7 +36,7 @@ public sealed class PlayerAnimation :
 
     public override void Spawned()
     {
-        // InitializeSkillOverrideController();
+        InitializeSkillOverrideController();
 
         _jumpPresentationInitialized = false;
         _attackPresentationInitialized = false;
@@ -158,20 +158,16 @@ public sealed class PlayerAnimation :
             return;
         }
 
-        Debug.Log("HandleSkillAnimation");
-
         AnimationClip clip =
             animation?.GetClip(phase);
 
-        if (clip == null/* ||
+        if (clip == null ||
             !TryApplySkillOverride(
                 phase,
-                clip)*/)
+                clip))
         {
             return;
         }
-
-        Debug.Log(clip.name);
 
         animator.SetInteger(
             "SkillPhase",
