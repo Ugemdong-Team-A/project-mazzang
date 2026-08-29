@@ -61,6 +61,12 @@ public sealed class PlayerAnimation :
                     velocity.x));
 
             animator.SetFloat(
+                "MoveDirection",
+                ResolveMoveDirection(
+                    velocity.x,
+                    tickState.FacingRight));
+
+            animator.SetFloat(
                 "VerticalSpeed",
                 velocity.y);
 
@@ -102,6 +108,31 @@ public sealed class PlayerAnimation :
             HandleDeathAnimation(
                 tickState.DeathSequence);
         }
+    }
+
+
+    private static float ResolveMoveDirection(
+        float horizontalVelocity,
+        bool facingRight)
+    {
+        if (Mathf.Approximately(
+                horizontalVelocity,
+                0f))
+        {
+            return 0f;
+        }
+
+        float movementSign =
+            Mathf.Sign(
+                horizontalVelocity);
+
+        float facingSign =
+            facingRight
+                ? 1f
+                : -1f;
+
+        return movementSign *
+               facingSign;
     }
 
 

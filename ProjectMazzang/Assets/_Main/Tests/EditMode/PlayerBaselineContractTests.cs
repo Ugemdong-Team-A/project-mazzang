@@ -561,6 +561,77 @@ namespace ProjectMazzang.Tests
 
 
         [Test]
+        public void StandardPlayer_RunBlendsByFacingRelativeDirection()
+        {
+            Type animationType =
+                GetRuntimeType(
+                    "PlayerAnimation");
+
+            MethodInfo resolveDirection =
+                animationType.GetMethod(
+                    "ResolveMoveDirection",
+                    BindingFlags.NonPublic |
+                    BindingFlags.Static);
+
+            Assert.That(resolveDirection, Is.Not.Null);
+            Assert.That(
+                resolveDirection.Invoke(
+                    null,
+                    new object[] { 1f, true }),
+                Is.EqualTo(1f));
+            Assert.That(
+                resolveDirection.Invoke(
+                    null,
+                    new object[] { -1f, false }),
+                Is.EqualTo(1f));
+            Assert.That(
+                resolveDirection.Invoke(
+                    null,
+                    new object[] { -1f, true }),
+                Is.EqualTo(-1f));
+            Assert.That(
+                resolveDirection.Invoke(
+                    null,
+                    new object[] { 1f, false }),
+                Is.EqualTo(-1f));
+
+            AnimatorController controller =
+                AssetDatabase.LoadAssetAtPath<
+                    AnimatorController>(
+                    "Assets/_Main/Art/Animators/" +
+                    "AC_StandardPlayer.controller");
+
+            AnimatorState run =
+                controller.layers
+                    .Single(layer => layer.name == "Base Layer")
+                    .stateMachine.states
+                    .Select(child => child.state)
+                    .Single(state => state.name == "Run");
+
+            BlendTree blendTree =
+                run.motion as BlendTree;
+
+            Assert.That(blendTree, Is.Not.Null);
+            Assert.That(
+                blendTree.blendParameter,
+                Is.EqualTo("MoveDirection"));
+
+            Dictionary<float, string> motions =
+                blendTree.children
+                    .ToDictionary(
+                        child => child.threshold,
+                        child => child.motion.name);
+
+            Assert.That(
+                motions[-1f],
+                Is.EqualTo("Backrun"));
+            Assert.That(
+                motions[1f],
+                Is.EqualTo("run"));
+        }
+
+
+        [Test]
         public void PlayerSkillController_CreatesRuntimeSkillsOnEveryPeer()
         {
             Type controllerType =

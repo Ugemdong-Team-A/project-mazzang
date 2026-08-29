@@ -118,6 +118,9 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
 - 양손 Limb Solver는 IK Target을 녹화한 일반 이동·공격 클립을 재생하기 위해 평상시에도 활성화한다.
   무기를 장착하면 각 손의 Target만 해당 Grip으로 교체하고, Grip이 없는 손은 애니메이션 Target을
   유지한다. 무기를 해제하면 두 손 모두 원래 애니메이션 Target으로 복원한다.
+- `PlayerAnimation`은 수평 이동 방향과 `FacingRight`를 비교해 `MoveDirection`을 -1 또는 1로
+  전달한다. 표준 Controller의 Run BlendTree는 -1에서 후진, 1에서 전진 클립을 재생하므로 조준으로
+  바라보는 방향과 실제 이동 방향이 달라도 발동작이 맞는다.
 - `PlayerAttackData.ComboFollowUp`이 있으면 Active 시작부터 Recovery 종료까지 공격 입력을
   예약하고, Recovery가 끝날 때 후속 공격으로 직접 전환한다. `AllowRepeatedComboInput`이 켜지면
   연속 입력을 한 번의 예약으로 취급하며, 런타임 콤보 깊이는 1단계로 제한한다.
