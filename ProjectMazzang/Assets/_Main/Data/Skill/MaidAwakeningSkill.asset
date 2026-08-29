@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::UltimateAwakeningSkillData
   cooldown: 0
   icon: {fileID: 21300000, guid: 5e534de90d594a459dd6fe65cef42d89, type: 3}
+  animation: {fileID: 11400000, guid: 4134d785cb784a32baf75f70ce6f9450, type: 2}
   maxMeter: 100
   meterCost: 100
   passiveGainPerSecond: 2

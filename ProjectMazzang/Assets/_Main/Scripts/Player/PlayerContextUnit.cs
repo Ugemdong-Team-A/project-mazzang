@@ -191,6 +191,8 @@ public interface IPlayerSkillAnimationState :
 {
     byte SkillAnimationSequence { get; }
 
-    PlayerSkillAnimationId LastSkillAnimation { get; }
+    SkillSlot LastSkillAnimationSlot { get; }
+
+    SkillAnimationPhase LastSkillAnimationPhase { get; }
 }
 */

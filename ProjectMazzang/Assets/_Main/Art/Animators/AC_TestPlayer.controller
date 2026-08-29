@@ -641,7 +641,7 @@ AnimatorController:
     m_DefaultInt: 0
     m_DefaultBool: 0
     m_Controller: {fileID: 9100000}
-  - m_Name: SkillId
+  - m_Name: SkillPhase
     m_Type: 3
     m_DefaultFloat: 0
     m_DefaultInt: 0
@@ -707,7 +707,7 @@ AnimatorState:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Fireball
+  m_Name: Skill Cast
   m_Speed: 1
   m_CycleOffset: 0
   m_Transitions:
@@ -721,7 +721,7 @@ AnimatorState:
   m_MirrorParameterActive: 0
   m_CycleOffsetParameterActive: 0
   m_TimeParameterActive: 0
-  m_Motion: {fileID: 7400000, guid: a17c8e2d9f3048a6b5c4d3e2f1a09876, type: 2}
+  m_Motion: {fileID: 7400000, guid: a41c6b8e6de4430a8a8f86c6355e21f1, type: 2}
   m_Tag: 
   m_SpeedParameter: 
   m_MirrorParameter: 
@@ -734,7 +734,7 @@ AnimatorState:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Awakening
+  m_Name: Skill Action
   m_Speed: 1
   m_CycleOffset: 0
   m_Transitions:
@@ -748,7 +748,7 @@ AnimatorState:
   m_MirrorParameterActive: 0
   m_CycleOffsetParameterActive: 0
   m_TimeParameterActive: 0
-  m_Motion: {fileID: 7400000, guid: b28d9f3e0a4159b7c6d5e4f3a2b10987, type: 2}
+  m_Motion: {fileID: 7400000, guid: c72e4db8c8de4cdaa2b189ad15a43e7b, type: 2}
   m_Tag: 
   m_SpeedParameter: 
   m_MirrorParameter: 
@@ -807,7 +807,7 @@ AnimatorStateTransition:
   m_Name: 
   m_Conditions:
   - m_ConditionMode: 6
-    m_ConditionEvent: SkillId
+    m_ConditionEvent: SkillPhase
     m_EventTreshold: 1
   - m_ConditionMode: 1
     m_ConditionEvent: Skill
@@ -835,7 +835,7 @@ AnimatorStateTransition:
   m_Name: 
   m_Conditions:
   - m_ConditionMode: 6
-    m_ConditionEvent: SkillId
+    m_ConditionEvent: SkillPhase
     m_EventTreshold: 2
   - m_ConditionMode: 1
     m_ConditionEvent: Skill

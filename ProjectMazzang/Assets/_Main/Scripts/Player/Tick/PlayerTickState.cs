@@ -55,7 +55,11 @@ public sealed class PlayerTickState
 
     public byte SkillAnimationSequence { get; internal set; }
 
-    public PlayerSkillAnimationId SkillAnimationId { get; internal set; }
+    public SkillSlot SkillAnimationSlot { get; internal set; }
+
+    public SkillAnimationPhase SkillAnimationPhase { get; internal set; }
+
+    public SkillAnimationData SkillAnimation { get; internal set; }
 
     /// <summary>
     /// 외부 제어 효과로 새 스킬 사용이 잠긴 상태입니다.
@@ -120,7 +124,10 @@ public sealed class PlayerTickState
 
         HasSkill = false;
         SkillAnimationSequence = 0;
-        SkillAnimationId = PlayerSkillAnimationId.None;
+        SkillAnimationSlot = default;
+        SkillAnimationPhase =
+            global::SkillAnimationPhase.None;
+        SkillAnimation = null;
         IsSkillControlLocked = false;
         IsSkillActionLocked = false;
         IsCombatMovementLocked = false;

@@ -144,6 +144,19 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
 ## 스킬 확장 규칙
 
 - `SkillData`는 조정 가능한 정적 설정을 보관한다.
+- `SkillData.Animation`은 선택적인 `SkillAnimationData`를 참조한다. 이 데이터는 Cast,
+  실제 효과가 발동하는 Release, 지속 효과 뒤의 Recovery 클립을 보관하므로 복사하거나
+  교체한 스킬도 캐릭터 Animator Controller를 갈아 끼우지 않고 자신의 연출을 함께 가져간다.
+- `PlayerSkillController`는 구체 스킬 타입을 검사하지 않고 사용 슬롯과 애니메이션 단계를
+  Networked 이벤트로 알린다. `PlayerAnimation`은 플레이어마다 만든
+  `AnimatorOverrideController` 인스턴스의 공통 Cast/Action 슬롯만 교체하므로 공유 Controller
+  에셋을 런타임에 수정하지 않는다.
+- 표준 스킬 클립은 캐릭터 본을 직접 키로 잡는 대신 `arm_l_solver/arm_l_solver_Target`과
+  `arm_r_solver/arm_r_solver_Target` 같은 공통 IK Target 경로를 사용할 수 있다. 클립은 Target만
+  움직이며 Solver의 활성 여부를 바꾸지 않는다. Solver 활성 정책은 기존 프리팹 설정과 무기
+  장착 로직이 계속 소유한다.
+- 스킬 효과 발동 시점은 Networked Phase가 결정한다. Animation Event는 게임플레이 발동이나
+  네트워크 결과를 결정하지 않는다.
 - `Skill` 런타임은 사용 조건과 실제 행동을 구현한다.
 - `PlayerSkillController`는 슬롯, 입력 진입점, 쿨다운, 충전량, 선택적 Meter와
   `Cast → Active → Recovery` Networked 수명 주기를 관리한다.

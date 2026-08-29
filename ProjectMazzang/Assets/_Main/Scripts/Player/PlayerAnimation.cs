@@ -3,8 +3,17 @@ using UnityEngine;
 public sealed class PlayerAnimation :
     PlayerTickModule
 {
+    private const string SkillCastPlaceholder =
+        "SkillCastPlaceholder";
+
+    private const string SkillActionPlaceholder =
+        "SkillActionPlaceholder";
+
     [SerializeField]
     private Animator animator;
+
+    private AnimatorOverrideController
+        _skillOverrideController;
 
     private byte _lastJumpSequence;
 
@@ -27,6 +36,8 @@ public sealed class PlayerAnimation :
 
     public override void Spawned()
     {
+        InitializeSkillOverrideController();
+
         _jumpPresentationInitialized = false;
         _attackPresentationInitialized = false;
         _deathPresentationInitialized = false;
@@ -79,7 +90,8 @@ public sealed class PlayerAnimation :
         {
             HandleSkillAnimation(
                 tickState.SkillAnimationSequence,
-                tickState.SkillAnimationId);
+                tickState.SkillAnimationPhase,
+                tickState.SkillAnimation);
         }
 
         if (tickState.HasHealth)
@@ -135,7 +147,8 @@ public sealed class PlayerAnimation :
 
     private void HandleSkillAnimation(
         byte skillAnimationSequence,
-        PlayerSkillAnimationId skillAnimationId)
+        SkillAnimationPhase phase,
+        SkillAnimationData animation)
     {
         if (!HasSequenceChanged(
                 ref _lastSkillAnimationSequence,
@@ -145,12 +158,78 @@ public sealed class PlayerAnimation :
             return;
         }
 
+        AnimationClip clip =
+            animation?.GetClip(phase);
+
+        if (clip == null ||
+            !TryApplySkillOverride(
+                phase,
+                clip))
+        {
+            return;
+        }
+
         animator.SetInteger(
-            "SkillId",
-            (int)skillAnimationId);
+            "SkillPhase",
+            phase == SkillAnimationPhase.Cast
+                ? 1
+                : 2);
 
         animator.SetTrigger(
             "Skill");
+    }
+
+
+    private void InitializeSkillOverrideController()
+    {
+        if (_skillOverrideController != null ||
+            animator == null ||
+            animator.runtimeAnimatorController == null)
+        {
+            return;
+        }
+
+        _skillOverrideController =
+            new AnimatorOverrideController(
+                animator.runtimeAnimatorController)
+            {
+                name =
+                    $"{animator.runtimeAnimatorController.name} " +
+                    "(Player Skill Instance)"
+            };
+
+        animator.runtimeAnimatorController =
+            _skillOverrideController;
+    }
+
+
+    private bool TryApplySkillOverride(
+        SkillAnimationPhase phase,
+        AnimationClip clip)
+    {
+        if (_skillOverrideController == null)
+            return false;
+
+        string placeholder =
+            phase == SkillAnimationPhase.Cast
+                ? SkillCastPlaceholder
+                : SkillActionPlaceholder;
+
+        _skillOverrideController[placeholder] =
+            clip;
+
+        return _skillOverrideController[placeholder] ==
+               clip;
+    }
+
+
+    private void OnDestroy()
+    {
+        if (_skillOverrideController != null)
+        {
+            Destroy(
+                _skillOverrideController);
+        }
     }
 
 

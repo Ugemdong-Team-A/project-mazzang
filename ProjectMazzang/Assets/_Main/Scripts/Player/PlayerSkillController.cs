@@ -44,7 +44,14 @@ public sealed class PlayerSkillController :
     }
 
     [Networked]
-    public PlayerSkillAnimationId LastSkillAnimation
+    public SkillSlot LastSkillAnimationSlot
+    {
+        get;
+        private set;
+    }
+
+    [Networked]
+    public SkillAnimationPhase LastSkillAnimationPhase
     {
         get;
         private set;
@@ -153,8 +160,14 @@ public sealed class PlayerSkillController :
         state.HasSkill = true;
         state.SkillAnimationSequence =
             SkillAnimationSequence;
-        state.SkillAnimationId =
-            LastSkillAnimation;
+        state.SkillAnimationSlot =
+            LastSkillAnimationSlot;
+        state.SkillAnimationPhase =
+            LastSkillAnimationPhase;
+        state.SkillAnimation =
+            GetSkillData(
+                LastSkillAnimationSlot)?
+                .Animation;
         state.IsSkillControlLocked =
             IsSkillControlLocked;
         state.IsSkillActionLocked =
@@ -370,14 +383,12 @@ public sealed class PlayerSkillController :
             slot,
             skill);
 
-        PlayerSkillAnimationId animationId =
-            ResolveAnimationId(skill);
-
-        if (animationId != PlayerSkillAnimationId.None)
-        {
-            LastSkillAnimation = animationId;
-            SkillAnimationSequence++;
-        }
+        PublishSkillAnimation(
+            slot,
+            GetUsePhase(slot) ==
+                SkillUsePhase.Cast
+                ? SkillAnimationPhase.Cast
+                : SkillAnimationPhase.Release);
 
 
         skill.Activate(
@@ -387,17 +398,22 @@ public sealed class PlayerSkillController :
     }
 
 
-    private static PlayerSkillAnimationId ResolveAnimationId(
-        Skill skill)
+    private void PublishSkillAnimation(
+        SkillSlot slot,
+        SkillAnimationPhase phase)
     {
-        return skill switch
+        SkillAnimationData animation =
+            GetSkillData(slot)?.Animation;
+
+        if (animation == null ||
+            animation.GetClip(phase) == null)
         {
-            FireballSkill => PlayerSkillAnimationId.Fireball,
-            AwakeningSkill => PlayerSkillAnimationId.Awakening,
-            UltimateAwakeningSkill =>
-                PlayerSkillAnimationId.Awakening,
-            _ => PlayerSkillAnimationId.None
-        };
+            return;
+        }
+
+        LastSkillAnimationSlot = slot;
+        LastSkillAnimationPhase = phase;
+        SkillAnimationSequence++;
     }
 
 
@@ -884,6 +900,10 @@ public sealed class PlayerSkillController :
                     slot,
                     skill);
 
+                PublishSkillAnimation(
+                    slot,
+                    SkillAnimationPhase.Release);
+
                 break;
 
 
@@ -892,6 +912,14 @@ public sealed class PlayerSkillController :
                 BeginRecoveryOrFinish(
                     slot,
                     skill);
+
+                if (GetUsePhase(slot) ==
+                    SkillUsePhase.Recovery)
+                {
+                    PublishSkillAnimation(
+                        slot,
+                        SkillAnimationPhase.Recovery);
+                }
 
                 break;
 

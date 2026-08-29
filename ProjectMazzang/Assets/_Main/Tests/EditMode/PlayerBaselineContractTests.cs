@@ -411,6 +411,89 @@ namespace ProjectMazzang.Tests
 
 
         [Test]
+        public void MaidProjectileSkill_UsesDataDrivenIkAnimation()
+        {
+            ScriptableObject skill =
+                AssetDatabase.LoadAssetAtPath<
+                    ScriptableObject>(
+                    "Assets/_Main/Data/Skill/" +
+                    "MaidProjectileSkill.asset");
+
+            Assert.That(skill, Is.Not.Null);
+
+            SerializedProperty animationProperty =
+                new SerializedObject(skill)
+                    .FindProperty("animation");
+
+            Assert.That(animationProperty, Is.Not.Null);
+            Assert.That(
+                animationProperty.objectReferenceValue,
+                Is.Not.Null);
+
+            SerializedObject animation =
+                new(
+                    animationProperty.objectReferenceValue);
+
+            AnimationClip cast =
+                animation.FindProperty("cast")
+                    .objectReferenceValue as AnimationClip;
+
+            AnimationClip release =
+                animation.FindProperty("release")
+                    .objectReferenceValue as AnimationClip;
+
+            Assert.That(cast, Is.Not.Null);
+            Assert.That(release, Is.Not.Null);
+
+            string[] expectedTargetPaths =
+            {
+                "arm_l_solver/arm_l_solver_Target",
+                "arm_r_solver/arm_r_solver_Target"
+            };
+
+            foreach (AnimationClip clip in
+                     new[] { cast, release })
+            {
+                string[] targetPaths =
+                    AnimationUtility
+                        .GetCurveBindings(clip)
+                        .Select(
+                            binding => binding.path)
+                        .Distinct()
+                        .OrderBy(path => path)
+                        .ToArray();
+
+                Assert.That(
+                    targetPaths,
+                    Is.EqualTo(expectedTargetPaths),
+                    $"{clip.name}은 표준 양손 IK Target만 " +
+                    "키로 저장해야 합니다.");
+            }
+
+            RuntimeAnimatorController controller =
+                AssetDatabase.LoadAssetAtPath<
+                    RuntimeAnimatorController>(
+                    "Assets/_Main/Art/Animators/" +
+                    "AC_TestPlayer.controller");
+
+            Assert.That(controller, Is.Not.Null);
+
+            string[] clipNames =
+                controller.animationClips
+                    .Select(clip => clip.name)
+                    .ToArray();
+
+            Assert.That(
+                clipNames,
+                Does.Contain("SkillCastPlaceholder"));
+
+            Assert.That(
+                clipNames,
+                Does.Contain("SkillActionPlaceholder"));
+        }
+
+
+        [Test]
         public void PlayerSkillController_CreatesRuntimeSkillsOnEveryPeer()
         {
             Type controllerType =
@@ -850,9 +933,21 @@ namespace ProjectMazzang.Tests
 
             AssertPropertyType(
                 tickStateType,
-                "SkillAnimationId",
+                "SkillAnimationSlot",
                 GetRuntimeType(
-                    "PlayerSkillAnimationId"));
+                    "SkillSlot"));
+
+            AssertPropertyType(
+                tickStateType,
+                "SkillAnimationPhase",
+                GetRuntimeType(
+                    "SkillAnimationPhase"));
+
+            AssertPropertyType(
+                tickStateType,
+                "SkillAnimation",
+                GetRuntimeType(
+                    "SkillAnimationData"));
 
             AssertPropertyType(
                 tickStateType,
