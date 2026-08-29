@@ -282,6 +282,32 @@ AnimatorController:
     m_IKPass: 0
     m_SyncedLayerAffectsTiming: 0
     m_Controller: {fileID: 9100000}
+--- !u!1102 &64548862537211450
+AnimatorState:
+  serializedVersion: 6
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Maid_Skill Charge
+  m_Speed: 1
+  m_CycleOffset: 0
+  m_Transitions: []
+  m_StateMachineBehaviours: []
+  m_Position: {x: 50, y: 50, z: 0}
+  m_IKOnFeet: 0
+  m_WriteDefaultValues: 1
+  m_Mirror: 0
+  m_SpeedParameterActive: 0
+  m_MirrorParameterActive: 0
+  m_CycleOffsetParameterActive: 0
+  m_TimeParameterActive: 0
+  m_Motion: {fileID: 7400000, guid: ae92c9e8f151eed4a82af4cdf41833ec, type: 2}
+  m_Tag: 
+  m_SpeedParameter: 
+  m_MirrorParameter: 
+  m_CycleOffsetParameter: 
+  m_TimeParameter: 
 --- !u!1102 &370086424573075516
 AnimatorState:
   serializedVersion: 6
@@ -322,43 +348,49 @@ AnimatorStateMachine:
     m_Position: {x: 300, y: 190, z: 0}
   - serializedVersion: 1
     m_State: {fileID: -3403016956068830464}
-    m_Position: {x: 310, y: 50, z: 0}
+    m_Position: {x: 270, y: -10, z: 0}
   - serializedVersion: 1
     m_State: {fileID: -3113930567225645675}
-    m_Position: {x: 310, y: 0, z: 0}
+    m_Position: {x: 270, y: -60, z: 0}
   - serializedVersion: 1
     m_State: {fileID: 1722483796387652292}
-    m_Position: {x: 310, y: -50, z: 0}
+    m_Position: {x: 270, y: -110, z: 0}
   - serializedVersion: 1
     m_State: {fileID: 5238771739336474386}
-    m_Position: {x: 310, y: -110, z: 0}
+    m_Position: {x: 270, y: -170, z: 0}
   - serializedVersion: 1
     m_State: {fileID: 7968987307791515159}
-    m_Position: {x: 310, y: -170, z: 0}
+    m_Position: {x: 270, y: -230, z: 0}
   - serializedVersion: 1
     m_State: {fileID: -5569687710573064503}
-    m_Position: {x: 310, y: -220, z: 0}
+    m_Position: {x: 270, y: -280, z: 0}
   - serializedVersion: 1
     m_State: {fileID: -3725504259350785329}
-    m_Position: {x: 310, y: -270, z: 0}
+    m_Position: {x: 270, y: -330, z: 0}
   - serializedVersion: 1
     m_State: {fileID: 5478508899014454469}
-    m_Position: {x: 310, y: -320, z: 0}
+    m_Position: {x: 270, y: -380, z: 0}
   - serializedVersion: 1
     m_State: {fileID: -3550366260313532079}
-    m_Position: {x: 310, y: -380, z: 0}
+    m_Position: {x: 270, y: -440, z: 0}
   - serializedVersion: 1
     m_State: {fileID: -3057736745281616581}
-    m_Position: {x: 540, y: -250, z: 0}
+    m_Position: {x: 500, y: -310, z: 0}
   - serializedVersion: 1
     m_State: {fileID: 3503458414125325920}
-    m_Position: {x: 583.38153, y: 113.44748, z: 0}
+    m_Position: {x: 590, y: 220, z: 0}
   - serializedVersion: 1
     m_State: {fileID: 3654153356107208386}
-    m_Position: {x: 540, y: -180, z: 0}
+    m_Position: {x: 500, y: -240, z: 0}
   - serializedVersion: 1
     m_State: {fileID: -7367100652493948929}
-    m_Position: {x: 540, y: -130, z: 0}
+    m_Position: {x: 500, y: -190, z: 0}
+  - serializedVersion: 1
+    m_State: {fileID: 8535501677486315069}
+    m_Position: {x: 570, y: 120, z: 0}
+  - serializedVersion: 1
+    m_State: {fileID: 64548862537211450}
+    m_Position: {x: 570, y: 60, z: 0}
   m_ChildStateMachines: []
   m_AnyStateTransitions: []
   m_EntryTransitions:
@@ -367,7 +399,7 @@ AnimatorStateMachine:
   m_StateMachineBehaviours: []
   m_AnyStatePosition: {x: 50, y: 20, z: 0}
   m_EntryPosition: {x: 40, y: 110, z: 0}
-  m_ExitPosition: {x: 800, y: 120, z: 0}
+  m_ExitPosition: {x: 810, y: 230, z: 0}
   m_ParentStateMachinePosition: {x: 800, y: 20, z: 0}
   m_DefaultState: {fileID: 370086424573075516}
 --- !u!1102 &1177257186753620079
@@ -561,6 +593,32 @@ AnimatorState:
   m_CycleOffsetParameterActive: 0
   m_TimeParameterActive: 0
   m_Motion: {fileID: 7400000, guid: 11ee2010ce3c57e4f88933811d395cec, type: 2}
+  m_Tag: 
+  m_SpeedParameter: 
+  m_MirrorParameter: 
+  m_CycleOffsetParameter: 
+  m_TimeParameter: 
+--- !u!1102 &8535501677486315069
+AnimatorState:
+  serializedVersion: 6
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Maid_Skill Fire
+  m_Speed: 1
+  m_CycleOffset: 0
+  m_Transitions: []
+  m_StateMachineBehaviours: []
+  m_Position: {x: 50, y: 50, z: 0}
+  m_IKOnFeet: 0
+  m_WriteDefaultValues: 1
+  m_Mirror: 0
+  m_SpeedParameterActive: 0
+  m_MirrorParameterActive: 0
+  m_CycleOffsetParameterActive: 0
+  m_TimeParameterActive: 0
+  m_Motion: {fileID: 7400000, guid: 5c835152afe634d4db2329019ecb1b9b, type: 2}
   m_Tag: 
   m_SpeedParameter: 
   m_MirrorParameter: 
