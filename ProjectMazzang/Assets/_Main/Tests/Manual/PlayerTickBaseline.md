@@ -116,6 +116,7 @@
 
 - MaidProjectileSkill을 사용하면 Cast 동안 양손이 모이는 검증 자세가 재생된다.
 - Cast가 끝나 투사체가 생성되는 Tick에 양손을 앞으로 내미는 Release 자세로 전환된다.
+- Recovery 클립이 있는 스킬은 `SkillPhase` 3에서 전용 Placeholder가 해당 클립으로 교체된다.
 - 스킬 재생이 손 Limb Solver의 기존 활성 여부를 임의로 변경하지 않는다.
 - 같은 MaidProjectileSkill을 다른 스킬 슬롯에 장착해도 슬롯 번호와 무관하게 같은 클립이 재생된다.
 - Host와 Client에서 Cast와 Release 전환 횟수가 같고 prediction 또는 resimulation으로 중복 재생되지 않는다.

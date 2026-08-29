@@ -6,8 +6,11 @@ public sealed class PlayerAnimation :
     private const string SkillCastPlaceholder =
         "SkillCastPlaceholder";
 
-    private const string SkillActionPlaceholder =
-        "SkillActionPlaceholder";
+    private const string SkillReleasePlaceholder =
+        "SkillReleasePlaceholder";
+
+    private const string SkillRecoveryPlaceholder =
+        "SkillRecoveryPlaceholder";
 
     [SerializeField]
     private Animator animator;
@@ -171,9 +174,7 @@ public sealed class PlayerAnimation :
 
         animator.SetInteger(
             "SkillPhase",
-            phase == SkillAnimationPhase.Cast
-                ? 1
-                : 2);
+            (int)phase);
 
         animator.SetTrigger(
             "Skill");
@@ -211,9 +212,20 @@ public sealed class PlayerAnimation :
             return false;
 
         string placeholder =
-            phase == SkillAnimationPhase.Cast
-                ? SkillCastPlaceholder
-                : SkillActionPlaceholder;
+            phase switch
+            {
+                SkillAnimationPhase.Cast =>
+                    SkillCastPlaceholder,
+                SkillAnimationPhase.Release =>
+                    SkillReleasePlaceholder,
+                SkillAnimationPhase.Recovery =>
+                    SkillRecoveryPlaceholder,
+                _ =>
+                    null
+            };
+
+        if (placeholder == null)
+            return false;
 
         _skillOverrideController[placeholder] =
             clip;

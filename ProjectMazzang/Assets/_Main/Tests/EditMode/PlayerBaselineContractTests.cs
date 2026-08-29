@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
 using UnityEditor;
+using UnityEditor.Animations;
 using UnityEngine;
 
 namespace ProjectMazzang.Tests
@@ -470,11 +471,11 @@ namespace ProjectMazzang.Tests
                     "키로 저장해야 합니다.");
             }
 
-            RuntimeAnimatorController controller =
+            AnimatorController controller =
                 AssetDatabase.LoadAssetAtPath<
-                    RuntimeAnimatorController>(
+                    AnimatorController>(
                     "Assets/_Main/Art/Animators/" +
-                    "AC_TestPlayer.controller");
+                    "AC_StandardPlayer.controller");
 
             Assert.That(controller, Is.Not.Null);
 
@@ -489,7 +490,73 @@ namespace ProjectMazzang.Tests
 
             Assert.That(
                 clipNames,
-                Does.Contain("SkillActionPlaceholder"));
+                Does.Contain("SkillReleasePlaceholder"));
+
+            Assert.That(
+                clipNames,
+                Does.Contain("SkillRecoveryPlaceholder"));
+
+            AnimatorStateMachine combat =
+                controller.layers
+                    .Single(layer => layer.name == "Combat")
+                    .stateMachine;
+
+            Dictionary<string, string> expectedMotions =
+                new()
+                {
+                    ["Skill_Cast"] =
+                        "SkillCastPlaceholder",
+                    ["Skill_Release"] =
+                        "SkillReleasePlaceholder",
+                    ["Skill_Recovery"] =
+                        "SkillRecoveryPlaceholder"
+                };
+
+            foreach (KeyValuePair<string, string> pair
+                     in expectedMotions)
+            {
+                AnimatorState state =
+                    combat.states
+                        .Select(child => child.state)
+                        .Single(candidate =>
+                            candidate.name == pair.Key);
+
+                Assert.That(state.motion, Is.Not.Null);
+                Assert.That(
+                    state.motion.name,
+                    Is.EqualTo(pair.Value));
+            }
+
+            Dictionary<string, float> expectedPhases =
+                new()
+                {
+                    ["Skill_Cast"] = 1f,
+                    ["Skill_Release"] = 2f,
+                    ["Skill_Recovery"] = 3f
+                };
+
+            foreach (KeyValuePair<string, float> pair
+                     in expectedPhases)
+            {
+                AnimatorStateTransition transition =
+                    combat.anyStateTransitions
+                        .Single(candidate =>
+                            candidate.destinationState != null &&
+                            candidate.destinationState.name == pair.Key);
+
+                AnimatorCondition phaseCondition =
+                    transition.conditions
+                        .Single(condition =>
+                            condition.parameter == "SkillPhase");
+
+                Assert.That(
+                    phaseCondition.mode,
+                    Is.EqualTo(
+                        AnimatorConditionMode.Equals));
+                Assert.That(
+                    phaseCondition.threshold,
+                    Is.EqualTo(pair.Value));
+            }
         }
 
 

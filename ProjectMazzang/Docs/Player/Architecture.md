@@ -149,8 +149,9 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
   교체한 스킬도 캐릭터 Animator Controller를 갈아 끼우지 않고 자신의 연출을 함께 가져간다.
 - `PlayerSkillController`는 구체 스킬 타입을 검사하지 않고 사용 슬롯과 애니메이션 단계를
   Networked 이벤트로 알린다. `PlayerAnimation`은 플레이어마다 만든
-  `AnimatorOverrideController` 인스턴스의 공통 Cast/Action 슬롯만 교체하므로 공유 Controller
-  에셋을 런타임에 수정하지 않는다.
+  `AnimatorOverrideController` 인스턴스의 공통 Cast/Release/Recovery 슬롯을 교체하므로 공유
+  Controller 에셋을 런타임에 수정하지 않는다. 각 슬롯은 실제 스킬 클립이 아니라 이름이 고유한
+  빈 Placeholder 클립을 Motion으로 가지며, `SkillPhase` 1/2/3이 해당 State를 선택한다.
 - 표준 스킬 클립은 캐릭터 본을 직접 키로 잡는 대신 `arm_l_solver/arm_l_solver_Target`과
   `arm_r_solver/arm_r_solver_Target` 같은 공통 IK Target 경로를 사용할 수 있다. 클립은 Target만
   움직이며 Solver의 활성 여부를 바꾸지 않는다. Solver 활성 정책은 기존 프리팹 설정과 무기
