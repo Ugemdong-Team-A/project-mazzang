@@ -309,6 +309,11 @@ namespace ProjectMazzang.Tests
                         "comboFollowUp"),
                     Is.Not.Null);
 
+                Assert.That(
+                    serializedObject.FindProperty(
+                        "dash"),
+                    Is.Not.Null);
+
                 SerializedProperty repeatedInput =
                     serializedObject.FindProperty(
                         "allowRepeatedComboInput");
@@ -327,6 +332,49 @@ namespace ProjectMazzang.Tests
                 UnityEngine.Object.DestroyImmediate(
                     attackData);
             }
+        }
+
+
+        [Test]
+        public void CounterAttack_UsesShortAimDashWithoutCollisionDamage()
+        {
+            ScriptableObject counter =
+                AssetDatabase.LoadAssetAtPath<
+                    ScriptableObject>(
+                    "Assets/_Main/Data/Attack/" +
+                    "PlayerAttack/PA_Counter.asset");
+
+            Assert.That(counter, Is.Not.Null);
+
+            SerializedProperty dashProperty =
+                new SerializedObject(counter)
+                    .FindProperty("dash");
+
+            Assert.That(dashProperty, Is.Not.Null);
+            Assert.That(
+                dashProperty.objectReferenceValue,
+                Is.Not.Null);
+
+            ScriptableObject dash =
+                dashProperty.objectReferenceValue as
+                    ScriptableObject;
+
+            Assert.That(dash, Is.Not.Null);
+
+            AssertProperty(
+                dash,
+                "Duration",
+                0.12f);
+
+            AssertProperty(
+                dash,
+                "Speed",
+                12f);
+
+            AssertProperty(
+                dash,
+                "CollisionAttack",
+                null);
         }
 
 
@@ -784,6 +832,16 @@ namespace ProjectMazzang.Tests
                 tickStateType,
                 "IsCombatMovementLocked",
                 typeof(bool));
+
+            AssertPropertyType(
+                tickStateType,
+                "HasCombatDash",
+                typeof(bool));
+
+            AssertPropertyType(
+                tickStateType,
+                "CombatDashVelocity",
+                typeof(Vector2));
 
             AssertPropertyType(
                 tickStateType,

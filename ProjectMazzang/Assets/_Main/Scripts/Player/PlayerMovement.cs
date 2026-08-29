@@ -215,7 +215,9 @@ public sealed class PlayerMovement :
             tick.State.HasHealth &&
             tick.State.IsAlive,
             tick.State.HasCombat &&
-            tick.State.IsCombatMovementLocked);
+            tick.State.IsCombatMovementLocked,
+            tick.State.HasCombatDash,
+            tick.State.CombatDashVelocity);
     }
 
 
@@ -282,7 +284,9 @@ public sealed class PlayerMovement :
 
     private void TickMotion(
         bool isAlive,
-        bool isCombatMovementLocked)
+        bool isCombatMovementLocked,
+        bool hasCombatDash,
+        Vector2 combatDashVelocity)
     {
         /*Debug.Log("[Movement] isAlive: " + isAlive + "" +
             " isCombatMovementLocked: " + isCombatMovementLocked);*/
@@ -311,6 +315,21 @@ public sealed class PlayerMovement :
                 input.Buttons;
 
             ClearControlDrivenStates();
+
+            return;
+        }
+
+        // 공격에 포함된 대시는 일반 입력과 공격 이동 잠금보다 우선합니다.
+        // 최종 속도는 공격이 확정한 TickState만 사용합니다.
+        if (hasCombatDash)
+        {
+            PreviousButtons =
+                input.Buttons;
+
+            ClearControlDrivenStates();
+
+            SetVelocity(
+                combatDashVelocity);
 
             return;
         }

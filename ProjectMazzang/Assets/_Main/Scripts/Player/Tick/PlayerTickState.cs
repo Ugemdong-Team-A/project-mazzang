@@ -37,7 +37,6 @@ public sealed class PlayerTickState
 
     public Vector2 MovementVelocity { get; internal set; }
 
-
     public bool HasCombat { get; internal set; }
 
     public bool IsAttacking { get; internal set; }
@@ -73,6 +72,13 @@ public sealed class PlayerTickState
     /// 실행 중인 기본 공격이 이동을 잠근 상태입니다.
     /// </summary>
     public bool IsCombatMovementLocked { get; internal set; }
+
+    /// <summary>
+    /// 현재 기본 공격이 일반 이동보다 우선해 적용할 대시 속도입니다.
+    /// </summary>
+    public bool HasCombatDash { get; internal set; }
+
+    public Vector2 CombatDashVelocity { get; internal set; }
 
 
     public bool HasAim { get; internal set; }
@@ -118,6 +124,8 @@ public sealed class PlayerTickState
         IsSkillControlLocked = false;
         IsSkillActionLocked = false;
         IsCombatMovementLocked = false;
+        HasCombatDash = false;
+        CombatDashVelocity = Vector2.zero;
 
         HasAim = false;
         HasAimOrigin = false;

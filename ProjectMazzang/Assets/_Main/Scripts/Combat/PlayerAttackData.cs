@@ -39,6 +39,12 @@ public sealed class PlayerAttackData :
     [SerializeField]
     private PlayerAttackMovementMode movementMode;
 
+    [Tooltip(
+        "공격 시작과 동시에 Aim 방향으로 실행할 대시입니다. " +
+        "비워두면 공격은 대시하지 않습니다.")]
+    [SerializeField]
+    private DashData dash;
+
     [Header("Combo")]
     [Tooltip(
         "이 공격의 Active 시작부터 Recovery 종료까지 공격 입력을 받으면 이어서 실행할 공격입니다.")]
@@ -72,6 +78,9 @@ public sealed class PlayerAttackData :
 
     public PlayerAttackMovementMode MovementMode =>
         movementMode;
+
+    public DashData Dash =>
+        dash;
 
     public PlayerAttackData ComboFollowUp =>
         comboFollowUp;

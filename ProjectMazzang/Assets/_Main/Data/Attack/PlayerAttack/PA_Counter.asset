@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ae8e65eb943b4950bb8a270050b8fff5, type: 3}
-  m_Name: CounterAttack
+  m_Name: PA_Counter
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAttackData
   attack: {fileID: 11400000, guid: 98ddf7352baec8e4eb60d00b8fc824f1, type: 2}
   startupDuration: 0.3
@@ -21,3 +21,6 @@ MonoBehaviour:
     aimMode: 1
     poseMode: 2
   movementMode: 1
+  dash: {fileID: 11400000, guid: 8848d9b70b644eb3a34d1e2ed95c473c, type: 2}
+  comboFollowUp: {fileID: 0}
+  allowRepeatedComboInput: 1

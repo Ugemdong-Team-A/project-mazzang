@@ -89,6 +89,22 @@ public sealed class PlayerCombat :
 
 
     [Networked]
+    private TickTimer AttackDashTimer
+    {
+        get;
+        set;
+    }
+
+
+    [Networked]
+    private Vector2 AttackDashDirection
+    {
+        get;
+        set;
+    }
+
+
+    [Networked]
     public PlayerAttackState AttackState
     {
         get;
@@ -181,6 +197,12 @@ public sealed class PlayerCombat :
 
         AttackControlLockTimer =
             TickTimer.None;
+
+        AttackDashTimer =
+            TickTimer.None;
+
+        AttackDashDirection =
+            Vector2.zero;
     }
 
 
@@ -213,6 +235,9 @@ public sealed class PlayerCombat :
         state.IsAttackControlLocked =
             IsAttackControlLocked;
         state.IsCombatMovementLocked = IsMovementLocked;
+
+        CaptureAttackDashState(
+            state);
     }
 
 
@@ -308,6 +333,8 @@ public sealed class PlayerCombat :
         // ==========================================
         // Attack State
         // ==========================================
+
+        UpdateAttackDash();
 
         bool comboInputConsumed =
             UpdateAttack(
@@ -469,6 +496,11 @@ public sealed class PlayerCombat :
             sourceAimDirection);
 
 
+        StartAttackDash(
+            attackData.Dash,
+            sourceAimDirection);
+
+
         AttackSequence++;
     }
 
@@ -499,6 +531,100 @@ public sealed class PlayerCombat :
                 in aimOverride,
                 sourceAimDirection);
         }
+    }
+
+
+    // =========================================================
+    // Attack Dash
+    // =========================================================
+
+    private bool IsAttackDashActive =>
+        AttackDashTimer.IsRunning &&
+        !AttackDashTimer.Expired(Runner);
+
+
+    private void StartAttackDash(
+        DashData dash,
+        Vector2 sourceAimDirection)
+    {
+        StopAttackDash();
+
+        if (dash == null ||
+            dash.Duration <= 0f ||
+            dash.Speed <= 0f)
+        {
+            AttackDashTimer =
+                TickTimer.None;
+
+            AttackDashDirection =
+                Vector2.zero;
+
+            return;
+        }
+
+        AttackDashDirection =
+            sourceAimDirection.sqrMagnitude > 0.0001f
+                ? sourceAimDirection.normalized
+                : Vector2.right;
+
+        AttackDashTimer =
+            CreateTimer(
+                dash.Duration);
+    }
+
+
+    private void UpdateAttackDash()
+    {
+        if (!AttackDashTimer.IsRunning ||
+            !AttackDashTimer.Expired(Runner))
+        {
+            return;
+        }
+
+        StopAttackDash();
+    }
+
+
+    private void StopAttackDash()
+    {
+        bool wasRunning =
+            AttackDashTimer.IsRunning;
+
+        AttackDashTimer =
+            TickTimer.None;
+
+        AttackDashDirection =
+            Vector2.zero;
+
+        if (wasRunning &&
+            Commands != null)
+        {
+            Commands.RequestSetMovementVelocity(
+                Vector2.zero);
+        }
+    }
+
+
+    private void CaptureAttackDashState(
+        PlayerTickState state)
+    {
+        PlayerAttackData attackData =
+            null;
+
+        bool hasDash =
+            IsAttackDashActive &&
+            TryGetCurrentAttackData(
+                out attackData) &&
+            attackData.Dash != null;
+
+        state.HasCombatDash =
+            hasDash;
+
+        state.CombatDashVelocity =
+            hasDash
+                ? AttackDashDirection *
+                  attackData.Dash.Speed
+                : Vector2.zero;
     }
 
 
@@ -780,6 +906,8 @@ public sealed class PlayerCombat :
 
     public void CancelAttack()
     {
+        StopAttackDash();
+
         if (AttackState ==
                 PlayerAttackState.None &&
             CurrentAttackId ==

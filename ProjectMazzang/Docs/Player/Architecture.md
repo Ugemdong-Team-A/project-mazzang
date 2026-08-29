@@ -96,6 +96,9 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
 - `PlayerAttackData`는 플레이어가 공격을 실행하는 Startup, Active, Recovery,
   Cooldown과 Aim, Movement 규칙을 SO로 보관한다. `PlayerCombat`은 인라인 공격 설정을
   보관하지 않고 이 에셋만 참조한다.
+- `PlayerAttackData.Dash`가 있으면 공격 시작 Tick의 Aim 방향을 고정해 지정된 시간 동안
+  일반 이동과 공격 이동 잠금보다 우선하는 속도를 `PlayerTickState`로 전달한다. 실제 Rigidbody
+  변경은 계속 `PlayerMovement`가 담당하며, 대시 종료나 공격 취소 시 강제 속도를 제거한다.
 - 공격 자세는 `ProceduralAim`, `AnimationOnly`, `AnimationWithBodyAim` 중 하나를 선택한다.
   `ProceduralAim` 공격은 기본 포즈에서 4본 CCD를 풀고, `AnimationOnly`는 상체 조준 보정을 끈다.
   `AnimationWithBodyAim`은 4본 CCD로 각 본을 다시 분배하지 않고, Animator가 만든 상체를
