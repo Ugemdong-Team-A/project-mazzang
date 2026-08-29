@@ -17,10 +17,5 @@ MonoBehaviour:
   maxCharges: 2
   rechargeDuration: 2
   startupDuration: 0.1
-  dashDuration: 0.12
   recoveryDuration: 0.06
-  dashSpeed: 40
-  playerHurtboxLayer:
-    serializedVersion: 2
-    m_Bits: 256
-  collisionAttack: {fileID: 11400000, guid: 2086d463fee19364eb14d1af42fbb0e8, type: 2}
+  dash: {fileID: 11400000, guid: 6dd46f511dc74008bfe0070338752ca5, type: 2}

@@ -159,8 +159,12 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
 
 ### Dash 확장 방향
 
+`DashData`는 스킬, 기본 공격, 무기가 함께 참조할 수 있는 이동 시간과 속도,
+선택적인 플레이어 충돌 공격을 보관한다. `DashSkillData`는 충전 수와 시전·회복 시간처럼
+스킬에만 해당하는 규칙을 보관하고 공통 `DashData`를 참조한다.
+
 현재 Dash는 사용 시점의 마우스 Aim 방향을 고정하고 Startup, Active, Recovery 전체 동안
-Movement, Attack, Skill 입력을 잠근다. 향후 일반적인 Dash 변형은 `DashSkillData`에서
+Movement, Attack, Skill 입력을 잠근다. 향후 일반적인 Dash 변형은 `DashData`에서
 다음 두 축을 독립적으로 설정하는 방식이 적합하다.
 
 ```text

@@ -11,8 +11,11 @@ public sealed class DashSkill :
     private CapsuleCollider2D
         _movementCollider;
 
-    private DashSkillData DashData =>
+    private DashSkillData SkillData =>
         (DashSkillData)Data;
+
+    private DashData DashData =>
+        SkillData.Dash;
 
 
     // =========================================================
@@ -20,19 +23,21 @@ public sealed class DashSkill :
     // =========================================================
 
     public int MaxCharges =>
-        DashData.MaxCharges;
+        SkillData.MaxCharges;
 
     public float RechargeDuration =>
-        DashData.RechargeDuration;
+        SkillData.RechargeDuration;
 
     public float CastDuration =>
-        DashData.StartupDuration;
+        SkillData.StartupDuration;
 
     public float Duration =>
-        DashData.DashDuration;
+        DashData != null
+            ? DashData.Duration
+            : 0f;
 
     public float RecoveryDuration =>
-        DashData.RecoveryDuration;
+        SkillData.RecoveryDuration;
 
 
     // =========================================================
@@ -61,6 +66,13 @@ public sealed class DashSkill :
     {
         if (!base.CanUse(
                 in useContext))
+        {
+            return false;
+        }
+
+        if (DashData == null ||
+            DashData.Duration <= 0f ||
+            DashData.Speed <= 0f)
         {
             return false;
         }
@@ -118,9 +130,9 @@ public sealed class DashSkill :
 
 
         float controlLockDuration =
-            DashData.StartupDuration +
-            DashData.DashDuration +
-            DashData.RecoveryDuration;
+            SkillData.StartupDuration +
+            DashData.Duration +
+            SkillData.RecoveryDuration;
 
         Controller.TickCommands.RequestControlLock(
             PlayerControlLock.Movement |
@@ -207,7 +219,7 @@ public sealed class DashSkill :
 
         RequestMovementVelocity(
             direction *
-            DashData.DashSpeed);
+            DashData.Speed);
     }
 
 
@@ -259,7 +271,7 @@ public sealed class DashSkill :
         // 이번 Simulation Tick에 이동할 거리를 미리 검사합니다.
         // 단순 현재 위치 Overlap보다 빠른 Dash에서 관통할 가능성이 낮습니다.
         float distance =
-            DashData.DashSpeed *
+            DashData.Speed *
             Controller.Runner.DeltaTime;
 
 

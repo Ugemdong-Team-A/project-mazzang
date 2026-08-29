@@ -69,7 +69,9 @@ Dash처럼 단계별 정책이 필요한 기능은 Startup, Active, Recovery별 
 
 ### 5. DashData 일반화
 
-**현재:** Dash 방향과 Control Lock 조합이 `DashSkill`에 고정되어 있다.
+**현재:** 이동 시간과 속도, 선택적인 충돌 공격은 범용 `DashData`로 분리되어 있고,
+`DashSkillData`가 스킬 고유 수명 주기와 함께 이를 참조한다. 방향과 Control Lock 조합은
+아직 `DashSkill`에 고정되어 있다.
 
 **검토안:**
 

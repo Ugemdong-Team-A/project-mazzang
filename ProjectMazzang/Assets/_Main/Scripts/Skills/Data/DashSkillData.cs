@@ -23,25 +23,11 @@ public sealed class DashSkillData :
 
     [Min(0f)]
     [SerializeField]
-    private float dashDuration = 0.12f;
-
-    [Min(0f)]
-    [SerializeField]
     private float recoveryDuration = 0.06f;
 
-
-    [Header("Movement")]
-    [Min(0f)]
+    [Header("Dash")]
     [SerializeField]
-    private float dashSpeed = 18f;
-
-
-    [Header("Player Collision")]
-    [SerializeField]
-    private LayerMask playerHurtboxLayer;
-
-    [SerializeField]
-    private AttackData collisionAttack;
+    private DashData dash;
 
 
     public int MaxCharges =>
@@ -53,20 +39,11 @@ public sealed class DashSkillData :
     public float StartupDuration =>
         startupDuration;
 
-    public float DashDuration =>
-        dashDuration;
-
     public float RecoveryDuration =>
         recoveryDuration;
 
-    public float DashSpeed =>
-        dashSpeed;
-
-    public LayerMask PlayerHurtboxLayer =>
-        playerHurtboxLayer;
-
-    public AttackData CollisionAttack =>
-        collisionAttack;
+    public DashData Dash =>
+        dash;
 
 
     public override Skill CreateSkill()
