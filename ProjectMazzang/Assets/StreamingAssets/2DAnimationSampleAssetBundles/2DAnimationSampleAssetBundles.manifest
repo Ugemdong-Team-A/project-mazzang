@@ -1,12 +1,12 @@
 ManifestFileVersion: 0
 UnityVersion: 6000.3.10f1
-CRC: 3005924688
+CRC: 585233639
 HashAppended: 0
 AssetBundleManifest:
   AssetBundleInfos:
     Info_0:
-      Name: unifiedraytracing
+      Name: skeleton
       Dependencies: {}
     Info_1:
-      Name: skeleton
+      Name: unifiedraytracing
       Dependencies: {}

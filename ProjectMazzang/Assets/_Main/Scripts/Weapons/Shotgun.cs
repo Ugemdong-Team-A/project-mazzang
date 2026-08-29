@@ -38,18 +38,8 @@ public sealed class Shotgun : Weapon
     [SerializeField]
     private float projectileLifetime = 1.5f;
 
-    [Min(0)]
     [SerializeField]
-    private int damage = 5;
-
-    [SerializeField]
-    private Vector2 knockback =
-        new Vector2(5f, 1.5f);
-
-    [Min(0f)]
-    [SerializeField]
-    private float knockbackControlLock = 0.08f;
-
+    private AttackData attack;
 
     [Networked]
     public int Ammo
@@ -147,9 +137,6 @@ public sealed class Shotgun : Weapon
                 projectileSpeed;
 
 
-            Vector2 projectileKnockback =
-                ResolveKnockback(
-                    pelletDirection);
 
 
             Runner.Spawn(
@@ -168,11 +155,7 @@ public sealed class Shotgun : Weapon
                     projectile.Initialize(
                         runner,
                         source,
-                        projectileVelocity,
-                        projectileLifetime,
-                        damage,
-                        projectileKnockback,
-                        knockbackControlLock);
+                        projectileVelocity);
                 });
         }
 
@@ -243,20 +226,6 @@ public sealed class Shotgun : Weapon
             RotateVector(
                 muzzleOffset,
                 weaponAngle);
-    }
-
-
-    private Vector2 ResolveKnockback(
-        Vector2 direction)
-    {
-        Vector2 perpendicular =
-            new Vector2(
-                -direction.y,
-                direction.x);
-
-        return
-            direction * knockback.x +
-            perpendicular * knockback.y;
     }
 
 

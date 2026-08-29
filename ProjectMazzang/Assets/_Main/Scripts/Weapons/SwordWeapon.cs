@@ -6,9 +6,8 @@ public sealed class SwordWeapon :
     Weapon
 {
     [Header("Attack")]
-    [Min(0)]
     [SerializeField]
-    private int damage = 20;
+    private AttackData attack;
 
     [SerializeField]
     private Vector2 hitboxSize =
@@ -20,19 +19,6 @@ public sealed class SwordWeapon :
 
     [SerializeField]
     private LayerMask hurtboxLayer;
-
-    [Header("Knockback")]
-    [Min(0f)]
-    [SerializeField]
-    private float knockbackForward = 5f;
-
-    [Min(0f)]
-    [SerializeField]
-    private float knockbackUp = 1.5f;
-
-    [Min(0f)]
-    [SerializeField]
-    private float knockbackControlLock = 0.1f;
 
     [Header("Cooldown")]
     [Min(0f)]
@@ -85,7 +71,7 @@ public sealed class SwordWeapon :
     {
         if (!CanAttack())
         {
-            Debug.Log("[Sword] CanAttack Ω«∆–");
+            Debug.Log("[Sword] CanAttack Ïã§Ìå®");
             return false;
         }
 
@@ -98,7 +84,7 @@ public sealed class SwordWeapon :
 
         StartCooldown();
 
-        Debug.Log("[Sword] ∞¯∞› ¡ÿ∫Ò");
+        Debug.Log("[Sword] Í≥µÍ≤© Ï§ÄÎπÑ");
 
         return true;
     }
@@ -159,7 +145,7 @@ public sealed class SwordWeapon :
             origin,
             direction);
 
-        Debug.Log("[Sword] 0.5√  »ƒ ∞¯∞› ∆«¡§");
+        Debug.Log("[Sword] 0.5Ï¥à ÌõÑ Í≥µÍ≤© ÌåêÏ†ï");
     }
 
     private void PerformAttack(
@@ -222,18 +208,16 @@ public sealed class SwordWeapon :
 
 
             Vector2 knockback =
-                direction *
-                knockbackForward +
-                Vector2.up *
-                knockbackUp;
+                direction * attack.KnockbackForward +
+                Vector2.up * attack.KnockbackUp;
 
 
             DamageInfo info =
                 new DamageInfo(
-                    damage,
+                    attack.Damage,
                     Holder,
                     knockback,
-                    knockbackControlLock);
+                    attack.CrowdControl);
 
 
             damageable.ApplyDamage(
