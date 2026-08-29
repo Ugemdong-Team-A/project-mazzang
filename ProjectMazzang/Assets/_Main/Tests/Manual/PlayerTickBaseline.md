@@ -74,11 +74,10 @@
 - `AnimationOnly`는 상체 CCD를 끄고 공격 클립의 자세를 그대로 사용한다.
 - `AnimationWithBodyAim`은 공격 클립의 상체 상대 자세를 유지한 채 기준 척추에
   필요한 회전만 더해 최종 조준 방향을 맞춘다.
-- 무기가 없는 평상시 `ProceduralAim`에서는 양손 Limb Solver가 꺼져 판토마임 자세가 생기지 않는다.
-- `AnimationOnly`와 `AnimationWithBodyAim` 공격 중에는 클립의 원래 손 IK Target이 복원되고,
-  공격이 끝나면 두 Solver가 다시 꺼진다.
-- 무기를 장착하면 각 손은 클립 Target보다 무기의 Grip을 우선하며, Grip이 없는 손만 공격 중
-  클립 Target을 사용한다.
+- 무기가 없는 평상시에도 양손 Limb Solver가 애니메이션 Target을 사용해 IK 기반 이동·공격
+  클립의 팔 동작을 재생한다.
+- 무기를 장착하면 각 손은 무기의 Grip을 우선하며, Grip이 없는 손은 항상 애니메이션 Target을
+  유지한다. 무기를 해제하면 두 손 모두 애니메이션 Target으로 즉시 복원된다.
 - 잽의 Active 시작부터 Recovery 종료까지 공격을 한 번 이상 누르면 Counter가 이어지고,
   중복 입력 허용을 끈 데이터는 정확히 한 번 눌렀을 때만 이어진다.
 - Counter 이후에는 후속 공격 참조가 잘못 연결되어 있어도 콤보가 다시 이어지지 않는다.

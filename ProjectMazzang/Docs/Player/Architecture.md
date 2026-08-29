@@ -115,9 +115,9 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
   `PlayerWeaponController`는 `PlayerTickState`에 복사된 위치를 판정·발사·드롭 기준으로 재사용하며,
   애니메이션을 따라 움직이는 `WeaponSocket`은 게임플레이 원점으로 사용하지 않는다.
 - Render에서 얻은 `WeaponSocket` 좌표는 외관에만 사용하고 다음 Tick의 판정 값으로 넘기지 않는다.
-- 양손 Limb Solver는 평상시 `ProceduralAim`에서 꺼 두어 고정된 손 Target이 Animator의 팔
-  자세를 덮지 않게 한다. `AnimationOnly`와 `AnimationWithBodyAim` 공격 중에는 클립이 움직이는
-  원래 손 Target을 복원하며, 무기를 장착했다면 각 손의 Grip이 해당 Target보다 우선한다.
+- 양손 Limb Solver는 IK Target을 녹화한 일반 이동·공격 클립을 재생하기 위해 평상시에도 활성화한다.
+  무기를 장착하면 각 손의 Target만 해당 Grip으로 교체하고, Grip이 없는 손은 애니메이션 Target을
+  유지한다. 무기를 해제하면 두 손 모두 원래 애니메이션 Target으로 복원한다.
 - `PlayerAttackData.ComboFollowUp`이 있으면 Active 시작부터 Recovery 종료까지 공격 입력을
   예약하고, Recovery가 끝날 때 후속 공격으로 직접 전환한다. `AllowRepeatedComboInput`이 켜지면
   연속 입력을 한 번의 예약으로 취급하며, 런타임 콤보 깊이는 1단계로 제한한다.

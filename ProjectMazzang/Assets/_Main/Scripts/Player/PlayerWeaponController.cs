@@ -49,8 +49,6 @@ public sealed class PlayerWeaponController :
 
     private bool _hasCapturedAnimationHandTargets;
 
-    private bool _animationHandIkAllowed;
-
 
     // =========================================================
     // Network State
@@ -120,10 +118,7 @@ public sealed class PlayerWeaponController :
         StabilizeWeaponSocket();
 
         CaptureAnimationHandIkTargets();
-
-        // 평상시에는 손 Target이 Animator의 팔 자세를 덮지 않게 해제합니다.
-        // 공격 클립이 손 Target을 사용하는 동안에는 Present에서 복원합니다.
-        UnbindWeaponIk();
+        RestoreAnimationHandIk();
 
         if (!HasStateAuthority)
             return;
@@ -143,7 +138,8 @@ public sealed class PlayerWeaponController :
         NetworkRunner runner,
         bool hasState)
     {
-        UnbindWeaponIk();
+        _boundIkView =
+            null;
     }
 
 
@@ -486,7 +482,7 @@ public sealed class PlayerWeaponController :
         EquippedWeaponObject =
             null;
 
-        UnbindWeaponIk();
+        RestoreAnimationHandIk();
 
         weapon.Drop(
             previousHolder,
@@ -513,45 +509,27 @@ public sealed class PlayerWeaponController :
                 ? equippedWeapon.HeldView
                 : null;
 
-        bool allowAnimationHandIk =
-            _playerAim != null &&
-            (_playerAim.RigMode ==
-                PlayerAimRigMode.AnimationOnly ||
-             _playerAim.RigMode ==
-                PlayerAimRigMode.AnimationWithBodyAim);
-
-        if (_boundIkView ==
-                heldView &&
-            _animationHandIkAllowed ==
-                allowAnimationHandIk)
+        if (ReferenceEquals(
+                _boundIkView,
+                heldView))
         {
             return;
         }
-
-        UnbindWeaponIk();
-
-        _animationHandIkAllowed =
-            allowAnimationHandIk;
 
         if (heldView != null)
         {
             BindWeaponIk(
-                heldView,
-                allowAnimationHandIk);
+                heldView);
 
             return;
         }
 
-        if (allowAnimationHandIk)
-        {
-            BindAnimationHandIk();
-        }
+        RestoreAnimationHandIk();
     }
 
 
     private void BindWeaponIk(
-        HeldWeaponView heldView,
-        bool allowAnimationFallback)
+        HeldWeaponView heldView)
     {
         if (heldView == null)
             return;
@@ -563,22 +541,21 @@ public sealed class PlayerWeaponController :
             leftHandLimb,
             heldView.LeftHandGrip != null
                 ? heldView.LeftHandGrip
-                : allowAnimationFallback
-                    ? _leftHandAnimationTarget
-                    : null);
+                : _leftHandAnimationTarget);
 
         BindHandLimb(
             rightHandLimb,
             heldView.RightHandGrip != null
                 ? heldView.RightHandGrip
-                : allowAnimationFallback
-                    ? _rightHandAnimationTarget
-                    : null);
+                : _rightHandAnimationTarget);
     }
 
 
-    private void BindAnimationHandIk()
+    private void RestoreAnimationHandIk()
     {
+        _boundIkView =
+            null;
+
         BindHandLimb(
             leftHandLimb,
             _leftHandAnimationTarget);
@@ -604,22 +581,6 @@ public sealed class PlayerWeaponController :
 
         _hasCapturedAnimationHandTargets =
             true;
-    }
-
-
-    private void UnbindWeaponIk()
-    {
-        UnbindHandLimb(
-            leftHandLimb);
-
-        UnbindHandLimb(
-            rightHandLimb);
-
-        _boundIkView =
-            null;
-
-        _animationHandIkAllowed =
-            false;
     }
 
 
@@ -658,27 +619,6 @@ public sealed class PlayerWeaponController :
         return chain != null
             ? chain.target
             : null;
-    }
-
-
-    private static void UnbindHandLimb(
-        LimbSolver2D limb)
-    {
-        if (limb == null)
-            return;
-
-        IKChain2D chain =
-            limb.GetChain(
-                0);
-
-        if (chain != null)
-        {
-            chain.target =
-                null;
-        }
-
-        limb.enabled =
-            false;
     }
 
 
