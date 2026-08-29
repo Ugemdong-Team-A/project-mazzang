@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: Dash_Counter
   m_EditorClassIdentifier: Assembly-CSharp::DashData
   duration: 0.12
-  speed: 12
+  speed: 6
   playerHurtboxLayer:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 256
   collisionAttack: {fileID: 0}
