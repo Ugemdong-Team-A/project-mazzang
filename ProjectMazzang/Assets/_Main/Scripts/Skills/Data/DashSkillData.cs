@@ -1,8 +1,8 @@
 using UnityEngine;
 
 [CreateAssetMenu(
-    menuName = "Game/Skills/Dash",
-    fileName = "DashSkill")]
+    menuName = "Mazzang/Data/Skill/Dash",
+    fileName = "DashSkillData")]
 public sealed class DashSkillData :
     SkillData
 {

@@ -1,8 +1,8 @@
 using UnityEngine;
 
 [CreateAssetMenu(
-    menuName = "Game/Skills/Fireball",
-    fileName = "FireballSkill")]
+    menuName = "Mazzang/Data/Skill/Projectile/Fireball",
+    fileName = "FireballSkillData")]
 public sealed class FireballSkillData : ProjectileSkillData
 {
     public override Skill CreateSkill()

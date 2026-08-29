@@ -7,7 +7,7 @@ public enum PlayerAttackMovementMode : byte
 }
 
 [CreateAssetMenu(
-    menuName = "Game/Combat/Player Attack Data",
+    menuName = "Mazzang/Data/Combat/Player Attack",
     fileName = "PlayerAttackData")]
 public sealed class PlayerAttackData :
     ScriptableObject

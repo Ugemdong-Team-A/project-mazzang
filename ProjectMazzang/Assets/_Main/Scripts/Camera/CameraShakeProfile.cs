@@ -2,7 +2,7 @@ using UnityEngine;
 
 [CreateAssetMenu(
     fileName = "CameraShakeProfile",
-    menuName = "Mazzang/Camera/Shake Profile")]
+    menuName = "Mazzang/Data/Camera/Shake Profile")]
 public sealed class CameraShakeProfile :
     ScriptableObject
 {

@@ -1,7 +1,7 @@
 using UnityEngine;
 
 [CreateAssetMenu(
-    menuName = "Game/Skills/Animation",
+    menuName = "Mazzang/Data/Skill/Animation",
     fileName = "SkillAnimation")]
 public sealed class SkillAnimationData :
     ScriptableObject

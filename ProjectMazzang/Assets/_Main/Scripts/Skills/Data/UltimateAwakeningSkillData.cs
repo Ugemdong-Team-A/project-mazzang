@@ -1,8 +1,8 @@
 using UnityEngine;
 
 [CreateAssetMenu(
-    menuName = "Game/Skills/Ultimate Awakening",
-    fileName = "UltimateAwakeningSkill")]
+    menuName = "Mazzang/Data/Skill/Ultimate Awakening",
+    fileName = "UltimateAwakeningSkillData")]
 public sealed class UltimateAwakeningSkillData :
     SkillData
 {

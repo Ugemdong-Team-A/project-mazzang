@@ -1,7 +1,7 @@
 using UnityEngine;
 
 [CreateAssetMenu(
-    menuName = "Game/Combat/Box Attack Data",
+    menuName = "Mazzang/Data/Combat/Attack/Box",
     fileName = "BoxAttackData")]
 public sealed class BoxAttackData :
     AttackData

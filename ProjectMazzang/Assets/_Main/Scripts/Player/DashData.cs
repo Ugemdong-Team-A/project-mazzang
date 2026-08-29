@@ -1,7 +1,7 @@
 using UnityEngine;
 
 [CreateAssetMenu(
-    menuName = "Game/Player/Dash Data",
+    menuName = "Mazzang/Data/Movement/Dash",
     fileName = "DashData")]
 public sealed class DashData :
     ScriptableObject

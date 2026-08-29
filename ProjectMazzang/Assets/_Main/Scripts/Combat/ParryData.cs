@@ -2,7 +2,7 @@ using UnityEngine;
 
 [CreateAssetMenu(
     fileName = "ParryData",
-    menuName = "Game/Combat/Parry")]
+    menuName = "Mazzang/Data/Combat/Parry")]
 public sealed class ParryData : ScriptableObject
 {
     [Min(0.01f)] [SerializeField] private float activeDuration = 0.18f;

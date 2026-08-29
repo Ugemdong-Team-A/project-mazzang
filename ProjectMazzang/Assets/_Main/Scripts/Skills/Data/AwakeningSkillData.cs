@@ -1,8 +1,8 @@
 using UnityEngine;
 
 [CreateAssetMenu(
-    menuName = "Game/Skills/Awakening",
-    fileName = "AwakeningSkill")]
+    menuName = "Mazzang/Data/Skill/Awakening",
+    fileName = "AwakeningSkillData")]
 public sealed class AwakeningSkillData : SkillData
 {
     [Header("Duration")]

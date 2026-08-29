@@ -2,8 +2,8 @@ using Fusion;
 using UnityEngine;
 
 [CreateAssetMenu(
-    menuName = "Game/Skills/Projectiles",
-    fileName = "DefaultProjectile")]
+    menuName = "Mazzang/Data/Skill/Projectile/Default",
+    fileName = "DefaultProjectileSkillData")]
 public class ProjectileSkillData : SkillData
 {
     [Header("Timing")]

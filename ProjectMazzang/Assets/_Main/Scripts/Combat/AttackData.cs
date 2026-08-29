@@ -1,8 +1,8 @@
 using UnityEngine;
 
 [CreateAssetMenu(
-    menuName = "Game/Combat/Attack Data",
-    fileName = "AttackData")]
+    menuName = "Mazzang/Data/Combat/Attack/Default",
+    fileName = "DefaultAttackData")]
 public class AttackData :
     ScriptableObject
 {

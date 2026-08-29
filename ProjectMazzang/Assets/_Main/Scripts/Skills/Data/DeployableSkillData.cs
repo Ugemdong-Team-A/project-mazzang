@@ -2,8 +2,8 @@ using Fusion;
 using UnityEngine;
 
 [CreateAssetMenu(
-    menuName = "Game/Skills/Deployable",
-    fileName = "DeployableSkill")]
+    menuName = "Mazzang/Data/Skill/Deployable",
+    fileName = "DeployableSkillData")]
 public sealed class DeployableSkillData :
     SkillData
 {
