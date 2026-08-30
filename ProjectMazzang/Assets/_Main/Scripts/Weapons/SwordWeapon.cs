@@ -67,7 +67,8 @@ public sealed class SwordWeapon :
     public override bool TryUse(
      Vector2 origin,
      Vector2 direction,
-     bool mirrored)
+     bool mirrored,
+     float attackDamageMultiplier)
     {
         if (!CanAttack())
         {
