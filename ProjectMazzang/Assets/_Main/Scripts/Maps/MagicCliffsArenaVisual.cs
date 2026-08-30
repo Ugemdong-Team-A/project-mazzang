@@ -26,9 +26,14 @@ public sealed class MagicCliffsArenaVisual :
     private Vector2 backgroundWorldSize =
         new(84f, 34f);
 
+    [SerializeField, Min(0.01f)]
+    private float backgroundScale =
+        0.6666667f;
+
+    [FormerlySerializedAs("backgroundCenter")]
     [SerializeField]
-    private Vector2 backgroundCenter =
-        new(0f, 1f);
+    private Vector2 backgroundOffset =
+        new(0f, 2f);
 
     [Header("Terrain")]
     [SerializeField]
@@ -145,14 +150,16 @@ public sealed class MagicCliffsArenaVisual :
                 backgroundWorldSize.x /
                 Mathf.Max(spriteSize.x, 0.01f),
                 backgroundWorldSize.y /
-                Mathf.Max(spriteSize.y, 0.01f));
+                Mathf.Max(spriteSize.y, 0.01f)) *
+            Mathf.Max(backgroundScale, 0.01f);
 
         renderer.transform.localScale =
             Vector3.one * scale;
 
         MoveRendererCenter(
             renderer,
-            backgroundCenter);
+            transform.TransformPoint(
+                backgroundOffset));
     }
 
 
