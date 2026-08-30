@@ -381,10 +381,10 @@ public sealed class ShieldWeapon :
     {
         if (Holder != null &&
             Holder.TryGetComponent(
-                out PlayerWeaponController controller) &&
-            controller.WeaponSocket != null)
+                out IWeaponHandler handler) &&
+            handler.WeaponSocket != null)
         {
-            return controller.WeaponSocket.position;
+            return handler.WeaponSocket.position;
         }
 
         return ActionOrigin.sqrMagnitude > 0.0001f

@@ -87,7 +87,8 @@ namespace ProjectMazzang.Tests
 
             AssertInterfaces(
                 "PlayerWeaponController",
-                "IPlayerTickStateSource");
+                "IPlayerTickStateSource",
+                "IWeaponHandler");
         }
 
 
@@ -1149,15 +1150,24 @@ namespace ProjectMazzang.Tests
                         property.GetSetMethod(true) != null)
                 .ToArray();
 
+            List<UnityEngine.Object> createdObjects =
+                new List<UnityEngine.Object>();
+
             foreach (PropertyInfo property
                      in properties)
             {
-                property.SetValue(
-                    tickState,
+                object value =
                     property.Name == "FacingRight"
                         ? false
                         : CreateNonDefaultValue(
-                            property.PropertyType));
+                            property.PropertyType);
+
+                if (value is UnityEngine.Object unityObject)
+                    createdObjects.Add(unityObject);
+
+                property.SetValue(
+                    tickState,
+                    value);
             }
 
             MethodInfo reset =
@@ -1190,8 +1200,19 @@ namespace ProjectMazzang.Tests
                                     BindingFlags.Public |
                                     BindingFlags.Static)
                                 ?.GetValue(null)
+                        : typeof(UnityEngine.Object)
+                            .IsAssignableFrom(
+                                property.PropertyType)
+                            ? null
                         : Activator.CreateInstance(
                             property.PropertyType));
+            }
+
+            foreach (UnityEngine.Object createdObject
+                     in createdObjects)
+            {
+                UnityEngine.Object.DestroyImmediate(
+                    createdObject);
             }
         }
 
@@ -1808,6 +1829,13 @@ namespace ProjectMazzang.Tests
 
             if (type.IsEnum)
                 return Enum.ToObject(type, 1);
+
+            if (typeof(ScriptableObject)
+                .IsAssignableFrom(type))
+            {
+                return ScriptableObject.CreateInstance(
+                    type);
+            }
 
             Assert.Fail(
                 $"{type.Name}의 비기본 테스트 값을 정의해야 합니다.");

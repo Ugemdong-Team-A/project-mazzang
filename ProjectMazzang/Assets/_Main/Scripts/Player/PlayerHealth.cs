@@ -13,14 +13,11 @@ public enum DeathCause : byte
 public sealed class PlayerHealth :
     PlayerTickModule,
     IDamageable,
-    IPlayerTickStateSource
+    IPlayerTickStateSource,
+    IStatsConsumer
 {
     private const int PendingCrowdControlCapacity = 8;
-
-
-    [Header("Health")]
-    [SerializeField]
-    private int maxHealth = 100;
+    private const int DefaultMaxHealth = 100;
 
 
     [Header("Lives")]
@@ -50,6 +47,8 @@ public sealed class PlayerHealth :
     private float _lastHealth;
 
     private PlayerTickState _tickState;
+
+    private PlayerStatsData _statsData;
 
 
     // =========================================================
@@ -122,7 +121,7 @@ public sealed class PlayerHealth :
     public int MaxHealth =>
         AppliedMaxHealth > 0
             ? AppliedMaxHealth
-            : maxHealth;
+            : BaseMaxHealth;
 
 
     public int MaxLives =>
@@ -143,6 +142,13 @@ public sealed class PlayerHealth :
             ? cameraTarget
             : transform;
 
+
+    void IStatsConsumer.InitializeStats(
+        PlayerStatsData statsData)
+    {
+        _statsData = statsData;
+    }
+
     // =========================================================
     // Fusion
     // =========================================================
@@ -160,7 +166,7 @@ public sealed class PlayerHealth :
             return;
 
         AppliedMaxHealth =
-            maxHealth;
+            BaseMaxHealth;
 
         Health =
             MaxHealth;
@@ -707,7 +713,7 @@ public sealed class PlayerHealth :
             Mathf.Max(
                 1,
                 Mathf.RoundToInt(
-                    maxHealth * multiplier));
+                    BaseMaxHealth * multiplier));
 
         if (previousMaximum == nextMaximum)
             return;
@@ -734,6 +740,20 @@ public sealed class PlayerHealth :
                     Health,
                     nextMaximum);
         }
+    }
+
+
+    private int BaseMaxHealth =>
+        ResolveBaseMaxHealth(
+            _statsData);
+
+
+    private static int ResolveBaseMaxHealth(
+        PlayerStatsData statsData)
+    {
+        return statsData != null
+            ? statsData.MaxHealth
+            : DefaultMaxHealth;
     }
 
 

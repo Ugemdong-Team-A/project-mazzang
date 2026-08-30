@@ -71,7 +71,8 @@ public sealed class Shotgun : Weapon
     public override bool TryUse(
         Vector2 origin,
         Vector2 direction,
-        bool mirrored)
+        bool mirrored,
+        float attackDamageMultiplier)
     {
         if (!HasStateAuthority)
             return false;
@@ -155,7 +156,8 @@ public sealed class Shotgun : Weapon
                     projectile.Initialize(
                         runner,
                         source,
-                        projectileVelocity);
+                        projectileVelocity,
+                        attackDamageMultiplier);
                 });
         }
 

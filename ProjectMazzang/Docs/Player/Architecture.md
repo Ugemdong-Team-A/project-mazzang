@@ -44,9 +44,10 @@ Fusion Render
 | 5 | PlayerCombat | Action | 0 |
 | 6 | PlayerMovement | Motion | 0 |
 | 7 | PlayerVisual | Motion | 100 |
-| 8 | PlayerAim | Aim | 0 |
-| 9 | PlayerAnimation | Finalize | 0 |
-| 10 | PlayerStatusUI | Finalize | 100 |
+| 8 | PlayerSpriteLibraryAppearance (선택) | Motion | 110 |
+| 9 | PlayerAim | Aim | 0 |
+| 10 | PlayerAnimation | Finalize | 0 |
+| 11 | PlayerStatusUI | Finalize | 100 |
 
 같은 Stage에 여러 모듈이 들어가는 것은 정상이다. `Order`는 그 Stage 안의 정밀한 선후관계만 표현한다.
 Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크 시뮬레이션 순서를 보장한다.
@@ -123,6 +124,8 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
   `PlayerWeaponController`는 `PlayerTickState`에 복사된 위치를 판정·발사·드롭 기준으로 재사용하며,
   애니메이션을 따라 움직이는 `WeaponSocket`은 게임플레이 원점으로 사용하지 않는다.
 - Render에서 얻은 `WeaponSocket` 좌표는 외관에만 사용하고 다음 Tick의 판정 값으로 넘기지 않는다.
+- 무기와 투사체의 장착 표현은 `IWeaponHandler` 계약으로 현재 무기, Socket, 방향, 정렬 정보를 읽으며
+  `PlayerWeaponController` 구체 타입을 직접 참조하지 않는다.
 - 양손 Limb Solver는 IK Target을 녹화한 일반 이동·공격 클립을 재생하기 위해 평상시에도 활성화한다.
   무기를 장착하면 각 손의 Target만 해당 Grip으로 교체하고, Grip이 없는 손은 애니메이션 Target을
   유지한다. 무기를 해제하면 두 손 모두 원래 애니메이션 Target으로 복원한다.
@@ -182,6 +185,15 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
   테스트 캐릭터인 기사의 `ultimateSkill`에 장착한다. Meter 처리는 슬롯 역할이 아닌 인터페이스로 판별한다.
 - `PlayerSkillController`는 활성 스킬의 합산 능력치 배율을 `PlayerTickState.ActiveStatModifiers`에
   공개한다. 이동과 외형처럼 배율을 소비하는 모듈은 SkillController를 직접 참조하지 않는다.
+- 각성 데이터는 선택적인 `SpriteLibraryAsset`을 보관하고, 런타임 스킬은
+  `IAppearanceModifierSkill` 계약으로만 이를 노출한다. `PlayerSkillController`는 구체 각성 타입을
+  모르며, 활성 스킬의 SLA를 `PlayerTickState.ActiveAppearanceLibraryAsset`에 공개한다.
+- 외형 SLA 자체는 Networked 값으로 전송하지 않는다. 이미 Networked인 스킬 슬롯의 Active 단계를
+  모든 peer가 같은 정적 SkillData에 적용해 동일한 요청을 재구성한다. 두 슬롯이 동시에 외형을
+  요청하면 궁극기 슬롯을 우선하고, null 요청은 다른 활성 외형을 막지 않는다.
+- `PlayerSpriteLibraryAppearance`는 이를 필요로 하는 캐릭터에만 추가하는 표현 모듈이다. 현재 Mary만
+  이 모듈과 SpriteLibrary/Resolver를 가지며, 요청 SLA가 null이면 기본 SLA를 유지한다. 실제
+  SpriteLibrary setter는 참조가 바뀔 때만 호출한다.
 - 기본 공격, 대시, 무기는 공격을 만드는 Tick의 공격력 배율을 `DamageInfo`에 반영한다.
   투사체와 설치물은 생성 시점의 배율을 Networked 값으로 보관하므로 비행·대기 중 버프가
   끝나거나 소유자가 사라져도 피해량이 바뀌지 않는다.
@@ -193,6 +205,21 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
 - 네트워크 결과에 영향을 주는 방향과 타이밍은 Fusion Tick 입력에서 계산하고
   필요한 경우 Networked 슬롯 상태에 한 번 저장한다.
 - Render 프레임의 로컬 입력이나 `Time.deltaTime`으로 게임플레이 결과를 결정하지 않는다.
+
+## 기본 능력치 데이터
+
+- 각 플레이어 프리팹은 일반 `MonoBehaviour`인 `PlayerStatsInstaller`와 선택적인
+  `PlayerStatsData` 참조를 소유한다. `CharacterData`와 `PlayerController`는 이 배포를 담당하지 않는다.
+- Installer는 같은 루트 GameObject의 `IStatsConsumer`만 찾아 초기화한다. 따라서 중첩된
+  `NetworkObject`나 다른 플레이어의 소비자를 잘못 초기화하지 않는다.
+- Installer는 Tick 모듈이 아니다. Stage, State, Command를 소유하지 않고 `Awake`에서 정적 설정만
+  전달한다.
+- `PlayerStatsData`가 없거나 Installer 자체가 없는 프리팹에서도 각 소비자는 자신의 안전한 기본값으로
+  동작해야 한다. 현재 기본값은 이동 속도 7, 최대 체력 100이다.
+- 현재 중앙화한 값은 실제로 공통 Modifier와 결합되는 이동 속도와 최대 체력뿐이다. 공격 데이터,
+  이동 가속도, 점프 규칙처럼 소유자가 명확한 설정은 해당 Data 또는 모듈에 유지한다.
+- 활성 스킬 배율은 계속 `PlayerTickState.ActiveStatModifiers`로 전달한다. 기본 능력치 Data는 TickState를
+  대체하지 않으며, 소비자는 `기본값 × 활성 배율`로 최종 값을 계산한다.
 
 ### Dash 확장 방향
 

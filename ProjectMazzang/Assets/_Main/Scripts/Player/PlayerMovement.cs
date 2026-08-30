@@ -13,8 +13,11 @@ public enum JumpType : byte
 public sealed class PlayerMovement :
     PlayerTickModule,
     IPlayerTickStateSource,
-    IPlayerTickCommandSink
+    IPlayerTickCommandSink,
+    IStatsConsumer
 {
+    private const float DefaultMoveSpeed = 7f;
+
     [Header("References")]
     [SerializeField]
     private Rigidbody2D rb;
@@ -36,9 +39,6 @@ public sealed class PlayerMovement :
 
 
     [Header("Horizontal")]
-    [SerializeField]
-    private float maxMoveSpeed = 7f;
-
     [SerializeField]
     private float groundAcceleration = 45f;
 
@@ -107,6 +107,8 @@ public sealed class PlayerMovement :
     private bool _debugPreviousTouchingWallRight;
     private bool _debugPreviousWallSliding;
     private string _debugPreviousBlockReason;
+
+    private PlayerStatsData _statsData;
 
 
     // =========================================================
@@ -184,6 +186,13 @@ public sealed class PlayerMovement :
         {
             networkRigidbody = GetComponent<NetworkRigidbody>();
         }
+    }
+
+
+    void IStatsConsumer.InitializeStats(
+        PlayerStatsData statsData)
+    {
+        _statsData = statsData;
     }
 
     // =========================================================
@@ -430,7 +439,7 @@ public sealed class PlayerMovement :
 
         float targetSpeed =
             inputX *
-            maxMoveSpeed *
+            BaseMoveSpeed *
             moveSpeedMultiplier;
 
         bool hasInput =
@@ -466,6 +475,20 @@ public sealed class PlayerMovement :
 
         rb.linearVelocity =
             velocity;
+    }
+
+
+    private float BaseMoveSpeed =>
+        ResolveBaseMoveSpeed(
+            _statsData);
+
+
+    private static float ResolveBaseMoveSpeed(
+        PlayerStatsData statsData)
+    {
+        return statsData != null
+            ? statsData.MoveSpeed
+            : DefaultMoveSpeed;
     }
 
 

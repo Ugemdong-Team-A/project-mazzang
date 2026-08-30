@@ -5,6 +5,7 @@ using UnityEngine.U2D.IK;
 [DefaultExecutionOrder(-210)]
 public sealed class PlayerWeaponController :
     PlayerTickModule,
+    IWeaponHandler,
     IPlayerTickCommandSink,
     IPlayerTickStateSource
 {

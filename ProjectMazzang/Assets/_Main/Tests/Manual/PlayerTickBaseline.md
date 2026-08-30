@@ -20,9 +20,10 @@
 5. PlayerCombat (Action, 0)
 6. PlayerMovement (Motion, 0)
 7. PlayerVisual (Motion, 100)
-8. PlayerAim (Aim, 0)
-9. PlayerAnimation (Finalize, 0)
-10. PlayerStatusUI (Finalize, 100)
+8. PlayerSpriteLibraryAppearance (Motion, 110, Mary만)
+9. PlayerAim (Aim, 0)
+10. PlayerAnimation (Finalize, 0)
+11. PlayerStatusUI (Finalize, 100)
 
 같은 Stage에는 여러 모듈이 들어갈 수 있다. 이때 Order가 낮은 모듈이 먼저 실행되며,
 같은 플레이어 안에서 Stage와 Order 조합이 겹치면 파이프라인을 시작하지 않는다.
@@ -113,6 +114,9 @@
 - 피해로 사용 비용에 도달하는 Tick에 스킬 입력이 겹쳐도 최종 사용 여부와 Meter가 Host 상태로 수렴한다.
 - 100 Meter 미만에서는 각성이 시작되지 않고, 100 Meter에서 한 번 사용하면 0으로 소모된다.
 - 각성 8초 동안 이동·공격·최대 체력·피해 감소·크기 배율이 적용되고 종료 뒤 원래 값으로 복귀한다.
+- 각성 SLA가 비어 있으면 Mary의 기본 SpriteLibrary가 유지되고 예외나 Resolver 누락이 발생하지 않는다.
+- 각성 SLA를 지정하면 Host와 Client 모두 Active 시작에 같은 외형으로 한 번 교체되고, 종료 시 기본
+  외형으로 복귀한다. prediction 및 resimulation 중 같은 SLA setter가 매 Tick 반복 호출되지 않는다.
 
 ### Skill Animation
 

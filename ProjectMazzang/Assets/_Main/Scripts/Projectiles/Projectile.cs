@@ -410,19 +410,19 @@ public class Projectile :
     {
         if (Source == null ||
             !Source.TryGetComponent(
-                out PlayerWeaponController controller))
+                out IWeaponHandler handler))
         {
             return transform.position;
         }
 
-        if (controller.EquippedWeapon is
+        if (handler.EquippedWeapon is
             ProjectileGun gun)
         {
             return gun.PresentationMuzzlePosition;
         }
 
-        return controller.WeaponSocket != null
-            ? controller.WeaponSocket.position
+        return handler.WeaponSocket != null
+            ? handler.WeaponSocket.position
             : transform.position;
     }
 

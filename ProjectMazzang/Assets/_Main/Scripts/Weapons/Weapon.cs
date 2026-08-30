@@ -215,11 +215,11 @@ public abstract class Weapon :
             return false;
         }
 
-        PlayerWeaponController weaponController =
-            holder.GetComponent<PlayerWeaponController>();
+        IWeaponHandler weaponHandler =
+            holder.GetComponent<IWeaponHandler>();
 
-        if (weaponController == null ||
-            weaponController.WeaponSocket == null)
+        if (weaponHandler == null ||
+            weaponHandler.WeaponSocket == null)
         {
             return false;
         }
@@ -389,12 +389,12 @@ public abstract class Weapon :
 
         if (Holder == null ||
             !Holder.TryGetComponent(
-                out PlayerWeaponController controller))
+                out IWeaponHandler handler))
         {
             return;
         }
 
-        if (controller.WeaponSocket == null ||
+        if (handler.WeaponSocket == null ||
             presentationTemplate == null)
         {
             return;
@@ -412,8 +412,8 @@ public abstract class Weapon :
                 true);
 
         _heldView.Initialize(
-            controller.WeaponSocket,
-            controller.WeaponSortingOrder);
+            handler.WeaponSocket,
+            handler.WeaponSortingOrder);
     }
 
 

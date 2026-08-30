@@ -1,7 +1,10 @@
+using UnityEngine.U2D.Animation;
+
 public sealed class AwakeningSkill :
     Skill,
     IDurationSkill,
-    IPlayerStatModifierSkill
+    IPlayerStatModifierSkill,
+    IAppearanceModifierSkill
 {
     private AwakeningSkillData AwakeningData =>
         (AwakeningSkillData)Data;
@@ -11,6 +14,9 @@ public sealed class AwakeningSkill :
 
     public PlayerStatModifiers StatModifiers =>
         AwakeningData.StatModifiers;
+
+    public SpriteLibraryAsset AppearanceLibraryAsset =>
+        AwakeningData.AppearanceLibraryAsset;
 
     public override void Activate(
         in SkillUseContext useContext)
