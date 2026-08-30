@@ -16,6 +16,8 @@ public sealed class PlayerInputController :
 
     private NetworkButtons _buttons;
 
+    private bool _dropPressPending;
+
     private bool _callbacksRegistered;
 
 
@@ -144,6 +146,9 @@ public sealed class PlayerInputController :
 
         _buttons =
             default;
+
+        _dropPressPending =
+            false;
     }
 
 
@@ -218,9 +223,17 @@ public sealed class PlayerInputController :
     private void OnDrop(
         InputAction.CallbackContext context)
     {
+        bool isPressed =
+            context.ReadValueAsButton();
+
         _buttons.Set(
             PlayerButton.Drop,
-            context.ReadValueAsButton());
+            isPressed);
+
+        if (isPressed)
+        {
+            _dropPressPending = true;
+        }
     }
 
 
@@ -284,6 +297,7 @@ public sealed class PlayerInputController :
         {
             _move = Vector2.zero;
             _buttons = default;
+            _dropPressPending = false;
 
             input.Set(
                 new PlayerInputData());
@@ -302,6 +316,15 @@ public sealed class PlayerInputController :
 
         data.Buttons =
             _buttons;
+
+        if (_dropPressPending)
+        {
+            data.Buttons.Set(
+                PlayerButton.Drop,
+                true);
+
+            _dropPressPending = false;
+        }
 
         data.Buttons.Set(
             PlayerButton.Parry,

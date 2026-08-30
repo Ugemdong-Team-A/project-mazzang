@@ -234,6 +234,25 @@ public sealed class PlayerWeaponController :
         if (!hasInput)
             return;
 
+        bool dropPressed =
+            input.Buttons.WasPressed(
+                PreviousButtons,
+                PlayerButton.Drop);
+
+        if (dropPressed)
+        {
+            PreviousButtons =
+                input.Buttons;
+
+            DropWeapon(
+                CalculateDropVelocity(
+                    state),
+                ResolveGameplayWeaponOrigin(
+                    state));
+
+            return;
+        }
+
         if (state.HasSkill &&
             state.IsSkillActionLocked)
         {
@@ -243,11 +262,6 @@ public sealed class PlayerWeaponController :
             return;
         }
 
-        bool dropPressed =
-            input.Buttons.WasPressed(
-                PreviousButtons,
-                PlayerButton.Drop);
-
         bool secondaryPressed =
             input.Buttons.WasPressed(
                 PreviousButtons,
@@ -255,17 +269,6 @@ public sealed class PlayerWeaponController :
 
         PreviousButtons =
             input.Buttons;
-
-        if (dropPressed)
-        {
-            DropWeapon(
-                CalculateDropVelocity(
-                    state),
-                ResolveGameplayWeaponOrigin(
-                    state));
-
-            return;
-        }
 
         if (secondaryPressed &&
             ConsumesParryInput)

@@ -186,6 +186,8 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
 - `PlayerHealth`는 공격자의 스킬 모듈을 조회하지 않는다. 이미 확정된 공격 피해에 자신의
   `PlayerTickState` 피해 수신 배율만 적용하며, 최대 체력 배율도 같은 State에서 읽는다.
 - 스킬은 `PlayerTickState`를 읽고 `PlayerTickCommands`로 변경을 요청한다.
+- 스킬의 행동 잠금은 기본 공격과 무기 사용을 막을 수 있지만 무기 버리기는 막지 않는다.
+  로컬 Drop 눌림은 다음 Fusion 입력 수집까지 보관해 짧은 탭도 유실되지 않게 한다.
 - 네트워크 결과에 영향을 주는 방향과 타이밍은 Fusion Tick 입력에서 계산하고
   필요한 경우 Networked 슬롯 상태에 한 번 저장한다.
 - Render 프레임의 로컬 입력이나 `Time.deltaTime`으로 게임플레이 결과를 결정하지 않는다.
