@@ -5624,7 +5624,43 @@ ScriptedImporter:
   pipeline: {instanceID: 0}
   pipelineVersion: 
   spriteCategoryList:
-    categories: []
+    categories:
+    - name: arm_L
+      labels:
+      - name: Default
+        spriteId: c7ab147d2b1a2ca43834aaf1b2bf5f17
+    - name: head
+      labels:
+      - name: Default
+        spriteId: 1cfa69e03e8ff1e4d9806a4ae896a6f4
+    - name: body
+      labels:
+      - name: Default
+        spriteId: 5b18c3d0129121b46aea7a47d201e4a3
+    - name: skirt_short
+      labels:
+      - name: Default
+        spriteId: 7398529fdd2e8c64fb228a7ed50e807e
+    - name: leg_L
+      labels:
+      - name: Default
+        spriteId: 8e0f0f5d51f98964787110e784aef5ec
+    - name: leg_R
+      labels:
+      - name: Default
+        spriteId: 7a61661e7e207574eaf96921ab901612
+    - name: arm_R
+      labels:
+      - name: Default
+        spriteId: f24bdf3bba99e7046acef1051811d008
+    - name: ribbon
+      labels:
+      - name: Default
+        spriteId: ad5c9b9f917262d43af9427ed426fb03
+    - name: hair
+      labels:
+      - name: Default
+        spriteId: 461260388ecff794c9d829b5d05cc355
   spritePackingTag: 
   resliceFromLayer: 0
   pSDLayerImportSetting: []
@@ -5738,6 +5774,6 @@ ScriptedImporter:
   generateGOHierarchy: 0
   textureAssetName: 
   prefabAssetName: 
-  spriteLibAssetName: 
+  spriteLibAssetName: 0821_BlueMaid_v02 Sprite Library
   skeletonAssetName: 
   secondarySpriteTextures: []

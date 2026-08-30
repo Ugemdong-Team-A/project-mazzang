@@ -44,9 +44,10 @@ Fusion Render
 | 5 | PlayerCombat | Action | 0 |
 | 6 | PlayerMovement | Motion | 0 |
 | 7 | PlayerVisual | Motion | 100 |
-| 8 | PlayerAim | Aim | 0 |
-| 9 | PlayerAnimation | Finalize | 0 |
-| 10 | PlayerStatusUI | Finalize | 100 |
+| 8 | PlayerSpriteLibraryAppearance (선택) | Motion | 110 |
+| 9 | PlayerAim | Aim | 0 |
+| 10 | PlayerAnimation | Finalize | 0 |
+| 11 | PlayerStatusUI | Finalize | 100 |
 
 같은 Stage에 여러 모듈이 들어가는 것은 정상이다. `Order`는 그 Stage 안의 정밀한 선후관계만 표현한다.
 Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크 시뮬레이션 순서를 보장한다.
@@ -184,6 +185,15 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
   테스트 캐릭터인 기사의 `ultimateSkill`에 장착한다. Meter 처리는 슬롯 역할이 아닌 인터페이스로 판별한다.
 - `PlayerSkillController`는 활성 스킬의 합산 능력치 배율을 `PlayerTickState.ActiveStatModifiers`에
   공개한다. 이동과 외형처럼 배율을 소비하는 모듈은 SkillController를 직접 참조하지 않는다.
+- 각성 데이터는 선택적인 `SpriteLibraryAsset`을 보관하고, 런타임 스킬은
+  `IAppearanceModifierSkill` 계약으로만 이를 노출한다. `PlayerSkillController`는 구체 각성 타입을
+  모르며, 활성 스킬의 SLA를 `PlayerTickState.ActiveAppearanceLibraryAsset`에 공개한다.
+- 외형 SLA 자체는 Networked 값으로 전송하지 않는다. 이미 Networked인 스킬 슬롯의 Active 단계를
+  모든 peer가 같은 정적 SkillData에 적용해 동일한 요청을 재구성한다. 두 슬롯이 동시에 외형을
+  요청하면 궁극기 슬롯을 우선하고, null 요청은 다른 활성 외형을 막지 않는다.
+- `PlayerSpriteLibraryAppearance`는 이를 필요로 하는 캐릭터에만 추가하는 표현 모듈이다. 현재 Mary만
+  이 모듈과 SpriteLibrary/Resolver를 가지며, 요청 SLA가 null이면 기본 SLA를 유지한다. 실제
+  SpriteLibrary setter는 참조가 바뀔 때만 호출한다.
 - 기본 공격, 대시, 무기는 공격을 만드는 Tick의 공격력 배율을 `DamageInfo`에 반영한다.
   투사체와 설치물은 생성 시점의 배율을 Networked 값으로 보관하므로 비행·대기 중 버프가
   끝나거나 소유자가 사라져도 피해량이 바뀌지 않는다.

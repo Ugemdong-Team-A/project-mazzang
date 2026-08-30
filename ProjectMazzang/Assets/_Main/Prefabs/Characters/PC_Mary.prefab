@@ -2331,11 +2331,12 @@ GameObject:
   - component: {fileID: 4373104609955216072}
   - component: {fileID: 5758107067491185245}
   - component: {fileID: 9218422589056424207}
-  - component: {fileID: 7708971253977099034}
   - component: {fileID: 910000000000000101}
+  - component: {fileID: 7708971253977099034}
   - component: {fileID: 8446048998901540376}
   - component: {fileID: 863277897238890674}
   - component: {fileID: 3569158150598239074}
+  - component: {fileID: 910000000000000102}
   - component: {fileID: 6767369168568245808}
   - component: {fileID: 3214326079020937291}
   - component: {fileID: 7854641794638322134}
@@ -2408,6 +2409,7 @@ MonoBehaviour:
   - {fileID: 8446048998901540376}
   - {fileID: 863277897238890674}
   - {fileID: 3569158150598239074}
+  - {fileID: 910000000000000102}
   - {fileID: 6767369168568245808}
   - {fileID: 3214326079020937291}
   - {fileID: 7854641794638322134}
@@ -2482,19 +2484,6 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 4
---- !u!114 &7708971253977099034
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8422167869306190757}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 63fc1447623e4ba438aad4182dbe9893, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerController
-  _modules: []
 --- !u!114 &910000000000000101
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2505,9 +2494,22 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 031a3d6f78cf4252a60ca4ad2b38d855, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerStatsInstaller
   statsData: {fileID: 11400000, guid: c740c14e2c6345aeb6eeda585ecb14b6, type: 2}
+--- !u!114 &7708971253977099034
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8422167869306190757}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 63fc1447623e4ba438aad4182dbe9893, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerController
+  _modules: []
 --- !u!114 &8446048998901540376
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2583,6 +2585,19 @@ MonoBehaviour:
   hitColorDuration: 0.1
   invulnerableAlpha: 0.35
   invulnerableBlinkInterval: 0.08
+--- !u!114 &910000000000000102
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8422167869306190757}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6eb0857b0a6747bc98a11db6e8243c31, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerSpriteLibraryAppearance
+  spriteLibrary: {fileID: 0}
 --- !u!114 &6767369168568245808
 MonoBehaviour:
   m_ObjectHideFlags: 0
