@@ -31,6 +31,7 @@ Fusion Render
 `PlayerController`는 모듈의 구체 타입이나 게임 규칙을 알지 않는다. 같은 `NetworkObject`에 속한
 `PlayerTickModule`을 수집하고 `Stage`, `Order`만으로 실행한다. 같은 플레이어에서
 `Stage + Order`가 중복되면 오류를 출력하고 파이프라인을 시작하지 않는다.
+각 Tick 모듈 역시 동료 모듈의 구체 타입을 직접 참조하지 않으며, EditMode 계약 테스트가 이 규칙을 보호한다.
 
 ## 현재 Tick 순서
 

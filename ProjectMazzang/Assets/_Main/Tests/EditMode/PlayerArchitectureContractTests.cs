@@ -38,6 +38,66 @@ namespace ProjectMazzang.Tests
 
 
         [Test]
+        public void TickModules_DoNotNamePeerConcreteTypes()
+        {
+            Type moduleBaseType =
+                GetRuntimeType(
+                    "PlayerTickModule");
+
+            Type[] moduleTypes =
+                RuntimeAssembly
+                    .GetTypes()
+                    .Where(
+                        type =>
+                            !type.IsAbstract &&
+                            moduleBaseType.IsAssignableFrom(type))
+                    .ToArray();
+
+            MonoScript[] playerScripts =
+                AssetDatabase.FindAssets(
+                        "t:MonoScript",
+                        new[]
+                        {
+                            "Assets/_Main/Scripts/Player"
+                        })
+                    .Select(
+                        AssetDatabase.GUIDToAssetPath)
+                    .Select(
+                        AssetDatabase.LoadAssetAtPath<MonoScript>)
+                    .Where(
+                        script =>
+                            script != null)
+                    .ToArray();
+
+            foreach (Type moduleType in moduleTypes)
+            {
+                MonoScript moduleScript =
+                    playerScripts.SingleOrDefault(
+                        script =>
+                            script.GetClass() ==
+                            moduleType);
+
+                Assert.That(
+                    moduleScript,
+                    Is.Not.Null,
+                    $"{moduleType.Name}의 MonoScript를 찾을 수 없습니다.");
+
+                foreach (Type peerType in moduleTypes)
+                {
+                    if (peerType == moduleType)
+                        continue;
+
+                    Assert.That(
+                        moduleScript.text,
+                        Does.Not.Contain(peerType.Name),
+                        $"{moduleType.Name}이 동료 모듈 " +
+                        $"{peerType.Name}의 구체 타입을 직접 언급합니다.");
+                }
+            }
+        }
+
+
+        [Test]
         public void PlayerTickState_ProvidesBodyAimLimitSnapshot()
         {
             Type tickStateType =

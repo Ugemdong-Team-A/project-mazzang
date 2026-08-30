@@ -35,6 +35,12 @@ public sealed class PlayerCombat :
     private readonly HashSet<IDamageable>
         _hitTargets = new();
 
+#if UNITY_EDITOR
+    private Vector2 _attackGizmoOrigin;
+
+    private bool _hasAttackGizmoOrigin;
+#endif
+
 
     // =========================================================
     // Network State
@@ -213,6 +219,14 @@ public sealed class PlayerCombat :
     public override void Simulate(
         in PlayerTick tick)
     {
+#if UNITY_EDITOR
+        _attackGizmoOrigin =
+            tick.State.ResolveAimOrigin(
+                transform.position);
+
+        _hasAttackGizmoOrigin = true;
+#endif
+
         TickAction(
             tick.State.HasHealth &&
             tick.State.IsAlive,
@@ -1244,12 +1258,10 @@ public sealed class PlayerCombat :
 
     private void OnDrawGizmosSelected()
     {
-        PlayerAim playerAim =
-            GetComponent<PlayerAim>();
-
         Vector2 origin =
-            playerAim != null
-                ? playerAim.AimOriginPosition
+            Application.isPlaying &&
+            _hasAttackGizmoOrigin
+                ? _attackGizmoOrigin
                 : (Vector2)transform.position;
 
 
