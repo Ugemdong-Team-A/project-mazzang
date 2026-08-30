@@ -47,6 +47,9 @@ public sealed class PlayerAim :
     [SerializeField]
     private float maxBodyAimAngle = 80f;
 
+    [Tooltip(
+        "현재 정면에서 조준 방향이 이 각도를 넘으면 좌우를 반전합니다. " +
+        "허리 조준 제한과는 독립적인 값입니다.")]
     [Range(90f, 179f)]
     [SerializeField]
     private float facingFlipAngle = 100f;
@@ -992,15 +995,6 @@ public sealed class PlayerAim :
     private void OnValidate()
     {
         ResolveAimRigReferences();
-
-        float minimumFlipAngle =
-            180f -
-            maxBodyAimAngle;
-
-        facingFlipAngle =
-            Mathf.Max(
-                facingFlipAngle,
-                minimumFlipAngle);
 
         if (resolvedAimReferenceBone != null &&
             resolvedAimPivot != null &&
