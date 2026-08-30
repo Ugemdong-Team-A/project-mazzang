@@ -187,7 +187,8 @@ public sealed class PlayerWeaponController :
             state.HasMovement &&
             !state.FacingRight,
             ResolveGameplayWeaponOrigin(
-                state));
+                state),
+            state.ActiveStatModifiers.AttackDamage);
 
         return true;
     }
@@ -682,7 +683,8 @@ public sealed class PlayerWeaponController :
         Vector2 aimDirection,
         bool isAlive,
         bool mirrored,
-        Vector2 origin)
+        Vector2 origin,
+        float attackDamageMultiplier)
     {
         // 기존 aimDirection 인자는 호출 호환성을 위해 유지하지만,
         // 실제 판정 방향은 StateAuthority가 확정한 WeaponAngle을 사용한다.
@@ -703,7 +705,8 @@ public sealed class PlayerWeaponController :
         return weapon.TryUse(
             origin,
             WeaponDirection,
-            mirrored);
+            mirrored,
+            attackDamageMultiplier);
     }
 
 

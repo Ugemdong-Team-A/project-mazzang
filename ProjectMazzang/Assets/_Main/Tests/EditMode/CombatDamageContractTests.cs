@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 
 namespace ProjectMazzang.Tests
@@ -44,6 +45,53 @@ namespace ProjectMazzang.Tests
                 result,
                 "WasFatal",
                 true);
+        }
+
+
+        [Test]
+        public void DamageInfo_ResolvesAttackMultiplierAtCreation()
+        {
+            Type damageInfoType =
+                GetRuntimeType(
+                    "DamageInfo");
+
+            object crowdControl =
+                Activator.CreateInstance(
+                    GetRuntimeType(
+                        "CrowdControlDefinition"));
+
+            object damageInfo =
+                Activator.CreateInstance(
+                    damageInfoType,
+                    10,
+                    1.5f,
+                    null,
+                    Vector2.zero,
+                    crowdControl);
+
+            AssertProperty(
+                damageInfo,
+                "Damage",
+                15);
+        }
+
+
+        [Test]
+        public void PlayerHealth_DoesNotReferenceSkillController()
+        {
+            MonoScript healthScript =
+                AssetDatabase.LoadAssetAtPath<MonoScript>(
+                    "Assets/_Main/Scripts/Player/" +
+                    "PlayerHealth.cs");
+
+            Assert.That(
+                healthScript,
+                Is.Not.Null);
+
+            Assert.That(
+                healthScript.text,
+                Does.Not.Contain(
+                    "PlayerSkillController"));
         }
 
 

@@ -182,7 +182,10 @@ public class ProjectileSkill :
                 projectile?.Initialize(
                     runner,
                     Controller.Object,
-                    direction);
+                    direction,
+                    Controller.TickState
+                        .ActiveStatModifiers
+                        .AttackDamage);
             });
     }
 

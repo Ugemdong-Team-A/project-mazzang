@@ -174,6 +174,11 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
   테스트 캐릭터인 기사의 `ultimateSkill`에 장착한다. Meter 처리는 슬롯 역할이 아닌 인터페이스로 판별한다.
 - `PlayerSkillController`는 활성 스킬의 합산 능력치 배율을 `PlayerTickState.ActiveStatModifiers`에
   공개한다. 이동과 외형처럼 배율을 소비하는 모듈은 SkillController를 직접 참조하지 않는다.
+- 기본 공격, 대시, 무기는 공격을 만드는 Tick의 공격력 배율을 `DamageInfo`에 반영한다.
+  투사체와 설치물은 생성 시점의 배율을 Networked 값으로 보관하므로 비행·대기 중 버프가
+  끝나거나 소유자가 사라져도 피해량이 바뀌지 않는다.
+- `PlayerHealth`는 공격자의 스킬 모듈을 조회하지 않는다. 이미 확정된 공격 피해에 자신의
+  `PlayerTickState` 피해 수신 배율만 적용하며, 최대 체력 배율도 같은 State에서 읽는다.
 - 스킬은 `PlayerTickState`를 읽고 `PlayerTickCommands`로 변경을 요청한다.
 - 네트워크 결과에 영향을 주는 방향과 타이밍은 Fusion Tick 입력에서 계산하고
   필요한 경우 Networked 슬롯 상태에 한 번 저장한다.

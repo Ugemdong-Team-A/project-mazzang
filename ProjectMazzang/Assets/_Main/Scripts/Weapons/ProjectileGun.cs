@@ -135,7 +135,8 @@ public sealed class ProjectileGun :
     public override bool TryUse(
         Vector2 origin,
         Vector2 direction,
-        bool mirrored)
+        bool mirrored,
+        float attackDamageMultiplier)
     {
         if (!HasStateAuthority)
             return false;
@@ -210,7 +211,8 @@ public sealed class ProjectileGun :
                     projectile.Initialize(
                         runner,
                         source,
-                        direction);
+                        direction,
+                        attackDamageMultiplier);
                 });
 
 

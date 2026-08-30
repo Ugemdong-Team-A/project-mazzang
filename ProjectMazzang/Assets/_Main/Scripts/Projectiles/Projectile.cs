@@ -314,7 +314,8 @@ public class Projectile :
     public virtual void Initialize(
         NetworkRunner runner,
         NetworkObject source,
-        Vector2 direction)
+        Vector2 direction,
+        float attackDamageMultiplier = 1f)
     {
         if (!HasStateAuthority)
             return;
@@ -346,7 +347,9 @@ public class Projectile :
 
         Damage =
             attack != null
-                ? attack.Damage
+                ? DamageInfo.ResolveAttackDamage(
+                    attack.Damage,
+                    attackDamageMultiplier)
                 : 0;
 
         LocalKnockback =

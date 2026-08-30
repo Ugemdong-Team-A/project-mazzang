@@ -717,7 +717,8 @@ public sealed class PlayerCombat :
                 boxAttack,
                 facingRight,
                 ResolveGameplayAttackOrigin(
-                    tickState));
+                    tickState),
+                tickState.ActiveStatModifiers.AttackDamage);
         }
 
 
@@ -1075,7 +1076,8 @@ public sealed class PlayerCombat :
     private void PerformBoxAttackHit(
         BoxAttackData attack,
         bool facingRight,
-        Vector2 attackOrigin)
+        Vector2 attackOrigin,
+        float attackDamageMultiplier)
     {
         if (attack == null)
             return;
@@ -1146,6 +1148,7 @@ public sealed class PlayerCombat :
             DamageInfo info =
                 new DamageInfo(
                     attack.Damage,
+                    attackDamageMultiplier,
                     Object,
                     knockback,
                     attack.CrowdControl);

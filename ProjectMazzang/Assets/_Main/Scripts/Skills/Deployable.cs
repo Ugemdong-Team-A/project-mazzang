@@ -10,11 +10,19 @@ public abstract class Deployable : NetworkBehaviour
     [Networked]
     protected TickTimer Lifetime { get; set; }
 
+    [Networked]
+    protected float AttackDamageMultiplier { get; set; }
+
     public virtual void Initialize(
         NetworkObject owner,
-        float lifetime)
+        float lifetime,
+        float attackDamageMultiplier = 1f)
     {
         Owner = owner;
+        AttackDamageMultiplier =
+            Mathf.Max(
+                0f,
+                attackDamageMultiplier);
         Lifetime =
             lifetime > 0f
                 ? TickTimer.CreateFromSeconds(

@@ -154,7 +154,8 @@ public sealed class ShieldWeapon :
     public override bool TryUse(
         Vector2 origin,
         Vector2 direction,
-        bool mirrored)
+        bool mirrored,
+        float attackDamageMultiplier)
     {
         if (!CanStartAction())
             return false;
@@ -164,7 +165,10 @@ public sealed class ShieldWeapon :
         ActionDirection = direction;
 
         ApplyDash(direction);
-        PerformBash(origin, direction);
+        PerformBash(
+            origin,
+            direction,
+            attackDamageMultiplier);
         StartSharedCooldown();
         BashSequence++;
 
@@ -315,7 +319,8 @@ public sealed class ShieldWeapon :
 
     private void PerformBash(
         Vector2 origin,
-        Vector2 direction)
+        Vector2 direction,
+        float attackDamageMultiplier)
     {
         if (bashAttack == null)
             return;
@@ -361,6 +366,7 @@ public sealed class ShieldWeapon :
 
             DamageInfo info = new(
                 bashAttack.Damage,
+                attackDamageMultiplier,
                 Holder,
                 knockback,
                 bashAttack.CrowdControl);

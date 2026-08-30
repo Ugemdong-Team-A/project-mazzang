@@ -490,7 +490,8 @@ public abstract class Weapon :
     public abstract bool TryUse(
         Vector2 origin,
         Vector2 direction,
-        bool mirrored);
+        bool mirrored,
+        float attackDamageMultiplier);
 
     public virtual bool TryUseSecondary(
         Vector2 origin,

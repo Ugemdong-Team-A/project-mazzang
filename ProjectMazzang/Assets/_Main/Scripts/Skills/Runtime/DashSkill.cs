@@ -369,6 +369,9 @@ public sealed class DashSkill :
         DamageInfo info =
             new(
                 attack.Damage,
+                Controller.TickState
+                    .ActiveStatModifiers
+                    .AttackDamage,
                 Controller.Object,
                 knockback,
                 attack.CrowdControl);
