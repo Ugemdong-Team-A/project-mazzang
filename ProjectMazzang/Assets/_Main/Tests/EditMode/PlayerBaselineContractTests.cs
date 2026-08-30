@@ -1089,6 +1089,12 @@ namespace ProjectMazzang.Tests
 
             AssertPropertyType(
                 tickStateType,
+                "ActiveStatModifiers",
+                GetRuntimeType(
+                    "PlayerStatModifiers"));
+
+            AssertPropertyType(
+                tickStateType,
                 "IsSkillControlLocked",
                 typeof(bool));
 
@@ -1162,8 +1168,47 @@ namespace ProjectMazzang.Tests
                     property.Name,
                     property.Name == "FacingRight"
                         ? true
+                        : property.Name == "ActiveStatModifiers"
+                            ? GetRuntimeType(
+                                    "PlayerStatModifiers")
+                                .GetProperty(
+                                    "Identity",
+                                    BindingFlags.Public |
+                                    BindingFlags.Static)
+                                ?.GetValue(null)
                         : Activator.CreateInstance(
                             property.PropertyType));
+            }
+        }
+
+
+        [Test]
+        public void StatModifierConsumers_DoNotReferenceSkillController()
+        {
+            Type skillControllerType =
+                GetRuntimeType(
+                    "PlayerSkillController");
+
+            foreach (string consumerName in new[]
+                     {
+                         "PlayerMovement",
+                         "PlayerVisual"
+                     })
+            {
+                FieldInfo[] fields =
+                    GetRuntimeType(consumerName)
+                        .GetFields(
+                            BindingFlags.Instance |
+                            BindingFlags.Public |
+                            BindingFlags.NonPublic);
+
+                Assert.That(
+                    fields.Any(
+                        field =>
+                            field.FieldType ==
+                            skillControllerType),
+                    Is.False,
+                    $"{consumerName}이 PlayerSkillController를 직접 참조합니다.");
             }
         }
 
@@ -1735,6 +1780,17 @@ namespace ProjectMazzang.Tests
 
             if (type == typeof(Vector2))
                 return Vector2.one;
+
+            if (type.Name == "PlayerStatModifiers")
+            {
+                return Activator.CreateInstance(
+                    type,
+                    2f,
+                    2f,
+                    2f,
+                    2f,
+                    2f);
+            }
 
             if (type.IsEnum)
                 return Enum.ToObject(type, 1);

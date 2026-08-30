@@ -168,6 +168,8 @@ public sealed class PlayerSkillController :
             GetSkillData(
                 LastSkillAnimationSlot)?
                 .Animation;
+        state.ActiveStatModifiers =
+            GetActiveStatModifiers();
         state.IsSkillControlLocked =
             IsSkillControlLocked;
         state.IsSkillActionLocked =

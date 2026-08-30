@@ -61,6 +61,8 @@ public sealed class PlayerTickState
 
     public SkillAnimationData SkillAnimation { get; internal set; }
 
+    public PlayerStatModifiers ActiveStatModifiers { get; internal set; }
+
     /// <summary>
     /// 외부 제어 효과로 새 스킬 사용이 잠긴 상태입니다.
     /// 이미 실행 중인 스킬의 진행 여부와는 무관합니다.
@@ -128,6 +130,8 @@ public sealed class PlayerTickState
         SkillAnimationPhase =
             global::SkillAnimationPhase.None;
         SkillAnimation = null;
+        ActiveStatModifiers =
+            PlayerStatModifiers.Identity;
         IsSkillControlLocked = false;
         IsSkillActionLocked = false;
         IsCombatMovementLocked = false;

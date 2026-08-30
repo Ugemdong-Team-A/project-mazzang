@@ -35,10 +35,6 @@ public sealed class PlayerVisual :
         0.08f;
 
 
-    private PlayerSkillController
-        _skillController;
-
-
     private Vector3 _defaultScale;
 
     private SpriteRenderer[]
@@ -79,9 +75,6 @@ public sealed class PlayerVisual :
 
     private void Awake()
     {
-        _skillController =
-            GetComponent<PlayerSkillController>();
-
         if (characterVisualRoot == null)
             return;
 
@@ -139,7 +132,8 @@ public sealed class PlayerVisual :
         if (tickState.HasMovement)
         {
             UpdateFacing(
-                tickState.FacingRight);
+                tickState.FacingRight,
+                tickState.ActiveStatModifiers.VisualScale);
         }
 
         UpdateHealthPresentation(
@@ -168,15 +162,10 @@ public sealed class PlayerVisual :
     // Facing
     // =========================================================
 
-    private void UpdateFacing(bool facingRight)
+    private void UpdateFacing(
+        bool facingRight,
+        float statScale)
     {
-        float statScale =
-            _skillController != null
-                ? _skillController
-                    .GetActiveStatModifiers()
-                    .VisualScale
-                : 1f;
-
         if (_facingInitialized &&
             _previousFacingRight ==
             facingRight &&
