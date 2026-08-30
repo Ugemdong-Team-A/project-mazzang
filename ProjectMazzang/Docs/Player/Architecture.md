@@ -196,6 +196,21 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
   필요한 경우 Networked 슬롯 상태에 한 번 저장한다.
 - Render 프레임의 로컬 입력이나 `Time.deltaTime`으로 게임플레이 결과를 결정하지 않는다.
 
+## 기본 능력치 데이터
+
+- 각 플레이어 프리팹은 일반 `MonoBehaviour`인 `PlayerStatsInstaller`와 선택적인
+  `PlayerStatsData` 참조를 소유한다. `CharacterData`와 `PlayerController`는 이 배포를 담당하지 않는다.
+- Installer는 같은 루트 GameObject의 `IStatsConsumer`만 찾아 초기화한다. 따라서 중첩된
+  `NetworkObject`나 다른 플레이어의 소비자를 잘못 초기화하지 않는다.
+- Installer는 Tick 모듈이 아니다. Stage, State, Command를 소유하지 않고 `Awake`에서 정적 설정만
+  전달한다.
+- `PlayerStatsData`가 없거나 Installer 자체가 없는 프리팹에서도 각 소비자는 자신의 안전한 기본값으로
+  동작해야 한다. 현재 기본값은 이동 속도 7, 최대 체력 100이다.
+- 현재 중앙화한 값은 실제로 공통 Modifier와 결합되는 이동 속도와 최대 체력뿐이다. 공격 데이터,
+  이동 가속도, 점프 규칙처럼 소유자가 명확한 설정은 해당 Data 또는 모듈에 유지한다.
+- 활성 스킬 배율은 계속 `PlayerTickState.ActiveStatModifiers`로 전달한다. 기본 능력치 Data는 TickState를
+  대체하지 않으며, 소비자는 `기본값 × 활성 배율`로 최종 값을 계산한다.
+
 ### Dash 확장 방향
 
 `DashData`는 스킬, 기본 공격, 무기가 함께 참조할 수 있는 이동 시간과 속도,

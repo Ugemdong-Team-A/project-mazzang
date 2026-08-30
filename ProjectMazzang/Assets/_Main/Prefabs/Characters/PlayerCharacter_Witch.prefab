@@ -735,6 +735,7 @@ GameObject:
   - component: {fileID: 8753630296370418075}
   - component: {fileID: 2139618658155120419}
   - component: {fileID: -5725392988146444809}
+  - component: {fileID: 910000000000000101}
   - component: {fileID: 8816412148498283450}
   - component: {fileID: 6238690141146646799}
   - component: {fileID: 101575489673954935}
@@ -898,6 +899,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
   _modules: []
+--- !u!114 &910000000000000101
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3070214049785180998}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 031a3d6f78cf4252a60ca4ad2b38d855, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerStatsInstaller
+  statsData: {fileID: 11400000, guid: 283ef5d85f5547cd85b9e21989976975, type: 2}
 --- !u!114 &8816412148498283450
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -930,7 +944,6 @@ MonoBehaviour:
   groundLayer:
     serializedVersion: 2
     m_Bits: 64
-  maxMoveSpeed: 7
   groundAcceleration: 45
   groundDeceleration: 60
   airAcceleration: 30
@@ -1020,7 +1033,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8b686b5ea0811464c9698272905f92d6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerHealth
-  maxHealth: 100
   startingLives: 3
   respawnDelay: 2
   respawnInvulnerabilityDuration: 2
