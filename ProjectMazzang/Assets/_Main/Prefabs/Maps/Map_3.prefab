@@ -1237,13 +1237,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 728fb1f54fcb4d8fa561b6f39f2716ac, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MagicCliffsArenaVisual
-  skySprite: {fileID: 3836954968553550457, guid: d733cf66f8ddf074684fbbcce02c4609, type: 3}
-  cloudsSprite: {fileID: 8287873616420496286, guid: 576790fad10ba0344b41f89b416777b4, type: 3}
-  farGroundsSprite: {fileID: -2722503770247739202, guid: aa9732376a1ebe441912a08d66f12a28, type: 3}
-  seaSprite: {fileID: 697817598604000450, guid: e028fca4c682de741a80fd80188076d1, type: 3}
+  skySprite: {fileID: 3389888852245297605, guid: 3d102db95bbad4e449dd69a0280212ee, type: 3}
+  ground1Sprite: {fileID: 7050288219500328103, guid: 9b6793ec7780df249b2aaa7624306278, type: 3}
+  ground2Sprite: {fileID: -2939941148912627368, guid: 247323b809c36a0499ff08056b2130ba, type: 3}
+  ground3Sprite: {fileID: 3934262687199192900, guid: f3bff7b7f642cac4e817475fec088c08, type: 3}
+  backgroundWorldSize: {x: 84, y: 34}
+  backgroundCenter: {x: 0, y: 1}
   platformSprite: {fileID: -538331831730588137, guid: 7a64171fd5a7df549a075b68a9b99152, type: 3}
   treeSprite: {fileID: -7486092956772349302, guid: 7a64171fd5a7df549a075b68a9b99152, type: 3}
-  floatingIslandSprite: {fileID: 6007627129536956325, guid: 7a64171fd5a7df549a075b68a9b99152, type: 3}
 --- !u!1 &6882495643875308819
 GameObject:
   m_ObjectHideFlags: 0

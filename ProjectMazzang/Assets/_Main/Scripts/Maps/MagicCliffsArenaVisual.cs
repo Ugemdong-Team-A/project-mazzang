@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 [DisallowMultipleComponent]
 public sealed class MagicCliffsArenaVisual :
@@ -9,14 +10,25 @@ public sealed class MagicCliffsArenaVisual :
     [SerializeField]
     private Sprite skySprite;
 
+    [FormerlySerializedAs("cloudsSprite")]
     [SerializeField]
-    private Sprite cloudsSprite;
+    private Sprite ground1Sprite;
+
+    [FormerlySerializedAs("farGroundsSprite")]
+    [SerializeField]
+    private Sprite ground2Sprite;
+
+    [FormerlySerializedAs("seaSprite")]
+    [SerializeField]
+    private Sprite ground3Sprite;
 
     [SerializeField]
-    private Sprite farGroundsSprite;
+    private Vector2 backgroundWorldSize =
+        new(84f, 34f);
 
     [SerializeField]
-    private Sprite seaSprite;
+    private Vector2 backgroundCenter =
+        new(0f, 1f);
 
     [Header("Terrain")]
     [SerializeField]
@@ -24,9 +36,6 @@ public sealed class MagicCliffsArenaVisual :
 
     [SerializeField]
     private Sprite treeSprite;
-
-    [SerializeField]
-    private Sprite floatingIslandSprite;
 
     private readonly List<ParallaxLayer>
         _parallaxLayers = new();
@@ -80,57 +89,37 @@ public sealed class MagicCliffsArenaVisual :
 
     private void BuildBackground()
     {
-        CreateStretchedLayer(
+        CreateSingleLayer(
             "Sky",
             skySprite,
-            new Vector2(84f, 34f),
-            new Vector2(0f, 1f),
             -100,
-            1f,
-            Color.white);
+            1f);
 
-        CreateRepeatedLayer(
-            "Clouds",
-            cloudsSprite,
-            4,
-            4.2f,
-            4.5f,
+        CreateSingleLayer(
+            "Ground 1",
+            ground1Sprite,
             -90,
-            0.92f,
-            new Color(1f, 1f, 1f, 0.92f));
+            0.9f);
 
-        CreateRepeatedLayer(
-            "Far Grounds",
-            farGroundsSprite,
-            5,
-            3.15f,
-            -0.25f,
+        CreateSingleLayer(
+            "Ground 2",
+            ground2Sprite,
             -80,
-            0.74f,
-            new Color(0.92f, 1f, 0.96f, 1f));
+            0.75f);
 
-        CreateRepeatedLayer(
-            "Sea",
-            seaSprite,
-            10,
-            7.5f,
-            -5.5f,
+        CreateSingleLayer(
+            "Ground 3",
+            ground3Sprite,
             -70,
-            0.48f,
-            Color.white);
-
-        CreateIslandLayer();
+            0.55f);
     }
 
 
-    private void CreateStretchedLayer(
+    private void CreateSingleLayer(
         string layerName,
         Sprite sprite,
-        Vector2 worldSize,
-        Vector2 center,
         int sortingOrder,
-        float follow,
-        Color color)
+        float follow)
     {
         if (sprite == null)
             return;
@@ -146,125 +135,24 @@ public sealed class MagicCliffsArenaVisual :
                 layerName,
                 sprite,
                 sortingOrder,
-                color);
+                Color.white);
 
         Vector2 spriteSize =
             sprite.bounds.size;
 
-        renderer.transform.localScale =
-            new Vector3(
-                worldSize.x /
+        float scale =
+            Mathf.Max(
+                backgroundWorldSize.x /
                 Mathf.Max(spriteSize.x, 0.01f),
-                worldSize.y /
-                Mathf.Max(spriteSize.y, 0.01f),
-                1f);
-
-        MoveRendererCenter(
-            renderer,
-            center);
-    }
-
-
-    private void CreateRepeatedLayer(
-        string layerName,
-        Sprite sprite,
-        int count,
-        float scale,
-        float centerY,
-        int sortingOrder,
-        float follow,
-        Color color)
-    {
-        if (sprite == null ||
-            count <= 0)
-        {
-            return;
-        }
-
-        Transform layer =
-            CreateLayerRoot(
-                layerName,
-                follow);
-
-        float width =
-            sprite.bounds.size.x *
-            scale;
-
-        float startX =
-            -width *
-            (count - 1) *
-            0.5f;
-
-        for (int i = 0; i < count; i++)
-        {
-            SpriteRenderer renderer =
-                CreateRenderer(
-                    layer,
-                    $"{layerName} {i + 1}",
-                    sprite,
-                    sortingOrder,
-                    color);
-
-            renderer.transform.localScale =
-                Vector3.one *
-                scale;
-
-            MoveRendererCenter(
-                renderer,
-                new Vector2(
-                    startX +
-                    width * i,
-                    centerY));
-        }
-    }
-
-
-    private void CreateIslandLayer()
-    {
-        if (floatingIslandSprite == null)
-            return;
-
-        Transform layer =
-            CreateLayerRoot(
-                "Distant Islands",
-                0.6f);
-
-        CreateIsland(
-            layer,
-            new Vector2(-17f, 2.4f),
-            2.1f);
-
-        CreateIsland(
-            layer,
-            new Vector2(16f, 3.8f),
-            1.7f);
-    }
-
-
-    private void CreateIsland(
-        Transform layer,
-        Vector2 center,
-        float scale)
-    {
-        SpriteRenderer renderer =
-            CreateRenderer(
-                layer,
-                "Distant Island",
-                floatingIslandSprite,
-                -60,
-                new Color(
-                    0.7f,
-                    0.86f,
-                    0.78f,
-                    0.72f));
+                backgroundWorldSize.y /
+                Mathf.Max(spriteSize.y, 0.01f));
 
         renderer.transform.localScale =
-            Vector3.one *
-            scale;
+            Vector3.one * scale;
 
         MoveRendererCenter(
             renderer,
-            center);
+            backgroundCenter);
     }
 
 
