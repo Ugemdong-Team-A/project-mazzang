@@ -111,6 +111,11 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
   컴포넌트는 이 도구의 존재나 보관 위치에 의존하지 않는다.
 - `PlayerAim`은 상체 CCD Solver만 명시적으로 참조하고 Target과 기준 본은 Solver 체인에서 얻는다.
   `PlayerWeaponController`는 손 Solver와 표시용 `WeaponSocket`만 명시적으로 참조한다.
+- `PlayerAim`은 제한된 허리 각도와 최대 각도를 `PlayerTickState`에 공개한다. 무기는 이 스냅샷으로
+  제한된 발사 방향을 계산하며 `PlayerAim`의 구체 타입을 직접 참조하지 않는다.
+- 기사와 TestChar의 `WeaponSocket`은 프리팹에서 `ResolvedAimPivot`의 직접 자식으로 두고,
+  로컬 위치 `(0, 0, 0)`, 로컬 회전 `-90°`, 로컬 크기 `(1, 1, 1)`를 유지한다.
+  런타임 코드는 이 계층을 재배치하거나 보정하지 않는다.
 - 실제 `AimOrigin` 트랜스폼은 `PlayerAim`만 소유한다. 같은 Tick의 `PlayerCombat`과
   `PlayerWeaponController`는 `PlayerTickState`에 복사된 위치를 판정·발사·드롭 기준으로 재사용하며,
   애니메이션을 따라 움직이는 `WeaponSocket`은 게임플레이 원점으로 사용하지 않는다.

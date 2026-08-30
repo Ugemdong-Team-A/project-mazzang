@@ -159,9 +159,6 @@ public sealed class PlayerAim :
         RigMode !=
             PlayerAimRigMode.Procedural;
 
-    public Transform ResolvedAimPivot =>
-        resolvedAimPivot;
-
     public Vector2 AimOriginPosition =>
         aimOrigin != null
             ? (Vector2)aimOrigin.position
@@ -199,6 +196,8 @@ public sealed class PlayerAim :
                 ? AimOriginPosition
                 : Vector2.zero;
         state.AimDirection = AimDirection;
+        state.BodyAimAngle = BodyAimAngle;
+        state.MaxBodyAimAngle = maxBodyAimAngle;
     }
 
 
@@ -615,7 +614,7 @@ public sealed class PlayerAim :
         }
 
         float targetAngle =
-            CalculateLocalAimAngle(
+            PlayerAimMath.CalculateLocalAngle(
                 AimDirection, facingRight);
 
         targetAngle =
@@ -630,72 +629,6 @@ public sealed class PlayerAim :
                 targetAngle,
                 bodyAimSpeed *
                 Runner.DeltaTime);
-    }
-
-
-    private float CalculateLocalAimAngle(
-        Vector2 worldDirection, bool facingFight)
-    {
-        Vector2 localDirection =
-            facingFight
-                ? worldDirection
-                : new Vector2(
-                    -worldDirection.x,
-                    worldDirection.y);
-
-        return
-            Mathf.Atan2(
-                localDirection.y,
-                localDirection.x) *
-            Mathf.Rad2Deg;
-    }
-
-
-    private Vector2 GetWorldBodyDirection(
-        float localAngle, bool facingRight)
-    {
-        float radians =
-            localAngle *
-            Mathf.Deg2Rad;
-
-        Vector2 direction =
-            new Vector2(
-                Mathf.Cos(radians),
-                Mathf.Sin(radians));
-
-        if (!facingRight)
-        {
-            direction.x *=
-                -1f;
-        }
-
-        return direction.normalized;
-    }
-
-
-    public Vector2 ResolveLimitedAimDirection(
-        Vector2 direction,
-        bool facingRight)
-    {
-        direction = NormalizeDirection(direction);
-
-        if (direction.sqrMagnitude <= 0.0001f)
-        {
-            return GetWorldBodyDirection(
-                BodyAimAngle,
-                facingRight);
-        }
-
-        float localAngle = Mathf.Clamp(
-            CalculateLocalAimAngle(
-                direction,
-                facingRight),
-            -maxBodyAimAngle,
-            maxBodyAimAngle);
-
-        return GetWorldBodyDirection(
-            localAngle,
-            facingRight);
     }
 
 
@@ -1023,7 +956,7 @@ public sealed class PlayerAim :
     private Vector2 GetPresentedBodyDirection(
         bool facingRight)
     {
-        return GetWorldBodyDirection(
+        return PlayerAimMath.GetWorldDirection(
             _hasPresentedBodyAimAngle
                 ? _presentedBodyAimAngle
                 : BodyAimAngle,

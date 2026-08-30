@@ -41,8 +41,6 @@ public sealed class PlayerWeaponController :
     private HeldWeaponView
         _boundIkView;
 
-    private PlayerAim _playerAim;
-
     private Transform _leftHandAnimationTarget;
 
     private Transform _rightHandAnimationTarget;
@@ -95,11 +93,6 @@ public sealed class PlayerWeaponController :
     public Transform WeaponSocket =>
         weaponSocket;
 
-    private Transform ResolvedAimPivot =>
-        _playerAim != null
-            ? _playerAim.ResolvedAimPivot
-            : null;
-
     public int WeaponSortingOrder =>
         weaponSortingOrder;
 
@@ -113,10 +106,6 @@ public sealed class PlayerWeaponController :
 
     public override void Spawned()
     {
-        _playerAim = GetComponent<PlayerAim>();
-
-        StabilizeWeaponSocket();
-
         CaptureAnimationHandIkTargets();
         RestoreAnimationHandIk();
 
@@ -306,8 +295,7 @@ public sealed class PlayerWeaponController :
         {
             equippedWeapon
                 .RefreshHeldPresentation(
-                    ResolvedAimPivot == null &&
-                    !tickState.FacingRight);
+                    false);
         }
 
         UpdateWeaponIkBinding();
@@ -317,43 +305,6 @@ public sealed class PlayerWeaponController :
     // =========================================================
     // Weapon Aim
     // =========================================================
-
-    private void StabilizeWeaponSocket()
-    {
-        if (weaponSocket == null)
-            return;
-
-        Transform resolvedAimPivot =
-            ResolvedAimPivot;
-
-        Transform stableParent =
-            resolvedAimPivot != null
-                ? resolvedAimPivot
-                : transform;
-
-        if (weaponSocket.parent != stableParent)
-        {
-            weaponSocket.SetParent(
-                stableParent,
-                true);
-        }
-
-        if (resolvedAimPivot != null)
-        {
-            weaponSocket.localPosition =
-                Vector3.zero;
-
-            weaponSocket.localScale =
-                Vector3.one;
-        }
-
-        weaponSocket.localRotation =
-            Quaternion.Euler(
-                0f,
-                0f,
-                -90f);
-    }
-
 
     private void UpdateAuthoritativeWeaponAngle(
         Vector2 aimWorldPosition,
@@ -375,14 +326,9 @@ public sealed class PlayerWeaponController :
             return;
         }
 
-        if (_playerAim != null)
-        {
-            direction =
-                _playerAim.ResolveLimitedAimDirection(
-                    direction,
-                    !state.HasMovement ||
-                    state.FacingRight);
-        }
+        direction =
+            state.ResolveLimitedAimDirection(
+                direction);
 
         WeaponAngle =
             DirectionToAngle(

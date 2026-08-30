@@ -95,6 +95,10 @@ public sealed class PlayerTickState
 
     public Vector2 AimDirection { get; internal set; }
 
+    public float BodyAimAngle { get; internal set; }
+
+    public float MaxBodyAimAngle { get; internal set; }
+
 
     public bool HasEquippedWeapon { get; internal set; }
 
@@ -142,6 +146,8 @@ public sealed class PlayerTickState
         HasAimOrigin = false;
         AimOriginPosition = Vector2.zero;
         AimDirection = Vector2.zero;
+        BodyAimAngle = 0f;
+        MaxBodyAimAngle = 0f;
 
         HasEquippedWeapon = false;
     }
@@ -178,5 +184,23 @@ public sealed class PlayerTickState
         return HasAimOrigin
             ? AimOriginPosition
             : fallbackPosition;
+    }
+
+
+    public Vector2 ResolveLimitedAimDirection(
+        Vector2 direction)
+    {
+        if (!HasAim)
+        {
+            return direction.sqrMagnitude > 0.0001f
+                ? direction.normalized
+                : Vector2.zero;
+        }
+
+        return PlayerAimMath.ResolveLimitedDirection(
+            direction,
+            !HasMovement || FacingRight,
+            MaxBodyAimAngle,
+            BodyAimAngle);
     }
 }
