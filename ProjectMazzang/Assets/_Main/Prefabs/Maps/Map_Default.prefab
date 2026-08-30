@@ -29,8 +29,8 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: -2.74, z: 0}
-  m_LocalScale: {x: 22.475, y: 1, z: 1}
-  m_ConstrainProportionsScale: 1
+  m_LocalScale: {x: 50, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 5975217270133491723}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -832,13 +832,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 728fb1f54fcb4d8fa561b6f39f2716ac, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MagicCliffsArenaVisual
-  skySprite: {fileID: 21300000, guid: 3d102db95bbad4e449dd69a0280212ee, type: 3}
-  ground1Sprite: {fileID: 21300000, guid: 9b6793ec7780df249b2aaa7624306278, type: 3}
-  ground2Sprite: {fileID: 21300000, guid: 247323b809c36a0499ff08056b2130ba, type: 3}
-  ground3Sprite: {fileID: 21300000, guid: f3bff7b7f642cac4e817475fec088c08, type: 3}
+  skySprite: {fileID: 3389888852245297605, guid: 7ece8e883879b97429fb80e108708c8f, type: 3}
+  ground1Sprite: {fileID: 21300000, guid: 8403c6390ed46ab45957ce687a0b4509, type: 3}
+  ground2Sprite: {fileID: 21300000, guid: 0c2da33d73047df41aa85e2384b2c930, type: 3}
+  ground3Sprite: {fileID: 21300000, guid: 2039a67eb21f1044997307e95a1df617, type: 3}
   backgroundWorldSize: {x: 84, y: 34}
   backgroundScale: 0.6666667
-  backgroundOffset: {x: 0, y: 2}
+  backgroundOffset: {x: 0, y: 5}
   platformSprite: {fileID: -538331831730588137, guid: 7a64171fd5a7df549a075b68a9b99152, type: 3}
   treeSprite: {fileID: -7486092956772349302, guid: 7a64171fd5a7df549a075b68a9b99152, type: 3}
 --- !u!1 &6882495643875308819
