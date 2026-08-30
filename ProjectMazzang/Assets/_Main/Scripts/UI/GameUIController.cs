@@ -364,9 +364,19 @@ public sealed class GameUIController : MonoBehaviour
         if (character == null)
             return;
 
+        Transform cameraTarget =
+            character.transform;
+
+        if (character.TryGetComponent(
+                out PlayerHealth health))
+        {
+            cameraTarget =
+                health.CameraTarget;
+        }
+
         BattleCameraController.Instance?
             .FocusWinner(
-                character.transform);
+                cameraTarget);
     }
 
 
