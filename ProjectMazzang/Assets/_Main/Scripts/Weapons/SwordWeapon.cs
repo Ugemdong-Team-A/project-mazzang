@@ -127,19 +127,19 @@ public sealed class SwordWeapon :
             return;
 
         if (!Holder.TryGetComponent(
-                out PlayerWeaponController controller))
+                out IWeaponHandler handler))
         {
             return;
         }
 
         Vector2 origin =
-            controller.WeaponSocket != null
-                ? controller.WeaponSocket.position
+            handler.WeaponSocket != null
+                ? handler.WeaponSocket.position
                 : (Vector2)transform.position;
 
         Vector2 direction =
             NormalizeDirection(
-                controller.WeaponDirection);
+                handler.WeaponDirection);
 
         PerformAttack(
             origin,

@@ -87,7 +87,8 @@ namespace ProjectMazzang.Tests
 
             AssertInterfaces(
                 "PlayerWeaponController",
-                "IPlayerTickStateSource");
+                "IPlayerTickStateSource",
+                "IWeaponHandler");
         }
 
 

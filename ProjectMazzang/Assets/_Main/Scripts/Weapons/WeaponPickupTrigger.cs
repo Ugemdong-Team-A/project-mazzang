@@ -47,20 +47,20 @@ public sealed class WeaponPickupTrigger :
             return;
         }
 
-        PlayerWeaponController controller =
+        IWeaponHandler handler =
             other.GetComponentInParent<
-                PlayerWeaponController>();
+                IWeaponHandler>();
 
-        if (controller == null)
+        if (handler == null)
             return;
 
         if (!weapon.CanBePickedUpBy(
-                controller.Object.InputAuthority))
+                handler.Object.InputAuthority))
         {
             return;
         }
 
-        controller.TryEquipWeapon(
+        handler.TryEquipWeapon(
             weapon);
     }
 }
