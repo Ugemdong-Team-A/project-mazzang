@@ -126,6 +126,9 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
 - Render에서 얻은 `WeaponSocket` 좌표는 외관에만 사용하고 다음 Tick의 판정 값으로 넘기지 않는다.
 - 무기와 투사체의 장착 표현은 `IWeaponHandler` 계약으로 현재 무기, Socket, 방향, 정렬 정보를 읽으며
   `PlayerWeaponController` 구체 타입을 직접 참조하지 않는다.
+- Sword는 선택적인 `DashData`를 참조한다. 공격 준비 시간이 끝나는 Tick에
+  `IPlayerTickCommandDispatcher`로 이동 속도와 Control Lock을 요청한 뒤 타격을 판정한다.
+  방향 정책은 직렬화 설정에 따라 공격 입력 순간의 방향 또는 돌진 시작 Tick의 최신 Aim 방향을 사용한다.
 - 양손 Limb Solver는 IK Target을 녹화한 일반 이동·공격 클립을 재생하기 위해 평상시에도 활성화한다.
   무기를 장착하면 각 손의 Target만 해당 Grip으로 교체하고, Grip이 없는 손은 애니메이션 Target을
   유지한다. 무기를 해제하면 두 손 모두 원래 애니메이션 Target으로 복원한다.

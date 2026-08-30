@@ -406,6 +406,8 @@ MonoBehaviour:
   hurtboxLayer:
     serializedVersion: 2
     m_Bits: 256
+  dash: {fileID: 11400000, guid: 4fbe5c8f8e1f4c6bbfd7c493a982be10, type: 2}
+  useLatestAimDirectionOnDash: 1
   cooldown: 0.5
   attackDelay: 0.5
 --- !u!114 &4498004678548388021

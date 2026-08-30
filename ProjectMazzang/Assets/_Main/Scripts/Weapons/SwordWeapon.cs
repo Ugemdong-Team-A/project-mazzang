@@ -20,6 +20,16 @@ public sealed class SwordWeapon :
     [SerializeField]
     private LayerMask hurtboxLayer;
 
+    [Header("Dash")]
+    [SerializeField]
+    private DashData dash;
+
+    [Tooltip(
+        "켜면 준비 시간이 끝나는 Tick의 최신 조준 방향으로 돌진합니다. " +
+        "끄면 공격 입력 순간의 방향을 유지합니다.")]
+    [SerializeField]
+    private bool useLatestAimDirectionOnDash = true;
+
     [Header("Cooldown")]
     [Min(0f)]
     [SerializeField]
@@ -41,6 +51,8 @@ public sealed class SwordWeapon :
         get;
         set;
     }
+
+    [Networked]
     private Vector2 AttackDirection
     {
         get;
@@ -61,6 +73,9 @@ public sealed class SwordWeapon :
 
         CooldownTimer =
             TickTimer.None;
+
+        AttackDirection =
+            Vector2.right;
     }
 
 
@@ -75,6 +90,10 @@ public sealed class SwordWeapon :
             Debug.Log("[Sword] CanAttack 실패");
             return false;
         }
+
+        AttackDirection =
+            NormalizeDirection(
+                direction);
 
         AttackDelayTimer =
             attackDelay > 0f
@@ -139,14 +158,45 @@ public sealed class SwordWeapon :
                 : (Vector2)transform.position;
 
         Vector2 direction =
-            NormalizeDirection(
-                handler.WeaponDirection);
+            useLatestAimDirectionOnDash
+                ? NormalizeDirection(
+                    handler.WeaponDirection)
+                : NormalizeDirection(
+                    AttackDirection);
+
+        ApplyDash(
+            direction);
 
         PerformAttack(
             origin,
             direction);
 
-        Debug.Log("[Sword] 0.5초 후 공격 판정");
+        Debug.Log("[Sword] 준비 후 돌진 및 공격 판정");
+    }
+
+
+    private void ApplyDash(
+        Vector2 direction)
+    {
+        if (dash == null ||
+            dash.Speed <= 0f ||
+            Holder == null ||
+            !Holder.TryGetComponent(
+                out IPlayerTickCommandDispatcher dispatcher))
+        {
+            return;
+        }
+
+        dispatcher.TickCommands
+            .RequestSetMovementVelocity(
+                direction *
+                dash.Speed);
+
+        dispatcher.TickCommands
+            .RequestControlLock(
+                PlayerControlLock.Movement |
+                PlayerControlLock.Attack,
+                dash.Duration);
     }
 
     private void PerformAttack(
