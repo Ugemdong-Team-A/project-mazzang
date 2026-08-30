@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [CreateAssetMenu(
-    menuName = "Game/Character Catalog",
+    menuName = "Mazzang/Data/Character/Catalog",
     fileName = "CharacterCatalog")]
 public sealed class CharacterCatalog : ScriptableObject
 {

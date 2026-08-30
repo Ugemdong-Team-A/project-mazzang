@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ParryData
   activeDuration: 0.6
   cooldown: 3
-  radius: 1.35
+  radius: 1
   arcAngle: 110
   aimInfluence: 0.85
   speedMultiplier: 1.15

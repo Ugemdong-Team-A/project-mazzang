@@ -35,6 +35,12 @@ public sealed class PlayerCombat :
     private readonly HashSet<IDamageable>
         _hitTargets = new();
 
+#if UNITY_EDITOR
+    private Vector2 _attackGizmoOrigin;
+
+    private bool _hasAttackGizmoOrigin;
+#endif
+
 
     // =========================================================
     // Network State
@@ -82,6 +88,22 @@ public sealed class PlayerCombat :
 
     [Networked]
     private TickTimer AttackControlLockTimer
+    {
+        get;
+        set;
+    }
+
+
+    [Networked]
+    private TickTimer AttackDashTimer
+    {
+        get;
+        set;
+    }
+
+
+    [Networked]
+    private Vector2 AttackDashDirection
     {
         get;
         set;
@@ -181,6 +203,12 @@ public sealed class PlayerCombat :
 
         AttackControlLockTimer =
             TickTimer.None;
+
+        AttackDashTimer =
+            TickTimer.None;
+
+        AttackDashDirection =
+            Vector2.zero;
     }
 
 
@@ -191,6 +219,14 @@ public sealed class PlayerCombat :
     public override void Simulate(
         in PlayerTick tick)
     {
+#if UNITY_EDITOR
+        _attackGizmoOrigin =
+            tick.State.ResolveAimOrigin(
+                transform.position);
+
+        _hasAttackGizmoOrigin = true;
+#endif
+
         TickAction(
             tick.State.HasHealth &&
             tick.State.IsAlive,
@@ -213,6 +249,9 @@ public sealed class PlayerCombat :
         state.IsAttackControlLocked =
             IsAttackControlLocked;
         state.IsCombatMovementLocked = IsMovementLocked;
+
+        CaptureAttackDashState(
+            state);
     }
 
 
@@ -308,6 +347,8 @@ public sealed class PlayerCombat :
         // ==========================================
         // Attack State
         // ==========================================
+
+        UpdateAttackDash();
 
         bool comboInputConsumed =
             UpdateAttack(
@@ -469,6 +510,11 @@ public sealed class PlayerCombat :
             sourceAimDirection);
 
 
+        StartAttackDash(
+            attackData.Dash,
+            sourceAimDirection);
+
+
         AttackSequence++;
     }
 
@@ -499,6 +545,100 @@ public sealed class PlayerCombat :
                 in aimOverride,
                 sourceAimDirection);
         }
+    }
+
+
+    // =========================================================
+    // Attack Dash
+    // =========================================================
+
+    private bool IsAttackDashActive =>
+        AttackDashTimer.IsRunning &&
+        !AttackDashTimer.Expired(Runner);
+
+
+    private void StartAttackDash(
+        DashData dash,
+        Vector2 sourceAimDirection)
+    {
+        StopAttackDash();
+
+        if (dash == null ||
+            dash.Duration <= 0f ||
+            dash.Speed <= 0f)
+        {
+            AttackDashTimer =
+                TickTimer.None;
+
+            AttackDashDirection =
+                Vector2.zero;
+
+            return;
+        }
+
+        AttackDashDirection =
+            sourceAimDirection.sqrMagnitude > 0.0001f
+                ? sourceAimDirection.normalized
+                : Vector2.right;
+
+        AttackDashTimer =
+            CreateTimer(
+                dash.Duration);
+    }
+
+
+    private void UpdateAttackDash()
+    {
+        if (!AttackDashTimer.IsRunning ||
+            !AttackDashTimer.Expired(Runner))
+        {
+            return;
+        }
+
+        StopAttackDash();
+    }
+
+
+    private void StopAttackDash()
+    {
+        bool wasRunning =
+            AttackDashTimer.IsRunning;
+
+        AttackDashTimer =
+            TickTimer.None;
+
+        AttackDashDirection =
+            Vector2.zero;
+
+        if (wasRunning &&
+            Commands != null)
+        {
+            Commands.RequestSetMovementVelocity(
+                Vector2.zero);
+        }
+    }
+
+
+    private void CaptureAttackDashState(
+        PlayerTickState state)
+    {
+        PlayerAttackData attackData =
+            null;
+
+        bool hasDash =
+            IsAttackDashActive &&
+            TryGetCurrentAttackData(
+                out attackData) &&
+            attackData.Dash != null;
+
+        state.HasCombatDash =
+            hasDash;
+
+        state.CombatDashVelocity =
+            hasDash
+                ? AttackDashDirection *
+                  attackData.Dash.Speed
+                : Vector2.zero;
     }
 
 
@@ -591,7 +731,8 @@ public sealed class PlayerCombat :
                 boxAttack,
                 facingRight,
                 ResolveGameplayAttackOrigin(
-                    tickState));
+                    tickState),
+                tickState.ActiveStatModifiers.AttackDamage);
         }
 
 
@@ -780,6 +921,8 @@ public sealed class PlayerCombat :
 
     public void CancelAttack()
     {
+        StopAttackDash();
+
         if (AttackState ==
                 PlayerAttackState.None &&
             CurrentAttackId ==
@@ -947,7 +1090,8 @@ public sealed class PlayerCombat :
     private void PerformBoxAttackHit(
         BoxAttackData attack,
         bool facingRight,
-        Vector2 attackOrigin)
+        Vector2 attackOrigin,
+        float attackDamageMultiplier)
     {
         if (attack == null)
             return;
@@ -1018,6 +1162,7 @@ public sealed class PlayerCombat :
             DamageInfo info =
                 new DamageInfo(
                     attack.Damage,
+                    attackDamageMultiplier,
                     Object,
                     knockback,
                     attack.CrowdControl);
@@ -1113,12 +1258,10 @@ public sealed class PlayerCombat :
 
     private void OnDrawGizmosSelected()
     {
-        PlayerAim playerAim =
-            GetComponent<PlayerAim>();
-
         Vector2 origin =
-            playerAim != null
-                ? playerAim.AimOriginPosition
+            Application.isPlaying &&
+            _hasAttackGizmoOrigin
+                ? _attackGizmoOrigin
                 : (Vector2)transform.position;
 
 

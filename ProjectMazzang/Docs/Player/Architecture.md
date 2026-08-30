@@ -31,6 +31,7 @@ Fusion Render
 `PlayerController`는 모듈의 구체 타입이나 게임 규칙을 알지 않는다. 같은 `NetworkObject`에 속한
 `PlayerTickModule`을 수집하고 `Stage`, `Order`만으로 실행한다. 같은 플레이어에서
 `Stage + Order`가 중복되면 오류를 출력하고 파이프라인을 시작하지 않는다.
+각 Tick 모듈 역시 동료 모듈의 구체 타입을 직접 참조하지 않으며, EditMode 계약 테스트가 이 규칙을 보호한다.
 
 ## 현재 Tick 순서
 
@@ -96,6 +97,9 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
 - `PlayerAttackData`는 플레이어가 공격을 실행하는 Startup, Active, Recovery,
   Cooldown과 Aim, Movement 규칙을 SO로 보관한다. `PlayerCombat`은 인라인 공격 설정을
   보관하지 않고 이 에셋만 참조한다.
+- `PlayerAttackData.Dash`가 있으면 공격 시작 Tick의 Aim 방향을 고정해 지정된 시간 동안
+  일반 이동과 공격 이동 잠금보다 우선하는 속도를 `PlayerTickState`로 전달한다. 실제 Rigidbody
+  변경은 계속 `PlayerMovement`가 담당하며, 대시 종료나 공격 취소 시 강제 속도를 제거한다.
 - 공격 자세는 `ProceduralAim`, `AnimationOnly`, `AnimationWithBodyAim` 중 하나를 선택한다.
   `ProceduralAim` 공격은 기본 포즈에서 4본 CCD를 풀고, `AnimationOnly`는 상체 조준 보정을 끈다.
   `AnimationWithBodyAim`은 4본 CCD로 각 본을 다시 분배하지 않고, Animator가 만든 상체를
@@ -108,13 +112,23 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
   컴포넌트는 이 도구의 존재나 보관 위치에 의존하지 않는다.
 - `PlayerAim`은 상체 CCD Solver만 명시적으로 참조하고 Target과 기준 본은 Solver 체인에서 얻는다.
   `PlayerWeaponController`는 손 Solver와 표시용 `WeaponSocket`만 명시적으로 참조한다.
+- `PlayerAim`은 제한된 허리 각도와 최대 각도를 `PlayerTickState`에 공개한다. 무기는 이 스냅샷으로
+  제한된 발사 방향을 계산하며 `PlayerAim`의 구체 타입을 직접 참조하지 않는다.
+- `maxBodyAimAngle`은 허리가 꺾이는 범위만 제한하고 `facingFlipAngle`은 좌우 반전 시점만 결정한다.
+  두 값은 독립적이며, 허리 제한 때문에 반전 각도를 자동으로 올리지 않는다.
+- 기사와 TestChar의 `WeaponSocket`은 프리팹에서 `ResolvedAimPivot`의 직접 자식으로 두고,
+  로컬 위치 `(0, 0, 0)`, 로컬 회전 `-90°`, 로컬 크기 `(1, 1, 1)`를 유지한다.
+  런타임 코드는 이 계층을 재배치하거나 보정하지 않는다.
 - 실제 `AimOrigin` 트랜스폼은 `PlayerAim`만 소유한다. 같은 Tick의 `PlayerCombat`과
   `PlayerWeaponController`는 `PlayerTickState`에 복사된 위치를 판정·발사·드롭 기준으로 재사용하며,
   애니메이션을 따라 움직이는 `WeaponSocket`은 게임플레이 원점으로 사용하지 않는다.
 - Render에서 얻은 `WeaponSocket` 좌표는 외관에만 사용하고 다음 Tick의 판정 값으로 넘기지 않는다.
-- 양손 Limb Solver는 평상시 `ProceduralAim`에서 꺼 두어 고정된 손 Target이 Animator의 팔
-  자세를 덮지 않게 한다. `AnimationOnly`와 `AnimationWithBodyAim` 공격 중에는 클립이 움직이는
-  원래 손 Target을 복원하며, 무기를 장착했다면 각 손의 Grip이 해당 Target보다 우선한다.
+- 양손 Limb Solver는 IK Target을 녹화한 일반 이동·공격 클립을 재생하기 위해 평상시에도 활성화한다.
+  무기를 장착하면 각 손의 Target만 해당 Grip으로 교체하고, Grip이 없는 손은 애니메이션 Target을
+  유지한다. 무기를 해제하면 두 손 모두 원래 애니메이션 Target으로 복원한다.
+- `PlayerAnimation`은 수평 이동 방향과 `FacingRight`를 비교해 `MoveDirection`을 -1 또는 1로
+  전달한다. 표준 Controller의 Run BlendTree는 -1에서 후진, 1에서 전진 클립을 재생하므로 조준으로
+  바라보는 방향과 실제 이동 방향이 달라도 발동작이 맞는다.
 - `PlayerAttackData.ComboFollowUp`이 있으면 Active 시작부터 Recovery 종료까지 공격 입력을
   예약하고, Recovery가 끝날 때 후속 공격으로 직접 전환한다. `AllowRepeatedComboInput`이 켜지면
   연속 입력을 한 번의 예약으로 취급하며, 런타임 콤보 깊이는 1단계로 제한한다.
@@ -141,6 +155,20 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
 ## 스킬 확장 규칙
 
 - `SkillData`는 조정 가능한 정적 설정을 보관한다.
+- `SkillData.Animation`은 선택적인 `SkillAnimationData`를 참조한다. 이 데이터는 Cast,
+  실제 효과가 발동하는 Release, 지속 효과 뒤의 Recovery 클립을 보관하므로 복사하거나
+  교체한 스킬도 캐릭터 Animator Controller를 갈아 끼우지 않고 자신의 연출을 함께 가져간다.
+- `PlayerSkillController`는 구체 스킬 타입을 검사하지 않고 사용 슬롯과 애니메이션 단계를
+  Networked 이벤트로 알린다. `PlayerAnimation`은 플레이어마다 만든
+  `AnimatorOverrideController` 인스턴스의 공통 Cast/Release/Recovery 슬롯을 교체하므로 공유
+  Controller 에셋을 런타임에 수정하지 않는다. 각 슬롯은 실제 스킬 클립이 아니라 이름이 고유한
+  빈 Placeholder 클립을 Motion으로 가지며, `SkillPhase` 1/2/3이 해당 State를 선택한다.
+- 표준 스킬 클립은 캐릭터 본을 직접 키로 잡는 대신 `arm_l_solver/arm_l_solver_Target`과
+  `arm_r_solver/arm_r_solver_Target` 같은 공통 IK Target 경로를 사용할 수 있다. 클립은 Target만
+  움직이며 Solver의 활성 여부를 바꾸지 않는다. Solver 활성 정책은 기존 프리팹 설정과 무기
+  장착 로직이 계속 소유한다.
+- 스킬 효과 발동 시점은 Networked Phase가 결정한다. Animation Event는 게임플레이 발동이나
+  네트워크 결과를 결정하지 않는다.
 - `Skill` 런타임은 사용 조건과 실제 행동을 구현한다.
 - `PlayerSkillController`는 슬롯, 입력 진입점, 쿨다운, 충전량, 선택적 Meter와
   `Cast → Active → Recovery` Networked 수명 주기를 관리한다.
@@ -152,15 +180,28 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
   공격자의 `IDamageDealtReceiver`에 전달하며, Meter 특성을 가진 모든 슬롯이 각 비율로 받는다.
 - 첫 Meter 콘텐츠인 `UltimateAwakeningSkill`은 Meter, Duration, Stat Modifier 계약을 조합하며
   테스트 캐릭터인 기사의 `ultimateSkill`에 장착한다. Meter 처리는 슬롯 역할이 아닌 인터페이스로 판별한다.
+- `PlayerSkillController`는 활성 스킬의 합산 능력치 배율을 `PlayerTickState.ActiveStatModifiers`에
+  공개한다. 이동과 외형처럼 배율을 소비하는 모듈은 SkillController를 직접 참조하지 않는다.
+- 기본 공격, 대시, 무기는 공격을 만드는 Tick의 공격력 배율을 `DamageInfo`에 반영한다.
+  투사체와 설치물은 생성 시점의 배율을 Networked 값으로 보관하므로 비행·대기 중 버프가
+  끝나거나 소유자가 사라져도 피해량이 바뀌지 않는다.
+- `PlayerHealth`는 공격자의 스킬 모듈을 조회하지 않는다. 이미 확정된 공격 피해에 자신의
+  `PlayerTickState` 피해 수신 배율만 적용하며, 최대 체력 배율도 같은 State에서 읽는다.
 - 스킬은 `PlayerTickState`를 읽고 `PlayerTickCommands`로 변경을 요청한다.
+- 스킬의 행동 잠금은 기본 공격과 무기 사용을 막을 수 있지만 무기 버리기는 막지 않는다.
+  로컬 Drop 눌림은 다음 Fusion 입력 수집까지 보관해 짧은 탭도 유실되지 않게 한다.
 - 네트워크 결과에 영향을 주는 방향과 타이밍은 Fusion Tick 입력에서 계산하고
   필요한 경우 Networked 슬롯 상태에 한 번 저장한다.
 - Render 프레임의 로컬 입력이나 `Time.deltaTime`으로 게임플레이 결과를 결정하지 않는다.
 
 ### Dash 확장 방향
 
+`DashData`는 스킬, 기본 공격, 무기가 함께 참조할 수 있는 이동 시간과 속도,
+선택적인 플레이어 충돌 공격을 보관한다. `DashSkillData`는 충전 수와 시전·회복 시간처럼
+스킬에만 해당하는 규칙을 보관하고 공통 `DashData`를 참조한다.
+
 현재 Dash는 사용 시점의 마우스 Aim 방향을 고정하고 Startup, Active, Recovery 전체 동안
-Movement, Attack, Skill 입력을 잠근다. 향후 일반적인 Dash 변형은 `DashSkillData`에서
+Movement, Attack, Skill 입력을 잠근다. 향후 일반적인 Dash 변형은 `DashData`에서
 다음 두 축을 독립적으로 설정하는 방식이 적합하다.
 
 ```text

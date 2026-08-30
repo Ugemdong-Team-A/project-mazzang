@@ -3,8 +3,20 @@ using UnityEngine;
 public sealed class PlayerAnimation :
     PlayerTickModule
 {
+    private const string SkillCastPlaceholder =
+        "SkillCastPlaceholder";
+
+    private const string SkillReleasePlaceholder =
+        "SkillReleasePlaceholder";
+
+    private const string SkillRecoveryPlaceholder =
+        "SkillRecoveryPlaceholder";
+
     [SerializeField]
     private Animator animator;
+
+    private AnimatorOverrideController
+        _skillOverrideController;
 
     private byte _lastJumpSequence;
 
@@ -27,6 +39,8 @@ public sealed class PlayerAnimation :
 
     public override void Spawned()
     {
+        InitializeSkillOverrideController();
+
         _jumpPresentationInitialized = false;
         _attackPresentationInitialized = false;
         _deathPresentationInitialized = false;
@@ -45,6 +59,12 @@ public sealed class PlayerAnimation :
                 "Speed",
                 Mathf.Abs(
                     velocity.x));
+
+            animator.SetFloat(
+                "MoveDirection",
+                ResolveMoveDirection(
+                    velocity.x,
+                    tickState.FacingRight));
 
             animator.SetFloat(
                 "VerticalSpeed",
@@ -79,7 +99,8 @@ public sealed class PlayerAnimation :
         {
             HandleSkillAnimation(
                 tickState.SkillAnimationSequence,
-                tickState.SkillAnimationId);
+                tickState.SkillAnimationPhase,
+                tickState.SkillAnimation);
         }
 
         if (tickState.HasHealth)
@@ -87,6 +108,31 @@ public sealed class PlayerAnimation :
             HandleDeathAnimation(
                 tickState.DeathSequence);
         }
+    }
+
+
+    private static float ResolveMoveDirection(
+        float horizontalVelocity,
+        bool facingRight)
+    {
+        if (Mathf.Approximately(
+                horizontalVelocity,
+                0f))
+        {
+            return 0f;
+        }
+
+        float movementSign =
+            Mathf.Sign(
+                horizontalVelocity);
+
+        float facingSign =
+            facingRight
+                ? 1f
+                : -1f;
+
+        return movementSign *
+               facingSign;
     }
 
 
@@ -135,7 +181,8 @@ public sealed class PlayerAnimation :
 
     private void HandleSkillAnimation(
         byte skillAnimationSequence,
-        PlayerSkillAnimationId skillAnimationId)
+        SkillAnimationPhase phase,
+        SkillAnimationData animation)
     {
         if (!HasSequenceChanged(
                 ref _lastSkillAnimationSequence,
@@ -145,12 +192,87 @@ public sealed class PlayerAnimation :
             return;
         }
 
+        AnimationClip clip =
+            animation?.GetClip(phase);
+
+        if (clip == null ||
+            !TryApplySkillOverride(
+                phase,
+                clip))
+        {
+            return;
+        }
+
         animator.SetInteger(
-            "SkillId",
-            (int)skillAnimationId);
+            "SkillPhase",
+            (int)phase);
 
         animator.SetTrigger(
             "Skill");
+    }
+
+
+    private void InitializeSkillOverrideController()
+    {
+        if (_skillOverrideController != null ||
+            animator == null ||
+            animator.runtimeAnimatorController == null)
+        {
+            return;
+        }
+
+        _skillOverrideController =
+            new AnimatorOverrideController(
+                animator.runtimeAnimatorController)
+            {
+                name =
+                    $"{animator.runtimeAnimatorController.name} " +
+                    "(Player Skill Instance)"
+            };
+
+        animator.runtimeAnimatorController =
+            _skillOverrideController;
+    }
+
+
+    private bool TryApplySkillOverride(
+        SkillAnimationPhase phase,
+        AnimationClip clip)
+    {
+        if (_skillOverrideController == null)
+            return false;
+
+        string placeholder =
+            phase switch
+            {
+                SkillAnimationPhase.Cast =>
+                    SkillCastPlaceholder,
+                SkillAnimationPhase.Release =>
+                    SkillReleasePlaceholder,
+                SkillAnimationPhase.Recovery =>
+                    SkillRecoveryPlaceholder,
+                _ =>
+                    null
+            };
+
+        if (placeholder == null)
+            return false;
+
+        _skillOverrideController[placeholder] =
+            clip;
+
+        return _skillOverrideController[placeholder] ==
+               clip;
+    }
+
+
+    private void OnDestroy()
+    {
+        if (_skillOverrideController != null)
+        {
+            Destroy(
+                _skillOverrideController);
+        }
     }
 
 

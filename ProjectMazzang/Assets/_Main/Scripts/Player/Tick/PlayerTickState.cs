@@ -37,7 +37,6 @@ public sealed class PlayerTickState
 
     public Vector2 MovementVelocity { get; internal set; }
 
-
     public bool HasCombat { get; internal set; }
 
     public bool IsAttacking { get; internal set; }
@@ -56,7 +55,13 @@ public sealed class PlayerTickState
 
     public byte SkillAnimationSequence { get; internal set; }
 
-    public PlayerSkillAnimationId SkillAnimationId { get; internal set; }
+    public SkillSlot SkillAnimationSlot { get; internal set; }
+
+    public SkillAnimationPhase SkillAnimationPhase { get; internal set; }
+
+    public SkillAnimationData SkillAnimation { get; internal set; }
+
+    public PlayerStatModifiers ActiveStatModifiers { get; internal set; }
 
     /// <summary>
     /// 외부 제어 효과로 새 스킬 사용이 잠긴 상태입니다.
@@ -74,6 +79,13 @@ public sealed class PlayerTickState
     /// </summary>
     public bool IsCombatMovementLocked { get; internal set; }
 
+    /// <summary>
+    /// 현재 기본 공격이 일반 이동보다 우선해 적용할 대시 속도입니다.
+    /// </summary>
+    public bool HasCombatDash { get; internal set; }
+
+    public Vector2 CombatDashVelocity { get; internal set; }
+
 
     public bool HasAim { get; internal set; }
 
@@ -82,6 +94,10 @@ public sealed class PlayerTickState
     public Vector2 AimOriginPosition { get; internal set; }
 
     public Vector2 AimDirection { get; internal set; }
+
+    public float BodyAimAngle { get; internal set; }
+
+    public float MaxBodyAimAngle { get; internal set; }
 
 
     public bool HasEquippedWeapon { get; internal set; }
@@ -114,15 +130,24 @@ public sealed class PlayerTickState
 
         HasSkill = false;
         SkillAnimationSequence = 0;
-        SkillAnimationId = PlayerSkillAnimationId.None;
+        SkillAnimationSlot = default;
+        SkillAnimationPhase =
+            global::SkillAnimationPhase.None;
+        SkillAnimation = null;
+        ActiveStatModifiers =
+            PlayerStatModifiers.Identity;
         IsSkillControlLocked = false;
         IsSkillActionLocked = false;
         IsCombatMovementLocked = false;
+        HasCombatDash = false;
+        CombatDashVelocity = Vector2.zero;
 
         HasAim = false;
         HasAimOrigin = false;
         AimOriginPosition = Vector2.zero;
         AimDirection = Vector2.zero;
+        BodyAimAngle = 0f;
+        MaxBodyAimAngle = 0f;
 
         HasEquippedWeapon = false;
     }
@@ -159,5 +184,23 @@ public sealed class PlayerTickState
         return HasAimOrigin
             ? AimOriginPosition
             : fallbackPosition;
+    }
+
+
+    public Vector2 ResolveLimitedAimDirection(
+        Vector2 direction)
+    {
+        if (!HasAim)
+        {
+            return direction.sqrMagnitude > 0.0001f
+                ? direction.normalized
+                : Vector2.zero;
+        }
+
+        return PlayerAimMath.ResolveLimitedDirection(
+            direction,
+            !HasMovement || FacingRight,
+            MaxBodyAimAngle,
+            BodyAimAngle);
     }
 }

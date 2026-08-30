@@ -103,8 +103,6 @@ public sealed class PlayerMovement :
     [SerializeField]
     private bool verboseWallDebug;
 
-    private PlayerSkillController _skillController;
-
     private bool _debugPreviousTouchingWallLeft;
     private bool _debugPreviousTouchingWallRight;
     private bool _debugPreviousWallSliding;
@@ -194,9 +192,6 @@ public sealed class PlayerMovement :
 
     public override void Spawned()
     {
-        _skillController =
-            GetComponent<PlayerSkillController>();
-
         if (!HasStateAuthority)
             return;
 
@@ -215,7 +210,10 @@ public sealed class PlayerMovement :
             tick.State.HasHealth &&
             tick.State.IsAlive,
             tick.State.HasCombat &&
-            tick.State.IsCombatMovementLocked);
+            tick.State.IsCombatMovementLocked,
+            tick.State.HasCombatDash,
+            tick.State.CombatDashVelocity,
+            tick.State.ActiveStatModifiers.MoveSpeed);
     }
 
 
@@ -282,7 +280,10 @@ public sealed class PlayerMovement :
 
     private void TickMotion(
         bool isAlive,
-        bool isCombatMovementLocked)
+        bool isCombatMovementLocked,
+        bool hasCombatDash,
+        Vector2 combatDashVelocity,
+        float moveSpeedMultiplier)
     {
         /*Debug.Log("[Movement] isAlive: " + isAlive + "" +
             " isCombatMovementLocked: " + isCombatMovementLocked);*/
@@ -311,6 +312,21 @@ public sealed class PlayerMovement :
                 input.Buttons;
 
             ClearControlDrivenStates();
+
+            return;
+        }
+
+        // 공격에 포함된 대시는 일반 입력과 공격 이동 잠금보다 우선합니다.
+        // 최종 속도는 공격이 확정한 TickState만 사용합니다.
+        if (hasCombatDash)
+        {
+            PreviousButtons =
+                input.Buttons;
+
+            ClearControlDrivenStates();
+
+            SetVelocity(
+                combatDashVelocity);
 
             return;
         }
@@ -344,7 +360,8 @@ public sealed class PlayerMovement :
         }
 
         MoveHorizontal(
-            moveInput.x);
+            moveInput.x,
+            moveSpeedMultiplier);
 
         HandleWallSlide(
             moveInput.x);
@@ -396,7 +413,8 @@ public sealed class PlayerMovement :
     // =========================================================
 
     private void MoveHorizontal(
-        float inputX)
+        float inputX,
+        float moveSpeedMultiplier)
     {
         if (!WallJumpControlTimer
                 .ExpiredOrNotRunning(Runner))
@@ -413,7 +431,7 @@ public sealed class PlayerMovement :
         float targetSpeed =
             inputX *
             maxMoveSpeed *
-            ResolveMoveSpeedMultiplier();
+            moveSpeedMultiplier;
 
         bool hasInput =
             Mathf.Abs(inputX) >
@@ -450,15 +468,6 @@ public sealed class PlayerMovement :
             velocity;
     }
 
-
-    private float ResolveMoveSpeedMultiplier()
-    {
-        return _skillController != null
-            ? _skillController
-                .GetActiveStatModifiers()
-                .MoveSpeed
-            : 1f;
-    }
 
     private void UpdateFacing(
         float inputX)

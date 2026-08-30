@@ -74,14 +74,17 @@
 - `AnimationOnly`는 상체 CCD를 끄고 공격 클립의 자세를 그대로 사용한다.
 - `AnimationWithBodyAim`은 공격 클립의 상체 상대 자세를 유지한 채 기준 척추에
   필요한 회전만 더해 최종 조준 방향을 맞춘다.
-- 무기가 없는 평상시 `ProceduralAim`에서는 양손 Limb Solver가 꺼져 판토마임 자세가 생기지 않는다.
-- `AnimationOnly`와 `AnimationWithBodyAim` 공격 중에는 클립의 원래 손 IK Target이 복원되고,
-  공격이 끝나면 두 Solver가 다시 꺼진다.
-- 무기를 장착하면 각 손은 클립 Target보다 무기의 Grip을 우선하며, Grip이 없는 손만 공격 중
-  클립 Target을 사용한다.
+- 무기가 없는 평상시에도 양손 Limb Solver가 애니메이션 Target을 사용해 IK 기반 이동·공격
+  클립의 팔 동작을 재생한다.
+- 무기를 장착하면 각 손은 무기의 Grip을 우선하며, Grip이 없는 손은 항상 애니메이션 Target을
+  유지한다. 무기를 해제하면 두 손 모두 애니메이션 Target으로 즉시 복원된다.
+- 바라보는 방향으로 이동하면 전진 Run, 반대 방향으로 이동하면 Backrun이 재생되며 방향 반전 후에도
+  같은 기준이 유지된다.
 - 잽의 Active 시작부터 Recovery 종료까지 공격을 한 번 이상 누르면 Counter가 이어지고,
   중복 입력 허용을 끈 데이터는 정확히 한 번 눌렀을 때만 이어진다.
 - Counter 이후에는 후속 공격 참조가 잘못 연결되어 있어도 콤보가 다시 이어지지 않는다.
+- Counter가 시작되면 시작 당시 Aim 방향으로 짧게 전진하고, 대시 중 입력으로 방향이 바뀌지 않는다.
+- Counter 대시가 끝나거나 공격이 취소되면 대시 속도가 남지 않으며 이후 이동 입력이 정상 복구된다.
 - 상체 조준과 공격 애니메이션으로 `WeaponSocket`이 움직여도 근접 판정, 무기 발사, 무기 드롭의
   기준점은 같은 Tick의 `AimOrigin`에서 흔들리지 않는다.
 - 캐릭터에서 `Standard2DRigIKSetup`을 제거하거나 별도 에디터 작업용 오브젝트로 옮겨도,
@@ -110,6 +113,15 @@
 - 피해로 사용 비용에 도달하는 Tick에 스킬 입력이 겹쳐도 최종 사용 여부와 Meter가 Host 상태로 수렴한다.
 - 100 Meter 미만에서는 각성이 시작되지 않고, 100 Meter에서 한 번 사용하면 0으로 소모된다.
 - 각성 8초 동안 이동·공격·최대 체력·피해 감소·크기 배율이 적용되고 종료 뒤 원래 값으로 복귀한다.
+
+### Skill Animation
+
+- MaryProjectileSkill을 사용하면 Cast 동안 양손이 모이는 검증 자세가 재생된다.
+- Cast가 끝나 투사체가 생성되는 Tick에 양손을 앞으로 내미는 Release 자세로 전환된다.
+- Recovery 클립이 있는 스킬은 `SkillPhase` 3에서 전용 Placeholder가 해당 클립으로 교체된다.
+- 스킬 재생이 손 Limb Solver의 기존 활성 여부를 임의로 변경하지 않는다.
+- 같은 MaryProjectileSkill을 다른 스킬 슬롯에 장착해도 슬롯 번호와 무관하게 같은 클립이 재생된다.
+- Host와 Client에서 Cast와 Release 전환 횟수가 같고 prediction 또는 resimulation으로 중복 재생되지 않는다.
 
 ## 실패 기록
 

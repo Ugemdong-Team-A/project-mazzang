@@ -136,9 +136,11 @@ public class Trap : Deployable
             attack.KnockbackUp;
 
         DamageResult result =
-            damageable.ApplyDamage(
+            CombatDamageService.ApplyDamage(
+                damageable,
                 new DamageInfo(
                     attack.Damage,
+                    AttackDamageMultiplier,
                     source,
                     knockback,
                     attack.CrowdControl));

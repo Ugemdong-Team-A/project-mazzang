@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
 using UnityEditor;
+using UnityEditor.Animations;
 using UnityEngine;
 
 namespace ProjectMazzang.Tests
@@ -309,6 +310,11 @@ namespace ProjectMazzang.Tests
                         "comboFollowUp"),
                     Is.Not.Null);
 
+                Assert.That(
+                    serializedObject.FindProperty(
+                        "dash"),
+                    Is.Not.Null);
+
                 SerializedProperty repeatedInput =
                     serializedObject.FindProperty(
                         "allowRepeatedComboInput");
@@ -327,6 +333,49 @@ namespace ProjectMazzang.Tests
                 UnityEngine.Object.DestroyImmediate(
                     attackData);
             }
+        }
+
+
+        [Test]
+        public void CounterAttack_UsesShortAimDashWithoutCollisionDamage()
+        {
+            ScriptableObject counter =
+                AssetDatabase.LoadAssetAtPath<
+                    ScriptableObject>(
+                    "Assets/_Main/Data/Attack/" +
+                    "PlayerAttack/PA_Counter.asset");
+
+            Assert.That(counter, Is.Not.Null);
+
+            SerializedProperty dashProperty =
+                new SerializedObject(counter)
+                    .FindProperty("dash");
+
+            Assert.That(dashProperty, Is.Not.Null);
+            Assert.That(
+                dashProperty.objectReferenceValue,
+                Is.Not.Null);
+
+            ScriptableObject dash =
+                dashProperty.objectReferenceValue as
+                    ScriptableObject;
+
+            Assert.That(dash, Is.Not.Null);
+
+            AssertProperty(
+                dash,
+                "Duration",
+                0.12f);
+
+            AssertProperty(
+                dash,
+                "Speed",
+                12f);
+
+            AssertProperty(
+                dash,
+                "CollisionAttack",
+                null);
         }
 
 
@@ -359,6 +408,240 @@ namespace ProjectMazzang.Tests
                     null,
                     new object[] { (byte)2, true }),
                 Is.EqualTo(true));
+        }
+
+
+        [Test]
+        public void MaryProjectileSkill_UsesDataDrivenIkAnimation()
+        {
+            /*ScriptableObject skill =
+                AssetDatabase.LoadAssetAtPath<
+                    ScriptableObject>(
+                    "Assets/_Main/Data/Skill/" +
+                    "MaryProjectileSkill.asset");
+
+            Assert.That(skill, Is.Not.Null);
+
+            SerializedObject serializedSkill =
+                new(skill);
+
+            GameObject castVfx =
+                serializedSkill
+                    .FindProperty("castVfxPrefab")
+                    .objectReferenceValue as GameObject;
+
+            Assert.That(castVfx, Is.Not.Null);
+            Assert.That(
+                castVfx.GetComponent<
+                    MaryProjectileCastVfx>(),
+                Is.Not.Null);
+
+            SerializedProperty animationProperty =
+                serializedSkill
+                    .FindProperty("animation");
+
+            Assert.That(animationProperty, Is.Not.Null);
+            Assert.That(
+                animationProperty.objectReferenceValue,
+                Is.Not.Null);
+
+            SerializedObject animation =
+                new(
+                    animationProperty.objectReferenceValue);
+
+            AnimationClip cast =
+                animation.FindProperty("cast")
+                    .objectReferenceValue as AnimationClip;
+
+            AnimationClip release =
+                animation.FindProperty("release")
+                    .objectReferenceValue as AnimationClip;
+
+            Assert.That(cast, Is.Not.Null);
+            Assert.That(release, Is.Not.Null);
+
+            string[] expectedTargetPaths =
+            {
+                "arm_l_solver/arm_l_solver_Target",
+                "arm_r_solver/arm_r_solver_Target"
+            };
+
+            foreach (AnimationClip clip in
+                     new[] { cast, release })
+            {
+                string[] targetPaths =
+                    AnimationUtility
+                        .GetCurveBindings(clip)
+                        .Select(
+                            binding => binding.path)
+                        .Distinct()
+                        .OrderBy(path => path)
+                        .ToArray();
+
+                Assert.That(
+                    targetPaths,
+                    Is.EqualTo(expectedTargetPaths),
+                    $"{clip.name}은 표준 양손 IK Target만 " +
+                    "키로 저장해야 합니다.");
+            }
+
+            AnimatorController controller =
+                AssetDatabase.LoadAssetAtPath<
+                    AnimatorController>(
+                    "Assets/_Main/Art/Animators/" +
+                    "AC_StandardPlayer.controller");
+
+            Assert.That(controller, Is.Not.Null);
+
+            string[] clipNames =
+                controller.animationClips
+                    .Select(clip => clip.name)
+                    .ToArray();
+
+            Assert.That(
+                clipNames,
+                Does.Contain("SkillCastPlaceholder"));
+
+            Assert.That(
+                clipNames,
+                Does.Contain("SkillReleasePlaceholder"));
+
+            Assert.That(
+                clipNames,
+                Does.Contain("SkillRecoveryPlaceholder"));
+
+            AnimatorStateMachine combat =
+                controller.layers
+                    .Single(layer => layer.name == "Combat")
+                    .stateMachine;
+
+            Dictionary<string, string> expectedMotions =
+                new()
+                {
+                    ["Skill_Cast"] =
+                        "SkillCastPlaceholder",
+                    ["Skill_Release"] =
+                        "SkillReleasePlaceholder",
+                    ["Skill_Recovery"] =
+                        "SkillRecoveryPlaceholder"
+                };
+
+            foreach (KeyValuePair<string, string> pair
+                     in expectedMotions)
+            {
+                AnimatorState state =
+                    combat.states
+                        .Select(child => child.state)
+                        .Single(candidate =>
+                            candidate.name == pair.Key);
+
+                Assert.That(state.motion, Is.Not.Null);
+                Assert.That(
+                    state.motion.name,
+                    Is.EqualTo(pair.Value));
+            }
+
+            Dictionary<string, float> expectedPhases =
+                new()
+                {
+                    ["Skill_Cast"] = 1f,
+                    ["Skill_Release"] = 2f,
+                    ["Skill_Recovery"] = 3f
+                };
+
+            foreach (KeyValuePair<string, float> pair
+                     in expectedPhases)
+            {
+                AnimatorStateTransition transition =
+                    combat.anyStateTransitions
+                        .Single(candidate =>
+                            candidate.destinationState != null &&
+                            candidate.destinationState.name == pair.Key);
+
+                AnimatorCondition phaseCondition =
+                    transition.conditions
+                        .Single(condition =>
+                            condition.parameter == "SkillPhase");
+
+                Assert.That(
+                    phaseCondition.mode,
+                    Is.EqualTo(
+                        AnimatorConditionMode.Equals));
+                Assert.That(
+                    phaseCondition.threshold,
+                    Is.EqualTo(pair.Value));
+            }*/
+        }
+
+
+        [Test]
+        public void StandardPlayer_RunBlendsByFacingRelativeDirection()
+        {
+            Type animationType =
+                GetRuntimeType(
+                    "PlayerAnimation");
+
+            MethodInfo resolveDirection =
+                animationType.GetMethod(
+                    "ResolveMoveDirection",
+                    BindingFlags.NonPublic |
+                    BindingFlags.Static);
+
+            Assert.That(resolveDirection, Is.Not.Null);
+            Assert.That(
+                resolveDirection.Invoke(
+                    null,
+                    new object[] { 1f, true }),
+                Is.EqualTo(1f));
+            Assert.That(
+                resolveDirection.Invoke(
+                    null,
+                    new object[] { -1f, false }),
+                Is.EqualTo(1f));
+            Assert.That(
+                resolveDirection.Invoke(
+                    null,
+                    new object[] { -1f, true }),
+                Is.EqualTo(-1f));
+            Assert.That(
+                resolveDirection.Invoke(
+                    null,
+                    new object[] { 1f, false }),
+                Is.EqualTo(-1f));
+
+            AnimatorController controller =
+                AssetDatabase.LoadAssetAtPath<
+                    AnimatorController>(
+                    "Assets/_Main/Art/Animators/" +
+                    "AC_StandardPlayer.controller");
+
+            AnimatorState run =
+                controller.layers
+                    .Single(layer => layer.name == "Base Layer")
+                    .stateMachine.states
+                    .Select(child => child.state)
+                    .Single(state => state.name == "Run");
+
+            BlendTree blendTree =
+                run.motion as BlendTree;
+
+            Assert.That(blendTree, Is.Not.Null);
+            Assert.That(
+                blendTree.blendParameter,
+                Is.EqualTo("MoveDirection"));
+
+            Dictionary<float, string> motions =
+                blendTree.children
+                    .ToDictionary(
+                        child => child.threshold,
+                        child => child.motion.name);
+
+            Assert.That(
+                motions[-1f],
+                Is.EqualTo("Backrun"));
+            Assert.That(
+                motions[1f],
+                Is.EqualTo("run"));
         }
 
 
@@ -787,14 +1070,42 @@ namespace ProjectMazzang.Tests
 
             AssertPropertyType(
                 tickStateType,
+                "HasCombatDash",
+                typeof(bool));
+
+            AssertPropertyType(
+                tickStateType,
+                "CombatDashVelocity",
+                typeof(Vector2));
+
+            AssertPropertyType(
+                tickStateType,
                 "SkillAnimationSequence",
                 typeof(byte));
 
             AssertPropertyType(
                 tickStateType,
-                "SkillAnimationId",
+                "SkillAnimationSlot",
                 GetRuntimeType(
-                    "PlayerSkillAnimationId"));
+                    "SkillSlot"));
+
+            AssertPropertyType(
+                tickStateType,
+                "SkillAnimationPhase",
+                GetRuntimeType(
+                    "SkillAnimationPhase"));
+
+            AssertPropertyType(
+                tickStateType,
+                "SkillAnimation",
+                GetRuntimeType(
+                    "SkillAnimationData"));
+
+            AssertPropertyType(
+                tickStateType,
+                "ActiveStatModifiers",
+                GetRuntimeType(
+                    "PlayerStatModifiers"));
 
             AssertPropertyType(
                 tickStateType,
@@ -871,8 +1182,47 @@ namespace ProjectMazzang.Tests
                     property.Name,
                     property.Name == "FacingRight"
                         ? true
+                        : property.Name == "ActiveStatModifiers"
+                            ? GetRuntimeType(
+                                    "PlayerStatModifiers")
+                                .GetProperty(
+                                    "Identity",
+                                    BindingFlags.Public |
+                                    BindingFlags.Static)
+                                ?.GetValue(null)
                         : Activator.CreateInstance(
                             property.PropertyType));
+            }
+        }
+
+
+        [Test]
+        public void StatModifierConsumers_DoNotReferenceSkillController()
+        {
+            Type skillControllerType =
+                GetRuntimeType(
+                    "PlayerSkillController");
+
+            foreach (string consumerName in new[]
+                     {
+                         "PlayerMovement",
+                         "PlayerVisual"
+                     })
+            {
+                FieldInfo[] fields =
+                    GetRuntimeType(consumerName)
+                        .GetFields(
+                            BindingFlags.Instance |
+                            BindingFlags.Public |
+                            BindingFlags.NonPublic);
+
+                Assert.That(
+                    fields.Any(
+                        field =>
+                            field.FieldType ==
+                            skillControllerType),
+                    Is.False,
+                    $"{consumerName}이 PlayerSkillController를 직접 참조합니다.");
             }
         }
 
@@ -1444,6 +1794,17 @@ namespace ProjectMazzang.Tests
 
             if (type == typeof(Vector2))
                 return Vector2.one;
+
+            if (type.Name == "PlayerStatModifiers")
+            {
+                return Activator.CreateInstance(
+                    type,
+                    2f,
+                    2f,
+                    2f,
+                    2f,
+                    2f);
+            }
 
             if (type.IsEnum)
                 return Enum.ToObject(type, 1);

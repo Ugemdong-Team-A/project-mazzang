@@ -1,0 +1,17 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f15ad6cb45b946e3a8a9e7c901ad1e71, type: 3}
+  m_Name: SA_MaryProjectile
+  m_EditorClassIdentifier: Assembly-CSharp::SkillAnimationData
+  cast: {fileID: 7400000, guid: ae92c9e8f151eed4a82af4cdf41833ec, type: 2}
+  release: {fileID: 7400000, guid: 5c835152afe634d4db2329019ecb1b9b, type: 2}
+  recovery: {fileID: 0}

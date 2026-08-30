@@ -49,8 +49,7 @@ public sealed class PlayerHealth :
 
     private float _lastHealth;
 
-    private PlayerSkillController
-        _skillController;
+    private PlayerTickState _tickState;
 
 
     // =========================================================
@@ -150,9 +149,6 @@ public sealed class PlayerHealth :
 
     public override void Spawned()
     {
-        _skillController =
-            GetComponent<PlayerSkillController>();
-
         _lastHealth =
             Health;
 
@@ -217,7 +213,11 @@ public sealed class PlayerHealth :
     public override void Simulate(
         in PlayerTick tick)
     {
-        TickBegin();
+        _tickState =
+            tick.State;
+
+        TickBegin(
+            tick.State.ActiveStatModifiers.MaxHealth);
     }
 
 
@@ -234,12 +234,14 @@ public sealed class PlayerHealth :
     }
 
 
-    internal void TickBegin()
+    internal void TickBegin(
+        float maxHealthMultiplier)
     {
         if (!HasStateAuthority)
             return;
 
-        RefreshMaxHealthModifier();
+        RefreshMaxHealthModifier(
+            maxHealthMultiplier);
 
         ProcessPendingCrowdControls();
 
@@ -695,17 +697,11 @@ public sealed class PlayerHealth :
     }
 
 
-    private void RefreshMaxHealthModifier()
+    private void RefreshMaxHealthModifier(
+        float multiplier)
     {
         int previousMaximum =
             MaxHealth;
-
-        float multiplier =
-            _skillController != null
-                ? _skillController
-                    .GetActiveStatModifiers()
-                    .MaxHealth
-                : 1f;
 
         int nextMaximum =
             Mathf.Max(
@@ -744,22 +740,10 @@ public sealed class PlayerHealth :
     private int ResolveEffectiveDamage(
         in DamageInfo info)
     {
-        float attackMultiplier = 1f;
-
-        if (info.Source != null &&
-            info.Source.TryGetComponent(
-                out PlayerSkillController sourceSkills))
-        {
-            attackMultiplier =
-                sourceSkills
-                    .GetActiveStatModifiers()
-                    .AttackDamage;
-        }
-
         float damageTakenMultiplier =
-            _skillController != null
-                ? _skillController
-                    .GetActiveStatModifiers()
+            _tickState != null
+                ? _tickState
+                    .ActiveStatModifiers
                     .DamageTaken
                 : 1f;
 
@@ -767,7 +751,6 @@ public sealed class PlayerHealth :
             0,
             Mathf.RoundToInt(
                 info.Damage *
-                attackMultiplier *
                 damageTakenMultiplier));
     }
 

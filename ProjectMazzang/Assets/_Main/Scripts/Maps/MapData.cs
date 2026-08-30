@@ -2,7 +2,7 @@ using Fusion;
 using UnityEngine;
 
 [CreateAssetMenu(
-    menuName = "Game/Map Data",
+    menuName = "Mazzang/Data/Map/Map",
     fileName = "MapData")]
 public sealed class MapData : ScriptableObject
 {

@@ -7,7 +7,7 @@ public enum PlayerAttackMovementMode : byte
 }
 
 [CreateAssetMenu(
-    menuName = "Game/Combat/Player Attack Data",
+    menuName = "Mazzang/Data/Combat/Player Attack",
     fileName = "PlayerAttackData")]
 public sealed class PlayerAttackData :
     ScriptableObject
@@ -38,6 +38,12 @@ public sealed class PlayerAttackData :
 
     [SerializeField]
     private PlayerAttackMovementMode movementMode;
+
+    [Tooltip(
+        "공격 시작과 동시에 Aim 방향으로 실행할 대시입니다. " +
+        "비워두면 공격은 대시하지 않습니다.")]
+    [SerializeField]
+    private DashData dash;
 
     [Header("Combo")]
     [Tooltip(
@@ -72,6 +78,9 @@ public sealed class PlayerAttackData :
 
     public PlayerAttackMovementMode MovementMode =>
         movementMode;
+
+    public DashData Dash =>
+        dash;
 
     public PlayerAttackData ComboFollowUp =>
         comboFollowUp;

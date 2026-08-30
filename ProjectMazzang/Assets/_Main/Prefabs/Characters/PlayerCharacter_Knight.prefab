@@ -1104,7 +1104,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerWeaponController
   weaponSocket: {fileID: 1119498991958727768}
-  resolvedAimPivot: {fileID: 910000000000000002}
   weaponSortingOrder: 24
   leftHandLimb: {fileID: 3268336011809022708}
   rightHandLimb: {fileID: 1825635801981400533}

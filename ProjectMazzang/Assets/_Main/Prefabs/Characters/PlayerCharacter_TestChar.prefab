@@ -228,7 +228,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1096011292127066218}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0.94810724, w: 0.3179508}
+  m_LocalRotation: {x: -0, y: -0, z: -0.00000016391273, w: 1}
   m_LocalPosition: {x: 0.3030974, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
@@ -349,7 +349,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1632013462058599432}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0.3781965, w: 0.9257254}
+  m_LocalRotation: {x: -0, y: -0, z: -0.000004677568, w: 1}
   m_LocalPosition: {x: 0.36252442, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
@@ -1221,7 +1221,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerCombat
   jabAttack: {fileID: 11400000, guid: 37fd7c36d2fa4a27ba1c3ad20fa275c8, type: 2}
   counterAttack: {fileID: 11400000, guid: 5f0c8b1f020743859f5dd89bd20195f1, type: 2}
-  attackSocket: {fileID: 1384066503620454016}
   hurtboxLayer:
     serializedVersion: 2
     m_Bits: 256
@@ -1265,8 +1264,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAim
   aimOrigin: {fileID: 5916303175571782622}
-  ccdTarget: {fileID: 8382595325016982698}
-  resolvedAimReferenceBone: {fileID: 5712794494562459526}
   resolvedAimPivot: {fileID: 5832819814922250294}
   upperBodyAimRig: {fileID: 1031680382880314377}
   ccdTargetRadius: 3
@@ -1294,7 +1291,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerWeaponController
   weaponSocket: {fileID: 1384066503620454016}
-  resolvedAimPivot: {fileID: 5832819814922250294}
   weaponSortingOrder: 24
   leftHandLimb: {fileID: 6844296285916493882}
   rightHandLimb: {fileID: 2782377998003480571}
@@ -2252,7 +2248,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6723991054431675751}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0.016096598, w: 0.9998705}
+  m_LocalRotation: {x: -0, y: -0, z: 0.000000044703484, w: 1}
   m_LocalPosition: {x: 0.15498176, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
@@ -2456,7 +2452,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7703731046525975970}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0.07863927, w: 0.9969032}
+  m_LocalRotation: {x: -0, y: -0, z: -0.000000014901161, w: 1}
   m_LocalPosition: {x: 0.544782, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
@@ -2582,7 +2578,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7795916988566112099}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: 0.018889295, w: 0.99982154}
+  m_LocalRotation: {x: -0, y: -0, z: 0.0007449461, w: 0.9999997}
   m_LocalPosition: {x: 0.16647968, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
@@ -2840,7 +2836,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8631530849765745186}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: 0.1059011, w: 0.99437666}
+  m_LocalRotation: {x: -0, y: -0, z: 0.000021059996, w: 1}
   m_LocalPosition: {x: 0.5373718, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
@@ -2964,7 +2960,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8653719598885068355, guid: beb26fa88a710e044800de3c4c59a0fd, type: 3}
       propertyPath: m_Name
-      value: test1
+      value: Master_Rig_Character
       objectReference: {fileID: 0}
     - target: {fileID: -8485587923788158915, guid: beb26fa88a710e044800de3c4c59a0fd, type: 3}
       propertyPath: m_LocalRotation.w

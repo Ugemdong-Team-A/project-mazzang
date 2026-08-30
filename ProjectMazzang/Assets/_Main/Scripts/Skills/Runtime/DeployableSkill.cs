@@ -114,7 +114,10 @@ public sealed class DeployableSkill :
 
                 deployable?.Initialize(
                     owner,
-                    0f);
+                    0f,
+                    Controller.TickState
+                        .ActiveStatModifiers
+                        .AttackDamage);
             });
     }
 }

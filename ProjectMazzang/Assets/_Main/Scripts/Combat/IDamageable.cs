@@ -35,9 +35,27 @@ public readonly struct DamageInfo
         NetworkObject source,
         Vector2 knockback,
         CrowdControlDefinition crowdControl)
+        : this(
+            damage,
+            1f,
+            source,
+            knockback,
+            crowdControl)
+    {
+    }
+
+
+    public DamageInfo(
+        int baseDamage,
+        float attackDamageMultiplier,
+        NetworkObject source,
+        Vector2 knockback,
+        CrowdControlDefinition crowdControl)
     {
         Damage =
-            damage;
+            ResolveAttackDamage(
+                baseDamage,
+                attackDamageMultiplier);
 
         Source =
             source;
@@ -47,6 +65,20 @@ public readonly struct DamageInfo
 
         CrowdControl =
             crowdControl;
+    }
+
+
+    public static int ResolveAttackDamage(
+        int baseDamage,
+        float attackDamageMultiplier)
+    {
+        return Mathf.Max(
+            0,
+            Mathf.RoundToInt(
+                baseDamage *
+                Mathf.Max(
+                    0f,
+                    attackDamageMultiplier)));
     }
 }
 

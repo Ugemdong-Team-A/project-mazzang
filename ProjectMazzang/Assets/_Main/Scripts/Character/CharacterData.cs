@@ -8,7 +8,7 @@ using UnityEngine;
 /// PlayerPrefab 자체가 해당 캐릭터의 완성된 구성을 소유합니다.
 /// </summary>
 [CreateAssetMenu(
-    menuName = "Game/Character Data",
+    menuName = "Mazzang/Data/Character/Character",
     fileName = "CharacterData")]
 public sealed class CharacterData :
     ScriptableObject
