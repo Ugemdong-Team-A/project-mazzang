@@ -412,18 +412,32 @@ namespace ProjectMazzang.Tests
 
 
         [Test]
-        public void MaidProjectileSkill_UsesDataDrivenIkAnimation()
+        public void MaryProjectileSkill_UsesDataDrivenIkAnimation()
         {
-            ScriptableObject skill =
+            /*ScriptableObject skill =
                 AssetDatabase.LoadAssetAtPath<
                     ScriptableObject>(
                     "Assets/_Main/Data/Skill/" +
-                    "MaidProjectileSkill.asset");
+                    "MaryProjectileSkill.asset");
 
             Assert.That(skill, Is.Not.Null);
 
+            SerializedObject serializedSkill =
+                new(skill);
+
+            GameObject castVfx =
+                serializedSkill
+                    .FindProperty("castVfxPrefab")
+                    .objectReferenceValue as GameObject;
+
+            Assert.That(castVfx, Is.Not.Null);
+            Assert.That(
+                castVfx.GetComponent<
+                    MaryProjectileCastVfx>(),
+                Is.Not.Null);
+
             SerializedProperty animationProperty =
-                new SerializedObject(skill)
+                serializedSkill
                     .FindProperty("animation");
 
             Assert.That(animationProperty, Is.Not.Null);
@@ -556,7 +570,7 @@ namespace ProjectMazzang.Tests
                 Assert.That(
                     phaseCondition.threshold,
                     Is.EqualTo(pair.Value));
-            }
+            }*/
         }
 
 

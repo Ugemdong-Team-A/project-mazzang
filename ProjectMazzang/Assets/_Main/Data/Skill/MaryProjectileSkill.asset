@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 30d7d7218edf0254e83f4cc1d0091461, type: 3}
-  m_Name: MaidProjectileSkill
+  m_Name: MaryProjectileSkill
   m_EditorClassIdentifier: Assembly-CSharp::ProjectileSkillData
   cooldown: 0
   icon: {fileID: 0}
@@ -20,4 +20,4 @@ MonoBehaviour:
   projectilePrefab: {fileID: 4790230235909349697, guid: 255b63bfd9c43c44c95a14ee65bb2283, type: 3}
   spawnForward: 0.65
   spawnUp: 0.9
-  castVfxPrefab: {fileID: 0}
+  castVfxPrefab: {fileID: 100000, guid: 6b2f5c84e9a1473db10f6e8c25a94d70, type: 3}

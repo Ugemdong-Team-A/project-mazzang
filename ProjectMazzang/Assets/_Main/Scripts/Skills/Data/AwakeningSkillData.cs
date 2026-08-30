@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.U2D.Animation;
 
 [CreateAssetMenu(
     menuName = "Mazzang/Data/Skill/Awakening",
@@ -17,6 +18,7 @@ public sealed class AwakeningSkillData : SkillData
 
     [Header("Presentation")]
     [Min(0.01f)] [SerializeField] private float visualScaleMultiplier = 1.35f;
+    [SerializeField] SpriteLibrary appearanceLibrary;
 
     public float Duration => duration;
 
@@ -27,6 +29,8 @@ public sealed class AwakeningSkillData : SkillData
             maxHealthMultiplier,
             damageTakenMultiplier,
             visualScaleMultiplier);
+
+    public SpriteLibrary AppearanceLibrary => appearanceLibrary;
 
     public override Skill CreateSkill()
     {

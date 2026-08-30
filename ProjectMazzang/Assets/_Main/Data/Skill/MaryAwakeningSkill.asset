@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8c6db91d85f64e12b4e6202a9fa9a370, type: 3}
-  m_Name: MaidAwakeningSkill
+  m_Name: MaryAwakeningSkill
   m_EditorClassIdentifier: Assembly-CSharp::UltimateAwakeningSkillData
   cooldown: 0
   icon: {fileID: 21300000, guid: 5e534de90d594a459dd6fe65cef42d89, type: 3}
@@ -19,9 +19,9 @@ MonoBehaviour:
   meterCost: 100
   passiveGainPerSecond: 2
   damageGainPerDamage: 1
-  duration: 8
-  moveSpeedMultiplier: 1.25
-  attackDamageMultiplier: 1.5
+  duration: 10
+  moveSpeedMultiplier: 1.5
+  attackDamageMultiplier: 2
   maxHealthMultiplier: 1.5
   damageTakenMultiplier: 0.75
   visualScaleMultiplier: 1.35

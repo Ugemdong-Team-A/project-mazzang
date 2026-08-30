@@ -1,5 +1,10 @@
 using UnityEngine;
 
+public interface IProjectileCastVfx
+{
+    void SetProgress(float progress);
+}
+
 public sealed class FireballCastPresentation : MonoBehaviour
 {
     private static Sprite _fallbackSprite;
@@ -7,6 +12,7 @@ public sealed class FireballCastPresentation : MonoBehaviour
     private Transform _core;
     private readonly Transform[] _orbiters = new Transform[3];
     private bool _usesExternalPrefab;
+    private IProjectileCastVfx _externalVfx;
 
     public static FireballCastPresentation Create(
         GameObject externalPrefab)
@@ -34,6 +40,9 @@ public sealed class FireballCastPresentation : MonoBehaviour
         presentation._usesExternalPrefab =
             externalPrefab != null;
 
+        presentation._externalVfx =
+            root.GetComponent<IProjectileCastVfx>();
+
         if (!presentation._usesExternalPrefab)
         {
             presentation.BuildFallback();
@@ -49,7 +58,10 @@ public sealed class FireballCastPresentation : MonoBehaviour
         transform.position = position;
 
         if (_usesExternalPrefab)
+        {
+            _externalVfx?.SetProgress(progress);
             return;
+        }
 
         float pulse =
             1f + Mathf.Sin(Time.time * 18f) * 0.08f;

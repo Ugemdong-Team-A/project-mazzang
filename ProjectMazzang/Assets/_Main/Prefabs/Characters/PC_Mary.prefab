@@ -2343,7 +2343,7 @@ GameObject:
   - component: {fileID: 4789828523904379595}
   - component: {fileID: 6046375106879537148}
   m_Layer: 7
-  m_Name: PC_Maid
+  m_Name: PC_Mary
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2645,7 +2645,7 @@ MonoBehaviour:
   ccdTargetRadius: 3
   rigAngleOffset: 90
   maxBodyAimAngle: 60
-  facingFlipAngle: 120
+  facingFlipAngle: 90
   bodyAimSpeed: 540
   bodyAimPresentationSharpness: 24
   _AimDirection: {x: 0, y: 0}
@@ -2688,9 +2688,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerSkillController
   mainSkill: {fileID: 11400000, guid: c2de8b60f28079c4d83e9e63e4c729b6, type: 2}
-  ultimateSkill: {fileID: 0}
+  ultimateSkill: {fileID: 11400000, guid: 91b002f5cbd5aa74db8c229c54c722f2, type: 2}
   _SkillAnimationSequence: 0
-  _LastSkillAnimation: 0
+  _LastSkillAnimationSlot: 0
+  _LastSkillAnimationPhase: 0
 --- !u!114 &6046375106879537148
 MonoBehaviour:
   m_ObjectHideFlags: 0

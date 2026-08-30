@@ -16,7 +16,7 @@ GameObject:
   - component: {fileID: -8824223919584606980}
   - component: {fileID: -2762136639692127313}
   m_Layer: 0
-  m_Name: MaidProjectile
+  m_Name: MaryProjectile
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
