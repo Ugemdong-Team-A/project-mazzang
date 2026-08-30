@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.U2D.Animation;
 
 [CreateAssetMenu(
@@ -18,7 +19,9 @@ public sealed class AwakeningSkillData : SkillData
 
     [Header("Presentation")]
     [Min(0.01f)] [SerializeField] private float visualScaleMultiplier = 1.35f;
-    [SerializeField] SpriteLibrary appearanceLibrary;
+    [FormerlySerializedAs("appearanceLibrary")]
+    [SerializeField]
+    private SpriteLibraryAsset appearanceLibraryAsset;
 
     public float Duration => duration;
 
@@ -30,7 +33,8 @@ public sealed class AwakeningSkillData : SkillData
             damageTakenMultiplier,
             visualScaleMultiplier);
 
-    public SpriteLibrary AppearanceLibrary => appearanceLibrary;
+    public SpriteLibraryAsset AppearanceLibraryAsset =>
+        appearanceLibraryAsset;
 
     public override Skill CreateSkill()
     {

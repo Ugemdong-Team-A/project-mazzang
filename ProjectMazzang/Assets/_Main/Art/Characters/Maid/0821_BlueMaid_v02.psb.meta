@@ -5624,7 +5624,25 @@ ScriptedImporter:
   pipeline: {instanceID: 0}
   pipelineVersion: 
   spriteCategoryList:
-    categories: []
+    categories:
+    - name: 
+      labels: []
+    - name: 
+      labels: []
+    - name: 
+      labels: []
+    - name: 
+      labels: []
+    - name: 
+      labels: []
+    - name: 
+      labels: []
+    - name: 
+      labels: []
+    - name: 
+      labels: []
+    - name: 
+      labels: []
   spritePackingTag: 
   resliceFromLayer: 0
   pSDLayerImportSetting: []
@@ -5738,6 +5756,6 @@ ScriptedImporter:
   generateGOHierarchy: 0
   textureAssetName: 
   prefabAssetName: 
-  spriteLibAssetName: 
+  spriteLibAssetName: 0821_BlueMaid_v02 Sprite Library
   skeletonAssetName: 
   secondarySpriteTextures: []

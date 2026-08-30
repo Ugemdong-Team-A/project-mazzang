@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.U2D.Animation;
 
 /// <summary>
 /// 한 네트워크 Tick 안에서 단계 사이에 전달되는 플레이어 상태입니다.
@@ -62,6 +63,16 @@ public sealed class PlayerTickState
     public SkillAnimationData SkillAnimation { get; internal set; }
 
     public PlayerStatModifiers ActiveStatModifiers { get; internal set; }
+
+    /// <summary>
+    /// 현재 활성 스킬이 요청한 외형입니다.
+    /// 네트워크 상태가 아니라, 동기화된 스킬 단계를 바탕으로 매 Tick 재구성됩니다.
+    /// </summary>
+    public SpriteLibraryAsset ActiveAppearanceLibraryAsset
+    {
+        get;
+        internal set;
+    }
 
     /// <summary>
     /// 외부 제어 효과로 새 스킬 사용이 잠긴 상태입니다.
@@ -136,6 +147,7 @@ public sealed class PlayerTickState
         SkillAnimation = null;
         ActiveStatModifiers =
             PlayerStatModifiers.Identity;
+        ActiveAppearanceLibraryAsset = null;
         IsSkillControlLocked = false;
         IsSkillActionLocked = false;
         IsCombatMovementLocked = false;

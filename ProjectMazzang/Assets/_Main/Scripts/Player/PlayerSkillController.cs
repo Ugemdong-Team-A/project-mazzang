@@ -1,6 +1,7 @@
 using Fusion;
 using UnityEngine;
 using UnityEngine.Serialization;
+using UnityEngine.U2D.Animation;
 
 /// <summary>
 /// 플레이어의 Skill Slot과 Runtime Skill을 관리합니다.
@@ -170,6 +171,8 @@ public sealed class PlayerSkillController :
                 .Animation;
         state.ActiveStatModifiers =
             GetActiveStatModifiers();
+        state.ActiveAppearanceLibraryAsset =
+            GetActiveAppearanceLibraryAsset();
         state.IsSkillControlLocked =
             IsSkillControlLocked;
         state.IsSkillActionLocked =
@@ -1130,6 +1133,39 @@ public sealed class PlayerSkillController :
 
         result =
             result.Combine(in modifiers);
+    }
+
+
+    public SpriteLibraryAsset
+        GetActiveAppearanceLibraryAsset()
+    {
+        // 궁극기 슬롯을 우선합니다. null 외형은 다른 활성 스킬을 막지 않습니다.
+        SpriteLibraryAsset asset =
+            GetActiveAppearanceLibraryAsset(
+                SkillSlot.Skill2,
+                Skill2);
+
+        return asset != null
+            ? asset
+            : GetActiveAppearanceLibraryAsset(
+                SkillSlot.Skill1,
+                Skill1);
+    }
+
+
+    private SpriteLibraryAsset
+        GetActiveAppearanceLibraryAsset(
+            SkillSlot slot,
+            Skill skill)
+    {
+        if (GetUsePhase(slot) !=
+                SkillUsePhase.Active ||
+            skill is not IAppearanceModifierSkill modifierSkill)
+        {
+            return null;
+        }
+
+        return modifierSkill.AppearanceLibraryAsset;
     }
 
 
