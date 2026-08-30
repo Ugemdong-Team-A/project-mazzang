@@ -1,6 +1,13 @@
 fileFormatVersion: 2
+<<<<<<<< HEAD:ProjectMazzang/Assets/_Main/Prefabs/Weapon/SwordWeapon.prefab.meta
+guid: 47c7dbc3fac3ffb4890325a622c07709
+labels:
+- FusionPrefab
+PrefabImporter:
+========
 guid: b6b068cef4a0c8941b06e74a56b3d414
 DefaultImporter:
+>>>>>>>> main:ProjectMazzang/Assets/_Main/Scenes/Test_Refactor.unity.meta
   externalObjects: {}
   userData: 
   assetBundleName: 
