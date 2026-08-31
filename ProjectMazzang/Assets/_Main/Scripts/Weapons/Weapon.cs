@@ -27,6 +27,8 @@ public abstract class Weapon :
     [SerializeField]
     private HeldWeaponView presentationTemplate;
 
+    [SerializeField]
+    private float visualSizeOffset = 1.0f;
 
     // =========================================================
     // Network State
@@ -138,6 +140,12 @@ public abstract class Weapon :
         {
             _worldSortingOrder =
                 sortingGroup.sortingOrder;
+        }
+
+        if(presentationTemplate != null) 
+        {
+            presentationTemplate.transform.localScale =
+                Vector3.one * visualSizeOffset;
         }
     }
 
@@ -421,6 +429,9 @@ public abstract class Weapon :
         _heldView =
             Instantiate(
                 presentationTemplate);
+
+        _heldView.transform.localScale = 
+            Vector3.one * 1f / visualSizeOffset;
 
         _heldView.name =
             $"{name} Held View";

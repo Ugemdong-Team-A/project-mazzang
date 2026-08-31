@@ -399,6 +399,7 @@ MonoBehaviour:
   pickupTrigger: {fileID: 7881194972578852804}
   sortingGroup: {fileID: 2623011332169258659}
   presentationTemplate: {fileID: 6732957340894770001}
+  visualSizeOffset: 1
   _Holder: {fileID: 0}
   sharedCooldown: 1.35
   bashAttack: {fileID: 11400000, guid: e2a1f7c2b6d44a3fa92bc8e9d31f0104, type: 2}
