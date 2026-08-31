@@ -1,7 +1,7 @@
 using Fusion;
 using UnityEngine;
 
-public sealed class DashSkill :
+public class DashSkill :
     Skill,
     IChargeSkill,
     ICastTimeSkill,
