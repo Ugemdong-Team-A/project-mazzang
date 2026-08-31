@@ -159,22 +159,30 @@ public sealed class PlayerSkillController :
         PlayerTickState state)
     {
         state.HasSkill = true;
+
         state.SkillAnimationSequence =
             SkillAnimationSequence;
+
         state.SkillAnimationSlot =
             LastSkillAnimationSlot;
+
         state.SkillAnimationPhase =
             LastSkillAnimationPhase;
+
         state.SkillAnimation =
             GetSkillData(
                 LastSkillAnimationSlot)?
                 .Animation;
+
         state.ActiveStatModifiers =
             GetActiveStatModifiers();
+
         state.ActiveAppearanceLibraryAsset =
             GetActiveAppearanceLibraryAsset();
+
         state.IsSkillControlLocked =
             IsSkillControlLocked;
+
         state.IsSkillActionLocked =
             IsActionLocked(
                 SkillSlot.Skill1,
