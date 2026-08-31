@@ -883,7 +883,7 @@ public sealed class PlayerSkillController :
     private void UpdateUsePhase(
         SkillSlot slot,
         Skill skill)
-    {
+    {        
         SkillUsePhase phase =
             GetUsePhase(
                 slot);
@@ -1475,6 +1475,9 @@ public sealed class PlayerSkillController :
         SkillSlot slot,
         TickTimer timer)
     {
+        if (GetSkill(slot) is IMeterSkill)
+            return;
+
         SkillSlotRuntimeState state =
             GetSlotState(
                 slot);
@@ -1501,6 +1504,9 @@ public sealed class PlayerSkillController :
         SkillSlot slot,
         TickTimer timer)
     {
+        if (GetSkill(slot) is IMeterSkill)
+            return;
+
         SkillSlotRuntimeState state =
             GetSlotState(
                 slot);
@@ -1518,6 +1524,9 @@ public sealed class PlayerSkillController :
         SkillSlot slot,
         int charges)
     {
+        if (GetSkill(slot) is IMeterSkill)
+            return;
+
         byte value =
             (byte)Mathf.Clamp(
                 charges,

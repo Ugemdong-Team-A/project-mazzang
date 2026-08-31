@@ -17,9 +17,9 @@ MonoBehaviour:
   animation: {fileID: 11400000, guid: 0e012b1d9b40b6544a6d8998deb72563, type: 2}
   maxCharges: 1
   rechargeDuration: 0
-  startupDuration: 1
+  startupDuration: 0.7
   recoveryDuration: 0.06
-  dash: {fileID: 11400000, guid: 6dd46f511dc74008bfe0070338752ca5, type: 2}
+  dash: {fileID: 11400000, guid: 82bf575658e2fa243a94474a4bdea373, type: 2}
   maxMeter: 50
   meterCost: 50
   passiveGainPerSecond: 5
