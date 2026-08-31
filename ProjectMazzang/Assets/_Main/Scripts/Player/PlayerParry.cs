@@ -7,7 +7,6 @@ public sealed class PlayerParry :
     IParryVolume
 {
     [SerializeField] private ParryData data;
-    [SerializeField] private Transform weaponSocket;
     [SerializeField] private CameraShakeProfile successShakeProfile;
 
     [Networked] private NetworkButtons PreviousButtons { get; set; }
@@ -31,10 +30,19 @@ public sealed class PlayerParry :
     {
         get
         {
-            Vector2 anchor = weaponSocket != null
-                ? weaponSocket.position
+            Transform parryAnchor =
+                ResolveParryAnchor();
+
+            Vector2 anchor = parryAnchor != null
+                ? parryAnchor.position
                 : transform.position;
-            return anchor + ParryDirection * data.AnchorForwardOffset;
+
+            float forwardOffset = data != null
+                ? data.AnchorForwardOffset
+                : 0f;
+
+            return anchor +
+                ParryDirection * forwardOffset;
         }
     }
 
@@ -63,7 +71,7 @@ public sealed class PlayerParry :
     {
         ParryRegistry.Unregister(this);
         if (_presentation != null)
-            Destroy(_presentation);
+            Destroy(_presentation.gameObject);
     }
 
     public override void Simulate(in PlayerTick tick)
@@ -120,9 +128,10 @@ public sealed class PlayerParry :
             : 1f - Mathf.Clamp01(cooldownRemaining / data.Cooldown);
 
         _presentation.SetState(
-            ResolvePresentationPosition(),
-            ParryOrigin,
+            ResolvePresentationRoot(),
+            ResolveParryAnchor(),
             ParryDirection,
+            data.AnchorForwardOffset,
             data.Radius,
             data.HalfAngle,
             IsParryActive,
@@ -143,17 +152,41 @@ public sealed class PlayerParry :
         if (_presentation != null)
             return;
 
-        _presentation = gameObject.AddComponent<ParryPresentation>();
+        Transform parent =
+            ResolveParryAnchor();
+
+        if (parent == null)
+        {
+            parent = ResolvePresentationRoot();
+        }
+
+        GameObject presentationObject =
+            new("Parry Presentation");
+
+        presentationObject.transform.SetParent(
+            parent != null
+                ? parent
+                : transform,
+            false);
+
+        _presentation =
+            presentationObject.AddComponent<
+                ParryPresentation>();
     }
 
-    private Vector2 ResolvePresentationPosition()
+    private Transform ResolvePresentationRoot()
     {
         Transform presentationRoot =
             _weaponHandler?.PresentationRoot;
 
         return presentationRoot != null
-            ? (Vector2)presentationRoot.position
-            : (Vector2)transform.position;
+            ? presentationRoot
+            : transform;
+    }
+
+    private Transform ResolveParryAnchor()
+    {
+        return _weaponHandler?.WeaponSocket;
     }
 
     private static Vector2 ClampDirectionToBody(

@@ -135,7 +135,7 @@ namespace ProjectMazzang.Tests
             string[] prefabPaths =
             {
                 "Assets/_Main/Prefabs/Characters/" +
-                "PlayerCharacter_Knight.prefab",
+                "PC_Mary.prefab",
                 "Assets/_Main/Prefabs/Characters/" +
                 "PlayerCharacter_TestChar.prefab"
             };

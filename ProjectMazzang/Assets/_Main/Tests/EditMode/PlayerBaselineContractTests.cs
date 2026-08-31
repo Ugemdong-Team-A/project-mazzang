@@ -1486,20 +1486,20 @@ namespace ProjectMazzang.Tests
 
 
         [Test]
-        public void KnightAndSkillSlotPrefab_ProvideMeterTestContent()
+        public void MaryAndSkillSlotPrefab_ProvideMeterTestContent()
         {
             Type controllerType =
                 GetRuntimeType(
                     "PlayerSkillController");
 
-            GameObject knight =
+            GameObject mary =
                 AssetDatabase.LoadAssetAtPath<
                     GameObject>(
                     "Assets/_Main/Prefabs/Characters/" +
-                    "PlayerCharacter_Knight.prefab");
+                    "PC_Mary.prefab");
 
             Component controller =
-                knight?.GetComponent(
+                mary?.GetComponent(
                     controllerType);
 
             Assert.That(controller, Is.Not.Null);
@@ -1525,7 +1525,7 @@ namespace ProjectMazzang.Tests
                 mainSkill.objectReferenceValue
                     .GetType().Name,
                 Is.EqualTo(
-                    "DashSkillData"));
+                    "ProjectileSkillData"));
             Assert.That(
                 ultimateSkill.objectReferenceValue,
                 Is.Not.Null);

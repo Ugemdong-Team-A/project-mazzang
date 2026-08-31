@@ -117,7 +117,7 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
   제한된 발사 방향을 계산하며 `PlayerAim`의 구체 타입을 직접 참조하지 않는다.
 - `maxBodyAimAngle`은 허리가 꺾이는 범위만 제한하고 `facingFlipAngle`은 좌우 반전 시점만 결정한다.
   두 값은 독립적이며, 허리 제한 때문에 반전 각도를 자동으로 올리지 않는다.
-- 기사와 TestChar의 `WeaponSocket`은 프리팹에서 `ResolvedAimPivot`의 직접 자식으로 두고,
+- Mary와 TestChar의 `WeaponSocket`은 프리팹에서 `ResolvedAimPivot`의 직접 자식으로 두고,
   로컬 위치 `(0, 0, 0)`, 로컬 회전 `-90°`, 로컬 크기 `(1, 1, 1)`를 유지한다.
   런타임 코드는 이 계층을 재배치하거나 보정하지 않는다.
 - 실제 `AimOrigin` 트랜스폼은 `PlayerAim`만 소유한다. 같은 Tick의 `PlayerCombat`과
@@ -132,7 +132,9 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
 - 플레이어를 따라가는 월드 공간 LineRenderer 연출은 시뮬레이션 루트가 아니라
   `IWeaponHandler.PresentationRoot`를 사용한다. `PlayerWeaponController`는 이 값을
   `NetworkRigidbody.InterpolationTarget`으로 제공하므로 방패와 패링 쿨다운 표시가 렌더 보간된
-  캐릭터 외형과 같은 프레임 위치를 사용한다.
+  캐릭터 외형과 같은 프레임 위치를 사용한다. 기본 패링의 표시 오브젝트는 `WeaponSocket` 자식으로
+  만들고, 원호 좌표는 Animator와 IK가 Socket을 갱신한 뒤 `LateUpdate`에서 계산한다. 판정과
+  Networked 상태를 소유하는 `PlayerParry` 자체는 계속 플레이어 루트에 둔다.
 - Sword는 선택적인 `DashData`를 참조한다. 공격 준비 시간이 끝나는 Tick에
   `IPlayerTickCommandDispatcher`로 이동 속도와 Control Lock을 요청한 뒤 타격을 판정한다.
   방향 정책은 직렬화 설정에 따라 공격 입력 순간의 방향 또는 돌진 시작 Tick의 최신 Aim 방향을 사용한다.
@@ -195,7 +197,7 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
 - 피해 기반 충전은 `CombatDamageService`가 State Authority에서 확정된 실제 체력 감소량만
   공격자의 `IDamageDealtReceiver`에 전달하며, Meter 특성을 가진 모든 슬롯이 각 비율로 받는다.
 - 첫 Meter 콘텐츠인 `UltimateAwakeningSkill`은 Meter, Duration, Stat Modifier 계약을 조합하며
-  테스트 캐릭터인 기사의 `ultimateSkill`에 장착한다. Meter 처리는 슬롯 역할이 아닌 인터페이스로 판별한다.
+  Mary의 `ultimateSkill`에 장착한다. Meter 처리는 슬롯 역할이 아닌 인터페이스로 판별한다.
 - `PlayerSkillController`는 활성 스킬의 합산 능력치 배율을 `PlayerTickState.ActiveStatModifiers`에
   공개한다. 이동과 외형처럼 배율을 소비하는 모듈은 SkillController를 직접 참조하지 않는다.
 - 각성 데이터는 선택적인 `SpriteLibraryAsset`을 보관하고, 런타임 스킬은

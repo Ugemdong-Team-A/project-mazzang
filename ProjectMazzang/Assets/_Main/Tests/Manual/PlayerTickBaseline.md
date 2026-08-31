@@ -94,6 +94,8 @@
   Host와 Client 모두 투사체가 이동하는 동안 NetworkTransform과 별도 Lerp가 서로 당기는 떨림이 없다.
 - 기본 패링과 방패의 로컬 쿨다운 원호는 `NetworkRigidbody`의 보간된 PresentationRoot를 따라가며,
   이동·점프·착지 중에도 캐릭터 외형을 기준으로 앞뒤 한 Tick씩 떨리지 않는다.
+- 기본 패링 원호는 `WeaponSocket`을 표시 부모로 사용하고 Animator와 IK가 끝난 `LateUpdate`에
+  좌표를 계산하므로, 달리기·점프·상하 조준 중에도 캐릭터 손과 한 프레임씩 어긋나지 않는다.
 - 캐릭터에서 `Standard2DRigIKSetup`을 제거하거나 별도 에디터 작업용 오브젝트로 옮겨도,
   런타임에 명시적으로 연결한 상체 CCD와 손 Solver가 정상 동작한다.
 - 재시뮬레이션 횟수와 관계없이 Aim 보간, 피격 색상, 무적 깜빡임 속도가 일정하다.
@@ -110,7 +112,8 @@
 
 ### Skill Meter
 
-- 기사 `mainSkill`에서 Dash가 시작되고 `ultimateSkill`에서 `UltimateAwakeningSkill`이 시작되는지 확인한다.
+- Mary `mainSkill`에서 `MaryProjectileSkill`이 시작되고 `ultimateSkill`에서
+  `UltimateAwakeningSkill`이 시작되는지 확인한다.
 - Meter UI의 충전 레일·내부 면·퍼센트가 같은 값으로 갱신되고, 정수 증가 시 한 번만 반응하는지 확인한다.
 - Host와 Client가 각각 공격자일 때 실제 감소한 Health에 `DamageGainPerDamage`를 곱한 만큼만 충전된다.
 - 남은 Health보다 큰 피해는 남은 Health만큼만 충전되고, 무적·사망·0 피해에는 충전되지 않는다.
@@ -119,7 +122,8 @@
 - 사망한 공격자의 잔존 투사체 피해는 충전되고, 사망과 리스폰 사이에 Meter가 유지된다.
 - 피해로 사용 비용에 도달하는 Tick에 스킬 입력이 겹쳐도 최종 사용 여부와 Meter가 Host 상태로 수렴한다.
 - 100 Meter 미만에서는 각성이 시작되지 않고, 100 Meter에서 한 번 사용하면 0으로 소모된다.
-- 각성 8초 동안 이동·공격·최대 체력·피해 감소·크기 배율이 적용되고 종료 뒤 원래 값으로 복귀한다.
+- Mary 각성 데이터의 지속 시간 동안 이동·공격·최대 체력·피해 감소·크기 배율이 적용되고
+  종료 뒤 원래 값으로 복귀한다.
 - 각성 SLA가 비어 있으면 Mary의 기본 SpriteLibrary가 유지되고 예외나 Resolver 누락이 발생하지 않는다.
 - 각성 SLA를 지정하면 Host와 Client 모두 Active 시작에 같은 외형으로 한 번 교체되고, 종료 시 기본
   외형으로 복귀한다. prediction 및 resimulation 중 같은 SLA setter가 매 Tick 반복 호출되지 않는다.
