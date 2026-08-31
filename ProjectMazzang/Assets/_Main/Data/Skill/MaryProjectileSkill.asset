@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 30d7d7218edf0254e83f4cc1d0091461, type: 3}
   m_Name: MaryProjectileSkill
   m_EditorClassIdentifier: Assembly-CSharp::ProjectileSkillData
-  cooldown: 0
-  icon: {fileID: 0}
+  cooldown: 2.5
+  icon: {fileID: 21300000, guid: 1843257668d54f34e8bed29302eb7aa8, type: 3}
   animation: {fileID: 11400000, guid: 0c8970b16e3d40ed92256cced84ad8fc, type: 2}
   castDuration: 0.65
   recoveryDuration: 0.2

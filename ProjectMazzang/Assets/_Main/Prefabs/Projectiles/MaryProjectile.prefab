@@ -182,7 +182,7 @@ MonoBehaviour:
   gravityAcceleration: 9.81
   linearDrag: 0
   alignRotationToVelocity: 1
-  projectileTrail: {fileID: 0}
+  projectileTrail: {fileID: -2762136639692127313}
   impactShakeProfile: {fileID: 11400000, guid: 35dd6d2a16e64815be4a5c64a1d21f3b, type: 2}
   despawnOnImpact: 0
   impactPresentationDuration: 0.15

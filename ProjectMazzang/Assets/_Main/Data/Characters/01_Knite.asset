@@ -10,11 +10,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f8606ce429b130d43919be943b524e0b, type: 3}
-  m_Name: 01_Witch
+  m_Name: 01_Knite
   m_EditorClassIdentifier: Assembly-CSharp::CharacterData
-  characterId: 1
-  displayName: "\uB9C8\uB140"
-  description: "\uB450 \uBC88\uC9F8 \uD14C\uC2A4\uD2B8\uC6A9 \uAE30\uBCF8 \uCE90\uB9AD\uD130
-    \uB9C8\uB140"
-  portrait: {fileID: 21300000, guid: 23fa3bf7071f46a419246ee23b90f06b, type: 3}
-  playerPrefab: {fileID: 4373104609955216072, guid: 5b3549961cba236459a68c8d17936715, type: 3}
+  characterId: 100
+  displayName: "\uC804\uC0AC"
+  description: "\uCCAB \uBC88\uC9F8 \uD14C\uC2A4\uD2B8\uC6A9 \uAE30\uBCF8 \uCE90\uB9AD\uD130
+    \uC804\uC0AC"
+  portrait: {fileID: 21300000, guid: fc392f599181fac449981c53711e4ef5, type: 3}
+  playerPrefab: {fileID: 4098969700376898355, guid: 4b61eb54b4b975c43acc7b5dd68a035c, type: 3}

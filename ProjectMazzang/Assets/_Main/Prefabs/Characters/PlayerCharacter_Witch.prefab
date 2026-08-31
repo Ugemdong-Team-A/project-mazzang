@@ -702,13 +702,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2938815468716240850}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: -0.7071068, w: 0.7071068}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 4, y: 4, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 5459021469249167873}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_Father: {fileID: 4307339841761857825}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: -90}
 --- !u!114 &5348071517637358525
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -909,7 +909,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 031a3d6f78cf4252a60ca4ad2b38d855, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerStatsInstaller
   statsData: {fileID: 11400000, guid: 283ef5d85f5547cd85b9e21989976975, type: 2}
 --- !u!114 &8816412148498283450
@@ -1014,7 +1014,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerCombat
   jabAttack: {fileID: 11400000, guid: 5f0c8b1f020743859f5dd89bd20195f1, type: 2}
   counterAttack: {fileID: 0}
-  attackSocket: {fileID: 1119498991958727768}
   hurtboxLayer:
     serializedVersion: 2
     m_Bits: 256
@@ -1057,9 +1056,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAim
   aimOrigin: {fileID: 405535938307882185}
-  ccdTarget: {fileID: 5349236784287973008}
-  resolvedAimReferenceBone: {fileID: 0}
-  resolvedAimPivot: {fileID: 0}
+  resolvedAimPivot: {fileID: 4307339841761857825}
   upperBodyAimRig: {fileID: 855167590607317003}
   ccdTargetRadius: 3
   rigAngleOffset: 90
@@ -1086,7 +1083,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerWeaponController
   weaponSocket: {fileID: 1119498991958727768}
-  resolvedAimPivot: {fileID: 0}
   weaponSortingOrder: 24
   leftHandLimb: {fileID: 3268336011809022708}
   rightHandLimb: {fileID: 1825635801981400533}
@@ -1107,10 +1103,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2efd521a00f4f02459ff1633a7dddc92, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerSkillController
-  mainSkill: {fileID: 11400000, guid: c2de8b60f28079c4d83e9e63e4c729b6, type: 2}
-  ultimateSkill: {fileID: 11400000, guid: 91b002f5cbd5aa74db8c229c54c722f2, type: 2}
+  mainSkill: {fileID: 11400000, guid: 3096fde69c3544369cbec685ac688d20, type: 2}
+  ultimateSkill: {fileID: 0}
   _SkillAnimationSequence: 0
-  _LastSkillAnimation: 0
+  _LastSkillAnimationSlot: 0
+  _LastSkillAnimationPhase: 0
 --- !u!114 &700000000000000001
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2487,6 +2484,38 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 7187931433159659771}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &8879376134352461884
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4307339841761857825}
+  m_Layer: 8
+  m_Name: ResolveAimPivot
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4307339841761857825
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8879376134352461884}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 1
+  m_Children:
+  - {fileID: 1119498991958727768}
+  m_Father: {fileID: 5459021469249167873}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &8889038996644452896
 GameObject:
@@ -3952,7 +3981,7 @@ PrefabInstance:
       addedObject: {fileID: 979115207265107204}
     - targetCorrespondingSourceObject: {fileID: 5283110698140630313, guid: 8f519a0f7487d41cebc10ff177ee1436, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 1119498991958727768}
+      addedObject: {fileID: 4307339841761857825}
     - targetCorrespondingSourceObject: {fileID: -6402243068667089341, guid: 8f519a0f7487d41cebc10ff177ee1436, type: 3}
       insertIndex: -1
       addedObject: {fileID: 3262839273893832244}
