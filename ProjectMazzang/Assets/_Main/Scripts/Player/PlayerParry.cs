@@ -19,6 +19,7 @@ public sealed class PlayerParry :
 
     private byte _visibleSuccessSequence;
     private ParryPresentation _presentation;
+    private IWeaponHandler _weaponHandler;
     // private IPlayerWeaponState _weaponState;
 
     public bool IsParryActive =>
@@ -51,6 +52,9 @@ public sealed class PlayerParry :
 
     public override void Spawned()
     {
+        _weaponHandler =
+            GetComponent<IWeaponHandler>();
+
         _visibleSuccessSequence = SuccessSequence;
         ParryRegistry.Register(this);
     }
@@ -116,6 +120,7 @@ public sealed class PlayerParry :
             : 1f - Mathf.Clamp01(cooldownRemaining / data.Cooldown);
 
         _presentation.SetState(
+            ResolvePresentationPosition(),
             ParryOrigin,
             ParryDirection,
             data.Radius,
@@ -139,6 +144,16 @@ public sealed class PlayerParry :
             return;
 
         _presentation = gameObject.AddComponent<ParryPresentation>();
+    }
+
+    private Vector2 ResolvePresentationPosition()
+    {
+        Transform presentationRoot =
+            _weaponHandler?.PresentationRoot;
+
+        return presentationRoot != null
+            ? (Vector2)presentationRoot.position
+            : (Vector2)transform.position;
     }
 
     private static Vector2 ClampDirectionToBody(

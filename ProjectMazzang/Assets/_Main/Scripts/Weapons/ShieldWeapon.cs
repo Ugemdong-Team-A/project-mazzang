@@ -394,6 +394,14 @@ public sealed class ShieldWeapon :
 
     private Vector2 ResolveStableHolderPosition()
     {
+        if (Holder != null &&
+            Holder.TryGetComponent(
+                out IWeaponHandler handler) &&
+            handler.PresentationRoot != null)
+        {
+            return handler.PresentationRoot.position;
+        }
+
         return Holder != null
             ? (Vector2)Holder.transform.position
             : (Vector2)transform.position;

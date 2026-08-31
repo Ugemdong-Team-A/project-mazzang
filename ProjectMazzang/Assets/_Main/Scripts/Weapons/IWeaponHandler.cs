@@ -15,6 +15,8 @@ public interface IWeaponHandler
 
     Transform WeaponSocket { get; }
 
+    Transform PresentationRoot { get; }
+
     int WeaponSortingOrder { get; }
 
     Vector2 WeaponDirection { get; }

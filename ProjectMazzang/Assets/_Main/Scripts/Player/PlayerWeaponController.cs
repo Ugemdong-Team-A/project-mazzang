@@ -1,4 +1,5 @@
 using Fusion;
+using Fusion.Addons.Physics;
 using UnityEngine;
 using UnityEngine.U2D.IK;
 
@@ -48,6 +49,8 @@ public sealed class PlayerWeaponController :
 
     private bool _hasCapturedAnimationHandTargets;
 
+    private Transform _presentationRoot;
+
 
     // =========================================================
     // Network State
@@ -94,6 +97,11 @@ public sealed class PlayerWeaponController :
     public Transform WeaponSocket =>
         weaponSocket;
 
+    public Transform PresentationRoot =>
+        _presentationRoot != null
+            ? _presentationRoot
+            : transform;
+
     public int WeaponSortingOrder =>
         weaponSortingOrder;
 
@@ -107,6 +115,14 @@ public sealed class PlayerWeaponController :
 
     public override void Spawned()
     {
+        NetworkRigidbody networkRigidbody =
+            GetComponent<NetworkRigidbody>();
+
+        _presentationRoot =
+            networkRigidbody != null
+                ? networkRigidbody.InterpolationTarget
+                : null;
+
         CaptureAnimationHandIkTargets();
         RestoreAnimationHandIk();
 

@@ -92,6 +92,8 @@
   fallback 기준점은 같은 Tick의 `AimOrigin`에서 흔들리지 않는다.
 - 총기 투사체는 장착 외형의 Muzzle 월드 위치에서 생성되고 Trail도 같은 Muzzle에서 시작한다.
   Host와 Client 모두 투사체가 이동하는 동안 NetworkTransform과 별도 Lerp가 서로 당기는 떨림이 없다.
+- 기본 패링과 방패의 로컬 쿨다운 원호는 `NetworkRigidbody`의 보간된 PresentationRoot를 따라가며,
+  이동·점프·착지 중에도 캐릭터 외형을 기준으로 앞뒤 한 Tick씩 떨리지 않는다.
 - 캐릭터에서 `Standard2DRigIKSetup`을 제거하거나 별도 에디터 작업용 오브젝트로 옮겨도,
   런타임에 명시적으로 연결한 상체 CCD와 손 Solver가 정상 동작한다.
 - 재시뮬레이션 횟수와 관계없이 Aim 보간, 피격 색상, 무적 깜빡임 속도가 일정하다.

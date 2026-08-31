@@ -12,6 +12,7 @@ public sealed class ParryPresentation : MonoBehaviour
     private Vector2 _successPoint;
 
     public void SetState(
+        Vector2 holderPosition,
         Vector2 origin,
         Vector2 direction,
         float radius,
@@ -39,7 +40,10 @@ public sealed class ParryPresentation : MonoBehaviour
         _cooldownFill.enabled = displayCooldown;
         if (displayCooldown)
         {
-            Vector2 meterOrigin = (Vector2)transform.position + Vector2.down * 0.85f;
+            Vector2 meterOrigin =
+                holderPosition +
+                Vector2.down * 0.85f;
+
             SetArc(_cooldownBack, meterOrigin, Vector2.up, 0.24f, 75f, 1f);
             SetArc(
                 _cooldownFill,
