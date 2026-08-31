@@ -969,7 +969,7 @@ GameObject:
   - component: {fileID: -5442214398763671545}
   - component: {fileID: 700000000000000001}
   m_Layer: 7
-  m_Name: PlayerCharacter_TestChar
+  m_Name: PC_TestChar
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1303,7 +1303,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerWeaponController
   weaponSocket: {fileID: 1384066503620454016}
-  weaponSortingOrder: 24
+  weaponSortingOrder: 9
   leftHandLimb: {fileID: 6844296285916493882}
   rightHandLimb: {fileID: 2782377998003480571}
   dropVelocity: {x: 2.5, y: 1.5}

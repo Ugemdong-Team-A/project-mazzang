@@ -16,7 +16,7 @@ public sealed class PlayerWeaponController :
 
     [Header("Weapon Presentation")]
     [SerializeField]
-    private int weaponSortingOrder = 24;
+    private int weaponSortingOrder = 9;
 
     [Header("Weapon IK")]
     [SerializeField]

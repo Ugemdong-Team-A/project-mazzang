@@ -2694,7 +2694,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerWeaponController
   weaponSocket: {fileID: 414074294030034652}
-  weaponSortingOrder: 24
+  weaponSortingOrder: 9
   leftHandLimb: {fileID: 2103104891301529202}
   rightHandLimb: {fileID: 900160570979725928}
   dropVelocity: {x: 2.5, y: 1.5}
@@ -2909,7 +2909,7 @@ PrefabInstance:
     - target: {fileID: -8132547982012766472, guid: b9984f6dcb8e054409b5c20abf462904, type: 3}
       propertyPath: m_Sprite
       value: 
-      objectReference: {fileID: -5579763233961850255, guid: b9984f6dcb8e054409b5c20abf462904, type: 3}
+      objectReference: {fileID: -4252235716161534880, guid: b9984f6dcb8e054409b5c20abf462904, type: 3}
     - target: {fileID: -7552582706839291426, guid: b9984f6dcb8e054409b5c20abf462904, type: 3}
       propertyPath: m_LocalScale.x
       value: 0.5
@@ -3043,25 +3043,29 @@ PrefabInstance:
       value: 
       objectReference: {fileID: -5238675917038198396, guid: b9984f6dcb8e054409b5c20abf462904, type: 3}
     - target: {fileID: 2333845474145887993, guid: b9984f6dcb8e054409b5c20abf462904, type: 3}
+      propertyPath: m_AutoRebind
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2333845474145887993, guid: b9984f6dcb8e054409b5c20abf462904, type: 3}
       propertyPath: m_BoneTransforms.Array.size
-      value: 5
+      value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 2333845474145887993, guid: b9984f6dcb8e054409b5c20abf462904, type: 3}
       propertyPath: 'm_BoneTransforms.Array.data[0]'
       value: 
-      objectReference: {fileID: 8259443477440694697}
+      objectReference: {fileID: 4175117112900079719}
     - target: {fileID: 2333845474145887993, guid: b9984f6dcb8e054409b5c20abf462904, type: 3}
       propertyPath: 'm_BoneTransforms.Array.data[1]'
       value: 
-      objectReference: {fileID: 4169457572591047647}
+      objectReference: {fileID: 313136689588926848}
     - target: {fileID: 2333845474145887993, guid: b9984f6dcb8e054409b5c20abf462904, type: 3}
       propertyPath: 'm_BoneTransforms.Array.data[2]'
       value: 
-      objectReference: {fileID: 2153911291970519651}
+      objectReference: {fileID: 2595562208785390130}
     - target: {fileID: 2333845474145887993, guid: b9984f6dcb8e054409b5c20abf462904, type: 3}
       propertyPath: 'm_BoneTransforms.Array.data[3]'
       value: 
-      objectReference: {fileID: 8404427807612772111}
+      objectReference: {fileID: 3248182460712931534}
     - target: {fileID: 2333845474145887993, guid: b9984f6dcb8e054409b5c20abf462904, type: 3}
       propertyPath: 'm_BoneTransforms.Array.data[4]'
       value: 
@@ -3191,6 +3195,11 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 7273417121150715430}
   m_SourcePrefab: {fileID: 4843985084834002234, guid: b9984f6dcb8e054409b5c20abf462904, type: 3}
+--- !u!4 &313136689588926848 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4939208881275154190, guid: b9984f6dcb8e054409b5c20abf462904, type: 3}
+  m_PrefabInstance: {fileID: 4671328365432198798}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1090066735295806760 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: -3462329622022296666, guid: b9984f6dcb8e054409b5c20abf462904, type: 3}
@@ -3324,6 +3333,11 @@ MonoBehaviour:
 --- !u!4 &4169457572591047647 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -500172287541983919, guid: b9984f6dcb8e054409b5c20abf462904, type: 3}
+  m_PrefabInstance: {fileID: 4671328365432198798}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &4175117112900079719 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 8728849651389335273, guid: b9984f6dcb8e054409b5c20abf462904, type: 3}
   m_PrefabInstance: {fileID: 4671328365432198798}
   m_PrefabAsset: {fileID: 0}
 --- !u!4 &4757582415780567172 stripped

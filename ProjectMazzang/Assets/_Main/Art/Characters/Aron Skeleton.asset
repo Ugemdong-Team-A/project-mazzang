@@ -1,0 +1,240 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ec8da9418a6bf493e93ef4c7b7575847, type: 3}
+  m_Name: Aron Skeleton
+  m_EditorClassIdentifier: Unity.2D.Animation.Runtime::UnityEngine.U2D.Animation.SkeletonAsset
+  m_SpriteBones:
+  - m_Name: root
+    m_Guid: eca2ad3f01c73e14093c2c62ad3805b9
+    m_Position: {x: 1675.2194, y: 338.90225, z: 1}
+    m_Rotation: {x: 0, y: 0, z: 0.7223012, w: 0.6915786}
+    m_Length: 105.703674
+    m_ParentId: -1
+    m_Color:
+      serializedVersion: 2
+      rgba: 4278190335
+  - m_Name: pelvis
+    m_Guid: a59003d9e0e947044a9afba4de6e320d
+    m_Position: {x: 880.9303, y: -33.70615, z: 0}
+    m_Rotation: {x: 0, y: 0, z: -0.05024495, w: 0.9987369}
+    m_Length: 160.96272
+    m_ParentId: 0
+    m_Color:
+      serializedVersion: 2
+      rgba: 4278255615
+  - m_Name: abdomen
+    m_Guid: d1fe514fbdf57734ea1994be17a1435a
+    m_Position: {x: 160.96274, y: 0.000036129506, z: 1}
+    m_Rotation: {x: 0, y: 0, z: -0.03474868, w: 0.9993961}
+    m_Length: 254.56833
+    m_ParentId: 1
+    m_Color:
+      serializedVersion: 2
+      rgba: 4278255360
+  - m_Name: chest
+    m_Guid: 8bb0a0532d63508459e4cfe312e72956
+    m_Position: {x: 254.56834, y: 0.00003284169, z: 2}
+    m_Rotation: {x: 0, y: 0, z: 0.1243908, w: 0.99223334}
+    m_Length: 374.73386
+    m_ParentId: 2
+    m_Color:
+      serializedVersion: 2
+      rgba: 4294967040
+  - m_Name: neck
+    m_Guid: 6367b0f4d2bfdcd49a133cd56706293f
+    m_Position: {x: 374.73386, y: -0.00016747821, z: 3}
+    m_Rotation: {x: 0, y: 0, z: -0.023029596, w: 0.9997348}
+    m_Length: 119.73122
+    m_ParentId: 3
+    m_Color:
+      serializedVersion: 2
+      rgba: 4294901760
+  - m_Name: head
+    m_Guid: 28e9dd6019511c6469f3e7be5ef71c1d
+    m_Position: {x: 119.731155, y: 0.00011037593, z: 2}
+    m_Rotation: {x: 0, y: 0, z: -0.025885362, w: 0.99966496}
+    m_Length: 367.43265
+    m_ParentId: 4
+    m_Color:
+      serializedVersion: 2
+      rgba: 4294902015
+  - m_Name: thigh_l
+    m_Guid: adcb4641955945e49a7c359196fafca1
+    m_Position: {x: 74.69559, y: 210.27647, z: 0}
+    m_Rotation: {x: 0, y: -0, z: 0.9968562, w: 0.079232246}
+    m_Length: 429.5675
+    m_ParentId: 22
+    m_Color:
+      serializedVersion: 2
+      rgba: 4278223103
+  - m_Name: calf_l
+    m_Guid: 8f34db91ea7e01145a81ba5450d6c737
+    m_Position: {x: 429.5675, y: -0.00009719894, z: 1}
+    m_Rotation: {x: 0, y: 0, z: 0.01026117, w: 0.99994737}
+    m_Length: 511.77872
+    m_ParentId: 6
+    m_Color:
+      serializedVersion: 2
+      rgba: 4278255488
+  - m_Name: foot_01_l
+    m_Guid: 0008132b99cc0754b9db0e5ede5a76bf
+    m_Position: {x: 511.77872, y: 0.000038928567, z: 2}
+    m_Rotation: {x: 0, y: 0, z: 0.7026841, w: 0.711502}
+    m_Length: 158.52367
+    m_ParentId: 7
+    m_Color:
+      serializedVersion: 2
+      rgba: 4286643968
+  - m_Name: foot_02_l
+    m_Guid: 1838bf1cd914c03469681fe626aa5ace
+    m_Position: {x: 158.5237, y: 0.0000035971825, z: 3}
+    m_Rotation: {x: 0, y: 0, z: 0.06350082, w: 0.9979818}
+    m_Length: 96.53016
+    m_ParentId: 8
+    m_Color:
+      serializedVersion: 2
+      rgba: 4294934528
+  - m_Name: thigh_r
+    m_Guid: f2e9389eddd4d834e8516d07f50808cd
+    m_Position: {x: 76.133224, y: -230.59845, z: 0}
+    m_Rotation: {x: 0, y: -0, z: -0.9998381, w: 0.017996846}
+    m_Length: 385.7107
+    m_ParentId: 22
+    m_Color:
+      serializedVersion: 2
+      rgba: 4294901888
+  - m_Name: calf_r
+    m_Guid: 9435ace3096e36c41b410dff1dfb3fbc
+    m_Position: {x: 385.7106, y: 0.00024800995, z: 1}
+    m_Rotation: {x: 0, y: 0, z: 0.060578376, w: 0.99816346}
+    m_Length: 518.83624
+    m_ParentId: 10
+    m_Color:
+      serializedVersion: 2
+      rgba: 4286578943
+  - m_Name: foot_01_r
+    m_Guid: ae306209cc8a9a04e9517f4759fd67b5
+    m_Position: {x: 518.83624, y: 0.00012548128, z: 2}
+    m_Rotation: {x: 0, y: 0, z: 0.62262416, w: 0.782521}
+    m_Length: 147.57114
+    m_ParentId: 11
+    m_Color:
+      serializedVersion: 2
+      rgba: 4278255615
+  - m_Name: foot_02_r
+    m_Guid: a6b17aad11aa9214da9f3ba2d123b756
+    m_Position: {x: 147.57115, y: 0.000022790506, z: 3}
+    m_Rotation: {x: 0, y: 0, z: -0.018111156, w: 0.999836}
+    m_Length: 106.49854
+    m_ParentId: 12
+    m_Color:
+      serializedVersion: 2
+      rgba: 4278255360
+  - m_Name: arm_l
+    m_Guid: a94c3c6aae32fad4c826da2c3dd6db75
+    m_Position: {x: 166.07454, y: -0.3839428, z: 0}
+    m_Rotation: {x: 0, y: 0, z: 0.54977465, w: 0.8353131}
+    m_Length: 403.68536
+    m_ParentId: 23
+    m_Color:
+      serializedVersion: 2
+      rgba: 4294967040
+  - m_Name: forearm_l
+    m_Guid: 11d2bf08e1059dc499f3d07fca3ee98e
+    m_Position: {x: 403.68527, y: -0.00005256583, z: 1}
+    m_Rotation: {x: 0, y: 0, z: -0.06776849, w: 0.9977011}
+    m_Length: 252.57306
+    m_ParentId: 14
+    m_Color:
+      serializedVersion: 2
+      rgba: 4294901760
+  - m_Name: hand_l
+    m_Guid: 4d66fdcbf72b1424bb7b591d943ff06d
+    m_Position: {x: 252.57317, y: 0.000018805855, z: 2}
+    m_Rotation: {x: 0, y: 0, z: -0.0016194459, w: 0.9999987}
+    m_Length: 180.70811
+    m_ParentId: 15
+    m_Color:
+      serializedVersion: 2
+      rgba: 4294902015
+  - m_Name: weapon_slot_l
+    m_Guid: 77709b4c7c4134d419e0b312f9ac943b
+    m_Position: {x: 180.70815, y: 0.0001621545, z: 1}
+    m_Rotation: {x: 0, y: 0, z: 0.76749057, w: 0.64106035}
+    m_Length: 263.72818
+    m_ParentId: 16
+    m_Color:
+      serializedVersion: 2
+      rgba: 4278190335
+  - m_Name: arm_r
+    m_Guid: 9918b2ea5bc0c7149b1651163f18bd55
+    m_Position: {x: 112.56239, y: -3.4966383, z: 0}
+    m_Rotation: {x: 0, y: 0, z: -0.53401333, w: 0.8454761}
+    m_Length: 380.4282
+    m_ParentId: 24
+    m_Color:
+      serializedVersion: 2
+      rgba: 4278255488
+  - m_Name: forearm_r
+    m_Guid: 897c679f6ab0d624bab6ebf562d1a540
+    m_Position: {x: 380.42804, y: 0.00006209147, z: 1}
+    m_Rotation: {x: 0, y: 0, z: 0.0066030906, w: 0.9999782}
+    m_Length: 302.097
+    m_ParentId: 18
+    m_Color:
+      serializedVersion: 2
+      rgba: 4286643968
+  - m_Name: hand_r
+    m_Guid: 8f61dfdb62bd6cd43b26623f1e132552
+    m_Position: {x: 302.09686, y: -0.00041653056, z: 2}
+    m_Rotation: {x: 0, y: 0, z: 0.014302557, w: 0.9998977}
+    m_Length: 168.38928
+    m_ParentId: 19
+    m_Color:
+      serializedVersion: 2
+      rgba: 4294934528
+  - m_Name: weapon_slot_r
+    m_Guid: 80228494b210e8745896844b4f642f20
+    m_Position: {x: 168.38922, y: -0.00019569398, z: 1}
+    m_Rotation: {x: 0, y: 0, z: 0.64795464, w: 0.761679}
+    m_Length: 300.70184
+    m_ParentId: 20
+    m_Color:
+      serializedVersion: 2
+      rgba: 4294901888
+  - m_Name: hip
+    m_Guid: 1237963c32e93044ebfb705b40e2b49c
+    m_Position: {x: 5.493713, y: 35.303078, z: 1}
+    m_Rotation: {x: 0, y: 0, z: 0.016493501, w: 0.999864}
+    m_Length: 133.29442
+    m_ParentId: 1
+    m_Color:
+      serializedVersion: 2
+      rgba: 4278255360
+  - m_Name: shoulder_l
+    m_Guid: c66869efbb89f114e80b48077eac498b
+    m_Position: {x: 378.3717, y: 87.05183, z: 3}
+    m_Rotation: {x: 0, y: 0, z: 0.6883529, w: 0.72537607}
+    m_Length: 167.72952
+    m_ParentId: 3
+    m_Color:
+      serializedVersion: 2
+      rgba: 4278223103
+  - m_Name: shoulder_r
+    m_Guid: 7387f7fdeb5a1184aadeeeeeed833576
+    m_Position: {x: 355.65247, y: -64.84328, z: 3}
+    m_Rotation: {x: 0, y: -0, z: -0.7604791, w: 0.64936244}
+    m_Length: 114.23448
+    m_ParentId: 3
+    m_Color:
+      serializedVersion: 2
+      rgba: 4278255360
