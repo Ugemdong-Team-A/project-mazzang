@@ -19,6 +19,6 @@ MonoBehaviour:
   knockbackUp: 0
   crowdControl:
     type: 2
-    duration: 2
+    duration: 0.7
     activationDelay: 0
     stopMovementOnApply: 1

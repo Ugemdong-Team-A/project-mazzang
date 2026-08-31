@@ -22,5 +22,7 @@ public class AronUltimate : DashSkill
         AronUltimateData
             .PassiveGainPerSecond;
 
-    public float DamageGainPerDamage => throw new System.NotImplementedException();
+    public float DamageGainPerDamage =>
+        AronUltimateData
+            .DamageGainPerDamage;
 }

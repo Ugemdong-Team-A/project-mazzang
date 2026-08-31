@@ -22,7 +22,7 @@ MonoBehaviour:
   duration: 10
   moveSpeedMultiplier: 2
   attackDamageMultiplier: 2
-  maxHealthMultiplier: 1.5
+  maxHealthMultiplier: 2
   damageTakenMultiplier: 0.75
   visualScaleMultiplier: 1.35
   appearanceLibraryAsset: {fileID: 7108339969198208228, guid: 407574a7ccb049045b892357da8713f9, type: 3}
