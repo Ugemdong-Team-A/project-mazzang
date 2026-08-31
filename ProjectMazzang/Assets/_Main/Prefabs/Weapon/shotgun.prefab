@@ -408,7 +408,7 @@ MonoBehaviour:
   projectilePrefab: {fileID: 4736335658398493549, guid: a82faefdd5d0cdd429a786b3436bc112, type: 3}
   projectileSpeed: 40
   projectileLifetime: 0.2
-  attack: {fileID: 0}
+  fireShakeProfile: {fileID: 11400000, guid: 63b629a5283864443a495536cbc44937, type: 2}
   _Ammo: 999
 --- !u!114 &4498004678548388021
 MonoBehaviour:

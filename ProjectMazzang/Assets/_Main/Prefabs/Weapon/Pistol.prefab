@@ -25,13 +25,13 @@ Transform:
   m_GameObject: {fileID: 1038075775799467391}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.855, y: 0.464, z: 0}
+  m_LocalPosition: {x: 0.666, y: -0.243, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 3085864403559333889}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &2211222481828127667
+--- !u!1 &2183848916142862746
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -39,39 +39,39 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 564011938357162093}
-  - component: {fileID: 4804617086447151765}
-  - component: {fileID: 2778920603820171767}
-  m_Layer: 9
-  m_Name: Shield Art
+  - component: {fileID: 120840592015085481}
+  - component: {fileID: 4295752529762856738}
+  - component: {fileID: 3190716299482469847}
+  m_Layer: 0
+  m_Name: gun_0
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &564011938357162093
+--- !u!4 &120840592015085481
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2211222481828127667}
+  m_GameObject: {fileID: 2183848916142862746}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1, y: 0.17, z: 0}
-  m_LocalScale: {x: 0.95, y: 0.95, z: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 1, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 3085864403559333889}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!212 &4804617086447151765
+--- !u!212 &4295752529762856738
 SpriteRenderer:
   serializedVersion: 2
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2211222481828127667}
+  m_GameObject: {fileID: 2183848916142862746}
   m_Enabled: 1
   m_CastShadows: 0
   m_ReceiveShadows: 0
@@ -111,25 +111,25 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 60
+  m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 2389193319765324094, guid: b0c7eb4cd97f0e8489d93a1a2ef0a75b, type: 3}
+  m_Sprite: {fileID: -6628414004274166170, guid: b1a67c5c40a24b64986901f5a700fb9c, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_FlipX: 1
+  m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 1.5675, y: 1.5675}
+  m_Size: {x: 9.08, y: 5.24}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
---- !u!61 &2778920603820171767
+--- !u!61 &3190716299482469847
 BoxCollider2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2211222481828127667}
+  m_GameObject: {fileID: 2183848916142862746}
   m_Enabled: 1
   serializedVersion: 3
   m_Density: 1
@@ -161,13 +161,13 @@ BoxCollider2D:
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0.5, y: 0.5}
-    oldSize: {x: 0.701, y: 1.368}
-    newSize: {x: 1.5675, y: 1.5675}
+    oldSize: {x: 0.908, y: 0.524}
+    newSize: {x: 9.08, y: 5.24}
     adaptiveTilingThreshold: 0.5
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 1, y: 1}
+  m_Size: {x: 0.908, y: 0.524}
   m_EdgeRadius: 0
 --- !u!1 &2662674113400603324
 GameObject:
@@ -195,10 +195,10 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2662674113400603324}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1, y: 0.2, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 1
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 1, y: -1, z: 0}
+  m_LocalScale: {x: 1, y: 3, z: 2}
+  m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 5814568478303250347}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -236,7 +236,7 @@ BoxCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 0}
+  m_Offset: {x: 0, y: 0.36427552}
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0.5, y: 0.5}
@@ -246,7 +246,7 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 1.55, y: 1.55}
+  m_Size: {x: 1, y: 0.27144897}
   m_EdgeRadius: 0
 --- !u!114 &7881194972578852804
 MonoBehaviour:
@@ -287,7 +287,7 @@ Transform:
   m_GameObject: {fileID: 2717315961084138251}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.843, y: -0.124, z: 0}
+  m_LocalPosition: {x: 0.877, y: -0.069, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
@@ -323,7 +323,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 564011938357162093}
+  - {fileID: 120840592015085481}
   - {fileID: 2486731633620674725}
   - {fileID: 8819009657638847448}
   - {fileID: 7883919693575876065}
@@ -359,7 +359,7 @@ GameObject:
   - component: {fileID: 4150836910798701016}
   - component: {fileID: 2623011332169258659}
   m_Layer: 0
-  m_Name: ShieldWeapon
+  m_Name: Pistol
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -391,33 +391,24 @@ MonoBehaviour:
   m_GameObject: {fileID: 6975233142488579268}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1c52fabe4d6c4e368bc602e24af2e3c1, type: 3}
+  m_Script: {fileID: 11500000, guid: 4388df14a7a1894458b46c6707ddc11c, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ShieldWeapon
+  m_EditorClassIdentifier: Assembly-CSharp::ProjectileGun
   rb: {fileID: 9023140553725785208}
-  worldCollider: {fileID: 2778920603820171767}
+  worldCollider: {fileID: 0}
   pickupTrigger: {fileID: 7881194972578852804}
   sortingGroup: {fileID: 2623011332169258659}
   presentationTemplate: {fileID: 6732957340894770001}
   _Holder: {fileID: 0}
-  sharedCooldown: 1.35
-  bashAttack: {fileID: 11400000, guid: e2a1f7c2b6d44a3fa92bc8e9d31f0104, type: 2}
-  hitboxSize: {x: 1.25, y: 1.5}
-  hitboxForwardOffset: 0.58
-  hurtboxLayer:
-    serializedVersion: 2
-    m_Bits: 256
-  dashSpeed: 7.5
-  dashControlLock: 0.1
-  parryDuration: 0.22
-  parryRadius: 1.15
-  parryArcAngle: 92
-  parryAimInfluence: 0.95
-  parrySpeedMultiplier: 1.25
-  parryForwardOffset: 0.52
-  bashEffectForwardOffset: 0.68
-  bashShakeProfile: {fileID: 11400000, guid: 020205b612304d22b1e00dd1c7382ffb, type: 2}
-  parrySuccessShakeProfile: {fileID: 11400000, guid: fdf65936ba5844708f91f6dc02bbf986, type: 2}
+  magazineSize: 5959
+  fireInterval: 1.28
+  muzzle: {fileID: 2486731633620674725}
+  projectilePrefab: {fileID: 4736335658398493549, guid: a82faefdd5d0cdd429a786b3436bc112, type: 3}
+  fireShakeProfile: {fileID: 11400000, guid: f739317905b94175b317689597d4f39e, type: 2}
+  muzzleFlash: {fileID: 0}
+  audioSource: {fileID: 0}
+  fireClip: {fileID: 0}
+  _Ammo: 0
 --- !u!114 &4498004678548388021
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -473,7 +464,7 @@ MonoBehaviour:
   m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
-  SortKey: 23417269
+  SortKey: 1854792803
   SendPriority: 1
   EnableInterpolation: 1
   Flags: 262402
@@ -520,7 +511,7 @@ Transform:
   m_GameObject: {fileID: 8981142756307359045}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1.0320001, y: 0.32099998, z: 0}
+  m_LocalPosition: {x: 1.4, y: 0.2, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []

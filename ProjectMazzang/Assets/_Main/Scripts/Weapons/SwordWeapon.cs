@@ -87,7 +87,7 @@ public sealed class SwordWeapon :
     {
         if (!CanAttack())
         {
-            Debug.Log("[Sword] CanAttack 실패");
+            // Debug.Log("[Sword] CanAttack 실패");
             return false;
         }
 
@@ -104,7 +104,7 @@ public sealed class SwordWeapon :
 
         StartCooldown();
 
-        Debug.Log("[Sword] 공격 준비");
+        // Debug.Log("[Sword] 공격 준비");
 
         return true;
     }
@@ -171,7 +171,7 @@ public sealed class SwordWeapon :
             origin,
             direction);
 
-        Debug.Log("[Sword] 준비 후 돌진 및 공격 판정");
+        // Debug.Log("[Sword] 준비 후 돌진 및 공격 판정");
     }
 
 

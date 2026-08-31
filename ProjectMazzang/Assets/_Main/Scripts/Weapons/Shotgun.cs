@@ -38,8 +38,11 @@ public sealed class Shotgun : Weapon
     [SerializeField]
     private float projectileLifetime = 1.5f;
 
+    [Header("Presentation")]
     [SerializeField]
-    private AttackData attack;
+    private CameraShakeProfile fireShakeProfile;
+
+    private int _visibleFireSequence;
 
     [Networked]
     public int Ammo
@@ -55,10 +58,26 @@ public sealed class Shotgun : Weapon
         set;
     }
 
+    [Networked]
+    private int FireSeqeunce
+    {
+        get;
+        set;
+    }
+
+    [Networked]
+    private Vector2 LastAuthoritativeFireOrigin
+    {
+        get;
+        set;
+    }
+
 
     public override void Spawned()
     {
         base.Spawned();
+
+        _visibleFireSequence = FireSeqeunce;
 
         if (!HasStateAuthority)
             return;
@@ -67,13 +86,29 @@ public sealed class Shotgun : Weapon
         FireCooldown = TickTimer.None;
     }
 
+    public override void Render()
+    {
+        base.Render();
+
+        if(_visibleFireSequence == FireSeqeunce)
+        {
+            return;
+        }
+
+        _visibleFireSequence = FireSeqeunce;
+
+        CameraShakeService.Play(
+            fireShakeProfile,
+            LastAuthoritativeFireOrigin
+            );
+    }
 
     public override bool TryUse(
         Vector2 origin,
         Vector2 direction,
         bool mirrored,
         float attackDamageMultiplier)
-    {
+    {       
         if (!HasStateAuthority)
             return false;
 
@@ -171,6 +206,10 @@ public sealed class Shotgun : Weapon
                     fireInterval)
                 : TickTimer.None;
 
+        LastAuthoritativeFireOrigin =
+            spawnPosition;
+
+        FireSeqeunce++;
 
         return true;
     }
