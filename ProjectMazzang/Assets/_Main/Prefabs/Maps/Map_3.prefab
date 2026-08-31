@@ -1424,11 +1424,23 @@ MonoBehaviour:
   spawnDelay: 0
   additionalSpawns:
   - weaponPrefab: {fileID: 4150836910798701016, guid: 4f85c3dc9b0e4befa4598ef4e2c15b74, type: 3}
-    spawnPoint: {fileID: 6514716819522218980}
+    spawnPoint: {fileID: 9200000000000000003}
     spawnDelay: 3
   - weaponPrefab: {fileID: 4150836910798701016, guid: c069fc96dda56e148b637df28da1b481, type: 3}
+    spawnPoint: {fileID: 6514716819522218980}
+    spawnDelay: 3
+  - weaponPrefab: {fileID: 4150836910798701016, guid: e7386491ca9242a479c860a637502822, type: 3}
     spawnPoint: {fileID: 5465514778000023447}
     spawnDelay: 3
+  - weaponPrefab: {fileID: 4150836910798701016, guid: fdfa94e2e16ad8440978a935630c57f4, type: 3}
+    spawnPoint: {fileID: 9200000000000000003}
+    spawnDelay: 20
+  - weaponPrefab: {fileID: 4150836910798701016, guid: e7386491ca9242a479c860a637502822, type: 3}
+    spawnPoint: {fileID: 5465514778000023447}
+    spawnDelay: 20
+  - weaponPrefab: {fileID: 4150836910798701016, guid: e7386491ca9242a479c860a637502822, type: 3}
+    spawnPoint: {fileID: 6514716819522218980}
+    spawnDelay: 20
 --- !u!114 &8200000000000000201
 MonoBehaviour:
   m_ObjectHideFlags: 0
