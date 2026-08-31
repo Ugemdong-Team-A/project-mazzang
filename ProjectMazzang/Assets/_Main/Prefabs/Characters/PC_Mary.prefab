@@ -2541,7 +2541,7 @@ MonoBehaviour:
   wallCheckRight: {fileID: 6749564660391285128}
   groundLayer:
     serializedVersion: 2
-    m_Bits: 64
+    m_Bits: 576
   groundAcceleration: 45
   groundDeceleration: 60
   airAcceleration: 30

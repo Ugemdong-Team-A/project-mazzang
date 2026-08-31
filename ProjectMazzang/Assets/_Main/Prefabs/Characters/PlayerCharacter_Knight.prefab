@@ -939,7 +939,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 031a3d6f78cf4252a60ca4ad2b38d855, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerStatsInstaller
   statsData: {fileID: 11400000, guid: 357eb4152b9149d294e3c2c6f7e0c47d, type: 2}
 --- !u!114 &8816412148498283450
@@ -973,7 +973,7 @@ MonoBehaviour:
   wallCheckRight: {fileID: 2338953937856615650}
   groundLayer:
     serializedVersion: 2
-    m_Bits: 64
+    m_Bits: 576
   groundAcceleration: 45
   groundDeceleration: 60
   airAcceleration: 30
@@ -1044,7 +1044,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerCombat
   jabAttack: {fileID: 11400000, guid: 37fd7c36d2fa4a27ba1c3ad20fa275c8, type: 2}
   counterAttack: {fileID: 11400000, guid: 5f0c8b1f020743859f5dd89bd20195f1, type: 2}
-  attackSocket: {fileID: 1119498991958727768}
   hurtboxLayer:
     serializedVersion: 2
     m_Bits: 256
@@ -1087,8 +1086,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAim
   aimOrigin: {fileID: 405535938307882185}
-  ccdTarget: {fileID: 5349236784287973008}
-  resolvedAimReferenceBone: {fileID: 5459021469249167873}
   resolvedAimPivot: {fileID: 910000000000000002}
   upperBodyAimRig: {fileID: 855167590607317003}
   ccdTargetRadius: 3
@@ -1139,7 +1136,8 @@ MonoBehaviour:
   mainSkill: {fileID: 11400000, guid: de166367786245dcacf3f3fac4569c54, type: 2}
   ultimateSkill: {fileID: 11400000, guid: b9d8a13a65202084a83904577c3e52e4, type: 2}
   _SkillAnimationSequence: 0
-  _LastSkillAnimation: 0
+  _LastSkillAnimationSlot: 0
+  _LastSkillAnimationPhase: 0
 --- !u!114 &700000000000000001
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4338,11 +4336,6 @@ Transform:
 --- !u!4 &4782386376514739514 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -4553907541134081518, guid: 8f519a0f7487d41cebc10ff177ee1436, type: 3}
-  m_PrefabInstance: {fileID: 185551564481437480}
-  m_PrefabAsset: {fileID: 0}
---- !u!4 &4944641326907003310 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 5047923016171589254, guid: 8f519a0f7487d41cebc10ff177ee1436, type: 3}
   m_PrefabInstance: {fileID: 185551564481437480}
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &5024333345684168607 stripped

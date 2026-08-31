@@ -161,7 +161,7 @@ BoxCollider2D:
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0.5, y: 0.5}
-    oldSize: {x: 0.908, y: 0.524}
+    oldSize: {x: 1.5133333, y: 0.87333333}
     newSize: {x: 9.08, y: 5.24}
     adaptiveTilingThreshold: 0.5
     drawMode: 0
@@ -399,6 +399,7 @@ MonoBehaviour:
   pickupTrigger: {fileID: 7881194972578852804}
   sortingGroup: {fileID: 2623011332169258659}
   presentationTemplate: {fileID: 6732957340894770001}
+  visualSizeOffset: 0.5
   _Holder: {fileID: 0}
   magazineSize: 5959
   fireInterval: 1.28
