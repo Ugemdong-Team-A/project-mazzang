@@ -909,7 +909,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 031a3d6f78cf4252a60ca4ad2b38d855, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerStatsInstaller
   statsData: {fileID: 11400000, guid: 9a7581ab38c24d7597b70f93df0ce93a, type: 2}
 --- !u!114 &8816412148498283450
@@ -943,7 +943,7 @@ MonoBehaviour:
   wallCheckRight: {fileID: 2338953937856615650}
   groundLayer:
     serializedVersion: 2
-    m_Bits: 64
+    m_Bits: 576
   groundAcceleration: 45
   groundDeceleration: 60
   airAcceleration: 30
@@ -1014,7 +1014,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerCombat
   jabAttack: {fileID: 11400000, guid: 5f0c8b1f020743859f5dd89bd20195f1, type: 2}
   counterAttack: {fileID: 0}
-  attackSocket: {fileID: 1119498991958727768}
   hurtboxLayer:
     serializedVersion: 2
     m_Bits: 256
@@ -1057,7 +1056,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAim
   aimOrigin: {fileID: 405535938307882185}
-  ccdTarget: {fileID: 5349236784287973008}
+  resolvedAimPivot: {fileID: 0}
   upperBodyAimRig: {fileID: 855167590607317003}
   ccdTargetRadius: 3
   rigAngleOffset: 90
@@ -1107,7 +1106,8 @@ MonoBehaviour:
   mainSkill: {fileID: 0}
   ultimateSkill: {fileID: 11400000, guid: e7b2ad5d74704cbabf0668bff6c925f4, type: 2}
   _SkillAnimationSequence: 0
-  _LastSkillAnimation: 0
+  _LastSkillAnimationSlot: 0
+  _LastSkillAnimationPhase: 0
 --- !u!114 &700000000000000001
 MonoBehaviour:
   m_ObjectHideFlags: 0

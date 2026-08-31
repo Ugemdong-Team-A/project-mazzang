@@ -3,7 +3,7 @@ using UnityEngine;
 [CreateAssetMenu(
     menuName = "Mazzang/Data/Skill/Dash",
     fileName = "DashSkillData")]
-public sealed class DashSkillData :
+public class DashSkillData :
     SkillData
 {
     [Header("Charges")]

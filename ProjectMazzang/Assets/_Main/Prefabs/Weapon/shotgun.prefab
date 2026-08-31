@@ -149,7 +149,7 @@ Transform:
   m_GameObject: {fileID: 2717315961084138251}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.5, y: 0.07, z: 0}
+  m_LocalPosition: {x: 0.744, y: 0.07, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
@@ -217,7 +217,7 @@ GameObject:
   - component: {fileID: 6733095797145022958}
   - component: {fileID: 6806629695861140137}
   - component: {fileID: 4900623709232859177}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: shotgun_0
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -336,7 +336,7 @@ BoxCollider2D:
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0.5, y: 0.5}
-    oldSize: {x: 2.4814286, y: 0.4557143}
+    oldSize: {x: 2.895, y: 0.5316667}
     newSize: {x: 17.37, y: 3.19}
     adaptiveTilingThreshold: 0.5
     drawMode: 0
@@ -399,6 +399,7 @@ MonoBehaviour:
   pickupTrigger: {fileID: 7881194972578852804}
   sortingGroup: {fileID: 2623011332169258659}
   presentationTemplate: {fileID: 6732957340894770001}
+  visualSizeOffset: 0.5
   _Holder: {fileID: 0}
   magazineSize: 5959
   fireInterval: 1
