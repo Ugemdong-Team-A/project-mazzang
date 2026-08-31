@@ -121,9 +121,12 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
   로컬 위치 `(0, 0, 0)`, 로컬 회전 `-90°`, 로컬 크기 `(1, 1, 1)`를 유지한다.
   런타임 코드는 이 계층을 재배치하거나 보정하지 않는다.
 - 실제 `AimOrigin` 트랜스폼은 `PlayerAim`만 소유한다. 같은 Tick의 `PlayerCombat`과
-  `PlayerWeaponController`는 `PlayerTickState`에 복사된 위치를 판정·발사·드롭 기준으로 재사용하며,
-  애니메이션을 따라 움직이는 `WeaponSocket`은 게임플레이 원점으로 사용하지 않는다.
-- Render에서 얻은 `WeaponSocket` 좌표는 외관에만 사용하고 다음 Tick의 판정 값으로 넘기지 않는다.
+  `PlayerWeaponController`는 `PlayerTickState`에 복사된 위치를 근접 판정·드롭과 총기 Muzzle의
+  fallback 기준으로 재사용하며, 애니메이션을 따라 움직이는 `WeaponSocket` 자체는 게임플레이
+  원점으로 사용하지 않는다.
+- 총기는 장착 외형의 `HeldWeaponView.Muzzle`이 있으면 StateAuthority의 투사체 생성 위치와
+  로컬 Trail 시작점에 같은 월드 좌표를 사용한다. 장착 외형이 없는 환경에서만 같은 Tick의
+  `AimOrigin`과 원본 Muzzle 로컬 오프셋으로 복구한다.
 - 무기와 투사체의 장착 표현은 `IWeaponHandler` 계약으로 현재 무기, Socket, 방향, 정렬 정보를 읽으며
   `PlayerWeaponController` 구체 타입을 직접 참조하지 않는다.
 - Sword는 선택적인 `DashData`를 참조한다. 공격 준비 시간이 끝나는 Tick에
@@ -141,6 +144,9 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
 - 같은 `AttackData`를 사용하더라도 실행 주체에 따라 타이밍과 사용 규칙은 달라질 수 있으므로,
   플레이어 전용 실행 정보는 `AttackData`에 두지 않는다.
 - `Projectile` 프리팹은 자신의 초기 속도, 수명, `AttackData`를 보관하고 충돌 시 공격 결과를 전달한다.
+- `Projectile`의 루트 표시는 `NetworkTransform` 보간만 사용한다. `Render()`에서 같은 루트 Transform에
+  별도 Lerp를 다시 적용하지 않는다. Trail 원점은 생성 순간의 확정 위치를 Networked 상태로 한 번
+  보관하므로 발사 후 플레이어나 장착 무기를 역으로 탐색하지 않는다.
 - `ProjectileSkillData`는 시전과 회복 시간, 생성 위치, 생성할 투사체 프리팹만 보관한다.
 - 스킬은 투사체의 방향과 소유자만 초기화하며, 투사체의 밸런스 값을 중복해서 보관하지 않는다.
 

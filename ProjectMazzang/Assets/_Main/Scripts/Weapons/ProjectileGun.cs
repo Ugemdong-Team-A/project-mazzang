@@ -42,15 +42,6 @@ public sealed class ProjectileGun :
 
     private int _visibleFireSequence;
 
-    public Vector2 PresentationMuzzlePosition =>
-        HeldView != null &&
-        HeldView.Muzzle != null
-            ? HeldView.Muzzle.position
-            : muzzle != null
-            ? muzzle.position
-            : transform.position;
-
-
     // =========================================================
     // Network State
     // =========================================================
@@ -255,18 +246,19 @@ public sealed class ProjectileGun :
         float weaponAngle,
         bool mirrored)
     {
+        if (TryGetHeldMuzzlePosition(
+                out Vector2 heldMuzzlePosition))
+        {
+            return heldMuzzlePosition;
+        }
+
         if (muzzle == null)
         {
             return weaponPosition;
         }
 
-        // Muzzle은 WeaponRoot의 자식 Transform으로 직접 배치한다.
-        // 현재 Weapon Transform의 월드 위치를 그대로 읽지 않고,
-        // 에디터에서 설정한 로컬 위치만 사용한다.
-        //
-        // Combat이 Weapon의 FixedUpdateNetwork보다 먼저 실행되더라도
-        // 이번 Tick의 weaponPosition / weaponAngle을 기준으로
-        // 정확한 총구 위치를 얻기 위함이다.
+        // Held View를 만들 수 없는 실행 환경에서는
+        // 확정된 Aim 원점과 원본 Muzzle 오프셋으로 복구한다.
         Vector2 muzzleOffset =
             muzzle.localPosition;
 

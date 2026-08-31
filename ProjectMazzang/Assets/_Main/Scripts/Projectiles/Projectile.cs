@@ -67,22 +67,7 @@ public class Projectile :
     [SerializeField]
     private ProjectileTrail projectileTrail;
 
-    [Tooltip(
-        "Smooths NetworkTransform presentation on remote peers.")]
-    [Min(0f)]
-    [SerializeField]
-    private float remotePresentationSharpness = 30f;
-
-    [Tooltip(
-        "Corrections beyond this distance snap immediately.")]
-    [Min(0f)]
-    [SerializeField]
-    private float remotePresentationSnapDistance = 1.5f;
-
     private bool _trailStarted;
-    private Vector3 _remotePresentationPosition;
-    private Quaternion _remotePresentationRotation;
-    private bool _hasRemotePresentationPose;
 
     [Tooltip(
         "충돌 시 카메라 진동 연출")]
@@ -175,6 +160,13 @@ public class Projectile :
     }
 
     [Networked]
+    private Vector2 PresentationOrigin
+    {
+        get;
+        set;
+    }
+
+    [Networked]
     private NetworkBool HasImpacted
     {
         get;
@@ -215,7 +207,6 @@ public class Projectile :
 
     public override void Spawned()
     {
-        ResetRemotePresentationPose();
         TryStartTrailPresentation();
 
         _visibleImpactSequence =
@@ -225,7 +216,6 @@ public class Projectile :
 
     public override void Render()
     {
-        SmoothRemotePresentation();
         TryStartTrailPresentation();
 
         if (_visibleImpactSequence ==
@@ -246,57 +236,6 @@ public class Projectile :
             DespawnProjectile();
             return;
         }
-    }
-
-
-    private void ResetRemotePresentationPose()
-    {
-        _remotePresentationPosition = transform.position;
-        _remotePresentationRotation = transform.rotation;
-        _hasRemotePresentationPose = true;
-    }
-
-
-    private void SmoothRemotePresentation()
-    {
-        if (HasStateAuthority)
-        {
-            ResetRemotePresentationPose();
-            return;
-        }
-
-        Vector3 targetPosition = transform.position;
-        Quaternion targetRotation = transform.rotation;
-
-        if (!_hasRemotePresentationPose ||
-            Vector3.Distance(
-                _remotePresentationPosition,
-                targetPosition) >= remotePresentationSnapDistance)
-        {
-            _remotePresentationPosition = targetPosition;
-            _remotePresentationRotation = targetRotation;
-            _hasRemotePresentationPose = true;
-            return;
-        }
-
-        float blend = remotePresentationSharpness <= 0f
-            ? 1f
-            : 1f - Mathf.Exp(
-                -remotePresentationSharpness * Time.deltaTime);
-
-        _remotePresentationPosition = Vector3.Lerp(
-            _remotePresentationPosition,
-            targetPosition,
-            blend);
-
-        _remotePresentationRotation = Quaternion.Slerp(
-            _remotePresentationRotation,
-            targetRotation,
-            blend);
-
-        transform.SetPositionAndRotation(
-            _remotePresentationPosition,
-            _remotePresentationRotation);
     }
 
 
@@ -340,6 +279,9 @@ public class Projectile :
 
         Source =
             source;
+
+        PresentationOrigin =
+            transform.position;
 
         Velocity =
             direction *
@@ -401,29 +343,8 @@ public class Projectile :
         _trailStarted = true;
 
         projectileTrail.Begin(
-            ResolvePresentationOrigin(),
+            PresentationOrigin,
             transform);
-    }
-
-
-    private Vector2 ResolvePresentationOrigin()
-    {
-        if (Source == null ||
-            !Source.TryGetComponent(
-                out IWeaponHandler handler))
-        {
-            return transform.position;
-        }
-
-        if (handler.EquippedWeapon is
-            ProjectileGun gun)
-        {
-            return gun.PresentationMuzzlePosition;
-        }
-
-        return handler.WeaponSocket != null
-            ? handler.WeaponSocket.position
-            : transform.position;
     }
 
 

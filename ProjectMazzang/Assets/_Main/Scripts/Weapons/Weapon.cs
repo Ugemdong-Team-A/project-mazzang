@@ -65,6 +65,24 @@ public abstract class Weapon :
     public HeldWeaponView HeldView =>
         _heldView;
 
+    public bool TryGetHeldMuzzlePosition(
+        out Vector2 position)
+    {
+        if (_heldView != null &&
+            _heldView.Muzzle != null)
+        {
+            position =
+                _heldView.Muzzle.position;
+
+            return true;
+        }
+
+        position =
+            default;
+
+        return false;
+    }
+
     public virtual bool ConsumesParryInput =>
         false;
 

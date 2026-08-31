@@ -183,8 +183,6 @@ MonoBehaviour:
   linearDrag: 0.1
   alignRotationToVelocity: 1
   projectileTrail: {fileID: 0}
-  remotePresentationSharpness: 30
-  remotePresentationSnapDistance: 1.5
   impactShakeProfile: {fileID: 0}
   despawnOnImpact: 0
   impactPresentationDuration: 0.15

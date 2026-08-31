@@ -211,6 +211,12 @@ public sealed class Shotgun : Weapon
         float weaponAngle,
         bool mirrored)
     {
+        if (TryGetHeldMuzzlePosition(
+                out Vector2 heldMuzzlePosition))
+        {
+            return heldMuzzlePosition;
+        }
+
         if (muzzle == null)
             return weaponPosition;
 
