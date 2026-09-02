@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.U2D.Animation;
 
 public sealed class PlayerVisual :
     PlayerTickModule
@@ -33,6 +34,12 @@ public sealed class PlayerVisual :
     [SerializeField]
     private float invulnerableBlinkInterval =
         0.08f;
+
+    [SerializeField]
+    private SpriteLibrary spriteLibrary;
+
+    private SpriteLibraryAsset _defaultLibraryAsset;
+    private SpriteLibraryAsset _appliedLibraryAsset;
 
 
     private Vector3 _defaultScale;
@@ -83,6 +90,20 @@ public sealed class PlayerVisual :
                 .transform
                 .localScale;
 
+        if (spriteLibrary == null)
+        {
+            spriteLibrary =
+                GetComponentInChildren<SpriteLibrary>(true);
+        }
+
+        if (spriteLibrary == null)
+            return;
+
+        _defaultLibraryAsset =
+            spriteLibrary.spriteLibraryAsset;
+        _appliedLibraryAsset =
+            _defaultLibraryAsset;
+
         CacheSpriteRenderers();
     }
 
@@ -123,6 +144,14 @@ public sealed class PlayerVisual :
         if (characterVisualRoot == null)
             return;
 
+        SpriteLibraryAsset requestedAsset =
+            tickState.ActiveAppearanceLibraryAsset;
+
+        Apply(
+            requestedAsset != null
+                ? requestedAsset
+                : _defaultLibraryAsset);
+
         if (tickState.HasHealth)
         {
             UpdateVisibility(
@@ -144,6 +173,21 @@ public sealed class PlayerVisual :
     // =========================================================
     // Visibility
     // =========================================================
+
+    private void Apply(
+       SpriteLibraryAsset libraryAsset)
+    {
+        if (spriteLibrary == null ||
+            ReferenceEquals(
+                _appliedLibraryAsset,
+                libraryAsset))
+        {
+            return;
+        }
+
+        _appliedLibraryAsset = libraryAsset;
+        spriteLibrary.spriteLibraryAsset = libraryAsset;
+    }
 
     private void UpdateVisibility(bool visible)
     {

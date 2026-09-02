@@ -2336,7 +2336,6 @@ GameObject:
   - component: {fileID: 8446048998901540376}
   - component: {fileID: 863277897238890674}
   - component: {fileID: 3569158150598239074}
-  - component: {fileID: 910000000000000102}
   - component: {fileID: 6767369168568245808}
   - component: {fileID: 3214326079020937291}
   - component: {fileID: 7854641794638322134}
@@ -2409,7 +2408,6 @@ MonoBehaviour:
   - {fileID: 8446048998901540376}
   - {fileID: 863277897238890674}
   - {fileID: 3569158150598239074}
-  - {fileID: 910000000000000102}
   - {fileID: 6767369168568245808}
   - {fileID: 3214326079020937291}
   - {fileID: 7854641794638322134}
@@ -2585,18 +2583,6 @@ MonoBehaviour:
   hitColorDuration: 0.1
   invulnerableAlpha: 0.35
   invulnerableBlinkInterval: 0.08
---- !u!114 &910000000000000102
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8422167869306190757}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6eb0857b0a6747bc98a11db6e8243c31, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerSpriteLibraryAppearance
   spriteLibrary: {fileID: 1815178671535184660}
 --- !u!114 &6767369168568245808
 MonoBehaviour:
