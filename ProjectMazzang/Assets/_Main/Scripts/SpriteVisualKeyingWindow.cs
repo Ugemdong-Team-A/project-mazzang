@@ -464,6 +464,10 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
         DrawAppliedResult(
             labels[currentLabelIndex],
             currentOrder);
+
+        // TODO: 모든 Driver의 기본 모습/순서 키 기능은
+        // 선택 부위의 기존 기본 복귀 기능과 별도로 안정화한 뒤 추가한다.
+        // DrawAllPartsDefaults(animationWindow, clip);
     }
 
     private void DrawAppliedResult(
