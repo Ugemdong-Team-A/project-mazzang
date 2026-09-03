@@ -73,3 +73,31 @@ AvatarMask:
     m_Weight: 0
   - m_Path: root/pelvis/hip/thigh_r/calf_r/foot_01_r/foot_02_r
     m_Weight: 0
+  - m_Path: arm_l_solver
+    m_Weight: 1
+  - m_Path: arm_l_solver/arm_l_solver_Target
+    m_Weight: 1
+  - m_Path: arm_r_solver
+    m_Weight: 1
+  - m_Path: arm_r_solver/arm_r_solver_Target
+    m_Weight: 1
+  - m_Path: foot_l_solver
+    m_Weight: 0
+  - m_Path: foot_l_solver/foot_l_solver_Target
+    m_Weight: 0
+  - m_Path: foot_r_solver
+    m_Weight: 0
+  - m_Path: foot_r_solver/foot_r_solver_Target
+    m_Weight: 0
+  - m_Path: head_solver
+    m_Weight: 1
+  - m_Path: head_solver/head_solver_Target
+    m_Weight: 1
+  - m_Path: leg_l_solver
+    m_Weight: 0
+  - m_Path: leg_l_solver/leg_l_solver_Target
+    m_Weight: 0
+  - m_Path: leg_r_solver
+    m_Weight: 0
+  - m_Path: leg_r_solver/leg_r_solver_Target
+    m_Weight: 0

@@ -1,5 +1,3 @@
-using Spine;
-using Unity.VisualScripting;
 using UnityEngine;
 
 public class ActionAnimationData : ScriptableObject
@@ -8,7 +6,7 @@ public class ActionAnimationData : ScriptableObject
     [SerializeField] AnimationClip actionAnimationClip;
     [SerializeField] ActionAnimationPlayback actionAnimationPlayback;
     [SerializeField] ActionBodyMask actionBodyMask;
-    [SerializeField] ActionAimConposition actionAimConposition;
+    [SerializeField] ActionAimComposition actionAimComposition;
     [SerializeField] ActionHandIkPolicy actionHandIkPolicy;
     [SerializeField] ActionAnimationSpeedMode actionAnimationSpeedMode;
 
@@ -22,7 +20,7 @@ public enum ActionAnimationPlayback
 
 public enum ActionBodyMask
 {
-    Fullbody,
+    FullBody,
     UpperBody,
     ArmsOnly
 }
@@ -30,7 +28,7 @@ public enum ActionBodyMask
 
 // 이미 존재하는 enum PlayerAttackPoseMode과 똑같지만
 // 공통 애니메이션 데이타이며 공격에 따라 액션도 참고할 수 있는 값이란 의미
-public enum ActionAimConposition
+public enum ActionAimComposition
 {
     ProceduralOverride,
     AnimationOnly,

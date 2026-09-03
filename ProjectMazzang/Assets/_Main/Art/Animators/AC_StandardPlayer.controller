@@ -180,7 +180,7 @@ AnimatorStateMachine:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: 'Action_UpperBody '
+  m_Name: Action_UpperBody
   m_ChildStates:
   - serializedVersion: 1
     m_State: {fileID: -8089193548807711457}
@@ -856,7 +856,7 @@ AnimatorController:
     m_SyncedLayerAffectsTiming: 0
     m_Controller: {fileID: 9100000}
   - serializedVersion: 5
-    m_Name: 'Action_UpperBody '
+    m_Name: Action_UpperBody
     m_StateMachine: {fileID: -7187181715811847767}
     m_Mask: {fileID: 31900000, guid: abdc19316569b0043a3bee82863ba1af, type: 2}
     m_Motions:
@@ -877,7 +877,7 @@ AnimatorController:
     m_SyncedLayerAffectsTiming: 0
     m_Controller: {fileID: 9100000}
   - serializedVersion: 5
-    m_Name: 'Action_ArmsOnly '
+    m_Name: Action_ArmsOnly
     m_StateMachine: {fileID: 2747246801667913264}
     m_Mask: {fileID: 31900000, guid: af87a40e9e2edc5449b3bdde6859cc6b, type: 2}
     m_Motions:
@@ -915,7 +915,7 @@ AnimatorController:
     m_Mask: {fileID: 0}
     m_Motions: []
     m_Behaviours: []
-    m_BlendingMode: 0
+    m_BlendingMode: 1
     m_SyncedLayerIndex: -1
     m_DefaultWeight: 0
     m_IKPass: 0
@@ -1271,7 +1271,7 @@ AnimatorStateMachine:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: 'Action_ArmsOnly '
+  m_Name: Action_ArmsOnly
   m_ChildStates:
   - serializedVersion: 1
     m_State: {fileID: 9088587738985712633}
