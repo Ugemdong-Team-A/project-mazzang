@@ -290,28 +290,37 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
             _animationRoot.transform);
 
         EditorGUILayout.LabelField("대상 경로", targetPath);
-        EditorGUILayout.LabelField("부위 분류", _target.Category);
+        EditorGUILayout.LabelField(
+            "부위 분류",
+            GetPartDisplayName(_target.Category));
 
         GameObject selected = Selection.activeGameObject;
         Solver2D selectedSolver = selected != null
             ? selected.GetComponentInParent<Solver2D>()
             : null;
 
-        GUIContent solverLabel = new(
-            "선택 위치의 IK 제어기",
-            "IK Target을 따라 팔·다리 등의 뼈를 움직이는 제어기입니다.");
+        using (new EditorGUILayout.HorizontalScope())
+        {
+            EditorGUILayout.LabelField(
+                "연결된 IK",
+                selectedSolver != null
+                    ? $"{selectedSolver.name} ({selectedSolver.GetType().Name})"
+                    : "해당 없음");
 
-        EditorGUILayout.LabelField(
-            solverLabel,
-            selectedSolver != null
-                ? $"{selectedSolver.name} ({selectedSolver.GetType().Name})"
-                : "선택 없음");
+            GUIContent helpIcon = EditorGUIUtility.IconContent("_Help");
+            helpIcon.tooltip =
+                "IK Target을 따라 팔·다리 등의 뼈를 움직이는 제어기입니다.";
+            GUILayout.Label(
+                helpIcon,
+                GUILayout.Width(18),
+                GUILayout.Height(EditorGUIUtility.singleLineHeight));
+        }
 
         EditorGUILayout.LabelField(
             "그리기 레이어",
             _target.Renderer.sortingLayerName);
         EditorGUILayout.LabelField(
-            "기본 그리기 순서",
+            "기본 스프라이트 순서",
             _target.OriginalSortingOrder.ToString());
     }
 
@@ -390,7 +399,7 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
 
         EditorGUI.BeginChangeCheck();
         int newOrder = EditorGUILayout.IntField(
-            "그리기 순서",
+            "스프라이트 순서",
             currentOrder);
 
         if (EditorGUI.EndChangeCheck())
@@ -461,9 +470,9 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
                 EditorStyles.boldLabel);
             EditorGUILayout.LabelField(
                 "스프라이트",
-                $"{_target.Category} / {label}");
+                $"{GetPartDisplayName(_target.Category)} / {label}");
             EditorGUILayout.LabelField(
-                "그리기 순서",
+                "스프라이트 순서",
                 _target.OriginalSortingOrder == order
                     ? order.ToString()
                     : $"{_target.OriginalSortingOrder} → {order}");
@@ -742,6 +751,15 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
             return "머리";
 
         return string.Empty;
+    }
+
+    private static string GetPartDisplayName(string source)
+    {
+        string koreanName = GetKoreanPartName(source);
+
+        return string.IsNullOrEmpty(koreanName)
+            ? source
+            : $"{source} · {koreanName}";
     }
 
     private void SelectDriver(
@@ -1044,7 +1062,7 @@ public sealed class SpriteVisualAnimationDriverEditor : Editor
                 ? "설정 없음"
                 : driver.DefaultLabel);
         EditorGUILayout.LabelField(
-            "기본 그리기 순서",
+            "기본 스프라이트 순서",
             driver.OriginalSortingOrder.ToString());
 
         if (!GUILayout.Button("SLA 정보 새로고침"))
