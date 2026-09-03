@@ -301,28 +301,19 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
 
         using (new EditorGUILayout.HorizontalScope())
         {
-            using (new EditorGUILayout.HorizontalScope(
-                       GUILayout.Width(EditorGUIUtility.labelWidth)))
-            {
-                GUIContent ikLabel = new("연결된 IK");
-                GUILayout.Label(
-                    ikLabel,
-                    GUILayout.Width(
-                        EditorStyles.label.CalcSize(ikLabel).x));
-
-                GUIContent helpIcon = EditorGUIUtility.IconContent("_Help");
-                helpIcon.tooltip =
-                    "IK Target을 따라 팔·다리 등의 뼈를 움직이는 제어기입니다.";
-                GUILayout.Label(
-                    helpIcon,
-                    GUILayout.Width(18),
-                    GUILayout.Height(EditorGUIUtility.singleLineHeight));
-            }
-
-            GUILayout.Label(
+            EditorGUILayout.LabelField(
+                "연결된 IK",
                 selectedSolver != null
                     ? $"{selectedSolver.name} ({selectedSolver.GetType().Name})"
                     : "해당 없음");
+
+            GUIContent helpIcon = EditorGUIUtility.IconContent("_Help");
+            helpIcon.tooltip =
+                "IK Target을 따라 팔·다리 등의 뼈를 움직이는 제어기입니다.";
+            GUILayout.Label(
+                helpIcon,
+                GUILayout.Width(18),
+                GUILayout.Height(EditorGUIUtility.singleLineHeight));
         }
 
         EditorGUILayout.LabelField(
@@ -385,7 +376,7 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
 
             using (new EditorGUI.DisabledScope(defaultLabelIndex < 0))
             {
-                if (GUILayout.Button("기본 모습", GUILayout.Width(72)))
+                if (GUILayout.Button("기본", GUILayout.Width(52)))
                 {
                     SetLabelKey(
                         animationWindow,
@@ -406,24 +397,13 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
             orderBinding,
             _target.SortingOrder);
 
-        using (new EditorGUILayout.HorizontalScope())
-        {
-            EditorGUI.BeginChangeCheck();
-            int newOrder = EditorGUILayout.IntField(
-                "스프라이트 순서",
-                currentOrder);
+        EditorGUI.BeginChangeCheck();
+        int newOrder = EditorGUILayout.IntField(
+            "스프라이트 순서",
+            currentOrder);
 
-            if (EditorGUI.EndChangeCheck())
-                SetSortingOrderKey(animationWindow, clip, newOrder);
-
-            if (GUILayout.Button("기본 순서", GUILayout.Width(72)))
-            {
-                SetSortingOrderKey(
-                    animationWindow,
-                    clip,
-                    _target.OriginalSortingOrder);
-            }
-        }
+        if (EditorGUI.EndChangeCheck())
+            SetSortingOrderKey(animationWindow, clip, newOrder);
 
         using (new EditorGUILayout.HorizontalScope())
         {
@@ -445,6 +425,14 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
                     animationWindow,
                     clip,
                     currentOrder - 1);
+            }
+
+            if (GUILayout.Button("기본"))
+            {
+                SetSortingOrderKey(
+                    animationWindow,
+                    clip,
+                    _target.OriginalSortingOrder);
             }
 
             if (GUILayout.Button("+1"))
