@@ -42,6 +42,7 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
         minSize = new Vector2(340f, 320f);
         EditorApplication.update += Repaint;
         Selection.selectionChanged += OnSelectionChanged;
+        Undo.undoRedoPerformed += OnUndoRedoPerformed;
         RefreshFromSelection();
     }
 
@@ -49,12 +50,19 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
     {
         EditorApplication.update -= Repaint;
         Selection.selectionChanged -= OnSelectionChanged;
+        Undo.undoRedoPerformed -= OnUndoRedoPerformed;
         SpriteVisualKeyingWindowCompanion.SuppressUntilAnimationLosesFocus();
     }
 
     private void OnSelectionChanged()
     {
         RefreshFromSelection();
+        Repaint();
+    }
+
+    private void OnUndoRedoPerformed()
+    {
+        ApplyCurrentVisualPreview();
         Repaint();
     }
 
@@ -240,7 +248,9 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
             Mathf.Max(0, _partIndex),
             _partNames);
 
-        if (EditorGUI.EndChangeCheck() || _target == null)
+        if (EditorGUI.EndChangeCheck())
+            SelectPart(newIndex, true, true);
+        else if (_target == null)
             SelectPart(newIndex, true);
 
         DrawAddDriverButton();
@@ -336,6 +346,7 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
 
         if (EditorGUI.EndChangeCheck())
         {
+            RecordPreviewUndo("Set Sprite Label");
             AddConstantKey(
                 animationWindow,
                 clip,
@@ -393,6 +404,32 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
                     _target.OriginalSortingOrder + 1);
             }
         }
+
+        DrawAppliedResult(
+            labels[currentLabelIndex],
+            currentOrder);
+    }
+
+    private void DrawAppliedResult(
+        string label,
+        int order)
+    {
+        EditorGUILayout.Space(4);
+
+        using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+        {
+            EditorGUILayout.LabelField(
+                "현재 적용 결과",
+                EditorStyles.boldLabel);
+            EditorGUILayout.LabelField(
+                "Sprite",
+                $"{_target.Category} / {label}");
+            EditorGUILayout.LabelField(
+                "Order",
+                _target.OriginalSortingOrder == order
+                    ? order.ToString()
+                    : $"{_target.OriginalSortingOrder} → {order}");
+        }
     }
 
     private void SetSortingOrderKey(
@@ -400,6 +437,7 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
         AnimationClip clip,
         int order)
     {
+        RecordPreviewUndo("Set Sprite Sorting Order");
         AddConstantKey(
             animationWindow,
             clip,
@@ -409,6 +447,18 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
             order,
             "Set Sprite Sorting Order");
         _target.PreviewSortingOrder(order);
+    }
+
+    private void RecordPreviewUndo(string undoName)
+    {
+        Undo.RecordObjects(
+            new UnityEngine.Object[]
+            {
+                _target,
+                _target.Resolver,
+                _target.Renderer
+            },
+            undoName);
     }
 
     private EditorCurveBinding CreateBinding(
@@ -580,7 +630,8 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
 
     private void SelectPart(
         int index,
-        bool synchronize)
+        bool synchronize,
+        bool selectInScene = false)
     {
         _partIndex = index;
         _target = index >= 0 && index < _parts.Length
@@ -592,6 +643,53 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
 
         if (_target.SynchronizeDefinition())
             EditorUtility.SetDirty(_target);
+
+        if (selectInScene)
+        {
+            Selection.activeGameObject = _target.gameObject;
+            EditorGUIUtility.PingObject(_target.gameObject);
+            SceneView.RepaintAll();
+        }
+    }
+
+    private void ApplyCurrentVisualPreview()
+    {
+        AnimationWindow animationWindow = GetAnimationWindow();
+        AnimationClip clip = animationWindow != null
+            ? animationWindow.animationClip
+            : null;
+
+        if (animationWindow == null || clip == null || _target == null)
+            return;
+
+        string[] labels = _target.Labels.ToArray();
+
+        if (labels.Length == 0)
+            return;
+
+        int labelIndex = Mathf.Clamp(
+            GetIntAtCurrentTime(
+                animationWindow,
+                clip,
+                CreateBinding(
+                    typeof(SpriteVisualAnimationDriver),
+                    LabelIndexProperty),
+                _target.LabelIndex),
+            0,
+            labels.Length - 1);
+
+        int order = GetIntAtCurrentTime(
+            animationWindow,
+            clip,
+            CreateBinding(
+                typeof(SpriteVisualAnimationDriver),
+                SortingOrderProperty),
+            _target.SortingOrder);
+
+        _target.PreviewLabel(labelIndex);
+        _target.PreviewSortingOrder(order);
+        animationWindow.Repaint();
+        SceneView.RepaintAll();
     }
 
     private List<Transform> FindLimbTargets(
