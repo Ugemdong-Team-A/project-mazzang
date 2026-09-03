@@ -1,0 +1,75 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!319 &31900000
+AvatarMask:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: WholeBody
+  m_Mask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+  m_Elements:
+  - m_Path: 
+    m_Weight: 1
+  - m_Path: head
+    m_Weight: 1
+  - m_Path: arm L
+    m_Weight: 1
+  - m_Path: Body
+    m_Weight: 1
+  - m_Path: Leg R
+    m_Weight: 1
+  - m_Path: Leg L
+    m_Weight: 1
+  - m_Path: arm R
+    m_Weight: 1
+  - m_Path: root
+    m_Weight: 1
+  - m_Path: root/pelvis
+    m_Weight: 1
+  - m_Path: root/pelvis/abdomen
+    m_Weight: 1
+  - m_Path: root/pelvis/abdomen/chest
+    m_Weight: 1
+  - m_Path: root/pelvis/abdomen/chest/neck
+    m_Weight: 1
+  - m_Path: root/pelvis/abdomen/chest/neck/head_1
+    m_Weight: 1
+  - m_Path: root/pelvis/abdomen/chest/shoulder_l
+    m_Weight: 1
+  - m_Path: root/pelvis/abdomen/chest/shoulder_l/arm_l
+    m_Weight: 1
+  - m_Path: root/pelvis/abdomen/chest/shoulder_l/arm_l/forearm_l
+    m_Weight: 1
+  - m_Path: root/pelvis/abdomen/chest/shoulder_l/arm_l/forearm_l/hand_l
+    m_Weight: 1
+  - m_Path: root/pelvis/abdomen/chest/shoulder_l/arm_l/forearm_l/hand_l/weapon_slot_l
+    m_Weight: 1
+  - m_Path: root/pelvis/abdomen/chest/shoulder_r
+    m_Weight: 1
+  - m_Path: root/pelvis/abdomen/chest/shoulder_r/arm_r
+    m_Weight: 1
+  - m_Path: root/pelvis/abdomen/chest/shoulder_r/arm_r/forearm_r
+    m_Weight: 1
+  - m_Path: root/pelvis/abdomen/chest/shoulder_r/arm_r/forearm_r/hand_r
+    m_Weight: 1
+  - m_Path: root/pelvis/abdomen/chest/shoulder_r/arm_r/forearm_r/hand_r/weapon_slot_r
+    m_Weight: 1
+  - m_Path: root/pelvis/hip
+    m_Weight: 1
+  - m_Path: root/pelvis/hip/thigh_l
+    m_Weight: 1
+  - m_Path: root/pelvis/hip/thigh_l/calf_l
+    m_Weight: 1
+  - m_Path: root/pelvis/hip/thigh_l/calf_l/foot_01_l
+    m_Weight: 1
+  - m_Path: root/pelvis/hip/thigh_l/calf_l/foot_01_l/foot_02_l
+    m_Weight: 1
+  - m_Path: root/pelvis/hip/thigh_r
+    m_Weight: 1
+  - m_Path: root/pelvis/hip/thigh_r/calf_r
+    m_Weight: 1
+  - m_Path: root/pelvis/hip/thigh_r/calf_r/foot_01_r
+    m_Weight: 1
+  - m_Path: root/pelvis/hip/thigh_r/calf_r/foot_01_r/foot_02_r
+    m_Weight: 1
