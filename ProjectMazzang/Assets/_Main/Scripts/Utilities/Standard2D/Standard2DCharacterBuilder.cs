@@ -87,6 +87,7 @@ public static class Standard2DCharacterBuilder
             "IK 생성/갱신 완료\n" +
             $"SpriteResolver: 추가 {resolverResult.AddedCount}, " +
             $"기존 {resolverResult.ExistingCount}, " +
+            $"Category 자동 연결 {resolverResult.CategoryConfiguredCount}, " +
             $"전체 {resolverResult.RendererCount}\n" +
             $"Visual Driver: 추가 {visualResult.AddedCount}, " +
             $"갱신 {visualResult.RefreshedCount}, " +

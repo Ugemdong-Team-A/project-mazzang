@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
@@ -19,14 +20,26 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
     private int _partIndex = -1;
     private SpriteVisualAnimationDriver _target;
 
-    [MenuItem("Tools/Animation/Sprite Visual Keyer")]
+    [MenuItem("Tools/2D Animation/Sprite Visual Keyer")]
     private static void Open()
     {
-        GetWindow<SpriteVisualKeyingWindow>("Sprite Visual");
+        ShowWindow();
+    }
+
+    internal static void ShowWindow()
+    {
+        SpriteVisualKeyingWindow window =
+            GetWindow<SpriteVisualKeyingWindow>();
+
+        window.titleContent = CreateTitleContent();
+        window.minSize = new Vector2(340f, 320f);
+        window.Show();
     }
 
     private void OnEnable()
     {
+        titleContent = CreateTitleContent();
+        minSize = new Vector2(340f, 320f);
         EditorApplication.update += Repaint;
         Selection.selectionChanged += OnSelectionChanged;
         RefreshFromSelection();
@@ -36,6 +49,7 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
     {
         EditorApplication.update -= Repaint;
         Selection.selectionChanged -= OnSelectionChanged;
+        SpriteVisualKeyingWindowCompanion.SuppressUntilAnimationLosesFocus();
     }
 
     private void OnSelectionChanged()
@@ -66,15 +80,22 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
             return;
         }
 
-        EditorGUILayout.LabelField("현재 클립", clip.name);
-        EditorGUILayout.LabelField(
-            "현재 프레임",
-            animationWindow.frame.ToString());
+        DrawHeader(
+            clip,
+            animationWindow.frame);
 
         EditorGUILayout.Space(8);
         DrawRigSelection();
 
-        if (_animationRoot == null || _target == null)
+        if (_animationRoot == null)
+            return;
+
+        EditorGUILayout.Space(8);
+        DrawInitialIKKeys(
+            animationWindow,
+            clip);
+
+        if (_target == null)
             return;
 
         if (_target.Renderer == null || _target.Resolver == null)
@@ -89,6 +110,92 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
         DrawTargetContext();
         EditorGUILayout.Space(8);
         DrawVisualKeys(animationWindow, clip);
+    }
+
+    private static void DrawHeader(
+        AnimationClip clip,
+        int frame)
+    {
+        Color previousColor = GUI.backgroundColor;
+        GUI.backgroundColor = new Color(0.35f, 0.65f, 0.95f, 1f);
+
+        using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+        {
+            GUI.backgroundColor = previousColor;
+
+            GUIContent heading = new(
+                " Mazzang Sprite Visual Keyer",
+                EditorGUIUtility.IconContent("AnimationClip Icon").image);
+
+            EditorGUILayout.LabelField(
+                heading,
+                EditorStyles.boldLabel);
+
+            EditorGUILayout.LabelField("현재 클립", clip.name);
+            EditorGUILayout.LabelField(
+                "현재 프레임",
+                frame.ToString());
+        }
+
+        GUI.backgroundColor = previousColor;
+    }
+
+    private void DrawInitialIKKeys(
+        AnimationWindow animationWindow,
+        AnimationClip clip)
+    {
+        List<Transform> targets =
+            FindLimbTargets(
+                out List<string> missingTargets);
+
+        using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+        {
+            EditorGUILayout.LabelField(
+                "IK 시작 포즈",
+                EditorStyles.boldLabel);
+
+            EditorGUILayout.LabelField(
+                "팔·다리·발 Target",
+                $"{targets.Count}/{Standard2DRigDefinition.LimbSpecs.Count}");
+
+            if (missingTargets.Count > 0)
+            {
+                EditorGUILayout.HelpBox(
+                    "찾지 못한 Target: " +
+                    string.Join(", ", missingTargets),
+                    MessageType.Warning);
+            }
+
+            if (animationWindow.frame != 0)
+            {
+                EditorGUILayout.HelpBox(
+                    "현재 포즈를 정확히 저장하려면 먼저 0프레임으로 이동하세요.",
+                    MessageType.Info);
+
+                if (GUILayout.Button("0프레임으로 이동"))
+                {
+                    animationWindow.frame = 0;
+                    animationWindow.Repaint();
+                }
+
+                return;
+            }
+
+            using (new EditorGUI.DisabledScope(
+                       targets.Count !=
+                       Standard2DRigDefinition.LimbSpecs.Count))
+            {
+                if (GUILayout.Button(
+                        "현재 IK 포즈를 첫 키로 저장",
+                        GUILayout.Height(30)))
+                {
+                    SaveInitialIKKeys(
+                        animationWindow,
+                        clip,
+                        targets);
+                }
+            }
+        }
     }
 
     private void DrawRigSelection()
@@ -487,6 +594,173 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
             EditorUtility.SetDirty(_target);
     }
 
+    private List<Transform> FindLimbTargets(
+        out List<string> missingTargets)
+    {
+        List<Transform> targets = new();
+        missingTargets = new List<string>();
+
+        LimbSolver2D[] solvers =
+            _animationRoot.GetComponentsInChildren<LimbSolver2D>(
+                true);
+
+        foreach (Standard2DRigDefinition.LimbSpec spec
+                 in Standard2DRigDefinition.LimbSpecs)
+        {
+            LimbSolver2D solver =
+                solvers.FirstOrDefault(
+                    item => item.name == spec.SolverName);
+
+            IKChain2D chain =
+                solver != null
+                    ? solver.GetChain(0)
+                    : null;
+
+            Transform target =
+                chain != null
+                    ? chain.target
+                    : null;
+
+            if (target == null)
+            {
+                missingTargets.Add(spec.TargetName);
+                continue;
+            }
+
+            targets.Add(target);
+        }
+
+        return targets;
+    }
+
+    private void SaveInitialIKKeys(
+        AnimationWindow animationWindow,
+        AnimationClip clip,
+        IReadOnlyList<Transform> targets)
+    {
+        const float firstFrameTime = 0f;
+
+        Undo.RegisterCompleteObjectUndo(
+            clip,
+            "Save Initial Limb IK Keys");
+
+        foreach (Transform target in targets)
+        {
+            string path =
+                AnimationUtility.CalculateTransformPath(
+                    target,
+                    _animationRoot.transform);
+
+            Vector3 position =
+                target.localPosition;
+
+            Quaternion rotation =
+                target.localRotation;
+
+            SetTransformKey(
+                clip,
+                path,
+                "m_LocalPosition.x",
+                position.x,
+                firstFrameTime);
+            SetTransformKey(
+                clip,
+                path,
+                "m_LocalPosition.y",
+                position.y,
+                firstFrameTime);
+            SetTransformKey(
+                clip,
+                path,
+                "m_LocalPosition.z",
+                position.z,
+                firstFrameTime);
+
+            SetTransformKey(
+                clip,
+                path,
+                "m_LocalRotation.x",
+                rotation.x,
+                firstFrameTime);
+            SetTransformKey(
+                clip,
+                path,
+                "m_LocalRotation.y",
+                rotation.y,
+                firstFrameTime);
+            SetTransformKey(
+                clip,
+                path,
+                "m_LocalRotation.z",
+                rotation.z,
+                firstFrameTime);
+            SetTransformKey(
+                clip,
+                path,
+                "m_LocalRotation.w",
+                rotation.w,
+                firstFrameTime);
+        }
+
+        clip.EnsureQuaternionContinuity();
+        EditorUtility.SetDirty(clip);
+        animationWindow.Repaint();
+        SceneView.RepaintAll();
+
+        Debug.Log(
+            $"[{nameof(SpriteVisualKeyingWindow)}] " +
+            $"'{clip.name}' 0프레임에 Limb IK Target {targets.Count}개의 " +
+            "Position/Rotation 키를 저장했습니다.",
+            clip);
+    }
+
+    private static void SetTransformKey(
+        AnimationClip clip,
+        string path,
+        string propertyName,
+        float value,
+        float time)
+    {
+        EditorCurveBinding binding =
+            EditorCurveBinding.FloatCurve(
+                path,
+                typeof(Transform),
+                propertyName);
+
+        AnimationCurve curve =
+            AnimationUtility.GetEditorCurve(
+                clip,
+                binding) ??
+            new AnimationCurve();
+
+        int existingIndex =
+            FindKeyAtTime(
+                curve,
+                time);
+
+        int keyIndex =
+            existingIndex >= 0
+                ? curve.MoveKey(
+                    existingIndex,
+                    new Keyframe(time, value))
+                : curve.AddKey(
+                    new Keyframe(time, value));
+
+        AnimationUtility.SetKeyLeftTangentMode(
+            curve,
+            keyIndex,
+            AnimationUtility.TangentMode.ClampedAuto);
+        AnimationUtility.SetKeyRightTangentMode(
+            curve,
+            keyIndex,
+            AnimationUtility.TangentMode.ClampedAuto);
+
+        AnimationUtility.SetEditorCurve(
+            clip,
+            binding,
+            curve);
+    }
+
     private static AnimationWindow GetAnimationWindow()
     {
         return Resources
@@ -507,6 +781,14 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
         }
 
         return -1;
+    }
+
+    private static GUIContent CreateTitleContent()
+    {
+        return new GUIContent(
+            "Sprite Visual",
+            EditorGUIUtility.IconContent("AnimationClip Icon").image,
+            "Mazzang Sprite Visual Keyer");
     }
 }
 

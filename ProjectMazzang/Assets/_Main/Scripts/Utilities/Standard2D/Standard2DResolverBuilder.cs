@@ -1,6 +1,8 @@
 #if UNITY_EDITOR
 
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.U2D.Animation;
@@ -16,6 +18,7 @@ public static class Standard2DResolverBuilder
         public int RendererCount { get; internal set; }
         public int AddedCount { get; internal set; }
         public int ExistingCount { get; internal set; }
+        public int CategoryConfiguredCount { get; internal set; }
         public List<string> Errors { get; } = new();
         public bool Success => Errors.Count == 0;
     }
@@ -55,29 +58,112 @@ public static class Standard2DResolverBuilder
             if (resolver != null)
             {
                 result.ExistingCount++;
-                continue;
             }
-
-            resolver =
-                Undo.AddComponent<SpriteResolver>(
-                    renderer.gameObject);
-
-            if (resolver == null)
+            else
             {
-                result.Errors.Add(
-                    $"SpriteResolver 추가 실패: " +
-                    GetPath(characterRoot, renderer.transform));
+                resolver =
+                    Undo.AddComponent<SpriteResolver>(
+                        renderer.gameObject);
 
-                continue;
+                if (resolver == null)
+                {
+                    result.Errors.Add(
+                        $"SpriteResolver 추가 실패: " +
+                        GetPath(characterRoot, renderer.transform));
+
+                    continue;
+                }
+
+                result.AddedCount++;
+                EditorUtility.SetDirty(resolver);
+                PrefabUtility.RecordPrefabInstancePropertyModifications(
+                    resolver);
             }
 
-            result.AddedCount++;
-            EditorUtility.SetDirty(resolver);
-            PrefabUtility.RecordPrefabInstancePropertyModifications(
-                resolver);
+            if (TryConfigureCategoryFromObjectName(
+                    renderer,
+                    resolver))
+            {
+                result.CategoryConfiguredCount++;
+            }
         }
 
         return result;
+    }
+
+    private static bool TryConfigureCategoryFromObjectName(
+        SpriteRenderer renderer,
+        SpriteResolver resolver)
+    {
+        if (!string.IsNullOrEmpty(
+                resolver.GetCategory()))
+        {
+            return false;
+        }
+
+        SpriteLibrary library =
+            resolver.spriteLibrary;
+
+        SpriteLibraryAsset libraryAsset =
+            library != null
+                ? library.spriteLibraryAsset
+                : null;
+
+        if (libraryAsset == null)
+            return false;
+
+        string category =
+            libraryAsset
+                .GetCategoryNames()
+                .FirstOrDefault(
+                    item => string.Equals(
+                        item,
+                        renderer.gameObject.name,
+                        StringComparison.Ordinal));
+
+        if (string.IsNullOrEmpty(category))
+            return false;
+
+        string[] labels =
+            libraryAsset
+                .GetCategoryLabelNames(category)
+                .ToArray();
+
+        if (labels.Length == 0)
+            return false;
+
+        string label =
+            labels.FirstOrDefault(
+                item => string.Equals(
+                    item,
+                    category,
+                    StringComparison.Ordinal));
+
+        if (string.IsNullOrEmpty(label))
+        {
+            label = labels.FirstOrDefault(
+                item => string.Equals(
+                    item,
+                    "Default",
+                    StringComparison.Ordinal));
+        }
+
+        if (string.IsNullOrEmpty(label))
+            label = labels[0];
+
+        Undo.RecordObject(
+            resolver,
+            "Configure Sprite Resolver Category");
+
+        resolver.SetCategoryAndLabel(
+            category,
+            label);
+
+        EditorUtility.SetDirty(resolver);
+        PrefabUtility.RecordPrefabInstancePropertyModifications(
+            resolver);
+
+        return true;
     }
 
     private static string GetPath(

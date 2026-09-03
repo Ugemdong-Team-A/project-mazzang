@@ -115,7 +115,11 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
   단계를 순서대로 실행하는 편집기 진입점이다. 같은 Root의 `Animator`와 `Standard2DRigIKSetup`
   참조, 하위 `SpriteLibrary`와 `SpriteResolver` 목록 및 전체 유효성만 관리하며, 각 관리 컴포넌트와
   Builder는 서로를 참조하지 않는다. SLA가 아직 없어도 모든 `SpriteRenderer`에 Resolver와 Driver를
-  먼저 구성할 수 있고, SLA 정보 동기화 실패는 생성 실패가 아닌 경고로 보고한다.
+  먼저 구성할 수 있고, SLA 정보 동기화 실패는 생성 실패가 아닌 경고로 보고한다. Resolver의
+  Category가 비어 있고 GameObject 이름과 SLA Category가 정확히 일치하면 Category와 초기 Label을
+  자동 연결하며, 유사 이름은 추측하지 않는다.
+- `SpriteVisualKeyingWindow`는 적합한 캐릭터를 선택하고 Animation 창에 포커스가 오면 함께 열리며,
+  버튼을 눌렀을 때만 팔·다리·발 Limb Target 6개의 현재 위치와 회전을 클립 0프레임에 기록한다.
 - `PlayerAim`은 상체 CCD Solver만 명시적으로 참조하고 Target과 기준 본은 Solver 체인에서 얻는다.
   `PlayerWeaponController`는 손 Solver와 표시용 `WeaponSocket`만 명시적으로 참조한다.
 - `PlayerAim`은 제한된 허리 각도와 최대 각도를 `PlayerTickState`에 공개한다. 무기는 이 스냅샷으로
