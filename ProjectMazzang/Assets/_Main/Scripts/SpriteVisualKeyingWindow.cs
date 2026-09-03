@@ -12,8 +12,8 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
 {
     private const string LabelIndexProperty = "pose";
     private const string SortingOrderProperty = "_sortingOrder";
-    private const int OrderNeighborCount = 4;
     private const float OrderCardWidth = 76f;
+    private const float OrderCardStep = 80f;
 
     private Animator _animationRoot;
     private SpriteVisualAnimationDriver[] _parts =
@@ -497,18 +497,18 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
         if (targetIndex < 0)
             return;
 
-        int startIndex = Mathf.Max(0, targetIndex - OrderNeighborCount);
-        int endIndex = Mathf.Min(
-            orderedParts.Length - 1,
-            targetIndex + OrderNeighborCount);
+        HashSet<int> duplicateOrders = orderedParts
+            .GroupBy(driver => driver.Renderer.sortingOrder)
+            .Where(group => group.Count() > 1)
+            .Select(group => group.Key)
+            .ToHashSet();
 
         if (_lastOrderStripTarget != _target)
         {
-            int visibleTargetIndex = targetIndex - startIndex;
             float viewportWidth = Mathf.Max(0f, position.width - 36f);
             _orderStripScroll.x = Mathf.Max(
                 0f,
-                visibleTargetIndex * OrderCardWidth -
+                targetIndex * OrderCardStep -
                 (viewportWidth - OrderCardWidth) * 0.5f);
             _lastOrderStripTarget = _target;
         }
@@ -518,28 +518,24 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
         using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
         {
             EditorGUILayout.LabelField(
-                "주변 스프라이트 순서  (뒤 → 앞)",
+                "전체 스프라이트 순서  (뒤 → 앞)",
                 EditorStyles.boldLabel);
 
             _orderStripScroll = EditorGUILayout.BeginScrollView(
                 _orderStripScroll,
+                true,
                 false,
-                false,
-                GUILayout.Height(102));
+                GUILayout.Height(118));
 
             using (new EditorGUILayout.HorizontalScope())
             {
-                for (int i = startIndex; i <= endIndex; i++)
+                foreach (SpriteVisualAnimationDriver driver in orderedParts)
                 {
-                    SpriteVisualAnimationDriver driver = orderedParts[i];
-                    bool hasSameOrder = orderedParts.Count(
-                        item => item.Renderer.sortingOrder ==
-                                driver.Renderer.sortingOrder) > 1;
-
                     DrawSpriteOrderCard(
                         driver,
                         driver == _target,
-                        hasSameOrder);
+                        duplicateOrders.Contains(
+                            driver.Renderer.sortingOrder));
                 }
             }
 
