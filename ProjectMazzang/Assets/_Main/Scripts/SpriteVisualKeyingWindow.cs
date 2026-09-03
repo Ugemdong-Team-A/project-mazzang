@@ -301,19 +301,28 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
 
         using (new EditorGUILayout.HorizontalScope())
         {
-            EditorGUILayout.LabelField(
-                "연결된 IK",
+            using (new EditorGUILayout.HorizontalScope(
+                       GUILayout.Width(EditorGUIUtility.labelWidth)))
+            {
+                GUIContent ikLabel = new("연결된 IK");
+                GUILayout.Label(
+                    ikLabel,
+                    GUILayout.Width(
+                        EditorStyles.label.CalcSize(ikLabel).x));
+
+                GUIContent helpIcon = EditorGUIUtility.IconContent("_Help");
+                helpIcon.tooltip =
+                    "IK Target을 따라 팔·다리 등의 뼈를 움직이는 제어기입니다.";
+                GUILayout.Label(
+                    helpIcon,
+                    GUILayout.Width(18),
+                    GUILayout.Height(EditorGUIUtility.singleLineHeight));
+            }
+
+            GUILayout.Label(
                 selectedSolver != null
                     ? $"{selectedSolver.name} ({selectedSolver.GetType().Name})"
                     : "해당 없음");
-
-            GUIContent helpIcon = EditorGUIUtility.IconContent("_Help");
-            helpIcon.tooltip =
-                "IK Target을 따라 팔·다리 등의 뼈를 움직이는 제어기입니다.";
-            GUILayout.Label(
-                helpIcon,
-                GUILayout.Width(18),
-                GUILayout.Height(EditorGUIUtility.singleLineHeight));
         }
 
         EditorGUILayout.LabelField(
