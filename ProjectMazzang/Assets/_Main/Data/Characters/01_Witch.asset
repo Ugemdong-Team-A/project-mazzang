@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: 01_Witch
   m_EditorClassIdentifier: Assembly-CSharp::CharacterData
   characterId: 200
-  displayName: "\uB9C8\uB140"
+  displayName: "\uB9C8\uB140 \uB208\uB098"
   description: "\uB450 \uBC88\uC9F8 \uD14C\uC2A4\uD2B8\uC6A9 \uAE30\uBCF8 \uCE90\uB9AD\uD130
     \uB9C8\uB140"
   portrait: {fileID: 21300000, guid: 23fa3bf7071f46a419246ee23b90f06b, type: 3}

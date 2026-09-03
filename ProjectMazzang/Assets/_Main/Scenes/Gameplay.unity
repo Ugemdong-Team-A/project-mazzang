@@ -1696,7 +1696,7 @@ MonoBehaviour:
   defaultTargetRadius: 1
   targetWeightCenter: {fileID: 0}
   fullWeightDistance: 12
-  farTargetDistance: 18
+  farTargetDistance: 24
   farTargetWeight: 0
   targetWeightChangeSpeed: 3
 --- !u!4 &1156076516

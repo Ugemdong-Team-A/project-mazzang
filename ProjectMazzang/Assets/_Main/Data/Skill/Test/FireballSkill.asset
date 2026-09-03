@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0ee2a1f0d8f148ea91eb547b14dedf6d, type: 3}
   m_Name: FireballSkill
   m_EditorClassIdentifier: Assembly-CSharp::FireballSkillData
-  cooldown: 4
+  cooldown: 0.3
   icon: {fileID: 21300000, guid: e9141ae0b43c4ee7bd2cbf0fa2f84992, type: 3}
   animation: {fileID: 11400000, guid: d88398e7700841d983bf220892935cb3, type: 2}
   castDuration: 0.65

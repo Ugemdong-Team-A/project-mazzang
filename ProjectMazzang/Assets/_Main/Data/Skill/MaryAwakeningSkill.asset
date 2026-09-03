@@ -21,7 +21,7 @@ MonoBehaviour:
   damageGainPerDamage: 1
   duration: 10
   moveSpeedMultiplier: 2
-  attackDamageMultiplier: 2
+  attackDamageMultiplier: 1.5
   maxHealthMultiplier: 2
   damageTakenMultiplier: 0.75
   visualScaleMultiplier: 1.35

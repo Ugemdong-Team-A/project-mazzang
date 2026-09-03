@@ -14,11 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AttackData
   attackId: 1005
   displayName: Hunter Trap
-  damage: 5
+  damage: 15
   knockbackForward: 0
   knockbackUp: 0
   crowdControl:
     type: 2
-    duration: 0.7
+    duration: 1
     activationDelay: 0
     stopMovementOnApply: 1

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AttackData
   attackId: 1002
   displayName: Mary Projectile
-  damage: 18
+  damage: 10
   knockbackForward: 6
   knockbackUp: 1.5
   crowdControl:
