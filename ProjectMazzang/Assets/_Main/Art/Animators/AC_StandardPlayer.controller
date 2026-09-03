@@ -78,7 +78,7 @@ AnimatorStateMachine:
   m_ChildStates:
   - serializedVersion: 1
     m_State: {fileID: -6709940146451479067}
-    m_Position: {x: 300, y: 120, z: 0}
+    m_Position: {x: 300, y: 110, z: 0}
   m_ChildStateMachines: []
   m_AnyStateTransitions: []
   m_EntryTransitions: []
@@ -858,7 +858,7 @@ AnimatorController:
   - serializedVersion: 5
     m_Name: 'Action_UpperBody '
     m_StateMachine: {fileID: -7187181715811847767}
-    m_Mask: {fileID: 0}
+    m_Mask: {fileID: 31900000, guid: abdc19316569b0043a3bee82863ba1af, type: 2}
     m_Motions:
     - serializedVersion: 2
       m_State: {fileID: 1249204464473106991}
@@ -879,7 +879,7 @@ AnimatorController:
   - serializedVersion: 5
     m_Name: 'Action_ArmsOnly '
     m_StateMachine: {fileID: 2747246801667913264}
-    m_Mask: {fileID: 0}
+    m_Mask: {fileID: 31900000, guid: af87a40e9e2edc5449b3bdde6859cc6b, type: 2}
     m_Motions:
     - serializedVersion: 2
       m_State: {fileID: 1249204464473106991}
