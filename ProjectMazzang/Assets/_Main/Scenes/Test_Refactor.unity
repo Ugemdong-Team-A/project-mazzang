@@ -3375,7 +3375,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6304a82d2b306e94d89eae88e65bb021, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SpriteVisualAnimationTest
+  m_EditorClassIdentifier: Assembly-CSharp::SpriteVisualAnimationDriver
   pose: 0
   category: torso
   defaultLabel: CounterReady

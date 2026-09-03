@@ -9,16 +9,15 @@ using UnityEngine.U2D.IK;
 
 public sealed class SpriteVisualKeyingWindow : EditorWindow
 {
-    private const string SpriteHashProperty = "m_SpriteHash";
-    private const string SortingOrderProperty = "m_SortingOrder";
+    private const string LabelIndexProperty = "pose";
+    private const string SortingOrderProperty = "_sortingOrder";
 
     private Animator _animationRoot;
-    private SpriteResolver[] _parts = Array.Empty<SpriteResolver>();
+    private SpriteVisualAnimationDriver[] _parts =
+        Array.Empty<SpriteVisualAnimationDriver>();
     private string[] _partNames = Array.Empty<string>();
     private int _partIndex = -1;
-    private SpriteResolver _target;
-    private SpriteRenderer _renderer;
-    private int _originalSortingOrder;
+    private SpriteVisualAnimationDriver _target;
 
     [MenuItem("Tools/Animation/Sprite Visual Keyer")]
     private static void Open()
@@ -67,57 +66,29 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
             return;
         }
 
-        DrawClipContext(animationWindow, clip);
-        EditorGUILayout.Space(8);
-        DrawRigSelection();
-
-        if (_animationRoot == null ||
-            _target == null ||
-            _renderer == null)
-        {
-            return;
-        }
-
-        EditorGUILayout.Space(8);
-        DrawSelectionContext();
-
-        SpriteLibrary library = _target.spriteLibrary;
-        SpriteLibraryAsset libraryAsset =
-            library != null ? library.spriteLibraryAsset : null;
-
-        if (libraryAsset == null)
-        {
-            EditorGUILayout.HelpBox(
-                "선택한 파츠에서 Sprite Library Asset을 찾을 수 없습니다.",
-                MessageType.Warning);
-            return;
-        }
-
-        string category = _target.GetCategory();
-
-        if (string.IsNullOrEmpty(category))
-        {
-            EditorGUILayout.HelpBox(
-                "선택한 파츠의 Category가 설정되지 않았습니다.",
-                MessageType.Warning);
-            return;
-        }
-
-        DrawVisualKeys(
-            animationWindow,
-            clip,
-            libraryAsset,
-            category);
-    }
-
-    private static void DrawClipContext(
-        AnimationWindow animationWindow,
-        AnimationClip clip)
-    {
         EditorGUILayout.LabelField("현재 클립", clip.name);
         EditorGUILayout.LabelField(
             "현재 프레임",
             animationWindow.frame.ToString());
+
+        EditorGUILayout.Space(8);
+        DrawRigSelection();
+
+        if (_animationRoot == null || _target == null)
+            return;
+
+        if (_target.Renderer == null || _target.Resolver == null)
+        {
+            EditorGUILayout.HelpBox(
+                "선택한 Driver의 SpriteResolver 또는 SpriteRenderer가 없습니다.",
+                MessageType.Error);
+            return;
+        }
+
+        EditorGUILayout.Space(8);
+        DrawTargetContext();
+        EditorGUILayout.Space(8);
+        DrawVisualKeys(animationWindow, clip);
     }
 
     private void DrawRigSelection()
@@ -136,7 +107,7 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
                 SetAnimationRoot(newRoot);
 
             if (GUILayout.Button("새로고침", GUILayout.Width(72)))
-                RefreshParts();
+                RefreshParts(true);
         }
 
         if (_animationRoot == null)
@@ -150,8 +121,9 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
         if (_parts.Length == 0)
         {
             EditorGUILayout.HelpBox(
-                "애니메이션 기준 아래에서 SpriteResolver를 찾지 못했습니다.",
+                "애니메이션 기준 아래에서 Sprite Visual Driver를 찾지 못했습니다.",
                 MessageType.Warning);
+            DrawAddDriverButton();
             return;
         }
 
@@ -162,16 +134,46 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
             _partNames);
 
         if (EditorGUI.EndChangeCheck() || _target == null)
-            SelectPart(newIndex);
+            SelectPart(newIndex, true);
+
+        DrawAddDriverButton();
     }
 
-    private void DrawSelectionContext()
+    private void DrawAddDriverButton()
+    {
+        GameObject selected = Selection.activeGameObject;
+        SpriteResolver resolver =
+            selected != null
+                ? selected.GetComponent<SpriteResolver>()
+                : null;
+
+        if (resolver == null ||
+            resolver.GetComponent<SpriteVisualAnimationDriver>() != null)
+        {
+            return;
+        }
+
+        if (!GUILayout.Button("선택한 파츠에 Visual Driver 추가"))
+            return;
+
+        SpriteVisualAnimationDriver driver =
+            Undo.AddComponent<SpriteVisualAnimationDriver>(
+                resolver.gameObject);
+
+        driver.SynchronizeDefinition();
+        EditorUtility.SetDirty(driver);
+        RefreshParts(false);
+        SelectDriver(driver, false);
+    }
+
+    private void DrawTargetContext()
     {
         string targetPath = AnimationUtility.CalculateTransformPath(
             _target.transform,
             _animationRoot.transform);
 
         EditorGUILayout.LabelField("대상 경로", targetPath);
+        EditorGUILayout.LabelField("Category", _target.Category);
 
         GameObject selected = Selection.activeGameObject;
         Solver2D selectedSolver = selected != null
@@ -186,43 +188,38 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
 
         EditorGUILayout.LabelField(
             "Sorting Layer",
-            _renderer.sortingLayerName);
+            _target.Renderer.sortingLayerName);
         EditorGUILayout.LabelField(
             "원래 Order",
-            _originalSortingOrder.ToString());
+            _target.OriginalSortingOrder.ToString());
     }
 
     private void DrawVisualKeys(
         AnimationWindow animationWindow,
-        AnimationClip clip,
-        SpriteLibraryAsset libraryAsset,
-        string category)
+        AnimationClip clip)
     {
-        EditorGUILayout.Space(8);
-        EditorGUILayout.LabelField("Category", category);
-
-        string[] labels = libraryAsset
-            .GetCategoryLabelNames(category)
-            .OrderBy(label => label)
-            .ToArray();
+        string[] labels = _target.Labels.ToArray();
 
         if (labels.Length == 0)
         {
             EditorGUILayout.HelpBox(
-                $"Category '{category}'에 Label이 없습니다.",
+                "Driver에 사용할 SLA Label이 없습니다. 새로고침을 눌러주세요.",
                 MessageType.Warning);
             return;
         }
 
-        string currentLabel = GetLabelAtCurrentTime(
-            animationWindow,
-            clip,
-            category,
-            labels);
+        EditorCurveBinding labelBinding = CreateBinding(
+            typeof(SpriteVisualAnimationDriver),
+            LabelIndexProperty);
 
-        int currentLabelIndex = Mathf.Max(
+        int currentLabelIndex = Mathf.Clamp(
+            GetIntAtCurrentTime(
+                animationWindow,
+                clip,
+                labelBinding,
+                _target.LabelIndex),
             0,
-            Array.IndexOf(labels, currentLabel));
+            labels.Length - 1);
 
         EditorGUI.BeginChangeCheck();
         int newLabelIndex = EditorGUILayout.Popup(
@@ -232,31 +229,24 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
 
         if (EditorGUI.EndChangeCheck())
         {
-            AddDiscreteKey(
+            AddConstantKey(
                 animationWindow,
                 clip,
-                CreateBinding(
-                    _target.transform,
-                    typeof(SpriteResolver),
-                    SpriteHashProperty),
-                GetSpriteHash(category, labels[newLabelIndex]),
+                labelBinding,
+                newLabelIndex,
                 "Set Sprite Label");
-
-            _target.SetCategoryAndLabel(
-                category,
-                labels[newLabelIndex]);
+            _target.PreviewLabel(newLabelIndex);
         }
 
         EditorCurveBinding orderBinding = CreateBinding(
-            _renderer.transform,
-            typeof(SpriteRenderer),
+            typeof(SpriteVisualAnimationDriver),
             SortingOrderProperty);
 
         int currentOrder = GetIntAtCurrentTime(
             animationWindow,
             clip,
             orderBinding,
-            _renderer.sortingOrder);
+            _target.SortingOrder);
 
         EditorGUI.BeginChangeCheck();
         int newOrder = EditorGUILayout.IntField(
@@ -277,7 +267,7 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
                 SetSortingOrderKey(
                     animationWindow,
                     clip,
-                    _originalSortingOrder - 1);
+                    _target.OriginalSortingOrder - 1);
             }
 
             if (GUILayout.Button("원래"))
@@ -285,7 +275,7 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
                 SetSortingOrderKey(
                     animationWindow,
                     clip,
-                    _originalSortingOrder);
+                    _target.OriginalSortingOrder);
             }
 
             if (GUILayout.Button("앞"))
@@ -293,7 +283,7 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
                 SetSortingOrderKey(
                     animationWindow,
                     clip,
-                    _originalSortingOrder + 1);
+                    _target.OriginalSortingOrder + 1);
             }
         }
     }
@@ -303,47 +293,29 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
         AnimationClip clip,
         int order)
     {
-        AddDiscreteKey(
+        AddConstantKey(
             animationWindow,
             clip,
             CreateBinding(
-                _renderer.transform,
-                typeof(SpriteRenderer),
+                typeof(SpriteVisualAnimationDriver),
                 SortingOrderProperty),
             order,
             "Set Sprite Sorting Order");
-
-        _renderer.sortingOrder = order;
+        _target.PreviewSortingOrder(order);
     }
 
-    private string GetLabelAtCurrentTime(
-        AnimationWindow animationWindow,
-        AnimationClip clip,
-        string category,
-        string[] labels)
+    private EditorCurveBinding CreateBinding(
+        Type componentType,
+        string propertyName)
     {
-        EditorCurveBinding binding = CreateBinding(
+        string path = AnimationUtility.CalculateTransformPath(
             _target.transform,
-            typeof(SpriteResolver),
-            SpriteHashProperty);
+            _animationRoot.transform);
 
-        AnimationCurve curve = AnimationUtility.GetEditorCurve(
-            clip,
-            binding);
-
-        if (curve == null || curve.length == 0)
-            return _target.GetLabel();
-
-        int currentHash = CurveValueToInt(
-            curve.Evaluate(animationWindow.time));
-
-        foreach (string label in labels)
-        {
-            if (GetSpriteHash(category, label) == currentHash)
-                return label;
-        }
-
-        return _target.GetLabel();
+        return EditorCurveBinding.FloatCurve(
+            path,
+            componentType,
+            propertyName);
     }
 
     private static int GetIntAtCurrentTime(
@@ -359,11 +331,11 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
         if (curve == null || curve.length == 0)
             return fallback;
 
-        return CurveValueToInt(
+        return Mathf.RoundToInt(
             curve.Evaluate(animationWindow.time));
     }
 
-    private void AddDiscreteKey(
+    private static void AddConstantKey(
         AnimationWindow animationWindow,
         AnimationClip clip,
         EditorCurveBinding binding,
@@ -374,42 +346,38 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
                                   clip,
                                   binding) ??
                               new AnimationCurve();
-
         float time = animationWindow.time;
-        Keyframe key = new(
-            time,
-            IntToCurveValue(value),
-            float.PositiveInfinity,
-            float.PositiveInfinity);
 
         Undo.RegisterCompleteObjectUndo(clip, undoName);
 
+        int keyIndex;
         int existingIndex = FindKeyAtTime(curve, time);
 
         if (existingIndex >= 0)
-            curve.MoveKey(existingIndex, key);
+        {
+            keyIndex = curve.MoveKey(
+                existingIndex,
+                new Keyframe(time, value));
+        }
         else
-            curve.AddKey(key);
+        {
+            keyIndex = curve.AddKey(
+                new Keyframe(time, value));
+        }
 
+        AnimationUtility.SetKeyLeftTangentMode(
+            curve,
+            keyIndex,
+            AnimationUtility.TangentMode.Constant);
+        AnimationUtility.SetKeyRightTangentMode(
+            curve,
+            keyIndex,
+            AnimationUtility.TangentMode.Constant);
         AnimationUtility.SetEditorCurve(clip, binding, curve);
+
         EditorUtility.SetDirty(clip);
         animationWindow.Repaint();
         SceneView.RepaintAll();
-    }
-
-    private EditorCurveBinding CreateBinding(
-        Transform target,
-        Type componentType,
-        string propertyName)
-    {
-        string path = AnimationUtility.CalculateTransformPath(
-            target,
-            _animationRoot.transform);
-
-        return EditorCurveBinding.DiscreteCurve(
-            path,
-            componentType,
-            propertyName);
     }
 
     private void RefreshFromSelection()
@@ -427,90 +395,96 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
         if (animator != null && animator != _animationRoot)
             SetAnimationRoot(animator);
 
-        SpriteResolver selectedResolver =
-            selected.GetComponent<SpriteResolver>();
+        SpriteVisualAnimationDriver selectedDriver =
+            selected.GetComponent<SpriteVisualAnimationDriver>();
 
-        if (selectedResolver == null || _parts.Length == 0)
-            return;
-
-        int index = Array.IndexOf(_parts, selectedResolver);
-
-        if (index >= 0)
-            SelectPart(index);
+        if (selectedDriver != null)
+            SelectDriver(selectedDriver, true);
     }
 
     private void SetAnimationRoot(Animator animator)
     {
         _animationRoot = animator;
-        RefreshParts();
+        RefreshParts(false);
     }
 
-    private void RefreshParts()
+    private void RefreshParts(bool recordUndo)
     {
         if (_animationRoot == null)
         {
-            _parts = Array.Empty<SpriteResolver>();
+            _parts = Array.Empty<SpriteVisualAnimationDriver>();
             _partNames = Array.Empty<string>();
-            SelectPart(-1);
+            SelectPart(-1, false);
             return;
         }
 
         _parts = _animationRoot
-            .GetComponentsInChildren<SpriteResolver>(true)
+            .GetComponentsInChildren<SpriteVisualAnimationDriver>(true)
             .OrderBy(
-                resolver => AnimationUtility.CalculateTransformPath(
-                    resolver.transform,
+                driver => AnimationUtility.CalculateTransformPath(
+                    driver.transform,
                     _animationRoot.transform))
             .ToArray();
 
+        foreach (SpriteVisualAnimationDriver driver in _parts)
+        {
+            if (recordUndo)
+                Undo.RecordObject(driver, "Refresh Sprite Visual Driver");
+
+            if (driver.SynchronizeDefinition())
+                EditorUtility.SetDirty(driver);
+        }
+
         _partNames = _parts
             .Select(
-                resolver =>
+                driver =>
                 {
                     string path = AnimationUtility.CalculateTransformPath(
-                        resolver.transform,
+                        driver.transform,
                         _animationRoot.transform);
-                    string category = resolver.GetCategory();
 
-                    return string.IsNullOrEmpty(category)
+                    return string.IsNullOrEmpty(driver.Category)
                         ? path
-                        : $"{path}  [{category}]";
+                        : $"{path}  [{driver.Category}]";
                 })
             .ToArray();
 
         SelectPart(
             _parts.Length > 0
                 ? Mathf.Clamp(_partIndex, 0, _parts.Length - 1)
-                : -1);
+                : -1,
+            false);
     }
 
-    private void SelectPart(int index)
+    private void SelectDriver(
+        SpriteVisualAnimationDriver driver,
+        bool synchronize)
+    {
+        int index = Array.IndexOf(_parts, driver);
+
+        if (index < 0)
+        {
+            RefreshParts(false);
+            index = Array.IndexOf(_parts, driver);
+        }
+
+        SelectPart(index, synchronize);
+    }
+
+    private void SelectPart(
+        int index,
+        bool synchronize)
     {
         _partIndex = index;
+        _target = index >= 0 && index < _parts.Length
+            ? _parts[index]
+            : null;
 
-        if (index < 0 || index >= _parts.Length)
-        {
-            _target = null;
-            _renderer = null;
-            _originalSortingOrder = 0;
+        if (_target == null || !synchronize)
             return;
-        }
 
-        _target = _parts[index];
-        _renderer = _target.GetComponent<SpriteRenderer>();
-
-        if (_renderer == null)
-        {
-            _originalSortingOrder = 0;
-            return;
-        }
-
-        SpriteRenderer prefabRenderer =
-            PrefabUtility.GetCorrespondingObjectFromSource(_renderer);
-
-        _originalSortingOrder = prefabRenderer != null
-            ? prefabRenderer.sortingOrder
-            : _renderer.sortingOrder;
+        if (_target.SynchronizeDefinition())
+            EditorUtility.SetDirty(_target);
     }
 
     private static AnimationWindow GetAnimationWindow()
@@ -518,26 +492,6 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
         return Resources
             .FindObjectsOfTypeAll<AnimationWindow>()
             .FirstOrDefault();
-    }
-
-    private static int GetSpriteHash(
-        string category,
-        string label)
-    {
-        const int thirtyBitMask = 0x3FFFFFFF;
-
-        return Animator.StringToHash($"{category}_{label}") &
-               thirtyBitMask;
-    }
-
-    private static float IntToCurveValue(int value)
-    {
-        return BitConverter.Int32BitsToSingle(value);
-    }
-
-    private static int CurveValueToInt(float value)
-    {
-        return BitConverter.SingleToInt32Bits(value);
     }
 
     private static int FindKeyAtTime(
@@ -553,6 +507,37 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
         }
 
         return -1;
+    }
+}
+
+[CustomEditor(typeof(SpriteVisualAnimationDriver))]
+public sealed class SpriteVisualAnimationDriverEditor : Editor
+{
+    public override void OnInspectorGUI()
+    {
+        SpriteVisualAnimationDriver driver =
+            (SpriteVisualAnimationDriver)target;
+
+        EditorGUILayout.HelpBox(
+            "Sprite Visual Keyer가 사용하는 연결 컴포넌트입니다. " +
+            "일반적으로 직접 설정할 필요가 없습니다.",
+            MessageType.Info);
+
+        EditorGUILayout.LabelField("Category", driver.Category);
+        EditorGUILayout.LabelField(
+            "Labels",
+            driver.Labels.Count.ToString());
+        EditorGUILayout.LabelField(
+            "원래 Order",
+            driver.OriginalSortingOrder.ToString());
+
+        if (!GUILayout.Button("SLA 정보 새로고침"))
+            return;
+
+        Undo.RecordObject(driver, "Refresh Sprite Visual Driver");
+
+        if (driver.SynchronizeDefinition())
+            EditorUtility.SetDirty(driver);
     }
 }
 
