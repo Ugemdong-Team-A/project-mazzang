@@ -79,7 +79,8 @@ public static class Standard2DVisualDriverBuilder
                 result.RefreshedCount++;
             }
 
-            driver.SynchronizeDefinition();
+            // Build는 잘못 저장된 기본 모습을 SLA 규칙에 따라 다시 정리한다.
+            driver.SynchronizeDefinition(true);
 
             EditorUtility.SetDirty(driver);
             PrefabUtility.RecordPrefabInstancePropertyModifications(

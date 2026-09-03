@@ -30,6 +30,9 @@ public sealed class SpriteVisualAnimationDriver : MonoBehaviour
     private int _originalSortingOrder;
 
     [SerializeField, HideInInspector]
+    private string _defaultLabel = string.Empty;
+
+    [SerializeField, HideInInspector]
     private bool _initialized;
 
     // 이전 테스트 데이터에서 Label 순서를 이관할 때만 사용한다.
@@ -53,6 +56,7 @@ public sealed class SpriteVisualAnimationDriver : MonoBehaviour
     public int LabelIndex => pose;
     public int SortingOrder => _sortingOrder;
     public int OriginalSortingOrder => _originalSortingOrder;
+    public string DefaultLabel => _defaultLabel;
     public SpriteResolver Resolver => _resolver;
     public SpriteRenderer Renderer => _renderer;
 
@@ -74,7 +78,7 @@ public sealed class SpriteVisualAnimationDriver : MonoBehaviour
         Apply();
     }
 
-    public bool SynchronizeDefinition()
+    public bool SynchronizeDefinition(bool resetDefaultLabel = false)
     {
         CacheComponents();
 
@@ -148,12 +152,66 @@ public sealed class SpriteVisualAnimationDriver : MonoBehaviour
             changed = true;
         }
 
+        string resolvedDefaultLabel = ResolveDefaultLabel(
+            labels,
+            resolvedCategory,
+            currentLabel);
+
+        if (resetDefaultLabel ||
+            string.IsNullOrEmpty(_defaultLabel) ||
+            !labels.Contains(_defaultLabel))
+        {
+            if (_defaultLabel != resolvedDefaultLabel)
+                changed = true;
+
+            _defaultLabel = resolvedDefaultLabel;
+
+            if (resetDefaultLabel)
+            {
+                int defaultIndex = labels.IndexOf(_defaultLabel);
+
+                if (pose != defaultIndex)
+                    changed = true;
+
+                pose = defaultIndex;
+            }
+        }
+
         category = resolvedCategory;
         _labels = labels.ToArray();
         _initialized = true;
 
         Apply();
         return changed;
+    }
+
+    private string ResolveDefaultLabel(
+        IReadOnlyList<string> labels,
+        string resolvedCategory,
+        string currentLabel)
+    {
+        string[] candidates =
+        {
+            resolvedCategory,
+            "Default",
+            "Front",
+            _defaultLabel,
+            currentLabel
+        };
+
+        foreach (string candidate in candidates)
+        {
+            string match = labels.FirstOrDefault(
+                label => string.Equals(
+                    label,
+                    candidate,
+                    StringComparison.OrdinalIgnoreCase));
+
+            if (!string.IsNullOrEmpty(match))
+                return match;
+        }
+
+        return labels[0];
     }
 
     public void PreviewLabel(int labelIndex)
