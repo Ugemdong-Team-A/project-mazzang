@@ -360,40 +360,21 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
             0,
             labels.Length - 1);
 
-        using (new EditorGUILayout.HorizontalScope())
+        EditorGUI.BeginChangeCheck();
+        int newLabelIndex = EditorGUILayout.Popup(
+            new GUIContent(
+                "스프라이트 모습",
+                "Sprite Library Asset의 Label을 선택합니다."),
+            currentLabelIndex,
+            labels);
+
+        if (EditorGUI.EndChangeCheck())
         {
-            EditorGUI.BeginChangeCheck();
-            int newLabelIndex = EditorGUILayout.Popup(
-                new GUIContent(
-                    "스프라이트 모습",
-                    "Sprite Library Asset의 Label을 선택합니다."),
-                currentLabelIndex,
-                labels);
-
-            if (EditorGUI.EndChangeCheck())
-            {
-                SetLabelKey(
-                    animationWindow,
-                    clip,
-                    labelBinding,
-                    newLabelIndex);
-            }
-
-            int defaultLabelIndex = Array.IndexOf(
-                labels,
-                _target.DefaultLabel);
-
-            using (new EditorGUI.DisabledScope(defaultLabelIndex < 0))
-            {
-                if (GUILayout.Button("기본", GUILayout.Width(52)))
-                {
-                    SetLabelKey(
-                        animationWindow,
-                        clip,
-                        labelBinding,
-                        defaultLabelIndex);
-                }
-            }
+            SetLabelKey(
+                animationWindow,
+                clip,
+                labelBinding,
+                newLabelIndex);
         }
 
         EditorCurveBinding orderBinding = CreateBinding(
@@ -436,14 +417,6 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
                     currentOrder - 1);
             }
 
-            if (GUILayout.Button("기본"))
-            {
-                SetSortingOrderKey(
-                    animationWindow,
-                    clip,
-                    _target.OriginalSortingOrder);
-            }
-
             if (GUILayout.Button("+1"))
             {
                 SetSortingOrderKey(
@@ -464,6 +437,33 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
         DrawAppliedResult(
             labels[currentLabelIndex],
             currentOrder);
+
+        DrawAllPartsDefaults(
+            animationWindow,
+            clip);
+    }
+
+    private void DrawAllPartsDefaults(
+        AnimationWindow animationWindow,
+        AnimationClip clip)
+    {
+        EditorGUILayout.Space(4);
+
+        using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+        {
+            EditorGUILayout.LabelField(
+                "현재 프레임 · 모든 부위",
+                EditorStyles.boldLabel);
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (GUILayout.Button("모습 전부 기본으로"))
+                    SetAllPartsDefaultLabels(animationWindow, clip);
+
+                if (GUILayout.Button("순서 전부 기본으로"))
+                    SetAllPartsDefaultOrders(animationWindow, clip);
+            }
+        }
     }
 
     private void DrawAppliedResult(
@@ -521,6 +521,110 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
         _target.PreviewSortingOrder(order);
     }
 
+    private void SetAllPartsDefaultLabels(
+        AnimationWindow animationWindow,
+        AnimationClip clip)
+    {
+        List<(SpriteVisualAnimationDriver Driver, int LabelIndex)> targets =
+            new();
+
+        foreach (SpriteVisualAnimationDriver driver in _parts)
+        {
+            int defaultIndex = driver.Labels
+                .ToList()
+                .IndexOf(driver.DefaultLabel);
+
+            if (defaultIndex >= 0)
+                targets.Add((driver, defaultIndex));
+        }
+
+        if (targets.Count == 0)
+            return;
+
+        const string undoName = "Reset All Sprite Labels";
+        int undoGroup = BeginAllPartsUndo(
+            clip,
+            targets.Select(item => item.Driver),
+            undoName);
+
+        foreach ((SpriteVisualAnimationDriver driver, int labelIndex)
+                 in targets)
+        {
+            AddConstantKey(
+                animationWindow,
+                clip,
+                CreateBinding(
+                    driver,
+                    typeof(SpriteVisualAnimationDriver),
+                    LabelIndexProperty),
+                labelIndex,
+                undoName,
+                false);
+            driver.PreviewLabel(labelIndex);
+        }
+
+        Undo.CollapseUndoOperations(undoGroup);
+    }
+
+    private void SetAllPartsDefaultOrders(
+        AnimationWindow animationWindow,
+        AnimationClip clip)
+    {
+        if (_parts.Length == 0)
+            return;
+
+        const string undoName = "Reset All Sprite Sorting Orders";
+        int undoGroup = BeginAllPartsUndo(
+            clip,
+            _parts,
+            undoName);
+
+        foreach (SpriteVisualAnimationDriver driver in _parts)
+        {
+            AddConstantKey(
+                animationWindow,
+                clip,
+                CreateBinding(
+                    driver,
+                    typeof(SpriteVisualAnimationDriver),
+                    SortingOrderProperty),
+                driver.OriginalSortingOrder,
+                undoName,
+                false);
+            driver.PreviewSortingOrder(driver.OriginalSortingOrder);
+        }
+
+        Undo.CollapseUndoOperations(undoGroup);
+    }
+
+    private static int BeginAllPartsUndo(
+        AnimationClip clip,
+        IEnumerable<SpriteVisualAnimationDriver> drivers,
+        string undoName)
+    {
+        Undo.IncrementCurrentGroup();
+        int undoGroup = Undo.GetCurrentGroup();
+        Undo.SetCurrentGroupName(undoName);
+        Undo.RegisterCompleteObjectUndo(clip, undoName);
+
+        UnityEngine.Object[] previewObjects = drivers
+            .SelectMany(
+                driver => new UnityEngine.Object[]
+                {
+                    driver,
+                    driver.Resolver,
+                    driver.Renderer
+                })
+            .Where(item => item != null)
+            .Distinct()
+            .ToArray();
+
+        if (previewObjects.Length > 0)
+            Undo.RecordObjects(previewObjects, undoName);
+
+        return undoGroup;
+    }
+
     private void RecordPreviewUndo(string undoName)
     {
         Undo.RecordObjects(
@@ -537,8 +641,19 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
         Type componentType,
         string propertyName)
     {
+        return CreateBinding(
+            _target,
+            componentType,
+            propertyName);
+    }
+
+    private EditorCurveBinding CreateBinding(
+        SpriteVisualAnimationDriver driver,
+        Type componentType,
+        string propertyName)
+    {
         string path = AnimationUtility.CalculateTransformPath(
-            _target.transform,
+            driver.transform,
             _animationRoot.transform);
 
         return EditorCurveBinding.FloatCurve(
@@ -569,7 +684,8 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
         AnimationClip clip,
         EditorCurveBinding binding,
         int value,
-        string undoName)
+        string undoName,
+        bool recordUndo = true)
     {
         AnimationCurve curve = AnimationUtility.GetEditorCurve(
                                   clip,
@@ -577,7 +693,8 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
                               new AnimationCurve();
         float time = animationWindow.time;
 
-        Undo.RegisterCompleteObjectUndo(clip, undoName);
+        if (recordUndo)
+            Undo.RegisterCompleteObjectUndo(clip, undoName);
 
         int keyIndex;
         int existingIndex = FindKeyAtTime(curve, time);
