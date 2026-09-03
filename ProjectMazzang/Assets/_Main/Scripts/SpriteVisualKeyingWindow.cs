@@ -12,6 +12,8 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
 {
     private const string LabelIndexProperty = "pose";
     private const string SortingOrderProperty = "_sortingOrder";
+    private const int OrderNeighborCount = 4;
+    private const float OrderCardWidth = 76f;
 
     private Animator _animationRoot;
     private SpriteVisualAnimationDriver[] _parts =
@@ -19,6 +21,8 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
     private string[] _partNames = Array.Empty<string>();
     private int _partIndex = -1;
     private SpriteVisualAnimationDriver _target;
+    private Vector2 _orderStripScroll;
+    private SpriteVisualAnimationDriver _lastOrderStripTarget;
 
     [MenuItem("Tools/2D Animation/Sprite Visual Keyer")]
     private static void Open()
@@ -465,9 +469,147 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
             labels[currentLabelIndex],
             currentOrder);
 
+        DrawNearbySpriteOrders();
+
         // TODO: 모든 Driver의 기본 모습/순서 키 기능은
         // 선택 부위의 기존 기본 복귀 기능과 별도로 안정화한 뒤 추가한다.
         // DrawAllPartsDefaults(animationWindow, clip);
+    }
+
+    private void DrawNearbySpriteOrders()
+    {
+        int sortingLayerId = _target.Renderer.sortingLayerID;
+        SpriteVisualAnimationDriver[] orderedParts = _parts
+            .Where(
+                driver => driver != null &&
+                          driver.Renderer != null &&
+                          driver.Renderer.sortingLayerID == sortingLayerId)
+            .OrderBy(driver => driver.Renderer.sortingOrder)
+            .ThenBy(
+                driver => AnimationUtility.CalculateTransformPath(
+                    driver.transform,
+                    _animationRoot.transform),
+                StringComparer.Ordinal)
+            .ToArray();
+
+        int targetIndex = Array.IndexOf(orderedParts, _target);
+
+        if (targetIndex < 0)
+            return;
+
+        int startIndex = Mathf.Max(0, targetIndex - OrderNeighborCount);
+        int endIndex = Mathf.Min(
+            orderedParts.Length - 1,
+            targetIndex + OrderNeighborCount);
+
+        if (_lastOrderStripTarget != _target)
+        {
+            int visibleTargetIndex = targetIndex - startIndex;
+            float viewportWidth = Mathf.Max(0f, position.width - 36f);
+            _orderStripScroll.x = Mathf.Max(
+                0f,
+                visibleTargetIndex * OrderCardWidth -
+                (viewportWidth - OrderCardWidth) * 0.5f);
+            _lastOrderStripTarget = _target;
+        }
+
+        EditorGUILayout.Space(4);
+
+        using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+        {
+            EditorGUILayout.LabelField(
+                "주변 스프라이트 순서  (뒤 → 앞)",
+                EditorStyles.boldLabel);
+
+            _orderStripScroll = EditorGUILayout.BeginScrollView(
+                _orderStripScroll,
+                false,
+                false,
+                GUILayout.Height(102));
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                for (int i = startIndex; i <= endIndex; i++)
+                {
+                    SpriteVisualAnimationDriver driver = orderedParts[i];
+                    bool hasSameOrder = orderedParts.Count(
+                        item => item.Renderer.sortingOrder ==
+                                driver.Renderer.sortingOrder) > 1;
+
+                    DrawSpriteOrderCard(
+                        driver,
+                        driver == _target,
+                        hasSameOrder);
+                }
+            }
+
+            EditorGUILayout.EndScrollView();
+        }
+    }
+
+    private void DrawSpriteOrderCard(
+        SpriteVisualAnimationDriver driver,
+        bool selected,
+        bool hasSameOrder)
+    {
+        Color previousBackgroundColor = GUI.backgroundColor;
+
+        if (selected)
+            GUI.backgroundColor = new Color(0.35f, 0.7f, 1f, 1f);
+
+        using (new EditorGUILayout.VerticalScope(
+                   EditorStyles.helpBox,
+                   GUILayout.Width(OrderCardWidth)))
+        {
+            Sprite sprite = driver.Renderer.sprite;
+            Texture preview = sprite != null
+                ? AssetPreview.GetAssetPreview(sprite)
+                : null;
+
+            if (preview == null && sprite != null)
+                preview = AssetPreview.GetMiniThumbnail(sprite);
+
+            string partName = string.IsNullOrEmpty(driver.Category)
+                ? driver.gameObject.name
+                : driver.Category;
+            string displayName = GetPartDisplayName(partName);
+            GUIContent previewContent = preview != null
+                ? new GUIContent(preview, displayName)
+                : new GUIContent("모습 없음", displayName);
+
+            if (GUILayout.Button(
+                    previewContent,
+                    GUILayout.Width(OrderCardWidth - 10f),
+                    GUILayout.Height(52f)))
+            {
+                SelectPart(
+                    Array.IndexOf(_parts, driver),
+                    true,
+                    true);
+            }
+
+            if (GUILayout.Button(
+                    new GUIContent(partName, displayName),
+                    EditorStyles.miniButton,
+                    GUILayout.Width(OrderCardWidth - 10f)))
+            {
+                SelectPart(
+                    Array.IndexOf(_parts, driver),
+                    true,
+                    true);
+            }
+
+            string orderText = hasSameOrder
+                ? $"{driver.Renderer.sortingOrder} · 같음"
+                : driver.Renderer.sortingOrder.ToString();
+
+            GUILayout.Label(
+                orderText,
+                EditorStyles.centeredGreyMiniLabel,
+                GUILayout.Width(OrderCardWidth - 10f));
+        }
+
+        GUI.backgroundColor = previousBackgroundColor;
     }
 
     private void DrawAppliedResult(
