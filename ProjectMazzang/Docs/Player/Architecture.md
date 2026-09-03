@@ -1,7 +1,7 @@
 # Player 파이프라인 구조
 
-이 문서는 현재 소스에 실제로 적용된 Player Tick 구조와 확장 규칙을 요약한다.
-미구현 제안은 [RefactoringBacklog.md](./RefactoringBacklog.md)에 따로 기록한다.
+이 문서는 현재 소스에 실제로 적용된 Player Tick 구조와 반드시 지킬 확장 규칙만 요약한다.
+미구현 기획과 검토 중인 개선안은 포함하지 않는다.
 
 ## 목표
 
@@ -44,13 +44,13 @@ Fusion Render
 | 5 | PlayerCombat | Action | 0 |
 | 6 | PlayerMovement | Motion | 0 |
 | 7 | PlayerVisual | Motion | 100 |
-| 8 | PlayerSpriteLibraryAppearance (선택) | Motion | 110 |
-| 9 | PlayerAim | Aim | 0 |
-| 10 | PlayerAnimation | Finalize | 0 |
-| 11 | PlayerStatusUI | Finalize | 100 |
+| 8 | PlayerAim | Aim | 0 |
+| 9 | PlayerAnimation | Finalize | 0 |
+| 10 | PlayerStatusUI | Finalize | 100 |
 
 같은 Stage에 여러 모듈이 들어가는 것은 정상이다. `Order`는 그 Stage 안의 정밀한 선후관계만 표현한다.
 Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크 시뮬레이션 순서를 보장한다.
+`ControlResolve`, `LateAction` Stage는 enum에 예약되어 있지만 현재 사용하는 모듈은 없다.
 
 ## 핵심 객체와 계약
 
@@ -117,6 +117,11 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
   제한된 발사 방향을 계산하며 `PlayerAim`의 구체 타입을 직접 참조하지 않는다.
 - `maxBodyAimAngle`은 허리가 꺾이는 범위만 제한하고 `facingFlipAngle`은 좌우 반전 시점만 결정한다.
   두 값은 독립적이며, 허리 제한 때문에 반전 각도를 자동으로 올리지 않는다.
+- 표준 `AC_StandardPlayer`는 WholeBody 마스크의 Base Layer와 UpperChest 마스크의 Combat Layer를
+  사용한다. 공격과 스킬 상태는 Combat Layer에서 상체를 덮어쓰고 하체 이동은 Base Layer에서
+  계속 평가한다. AvatarMask 에셋을 런타임에 교체하지 않는다.
+- 현재 Controller 상태들의 Write Defaults는 On/Off가 혼재한다. 따라서 커브가 없는 속성이 항상
+  기준 포즈로 복구된다고 가정하지 않으며, 클립 전환과 IK Target 잔류 여부를 별도로 검증한다.
 - Mary와 TestChar의 `WeaponSocket`은 프리팹에서 `ResolvedAimPivot`의 직접 자식으로 두고,
   로컬 위치 `(0, 0, 0)`, 로컬 회전 `-90°`, 로컬 크기 `(1, 1, 1)`를 유지한다.
   런타임 코드는 이 계층을 재배치하거나 보정하지 않는다.
@@ -196,8 +201,11 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
   장착 변경 시 0으로 초기화하며 사망과 리스폰 사이에는 유지한다.
 - 피해 기반 충전은 `CombatDamageService`가 State Authority에서 확정된 실제 체력 감소량만
   공격자의 `IDamageDealtReceiver`에 전달하며, Meter 특성을 가진 모든 슬롯이 각 비율로 받는다.
-- 첫 Meter 콘텐츠인 `UltimateAwakeningSkill`은 Meter, Duration, Stat Modifier 계약을 조합하며
-  Mary의 `ultimateSkill`에 장착한다. Meter 처리는 슬롯 역할이 아닌 인터페이스로 판별한다.
+- Meter 처리는 슬롯 이름이나 구체 스킬 타입이 아니라 `IMeterSkill` 구현 여부로 판별한다.
+  현재 Mary의 `UltimateAwakeningSkill`은 Meter, Duration, Stat Modifier, Appearance 계약을
+  조합하고, Aron의 `AronUltimate`은 Meter와 Dash 계약을 조합한다.
+- `SkillSlotUI`도 같은 `IMeterSkill` 계약을 기준으로 Meter 레일과 퍼센트를 표시한다. 스킬이
+  Meter를 사용하지 않으면 해당 UI를 숨기며, 슬롯 종류를 기준으로 궁극기라고 가정하지 않는다.
 - `PlayerSkillController`는 활성 스킬의 합산 능력치 배율을 `PlayerTickState.ActiveStatModifiers`에
   공개한다. 이동과 외형처럼 배율을 소비하는 모듈은 SkillController를 직접 참조하지 않는다.
 - 각성 데이터는 선택적인 `SpriteLibraryAsset`을 보관하고, 런타임 스킬은
@@ -206,9 +214,10 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
 - 외형 SLA 자체는 Networked 값으로 전송하지 않는다. 이미 Networked인 스킬 슬롯의 Active 단계를
   모든 peer가 같은 정적 SkillData에 적용해 동일한 요청을 재구성한다. 두 슬롯이 동시에 외형을
   요청하면 궁극기 슬롯을 우선하고, null 요청은 다른 활성 외형을 막지 않는다.
-- `PlayerSpriteLibraryAppearance`는 이를 필요로 하는 캐릭터에만 추가하는 표현 모듈이다. 현재 Mary만
-  이 모듈과 SpriteLibrary/Resolver를 가지며, 요청 SLA가 null이면 기본 SLA를 유지한다. 실제
-  SpriteLibrary setter는 참조가 바뀔 때만 호출한다.
+- `PlayerVisual`이 캐릭터 반전·크기·피격 표시와 함께 외형 SLA 적용도 담당한다. 자식에서
+  `SpriteLibrary`를 찾을 수 있으면 기본 SLA를 보관하고, 요청 SLA가 null이면 기본값을 유지한다.
+  실제 SpriteLibrary setter는 참조가 바뀔 때만 호출한다. 별도
+  `PlayerSpriteLibraryAppearance` 컴포넌트는 현재 플레이어 프리팹에서 사용하지 않는다.
 - 기본 공격, 대시, 무기는 공격을 만드는 Tick의 공격력 배율을 `DamageInfo`에 반영한다.
   투사체와 설치물은 생성 시점의 배율을 Networked 값으로 보관하므로 비행·대기 중 버프가
   끝나거나 소유자가 사라져도 피해량이 바뀌지 않는다.
@@ -236,40 +245,18 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
 - 활성 스킬 배율은 계속 `PlayerTickState.ActiveStatModifiers`로 전달한다. 기본 능력치 Data는 TickState를
   대체하지 않으며, 소비자는 `기본값 × 활성 배율`로 최종 값을 계산한다.
 
-### Dash 확장 방향
+## Dash 데이터와 실행
 
 `DashData`는 스킬, 기본 공격, 무기가 함께 참조할 수 있는 이동 시간과 속도,
 선택적인 플레이어 충돌 공격을 보관한다. `DashSkillData`는 충전 수와 시전·회복 시간처럼
 스킬에만 해당하는 규칙을 보관하고 공통 `DashData`를 참조한다.
 
 현재 Dash는 사용 시점의 마우스 Aim 방향을 고정하고 Startup, Active, Recovery 전체 동안
-Movement, Attack, Skill 입력을 잠근다. 향후 일반적인 Dash 변형은 `DashData`에서
-다음 두 축을 독립적으로 설정하는 방식이 적합하다.
+Movement, Attack, Skill 입력을 잠근다. 확정 방향은 Aim Override와 슬롯의 Networked 상태로
+유지하며 Active 중 입력 변화에 따라 바뀌지 않는다. 대시 충돌 피해가 있으면 State Authority가
+한 대상에 한 번만 적용하고, 생성 시점의 공격력 배율을 `DamageInfo`에 반영한다.
 
-```text
-Direction Source  : Aim / MoveInput / Facing
-Capture Timing    : OnUseStarted / OnDashStarted
-Control Locks     : Movement, Attack, Skill의 Flags 조합
-```
-
-`OnDashStarted` 방향은 실제 Active 진입 Tick의 `PlayerInputData`에서 한 번 확정하고
-Networked 방향값에 저장한다. 이후 모든 Active Tick은 저장된 같은 방향만 사용해야
-prediction과 resimulation 결과가 일치한다. MoveInput이 0일 때의 fallback은 Aim 또는 Facing처럼
-데이터 정책으로 명시한다.
-
-단계별 잠금이 필요해지면 Startup, Active, Recovery의 Lock 정책을 분리할 수 있다.
-단순한 방향 고정 Dash, 충돌 Dash, 후딜 Dash는 공통 런타임으로 처리하고 순간이동, 추적,
-연쇄 이동처럼 수명 주기 자체가 다른 특수 스킬만 별도 `Skill` 구현으로 분리한다.
-
-### Dash 이펙트
-
-VFX와 SFX 설정을 Data에 추가하는 것은 가능하지만 판정과 표현의 실행 위치는 구분한다.
-
-- 이동, 충돌, 피해: `Simulate`의 네트워크 게임플레이
-- 궤적, 잔상, 소리, 카메라 피드백: `Present` 또는 별도 표현 객체
-- 한 번만 재생할 효과: Networked phase 변화나 byte sequence를 관찰하여 중복 재생 방지
-
-## 새 기능 체크리스트
+## 구조 변경 체크리스트
 
 1. 이 값의 실제 소유 모듈은 누구인지 정한다.
 2. 다른 모듈이 읽기만 하면 StateSource에 공개한다.

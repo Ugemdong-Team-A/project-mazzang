@@ -1,6 +1,6 @@
 # Player Tick Baseline
 
-이 문서는 플레이어 Tick 구조 리팩터링 전에 보존해야 하는 현재 동작을 기록한다.
+이 문서는 현재 Player Tick 구조가 보존해야 하는 수동 회귀 동작을 기록한다.
 자동 EditMode 테스트로 검증할 수 없는 Fusion 예측 및 권위 실행은 아래 절차로 확인한다.
 
 ## 실행 구성
@@ -20,10 +20,9 @@
 5. PlayerCombat (Action, 0)
 6. PlayerMovement (Motion, 0)
 7. PlayerVisual (Motion, 100)
-8. PlayerSpriteLibraryAppearance (Motion, 110, Mary만)
-9. PlayerAim (Aim, 0)
-10. PlayerAnimation (Finalize, 0)
-11. PlayerStatusUI (Finalize, 100)
+8. PlayerAim (Aim, 0)
+9. PlayerAnimation (Finalize, 0)
+10. PlayerStatusUI (Finalize, 100)
 
 같은 Stage에는 여러 모듈이 들어갈 수 있다. 이때 Order가 낮은 모듈이 먼저 실행되며,
 같은 플레이어 안에서 Stage와 Order 조합이 겹치면 파이프라인을 시작하지 않는다.
@@ -75,6 +74,8 @@
 - `AnimationOnly`는 상체 CCD를 끄고 공격 클립의 자세를 그대로 사용한다.
 - `AnimationWithBodyAim`은 공격 클립의 상체 상대 자세를 유지한 채 기준 척추에
   필요한 회전만 더해 최종 조준 방향을 맞춘다.
+- 표준 Animator의 Base Layer는 WholeBody, Combat Layer는 UpperChest 마스크를 사용하며,
+  공격·스킬 중에도 Combat Layer가 하체 이동 애니메이션을 덮어쓰지 않는다.
 - 무기가 없는 평상시에도 양손 Limb Solver가 애니메이션 Target을 사용해 IK 기반 이동·공격
   클립의 팔 동작을 재생한다.
 - 무기를 장착하면 각 손은 무기의 Grip을 우선하며, Grip이 없는 손은 항상 애니메이션 Target을
@@ -114,6 +115,8 @@
 
 - Mary `mainSkill`에서 `MaryProjectileSkill`이 시작되고 `ultimateSkill`에서
   `UltimateAwakeningSkill`이 시작되는지 확인한다.
+- Aron `mainSkill`에서 설치형 Trap 스킬이 시작되고 `ultimateSkill`에서 Meter 기반 Dash인
+  `AronUltimate`이 시작되는지 확인한다.
 - Meter UI의 충전 레일·내부 면·퍼센트가 같은 값으로 갱신되고, 정수 증가 시 한 번만 반응하는지 확인한다.
 - Host와 Client가 각각 공격자일 때 실제 감소한 Health에 `DamageGainPerDamage`를 곱한 만큼만 충전된다.
 - 남은 Health보다 큰 피해는 남은 Health만큼만 충전되고, 무적·사망·0 피해에는 충전되지 않는다.
@@ -125,8 +128,9 @@
 - Mary 각성 데이터의 지속 시간 동안 이동·공격·최대 체력·피해 감소·크기 배율이 적용되고
   종료 뒤 원래 값으로 복귀한다.
 - 각성 SLA가 비어 있으면 Mary의 기본 SpriteLibrary가 유지되고 예외나 Resolver 누락이 발생하지 않는다.
-- 각성 SLA를 지정하면 Host와 Client 모두 Active 시작에 같은 외형으로 한 번 교체되고, 종료 시 기본
-  외형으로 복귀한다. prediction 및 resimulation 중 같은 SLA setter가 매 Tick 반복 호출되지 않는다.
+- 각성 SLA를 지정하면 `PlayerVisual`이 Host와 Client 모두 Active 시작에 같은 외형으로 한 번
+  교체하고, 종료 시 기본 외형으로 복귀한다. prediction 및 resimulation 중 같은 SLA setter가
+  매 Tick 반복 호출되지 않는다.
 
 ### Skill Animation
 
