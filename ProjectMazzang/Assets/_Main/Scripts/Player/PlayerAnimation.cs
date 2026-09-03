@@ -3,14 +3,14 @@ using UnityEngine;
 public sealed class PlayerAnimation :
     PlayerTickModule
 {
-    private const string SkillCastPlaceholder =
-        "SkillCastPlaceholder";
+    private const string ActionCastPlaceholder =
+        "ActionCastPlaceholder";
 
-    private const string SkillReleasePlaceholder =
-        "SkillReleasePlaceholder";
+    private const string ActionReleasePlaceholder =
+        "ActionReleasePlaceholder";
 
-    private const string SkillRecoveryPlaceholder =
-        "SkillRecoveryPlaceholder";
+    private const string ActionRecoveryPlaceholder =
+        "ActionRecoveryPlaceholder";
 
     [SerializeField]
     private Animator animator;
@@ -246,11 +246,11 @@ public sealed class PlayerAnimation :
             phase switch
             {
                 SkillAnimationPhase.Cast =>
-                    SkillCastPlaceholder,
+                    ActionCastPlaceholder,
                 SkillAnimationPhase.Release =>
-                    SkillReleasePlaceholder,
+                    ActionReleasePlaceholder,
                 SkillAnimationPhase.Recovery =>
-                    SkillRecoveryPlaceholder,
+                    ActionRecoveryPlaceholder,
                 _ =>
                     null
             };
