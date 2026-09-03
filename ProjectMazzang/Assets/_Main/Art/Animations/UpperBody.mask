@@ -56,15 +56,15 @@ AvatarMask:
   - m_Path: root/pelvis/abdomen/chest/shoulder_r/arm_r/forearm_r/hand_r/weapon_slot_r
     m_Weight: 1
   - m_Path: root/pelvis/hip
-    m_Weight: 1
+    m_Weight: 0
   - m_Path: root/pelvis/hip/thigh_l
     m_Weight: 0
   - m_Path: root/pelvis/hip/thigh_l/calf_l
     m_Weight: 0
   - m_Path: root/pelvis/hip/thigh_l/calf_l/foot_01_l
-    m_Weight: 1
+    m_Weight: 0
   - m_Path: root/pelvis/hip/thigh_l/calf_l/foot_01_l/foot_02_l
-    m_Weight: 1
+    m_Weight: 0
   - m_Path: root/pelvis/hip/thigh_r
     m_Weight: 0
   - m_Path: root/pelvis/hip/thigh_r/calf_r
