@@ -111,6 +111,11 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
   플레이 중 `ProceduralAim`이 선택됐을 때 `PlayerAim`이 켠다.
 - `Standard2DRigIKSetup`은 편집기에서 표준 IK 구조를 생성하는 도구일 뿐이며, 플레이어 런타임
   컴포넌트는 이 도구의 존재나 보관 위치에 의존하지 않는다.
+- `Standard2DCharacterSetup`은 `Animator`가 있는 캐릭터 Root에서 IK와 Sprite Visual Driver 제작
+  단계를 순서대로 실행하는 편집기 진입점이다. 같은 Root의 `Animator`와 `Standard2DRigIKSetup`
+  참조, 하위 `SpriteLibrary`와 `SpriteResolver` 목록 및 전체 유효성만 관리하며, 각 관리 컴포넌트와
+  Builder는 서로를 참조하지 않는다. SLA가 아직 없어도 모든 `SpriteRenderer`에 Resolver와 Driver를
+  먼저 구성할 수 있고, SLA 정보 동기화 실패는 생성 실패가 아닌 경고로 보고한다.
 - `PlayerAim`은 상체 CCD Solver만 명시적으로 참조하고 Target과 기준 본은 Solver 체인에서 얻는다.
   `PlayerWeaponController`는 손 Solver와 표시용 `WeaponSocket`만 명시적으로 참조한다.
 - `PlayerAim`은 제한된 허리 각도와 최대 각도를 `PlayerTickState`에 공개한다. 무기는 이 스냅샷으로
