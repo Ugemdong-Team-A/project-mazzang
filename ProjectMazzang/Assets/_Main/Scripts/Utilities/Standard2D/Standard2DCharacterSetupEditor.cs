@@ -21,6 +21,8 @@ public sealed class Standard2DCharacterSetupEditor : Editor
             "• 표준 2D IK 생성 / 갱신\n" +
             "• 모든 SpriteRenderer에 SpriteResolver 추가\n" +
             "• 모든 SpriteResolver에 Visual Driver 추가 / 갱신\n\n" +
+            "부위 이름과 Sprite Library Asset Category 규격: lower_snake_case\n" +
+            "예: arm_l, leg_r, hair_front\n\n" +
             "SpriteLibraryAsset은 나중에 연결해도 됩니다.\n" +
             "RAP, Socket 등은 이후 독립된 제작 단계로 추가할 수 있습니다.",
             MessageType.Info);

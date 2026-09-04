@@ -19,6 +19,7 @@ public static class Standard2DResolverBuilder
         public int AddedCount { get; internal set; }
         public int ExistingCount { get; internal set; }
         public int CategoryConfiguredCount { get; internal set; }
+        public int NormalizedNameCount { get; internal set; }
         public List<string> Errors { get; } = new();
         public bool Success => Errors.Count == 0;
     }
@@ -82,9 +83,13 @@ public static class Standard2DResolverBuilder
 
             if (TryConfigureCategoryFromObjectName(
                     renderer,
-                    resolver))
+                    resolver,
+                    out bool normalizedName))
             {
                 result.CategoryConfiguredCount++;
+
+                if (normalizedName)
+                    result.NormalizedNameCount++;
             }
         }
 
@@ -93,8 +98,11 @@ public static class Standard2DResolverBuilder
 
     private static bool TryConfigureCategoryFromObjectName(
         SpriteRenderer renderer,
-        SpriteResolver resolver)
+        SpriteResolver resolver,
+        out bool normalizedName)
     {
+        normalizedName = false;
+
         if (!string.IsNullOrEmpty(
                 resolver.GetCategory()))
         {
@@ -112,14 +120,57 @@ public static class Standard2DResolverBuilder
         if (libraryAsset == null)
             return false;
 
-        string category =
+        string[] categories =
             libraryAsset
                 .GetCategoryNames()
-                .FirstOrDefault(
-                    item => string.Equals(
-                        item,
-                        renderer.gameObject.name,
-                        StringComparison.Ordinal));
+                .ToArray();
+
+        string objectName =
+            renderer.gameObject.name;
+
+        string category =
+            categories.FirstOrDefault(
+                item => string.Equals(
+                    item,
+                    objectName,
+                    StringComparison.Ordinal));
+
+        if (string.IsNullOrEmpty(category))
+        {
+            string canonicalName =
+                ToCanonicalPartName(objectName);
+
+            category =
+                categories.FirstOrDefault(
+                    item =>
+                        string.Equals(
+                            item,
+                            canonicalName,
+                            StringComparison.Ordinal) &&
+                        string.Equals(
+                            item,
+                            ToCanonicalPartName(item),
+                            StringComparison.Ordinal));
+
+            if (!string.IsNullOrEmpty(category) &&
+                !string.Equals(
+                    objectName,
+                    category,
+                    StringComparison.Ordinal))
+            {
+                Undo.RecordObject(
+                    renderer.gameObject,
+                    "Normalize Sprite Part Name");
+
+                renderer.gameObject.name = category;
+                normalizedName = true;
+
+                EditorUtility.SetDirty(
+                    renderer.gameObject);
+                PrefabUtility.RecordPrefabInstancePropertyModifications(
+                    renderer.gameObject);
+            }
+        }
 
         if (string.IsNullOrEmpty(category))
             return false;
@@ -149,6 +200,15 @@ public static class Standard2DResolverBuilder
         }
 
         if (string.IsNullOrEmpty(label))
+        {
+            label = labels.FirstOrDefault(
+                item => string.Equals(
+                    item,
+                    "Front",
+                    StringComparison.Ordinal));
+        }
+
+        if (string.IsNullOrEmpty(label))
             label = labels[0];
 
         Undo.RecordObject(
@@ -164,6 +224,24 @@ public static class Standard2DResolverBuilder
             resolver);
 
         return true;
+    }
+
+    private static string ToCanonicalPartName(
+        string source)
+    {
+        if (string.IsNullOrWhiteSpace(source))
+            return string.Empty;
+
+        string result = source
+            .Trim()
+            .ToLowerInvariant()
+            .Replace('-', '_')
+            .Replace(' ', '_');
+
+        while (result.Contains("__"))
+            result = result.Replace("__", "_");
+
+        return result.Trim('_');
     }
 
     private static string GetPath(

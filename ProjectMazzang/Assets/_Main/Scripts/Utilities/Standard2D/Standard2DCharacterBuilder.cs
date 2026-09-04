@@ -92,6 +92,7 @@ public static class Standard2DCharacterBuilder
             $"SpriteResolver: 추가 {resolverResult.AddedCount}, " +
             $"기존 {resolverResult.ExistingCount}, " +
             $"Category 자동 연결 {resolverResult.CategoryConfiguredCount}, " +
+            $"이름 정규화 {resolverResult.NormalizedNameCount}, " +
             $"전체 {resolverResult.RendererCount}\n" +
             $"Visual Driver: 추가 {visualResult.AddedCount}, " +
             $"갱신 {visualResult.RefreshedCount}, " +

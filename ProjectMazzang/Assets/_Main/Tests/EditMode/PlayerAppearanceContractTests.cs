@@ -207,6 +207,126 @@ namespace ProjectMazzang.Tests
         }
 
 
+        [TestCase("leg_L", "leg_l", true)]
+        [TestCase("Arm-R", "arm_r", true)]
+        [TestCase("amr_L", "arm_l", false)]
+        public void ResolverBuilder_NormalizesOnlyCanonicalPartNames(
+            string objectName,
+            string category,
+            bool shouldNormalize)
+        {
+            Type libraryType =
+                GetRuntimeType(
+                    "UnityEngine.U2D.Animation.SpriteLibrary",
+                    "Unity.2D.Animation.Runtime");
+
+            Type libraryAssetType =
+                GetRuntimeType(
+                    "UnityEngine.U2D.Animation.SpriteLibraryAsset",
+                    "Unity.2D.Animation.Runtime");
+
+            Type resolverType =
+                GetRuntimeType(
+                    "UnityEngine.U2D.Animation.SpriteResolver",
+                    "Unity.2D.Animation.Runtime");
+
+            GameObject root =
+                new("Character");
+
+            ScriptableObject libraryAsset =
+                ScriptableObject.CreateInstance(
+                    libraryAssetType);
+
+            try
+            {
+                Component library =
+                    root.AddComponent(
+                        libraryType);
+
+                libraryAssetType
+                    .GetMethod("AddCategoryLabel")
+                    ?.Invoke(
+                        libraryAsset,
+                        new object[]
+                        {
+                            null,
+                            category,
+                            "Front"
+                        });
+
+                libraryType
+                    .GetProperty("spriteLibraryAsset")
+                    ?.SetValue(
+                        library,
+                        libraryAsset);
+
+                GameObject part =
+                    new(objectName);
+
+                part.transform.SetParent(
+                    root.transform);
+                part.AddComponent<SpriteRenderer>();
+
+                Type builderType =
+                    GetRuntimeType(
+                        "Standard2DResolverBuilder");
+
+                builderType
+                    .GetMethod("BuildOrRefresh")
+                    ?.Invoke(
+                        null,
+                        new object[]
+                        {
+                            root.transform
+                        });
+
+                Component resolver =
+                    part.GetComponent(
+                        resolverType);
+
+                Assert.That(
+                    resolver,
+                    Is.Not.Null);
+
+                string resolvedCategory =
+                    (string)resolverType
+                        .GetMethod("GetCategory")
+                        ?.Invoke(
+                            resolver,
+                            null);
+
+                if (shouldNormalize)
+                {
+                    Assert.That(
+                        part.name,
+                        Is.EqualTo(category));
+
+                    Assert.That(
+                        resolvedCategory,
+                        Is.EqualTo(category));
+                }
+                else
+                {
+                    Assert.That(
+                        part.name,
+                        Is.EqualTo(objectName));
+
+                    Assert.That(
+                        resolvedCategory,
+                        Is.Empty);
+                }
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(
+                    root);
+
+                UnityEngine.Object.DestroyImmediate(
+                    libraryAsset);
+            }
+        }
+
+
         private static Type GetRuntimeType(
             string typeName)
         {

@@ -15,7 +15,7 @@ using UnityEngine.U2D.Animation;
 [AddComponentMenu("Mazzang/Animation/Standard 2D Character Setup")]
 public sealed class Standard2DCharacterSetup : MonoBehaviour
 {
-    public const string ToolVersion = "1.2";
+    public const string ToolVersion = "1.3";
 
     [SerializeField, HideInInspector]
     private Animator _animator;
