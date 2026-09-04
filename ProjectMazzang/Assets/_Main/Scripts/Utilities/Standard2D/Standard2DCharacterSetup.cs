@@ -50,6 +50,7 @@ public sealed class Standard2DCharacterSetup : MonoBehaviour
         _animator.gameObject == gameObject &&
         _rigIKSetup != null &&
         _rigIKSetup.gameObject == gameObject &&
+        _spriteLibrary != null &&
         _spriteResolvers != null &&
         _spriteResolvers.Length > 0;
 

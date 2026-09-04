@@ -3,6 +3,7 @@
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.U2D.Animation;
 
 /// <summary>
 /// CharacterSetup의 각 독립 Builder를 정해진 순서로 실행한다.
@@ -35,6 +36,9 @@ public static class Standard2DCharacterBuilder
 
             return false;
         }
+
+        EnsureSpriteLibrary(setup);
+        RefreshReferences(setup);
 
         if (!Standard2DIKBuilder.BuildOrRebuild(
                 setup.RigIKSetup))
@@ -95,6 +99,20 @@ public static class Standard2DCharacterBuilder
             setup);
 
         return true;
+    }
+
+    private static void EnsureSpriteLibrary(
+        Standard2DCharacterSetup setup)
+    {
+        if (setup.SpriteLibrary != null)
+            return;
+
+        SpriteLibrary spriteLibrary =
+            Undo.AddComponent<SpriteLibrary>(setup.gameObject);
+
+        EditorUtility.SetDirty(spriteLibrary);
+        PrefabUtility.RecordPrefabInstancePropertyModifications(
+            spriteLibrary);
     }
 
     public static bool Validate(
