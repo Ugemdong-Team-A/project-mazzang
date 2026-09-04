@@ -23,6 +23,7 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
     private SpriteVisualAnimationDriver _target;
     private Vector2 _orderStripScroll;
     private SpriteVisualAnimationDriver _lastOrderStripTarget;
+    private int _lastOrderStripTargetIndex = -1;
 
     [MenuItem("Tools/2D Animation/Sprite Visual Keyer")]
     private static void Open()
@@ -346,7 +347,8 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
         if (labels.Length == 0)
         {
             EditorGUILayout.HelpBox(
-                "사용할 스프라이트 모습(SLA Label)이 없습니다. 새로고침을 눌러주세요.",
+                "사용할 스프라이트 모습(Sprite Library Asset Label)이 없습니다. " +
+                "새로고침을 눌러주세요.",
                 MessageType.Warning);
             return;
         }
@@ -503,7 +505,8 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
             .Select(group => group.Key)
             .ToHashSet();
 
-        if (_lastOrderStripTarget != _target)
+        if (_lastOrderStripTarget != _target ||
+            _lastOrderStripTargetIndex != targetIndex)
         {
             float viewportWidth = Mathf.Max(0f, position.width - 36f);
             _orderStripScroll.x = Mathf.Max(
@@ -511,6 +514,7 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
                 targetIndex * OrderCardStep -
                 (viewportWidth - OrderCardWidth) * 0.5f);
             _lastOrderStripTarget = _target;
+            _lastOrderStripTargetIndex = targetIndex;
         }
 
         EditorGUILayout.Space(4);
@@ -1216,7 +1220,7 @@ public sealed class SpriteVisualAnimationDriverEditor : Editor
             "기본 스프라이트 순서",
             driver.OriginalSortingOrder.ToString());
 
-        if (!GUILayout.Button("SLA 정보 새로고침"))
+        if (!GUILayout.Button("Sprite Library 정보 새로고침"))
             return;
 
         Undo.RecordObject(driver, "Refresh Sprite Visual Driver");

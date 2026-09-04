@@ -234,7 +234,7 @@ public static class Standard2DCharacterBuilder
 
         Debug.LogWarning(
             $"[{nameof(Standard2DCharacterSetup)} v{Standard2DCharacterSetup.ToolVersion}] " +
-            $"SLA 확인 필요: '{setup.name}'\n- " +
+            $"Sprite Library Asset 확인 필요: '{setup.name}'\n- " +
             string.Join(
                 "\n- ",
                 warnings),

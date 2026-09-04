@@ -79,7 +79,7 @@ public static class Standard2DVisualDriverBuilder
                 result.RefreshedCount++;
             }
 
-            // Build는 잘못 저장된 기본 모습을 SLA 규칙에 따라 다시 정리한다.
+            // Build는 잘못 저장된 기본 모습을 Sprite Library Asset 규칙에 따라 다시 정리한다.
             driver.SynchronizeDefinition(true);
 
             EditorUtility.SetDirty(driver);
@@ -90,7 +90,7 @@ public static class Standard2DVisualDriverBuilder
                 driver.Labels.Count == 0)
             {
                 result.Warnings.Add(
-                    $"SLA 미연결 또는 Category/Label 미설정: " +
+                    $"Sprite Library Asset 미연결 또는 Category/Label 미설정: " +
                     GetPath(characterRoot, resolver.transform));
             }
         }
@@ -161,7 +161,7 @@ public static class Standard2DVisualDriverBuilder
                 driver.Labels.Count == 0)
             {
                 warnings.Add(
-                    $"Visual Driver SLA 정보 없음: {path}");
+                    $"Visual Driver Sprite Library Asset 정보 없음: {path}");
             }
         }
 
