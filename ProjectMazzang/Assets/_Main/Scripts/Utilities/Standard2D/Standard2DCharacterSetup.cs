@@ -15,13 +15,19 @@ using UnityEngine.U2D.Animation;
 [AddComponentMenu("Mazzang/Animation/Standard 2D Character Setup")]
 public sealed class Standard2DCharacterSetup : MonoBehaviour
 {
-    public const string ToolVersion = "1.3";
+    public const string ToolVersion = "1.4";
 
     [SerializeField, HideInInspector]
     private Animator _animator;
 
     [SerializeField, HideInInspector]
     private Standard2DRigIKSetup _rigIKSetup;
+
+    [SerializeField, HideInInspector]
+    private Transform _bodyAimReferenceBone;
+
+    [SerializeField, HideInInspector]
+    private Standard2DAimAnchor _aimAnchor;
 
     [SerializeField, HideInInspector]
     private SpriteLibrary _spriteLibrary;
@@ -35,6 +41,12 @@ public sealed class Standard2DCharacterSetup : MonoBehaviour
 
     public Standard2DRigIKSetup RigIKSetup =>
         _rigIKSetup;
+
+    public Transform BodyAimReferenceBone =>
+        _bodyAimReferenceBone;
+
+    public Standard2DAimAnchor AimAnchor =>
+        _aimAnchor;
 
     public SpriteLibrary SpriteLibrary =>
         _spriteLibrary;
@@ -50,6 +62,10 @@ public sealed class Standard2DCharacterSetup : MonoBehaviour
         _animator.gameObject == gameObject &&
         _rigIKSetup != null &&
         _rigIKSetup.gameObject == gameObject &&
+        _bodyAimReferenceBone != null &&
+        _aimAnchor != null &&
+        _aimAnchor.IsValid &&
+        _aimAnchor.ReferenceBone == _bodyAimReferenceBone &&
         _spriteLibrary != null &&
         _spriteResolvers != null &&
         _spriteResolvers.Length > 0;
@@ -76,6 +92,10 @@ public sealed class Standard2DCharacterSetup : MonoBehaviour
         Standard2DRigIKSetup rigIKSetup =
             GetComponent<Standard2DRigIKSetup>();
 
+        Standard2DAimAnchor aimAnchor =
+            GetComponentInChildren<Standard2DAimAnchor>(
+                true);
+
         SpriteLibrary spriteLibrary =
             GetComponentInChildren<SpriteLibrary>(
                 true);
@@ -87,6 +107,7 @@ public sealed class Standard2DCharacterSetup : MonoBehaviour
         bool changed =
             _animator != animator ||
             _rigIKSetup != rigIKSetup ||
+            _aimAnchor != aimAnchor ||
             _spriteLibrary != spriteLibrary ||
             !HaveSameResolvers(
                 _spriteResolvers,
@@ -94,10 +115,55 @@ public sealed class Standard2DCharacterSetup : MonoBehaviour
 
         _animator = animator;
         _rigIKSetup = rigIKSetup;
+        _aimAnchor = aimAnchor;
         _spriteLibrary = spriteLibrary;
         _spriteResolvers = spriteResolvers;
 
+        Transform defaultReferenceBone =
+            ResolveDefaultBodyAimReferenceBone();
+
+        if (_bodyAimReferenceBone == null &&
+            defaultReferenceBone != null)
+        {
+            _bodyAimReferenceBone = defaultReferenceBone;
+            changed = true;
+        }
+
         return changed;
+    }
+
+    public bool SetBodyAimReferenceBone(
+        Transform referenceBone)
+    {
+        if (_bodyAimReferenceBone == referenceBone)
+            return false;
+
+        _bodyAimReferenceBone = referenceBone;
+        return true;
+    }
+
+    private Transform ResolveDefaultBodyAimReferenceBone()
+    {
+        if (_aimAnchor != null &&
+            _aimAnchor.ReferenceBone != null)
+        {
+            return _aimAnchor.ReferenceBone;
+        }
+
+        if (_rigIKSetup == null ||
+            !Standard2DRigResolver.TryResolve(
+                _rigIKSetup.RigSearchRoot,
+                out Standard2DRigResolver.Result rig,
+                out _))
+        {
+            return null;
+        }
+
+        return rig.Bones.TryGetValue(
+            Standard2DRigDefinition.DefaultBodyAimReferenceBone,
+            out Transform referenceBone)
+                ? referenceBone
+                : null;
     }
 
     private static bool HaveSameResolvers(

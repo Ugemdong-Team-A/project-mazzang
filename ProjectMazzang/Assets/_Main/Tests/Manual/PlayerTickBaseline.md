@@ -89,8 +89,10 @@
 - Counter 대시가 끝나거나 공격이 취소되면 대시 속도가 남지 않으며 이후 이동 입력이 정상 복구된다.
 - Sword는 공격 준비 시간 전에는 돌진하지 않고, 준비 시간이 끝나는 Tick에 돌진과 타격을 함께 시작한다.
 - Sword의 최신 조준 방향 옵션을 켜면 준비 중 바꾼 Aim 방향으로 돌진하고, 끄면 입력 순간 방향을 유지한다.
-- 상체 조준과 공격 애니메이션으로 `WeaponSocket`이 움직여도 근접 판정, 무기 드롭과 총기 Muzzle의
-  fallback 기준점은 같은 Tick의 `AimOrigin`에서 흔들리지 않는다.
+- 상체 기준 본이 회전해도 로컬 원점인 `ResolvedAimPivot`의 위치는 불필요하게 궤도를 그리지 않고,
+  근접 판정·무기 드롭·총기 Muzzle fallback이 같은 Tick의 RAP 위치를 함께 사용한다.
+- 위치 키가 있는 상체 애니메이션 중 RAP 기반 마우스 조준이 허용하기 어려울 정도로 흔들리거나
+  CCD Target과 서로 밀어내는 피드백이 생기지 않는다.
 - 총기 투사체는 장착 외형의 Muzzle 월드 위치에서 생성되고 Trail도 같은 Muzzle에서 시작한다.
   Host와 Client 모두 투사체가 이동하는 동안 NetworkTransform과 별도 Lerp가 서로 당기는 떨림이 없다.
 - 기본 패링과 방패의 로컬 쿨다운 원호는 `NetworkRigidbody`의 보간된 PresentationRoot를 따라가며,

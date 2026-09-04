@@ -38,6 +38,31 @@ namespace ProjectMazzang.Tests
 
 
         [Test]
+        public void AimAndReferenceBuilders_KeepSetupDependenciesOneWay()
+        {
+            MonoScript aimScript =
+                AssetDatabase.LoadAssetAtPath<MonoScript>(
+                    "Assets/_Main/Scripts/Player/PlayerAim.cs");
+
+            MonoScript referenceBuilderScript =
+                AssetDatabase.LoadAssetAtPath<MonoScript>(
+                    "Assets/_Main/Scripts/Utilities/Standard2D/" +
+                    "Standard2DReferenceBuilder.cs");
+
+            MonoScript aimAnchorScript =
+                AssetDatabase.LoadAssetAtPath<MonoScript>(
+                    "Assets/_Main/Scripts/Utilities/Standard2D/" +
+                    "Standard2DAimAnchor.cs");
+
+            Assert.That(aimScript.text, Does.Not.Contain("Standard2DCharacterSetup"));
+            Assert.That(aimScript.text, Does.Not.Contain("aimOrigin"));
+            Assert.That(referenceBuilderScript.text, Does.Not.Contain("Standard2DCharacterSetup"));
+            Assert.That(aimAnchorScript.text, Does.Not.Contain("Standard2DCharacterSetup"));
+            Assert.That(aimAnchorScript.text, Does.Not.Contain("Standard2DRigIKSetup"));
+        }
+
+
+        [Test]
         public void TickModules_DoNotNamePeerConcreteTypes()
         {
             Type moduleBaseType =
@@ -122,7 +147,7 @@ namespace ProjectMazzang.Tests
 
 
         [Test]
-        public void PlayerPrefabs_AuthorWeaponSocketUnderResolvedAimPivot()
+        public void MainPlayerPrefabs_UseSelectedBoneAimAnchorContract()
         {
             Type aimType =
                 GetRuntimeType(
@@ -132,12 +157,22 @@ namespace ProjectMazzang.Tests
                 GetRuntimeType(
                     "PlayerWeaponController");
 
+            Type aimAnchorType =
+                GetRuntimeType(
+                    "Standard2DAimAnchor");
+
+            Type characterSetupType =
+                GetRuntimeType(
+                    "Standard2DCharacterSetup");
+
             string[] prefabPaths =
             {
                 "Assets/_Main/Prefabs/Characters/" +
                 "PC_Mary.prefab",
                 "Assets/_Main/Prefabs/Characters/" +
-                "PlayerCharacter_TestChar.prefab"
+                "PC_MasterCharacter.prefab",
+                "Assets/_Main/Prefabs/Characters/" +
+                "PC_Aron.prefab"
             };
 
             foreach (string prefabPath in prefabPaths)
@@ -154,6 +189,16 @@ namespace ProjectMazzang.Tests
                     prefab?.GetComponent(
                         weaponControllerType);
 
+                Component characterSetup =
+                    prefab?.GetComponentInChildren(
+                        characterSetupType,
+                        true);
+
+                Component aimAnchor =
+                    prefab?.GetComponentInChildren(
+                        aimAnchorType,
+                        true);
+
                 Assert.That(
                     aim,
                     Is.Not.Null,
@@ -164,6 +209,16 @@ namespace ProjectMazzang.Tests
                     Is.Not.Null,
                     $"{prefabPath}에 PlayerWeaponController가 없습니다.");
 
+                Assert.That(
+                    characterSetup,
+                    Is.Not.Null,
+                    $"{prefabPath}에 Standard2DCharacterSetup이 없습니다.");
+
+                Assert.That(
+                    aimAnchor,
+                    Is.Not.Null,
+                    $"{prefabPath}에 Standard2DAimAnchor가 없습니다.");
+
                 Transform resolvedAimPivot =
                     new SerializedObject(aim)
                         .FindProperty("resolvedAimPivot")
@@ -173,6 +228,21 @@ namespace ProjectMazzang.Tests
                     new SerializedObject(weaponController)
                         .FindProperty("weaponSocket")
                         ?.objectReferenceValue as Transform;
+
+                Transform selectedReferenceBone =
+                    new SerializedObject(characterSetup)
+                        .FindProperty("_bodyAimReferenceBone")
+                        ?.objectReferenceValue as Transform;
+
+                Component upperBodyAimRig =
+                    new SerializedObject(aim)
+                        .FindProperty("upperBodyAimRig")
+                        ?.objectReferenceValue as Component;
+
+                Transform anchorSocket =
+                    aimAnchorType
+                        .GetProperty("WeaponSocket")
+                        ?.GetValue(aimAnchor) as Transform;
 
                 Assert.That(
                     resolvedAimPivot,
@@ -185,9 +255,55 @@ namespace ProjectMazzang.Tests
                     $"{prefabPath}에 WeaponSocket이 할당되지 않았습니다.");
 
                 Assert.That(
+                    selectedReferenceBone,
+                    Is.Not.Null,
+                    $"{prefabPath}에 상체 조준 기준 본이 선택되지 않았습니다.");
+
+                Assert.That(
+                    upperBodyAimRig,
+                    Is.Not.Null,
+                    $"{prefabPath}에 상체 CCD가 없습니다.");
+
+                object bodyAimChain = upperBodyAimRig
+                    .GetType()
+                    .GetMethod("GetChain")
+                    ?.Invoke(
+                        upperBodyAimRig,
+                        new object[] { 0 });
+
+                Transform ccdRoot = bodyAimChain
+                    ?.GetType()
+                    .GetProperty("rootTransform")
+                    ?.GetValue(bodyAimChain) as Transform;
+
+                Assert.That(
+                    ccdRoot,
+                    Is.SameAs(selectedReferenceBone),
+                    $"{prefabPath}의 CCD Root와 CharSetup 기준 본이 다릅니다.");
+
+                Assert.That(
+                    resolvedAimPivot,
+                    Is.SameAs(aimAnchor.transform),
+                    $"{prefabPath}의 PlayerAim은 표준 Aim Anchor의 RAP을 참조해야 합니다.");
+
+                Assert.That(
+                    resolvedAimPivot.parent,
+                    Is.SameAs(selectedReferenceBone),
+                    $"{prefabPath}의 RAP 부모와 CharSetup 기준 본이 다릅니다.");
+
+                Assert.That(
+                    resolvedAimPivot.name,
+                    Is.EqualTo("ResolvedAimPivot"));
+
+                Assert.That(
                     weaponSocket.parent,
                     Is.SameAs(resolvedAimPivot),
                     $"{prefabPath}의 WeaponSocket은 ResolvedAimPivot의 직접 자식이어야 합니다.");
+
+                Assert.That(
+                    anchorSocket,
+                    Is.SameAs(weaponSocket),
+                    $"{prefabPath}의 Aim Anchor와 Weapon 모듈이 같은 Socket을 가리켜야 합니다.");
 
                 Assert.That(
                     weaponSocket.localPosition.sqrMagnitude,

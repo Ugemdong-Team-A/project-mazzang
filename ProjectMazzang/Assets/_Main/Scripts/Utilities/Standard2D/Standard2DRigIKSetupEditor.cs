@@ -27,8 +27,8 @@ public sealed class Standard2DRigIKSetupEditor : Editor
             "• PSB _1 / _2 Bone alias 대응\n" +
             "• IKManager2D 자동 추가/설정\n" +
             "• Arm 2 / Leg 2 / Foot 2 = Limb Solver 6개 생성\n" +
-            "• chest → neck → head → effector = Body Aim CCD 1개 생성\n" +
-            "• Body Aim CCD Chain Length는 4로 고정\n" +
+            "• 선택 기준 본 → ... → head → effector = Body Aim CCD 1개 생성\n" +
+            "• 단독 Build는 chest 기준 4, CharSetup은 선택 본까지 자동 계산\n" +
             "• Solver는 Setup Root 바로 아래\n" +
             "• Target은 각 Solver 바로 아래\n" +
             "• Effector / Target / Solver / Manager 참조 자동 연결\n" +

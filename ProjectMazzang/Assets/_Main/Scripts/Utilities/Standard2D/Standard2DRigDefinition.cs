@@ -6,6 +6,16 @@ using System.Collections.Generic;
 /// </summary>
 public static class Standard2DRigDefinition
 {
+    public const string DefaultBodyAimReferenceBone = "chest";
+
+    public static IReadOnlyList<string> BodyAimReferenceBones { get; } =
+        new[]
+        {
+            "abdomen",
+            "chest",
+            "neck"
+        };
+
     public enum EffectorReachGroup
     {
         Arm,
@@ -96,29 +106,21 @@ public static class Standard2DRigDefinition
     {
         public readonly string Prefix;
 
-        public readonly string ChainRoot;
-
         public readonly string EffectorParent;
 
         public readonly string PreviousBone;
-
-        public readonly int TransformCount;
 
         public readonly EffectorReachGroup ReachGroup;
 
         public CcdSpec(
             string prefix,
-            string chainRoot,
             string effectorParent,
             string previousBone,
-            int transformCount,
             EffectorReachGroup reachGroup)
         {
             Prefix = prefix;
-            ChainRoot = chainRoot;
             EffectorParent = effectorParent;
             PreviousBone = previousBone;
-            TransformCount = transformCount;
             ReachGroup = reachGroup;
         }
 
@@ -241,15 +243,14 @@ public static class Standard2DRigDefinition
 
     /// <summary>
     /// head 자식 Effector를 끝으로
-    /// chest -> neck -> head -> effector를 제어하는 상체 조준 CCD.
-    /// 캐릭터마다 동일한 체인을 사용하므로 TransformCount는 4로 고정한다.
+    /// 선택 기준 본 -> ... -> neck -> head -> effector를 제어하는 상체 조준 CCD.
+    /// Effector Reach는 항상 neck -> head 길이 기준이고,
+    /// Chain 길이만 선택 기준 본까지 자동 계산한다.
     /// </summary>
     public static CcdSpec BodyAimCcd { get; } =
         new(
             "head",
-            "chest",
             "head",
             "neck",
-            4,
             EffectorReachGroup.Head);
 }

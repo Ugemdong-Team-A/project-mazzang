@@ -54,7 +54,8 @@ public static class Standard2DIKBuilder
     }
 
     public static bool BuildOrRebuild(
-        Standard2DRigIKSetup setup)
+        Standard2DRigIKSetup setup,
+        Transform bodyAimReferenceBone = null)
     {
         if (Application.isPlaying)
         {
@@ -78,6 +79,23 @@ public static class Standard2DIKBuilder
                     errors),
                 setup);
 
+            return false;
+        }
+
+        Transform resolvedBodyAimReferenceBone =
+            bodyAimReferenceBone != null
+                ? bodyAimReferenceBone
+                : rig.Bones[
+                    Standard2DRigDefinition.DefaultBodyAimReferenceBone];
+
+        if (!Standard2DRigDefinition.BodyAimReferenceBones
+                .Select(name => rig.Bones[name])
+                .Contains(resolvedBodyAimReferenceBone))
+        {
+            Debug.LogError(
+                $"[{nameof(Standard2DIKBuilder)}] " +
+                "상체 조준 기준 본은 abdomen, chest, neck 중 하나여야 합니다.",
+                setup);
             return false;
         }
 
@@ -112,7 +130,8 @@ public static class Standard2DIKBuilder
             setup,
             rig,
             manager,
-            Standard2DRigDefinition.BodyAimCcd);
+            Standard2DRigDefinition.BodyAimCcd,
+            resolvedBodyAimReferenceBone);
 
         if (!SynchronizeManagerSolvers(
                 setup,
@@ -154,6 +173,7 @@ public static class Standard2DIKBuilder
             "Setup Root 직계 자식: LimbSolver2D x6 (Arm 2 / Leg 2 / Foot 2) + CCDSolver2D x1 (Body Aim)\n" +
             "각 Solver 직계 자식: Target x1\n" +
             "Skeleton: Effector x7\n" +
+            $"Body Aim Root: {resolvedBodyAimReferenceBone.name}\n" +
             "Manager/Solver/Target/Effector 참조 연결 완료" +
             aliases,
             setup);
@@ -496,7 +516,8 @@ public static class Standard2DIKBuilder
         Standard2DRigIKSetup setup,
         Standard2DRigResolver.Result rig,
         IKManager2D manager,
-        Standard2DRigDefinition.CcdSpec spec)
+        Standard2DRigDefinition.CcdSpec spec,
+        Transform referenceBone)
     {
         Transform effectorParent =
             rig.Bones[spec.EffectorParent];
@@ -617,9 +638,13 @@ public static class Standard2DIKBuilder
         IKChain2D chain =
             solver.GetChain(0);
 
+        int transformCount = GetTransformCount(
+            effector,
+            referenceBone);
+
         chain.effector = effector;
         chain.target = target;
-        chain.transformCount = spec.TransformCount;
+        chain.transformCount = transformCount;
 
         solver.Initialize();
 
@@ -628,7 +653,7 @@ public static class Standard2DIKBuilder
 
         chain.effector = effector;
         chain.target = target;
-        chain.transformCount = spec.TransformCount;
+        chain.transformCount = transformCount;
 
         manager.AddSolver(
             solver);
@@ -650,8 +675,8 @@ public static class Standard2DIKBuilder
 
         if (verifyChain.effector != effector ||
             verifyChain.target != target ||
-            verifyChain.transformCount != spec.TransformCount ||
-            verifyChain.rootTransform != rig.Bones[spec.ChainRoot])
+            verifyChain.transformCount != transformCount ||
+            verifyChain.rootTransform != referenceBone)
         {
             Debug.LogError(
                 $"[{nameof(Standard2DIKBuilder)}] " +
@@ -659,6 +684,26 @@ public static class Standard2DIKBuilder
                 solver);
         }
 
+    }
+
+    private static int GetTransformCount(
+        Transform effector,
+        Transform referenceBone)
+    {
+        int count = 0;
+        Transform current = effector;
+
+        while (current != null)
+        {
+            count++;
+
+            if (current == referenceBone)
+                return count;
+
+            current = current.parent;
+        }
+
+        return 0;
     }
 
     /// <summary>

@@ -212,8 +212,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 271819647305281935}
+  - component: {fileID: 910000000000000103}
   m_Layer: 0
-  m_Name: RAP
+  m_Name: ResolvedAimPivot
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -235,6 +236,19 @@ Transform:
   - {fileID: 6319642726234129766}
   m_Father: {fileID: 3955188179563730424}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &910000000000000103
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1153843662903857480}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76d918fc509946a589cbab7bb478ef29, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::Standard2DAimAnchor
+  _weaponSocket: {fileID: 6319642726234129766}
 --- !u!1 &1505949614913348748
 GameObject:
   m_ObjectHideFlags: 0
@@ -875,7 +889,6 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children:
-  - {fileID: 5916303175571782622}
   - {fileID: 3239413066992619661}
   - {fileID: 4423033987074635643}
   - {fileID: 9012758368865034393}
@@ -1163,7 +1176,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9af1a34e77f35fd408c7e0ee967fc507, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAim
-  aimOrigin: {fileID: 5916303175571782622}
   resolvedAimPivot: {fileID: 271819647305281935}
   upperBodyAimRig: {fileID: 898377214091174478}
   ccdTargetRadius: 3
@@ -1828,37 +1840,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Standard2DGeneratedIKMarker
   _ownerRoot: {fileID: 3942395089324710726}
   _kind: 0
---- !u!1 &4763958198287447478
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 5916303175571782622}
-  m_Layer: 0
-  m_Name: AimOrigin
-  m_TagString: Untagged
-  m_Icon: {fileID: 1206586993520771344, guid: 0000000000000000d000000000000000, type: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &5916303175571782622
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4763958198287447478}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.055975504, y: 0.8168485, z: 0.002}
-  m_LocalScale: {x: 0.49999997, y: 0.49999997, z: 0.5}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1402181065297912930}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &4934109895869651009
 GameObject:
   m_ObjectHideFlags: 0
@@ -3185,6 +3166,24 @@ MonoBehaviour:
   _ccdIterations: 10
   _ccdTolerance: 0.01
   _ccdVelocity: 1
+--- !u!114 &910000000000000203
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2773701317187257125}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f18dbeaa1cb24c3883b72bc0bb172c8c, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::Standard2DCharacterSetup
+  _animator: {fileID: 9082692565250050847}
+  _rigIKSetup: {fileID: 7690230928918102751}
+  _bodyAimReferenceBone: {fileID: 3955188179563730424}
+  _aimAnchor: {fileID: 910000000000000103}
+  _spriteLibrary: {fileID: 0}
+  _spriteResolvers: []
 --- !u!95 &9082692565250050847
 Animator:
   serializedVersion: 7

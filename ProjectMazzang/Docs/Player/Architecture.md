@@ -113,14 +113,22 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
   컴포넌트는 이 도구의 존재나 보관 위치에 의존하지 않는다.
 - `Standard2DCharacterSetup`은 `Animator`가 있는 캐릭터 Root에서 IK와 Sprite Visual Driver 제작
   단계를 순서대로 실행하는 편집기 진입점이다. 같은 Root의 `Animator`와 `Standard2DRigIKSetup`
-  참조, 하위 `SpriteLibrary`와 `SpriteResolver` 목록 및 전체 유효성만 관리하며, 각 관리 컴포넌트와
-  Builder는 서로를 참조하지 않는다. SLA가 아직 없어도 모든 `SpriteRenderer`에 Resolver와 Driver를
+  참조, 선택한 상체 조준 기준 본, 하위 `Standard2DAimAnchor`, `SpriteLibrary`, `SpriteResolver` 목록과
+  전체 유효성만 관리한다. `abdomen`, `chest`, `neck` 중 선택한 기준 본으로 Body Aim CCD Chain 길이를
+  계산하고, 그 직접 자식에 원점 자세의 `ResolvedAimPivot`, 그 아래에 로컬 Z -90°인 `WeaponSocket`을
+  생성한다. CharSetup만 독립 Builder를 조립하며 각 관리 컴포넌트와 Builder는 서로 또는 CharSetup을
+  참조하지 않는다. SLA가 아직 없어도 모든 `SpriteRenderer`에 Resolver와 Driver를
   먼저 구성할 수 있고, SLA 정보 동기화 실패는 생성 실패가 아닌 경고로 보고한다. Resolver의
   Category가 비어 있고 GameObject 이름과 SLA Category가 정확히 일치하면 Category와 초기 Label을
   자동 연결하며, 유사 이름은 추측하지 않는다.
 - `SpriteVisualKeyingWindow`는 적합한 캐릭터를 선택하고 Animation 창에 포커스가 오면 함께 열리며,
-  버튼을 눌렀을 때만 팔·다리·발 Limb Target 6개의 현재 위치와 회전을 클립 0프레임에 기록한다.
-- `PlayerAim`은 상체 CCD Solver만 명시적으로 참조하고 Target과 기준 본은 Solver 체인에서 얻는다.
+  버튼을 눌렀을 때만 팔·다리·발 Limb Target 6개의 현재 위치와 회전 또는 전체 Driver의 현재 모습과
+  순서를 선택한 현재 프레임에 기록한다. 강조된 구성 새로고침은 CharSetup Build 뒤 Driver 목록과
+  Animation 창 표시를 다시 동기화한다.
+- `PlayerAim`은 상체 CCD Solver와 RAP Transform 하나만 직렬화한다. 하위에서 중립적인
+  `Standard2DAimAnchor`를 찾으면 CharSetup을 참조하지 않고 표준 RAP으로 자동 동기화하며,
+  조준 원점은 별도 `AimOrigin`이 아니라 RAP의 현재 월드 위치를 사용한다. 기준 본은 RAP의 부모,
+  CCD Target은 Solver 체인에서 얻고 두 기준이 다르면 편집기 경고를 출력한다.
   `PlayerWeaponController`는 손 Solver와 표시용 `WeaponSocket`만 명시적으로 참조한다.
 - `PlayerAim`은 제한된 허리 각도와 최대 각도를 `PlayerTickState`에 공개한다. 무기는 이 스냅샷으로
   제한된 발사 방향을 계산하며 `PlayerAim`의 구체 타입을 직접 참조하지 않는다.
@@ -131,13 +139,13 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
   계속 평가한다. AvatarMask 에셋을 런타임에 교체하지 않는다.
 - 현재 Controller 상태들의 Write Defaults는 On/Off가 혼재한다. 따라서 커브가 없는 속성이 항상
   기준 포즈로 복구된다고 가정하지 않으며, 클립 전환과 IK Target 잔류 여부를 별도로 검증한다.
-- Mary와 TestChar의 `WeaponSocket`은 프리팹에서 `ResolvedAimPivot`의 직접 자식으로 두고,
+- Mary, Master, Aron의 `WeaponSocket`은 프리팹에서 `ResolvedAimPivot`의 직접 자식으로 두고,
   로컬 위치 `(0, 0, 0)`, 로컬 회전 `-90°`, 로컬 크기 `(1, 1, 1)`를 유지한다.
   런타임 코드는 이 계층을 재배치하거나 보정하지 않는다.
-- 실제 `AimOrigin` 트랜스폼은 `PlayerAim`만 소유한다. 같은 Tick의 `PlayerCombat`과
-  `PlayerWeaponController`는 `PlayerTickState`에 복사된 위치를 근접 판정·드롭과 총기 Muzzle의
-  fallback 기준으로 재사용하며, 애니메이션을 따라 움직이는 `WeaponSocket` 자체는 게임플레이
-  원점으로 사용하지 않는다.
+- `PlayerAim`은 RAP 위치를 같은 Tick의 `PlayerTickState.AimOriginPosition`에 복사한다. `PlayerCombat`과
+  `PlayerWeaponController`는 이 값을 근접 판정·드롭과 총기 Muzzle fallback 기준으로 재사용한다.
+  따라서 기준 척추 본의 위치 애니메이션은 조준 원점에도 반영되며, 회전만으로는 로컬 원점인 RAP의
+  위치가 변하지 않는다.
 - 총기는 장착 외형의 `HeldWeaponView.Muzzle`이 있으면 StateAuthority의 투사체 생성 위치와
   로컬 Trail 시작점에 같은 월드 좌표를 사용한다. 장착 외형이 없는 환경에서만 같은 Tick의
   `AimOrigin`과 원본 Muzzle 로컬 오프셋으로 복구한다.

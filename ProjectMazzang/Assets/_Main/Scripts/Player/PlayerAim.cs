@@ -11,13 +11,8 @@ public sealed class PlayerAim :
 {
     [Header("Aim")]
     [Tooltip(
-        "정확한 조준 방향의 기준점입니다. " +
-        "Rig/Bone 계층 밖의 상체 위치에 둡니다.")]
-    [SerializeField]
-    private Transform aimOrigin;
-
-    [Tooltip(
-        "기준 척추 본의 로컬 원점에서 최종 상체 자세를 따라가는 피벗입니다.")]
+        "조준 원점과 최종 상체 자세의 공통 기준인 RAP입니다. " +
+        "Standard 2D Aim Anchor가 있으면 자동으로 연결됩니다.")]
     [SerializeField]
     private Transform resolvedAimPivot;
 
@@ -163,8 +158,8 @@ public sealed class PlayerAim :
             PlayerAimRigMode.Procedural;
 
     public Vector2 AimOriginPosition =>
-        aimOrigin != null
-            ? (Vector2)aimOrigin.position
+        resolvedAimPivot != null
+            ? (Vector2)resolvedAimPivot.position
             : transform.position;
 
 
@@ -193,9 +188,9 @@ public sealed class PlayerAim :
         PlayerTickState state)
     {
         state.HasAim = true;
-        state.HasAimOrigin = aimOrigin != null;
+        state.HasAimOrigin = resolvedAimPivot != null;
         state.AimOriginPosition =
-            aimOrigin != null
+            resolvedAimPivot != null
                 ? AimOriginPosition
                 : Vector2.zero;
         state.AimDirection = AimDirection;
@@ -256,13 +251,19 @@ public sealed class PlayerAim :
                 input.AimWorldPosition,
                 facingRight);
 
+        Vector2 inputFacingDirection =
+            ResolveFacingDirectionTo(
+                input.AimWorldPosition,
+                facingRight);
+
         UpdateAimDirection(
             inputAimDirection);
 
         UpdateFacing(
             tick.Commands,
             isWallSliding,
-            facingRight);
+            facingRight,
+            inputFacingDirection);
 
         UpdateBodyAim(facingRight);
     }
@@ -426,7 +427,7 @@ public sealed class PlayerAim :
         Vector2 worldTargetPosition,
         bool facingRight)
     {
-        if (aimOrigin == null)
+        if (resolvedAimPivot == null)
         {
             return ResolveSourceDirection(
                 Vector2.zero,
@@ -435,7 +436,7 @@ public sealed class PlayerAim :
 
         Vector2 direction =
             worldTargetPosition -
-            (Vector2)aimOrigin.position;
+            AimOriginPosition;
 
         Vector2 normalized =
             NormalizeDirection(
@@ -470,6 +471,33 @@ public sealed class PlayerAim :
         normalized =
             NormalizeDirection(
                 AimDirection);
+
+        if (normalized.sqrMagnitude >
+            0.0001f)
+        {
+            return normalized;
+        }
+
+        return facingRight
+            ? Vector2.right
+            : Vector2.left;
+    }
+
+    /// <summary>
+    /// 좌우 반전 판정은 자세에 따라 좌우로 이동하는 RAP이 아니라
+    /// 플레이어 루트를 기준으로 계산해 반전 피드백 루프를 방지합니다.
+    /// </summary>
+    private Vector2 ResolveFacingDirectionTo(
+        Vector2 worldTargetPosition,
+        bool facingRight)
+    {
+        Vector2 direction =
+            worldTargetPosition -
+            (Vector2)transform.position;
+
+        Vector2 normalized =
+            NormalizeDirection(
+                direction);
 
         if (normalized.sqrMagnitude >
             0.0001f)
@@ -525,7 +553,8 @@ public sealed class PlayerAim :
     private void UpdateFacing(
         PlayerTickCommands commands,
         bool isWallSliding,
-        bool facingRight)
+        bool facingRight,
+        Vector2 facingDirection)
     {        
         if (isWallSliding)
             return;
@@ -542,7 +571,7 @@ public sealed class PlayerAim :
 
         TryUpdateFacingFromDirection(
             commands,
-            AimDirection,
+            facingDirection,
             isWallSliding,
             facingRight);
     }
@@ -713,7 +742,7 @@ public sealed class PlayerAim :
             return;
         }
 
-        if (aimOrigin == null ||
+        if (resolvedAimPivot == null ||
             ccdTarget == null)
         {
             return;
@@ -919,6 +948,16 @@ public sealed class PlayerAim :
         ccdTarget = null;
         resolvedAimReferenceBone = null;
 
+        Standard2DAimAnchor standardAnchor =
+            GetComponentInChildren<Standard2DAimAnchor>(
+                true);
+
+        if (standardAnchor != null)
+        {
+            resolvedAimPivot =
+                standardAnchor.ResolvedAimPivot;
+        }
+
         if (upperBodyAimRig == null)
             return;
 
@@ -929,7 +968,9 @@ public sealed class PlayerAim :
             chain?.target;
 
         resolvedAimReferenceBone =
-            chain?.rootTransform;
+            resolvedAimPivot != null
+                ? resolvedAimPivot.parent
+                : chain?.rootTransform;
     }
 
 
@@ -949,7 +990,7 @@ public sealed class PlayerAim :
                 signedRigOffset);
 
         ccdTarget.position =
-            aimOrigin.position +
+            (Vector3)AimOriginPosition +
             (Vector3)(
                 rigDirection *
                 ccdTargetRadius);
@@ -996,14 +1037,25 @@ public sealed class PlayerAim :
     {
         ResolveAimRigReferences();
 
-        if (resolvedAimReferenceBone != null &&
-            resolvedAimPivot != null &&
-            resolvedAimPivot.parent !=
-                resolvedAimReferenceBone)
+        IKChain2D chain = upperBodyAimRig != null
+            ? upperBodyAimRig.GetChain(0)
+            : null;
+
+        if (resolvedAimPivot != null &&
+            resolvedAimPivot.parent == null)
         {
             Debug.LogWarning(
-                "ResolvedAimPivot은 지정한 기준 척추 본의 " +
-                "직접 자식이어야 합니다.",
+                "ResolvedAimPivot에는 기준 척추 본 부모가 필요합니다.",
+                this);
+        }
+
+        if (chain?.rootTransform != null &&
+            resolvedAimReferenceBone != null &&
+            chain.rootTransform != resolvedAimReferenceBone)
+        {
+            Debug.LogWarning(
+                "상체 CCD Chain Root와 ResolvedAimPivot의 부모가 다릅니다. " +
+                "Character Setup을 다시 Build해주세요.",
                 this);
         }
     }
@@ -1011,11 +1063,11 @@ public sealed class PlayerAim :
 
     private void OnDrawGizmosSelected()
     {
-        if (aimOrigin == null)
+        if (resolvedAimPivot == null)
             return;
 
         Vector3 origin =
-            aimOrigin.position;
+            resolvedAimPivot.position;
 
         if (Application.isPlaying &&
             Object != null &&

@@ -41,10 +41,19 @@ public static class Standard2DCharacterBuilder
         RefreshReferences(setup);
 
         if (!Standard2DIKBuilder.BuildOrRebuild(
-                setup.RigIKSetup))
+                setup.RigIKSetup,
+                setup.BodyAimReferenceBone))
         {
             return false;
         }
+
+        if (!Standard2DReferenceBuilder.BuildOrRefresh(
+                setup.CharacterRoot,
+                setup.RigIKSetup.RigSearchRoot,
+                setup.BodyAimReferenceBone))
+            return false;
+
+        RefreshReferences(setup);
 
         Standard2DResolverBuilder.Result resolverResult =
             Standard2DResolverBuilder.BuildOrRefresh(
@@ -89,6 +98,9 @@ public static class Standard2DCharacterBuilder
             $"[{nameof(Standard2DCharacterSetup)} v{Standard2DCharacterSetup.ToolVersion}] " +
             $"'{setup.name}' 표준 캐릭터 구성 완료\n" +
             "IK 생성/갱신 완료\n" +
+            $"Aim 기준: {setup.BodyAimReferenceBone.name} → " +
+            $"{setup.AimAnchor.ResolvedAimPivot.name} → " +
+            $"{setup.AimAnchor.WeaponSocket.name}\n" +
             $"SpriteResolver: 추가 {resolverResult.AddedCount}, " +
             $"기존 {resolverResult.ExistingCount}, " +
             $"Category 자동 연결 {resolverResult.CategoryConfiguredCount}, " +
@@ -139,6 +151,17 @@ public static class Standard2DCharacterBuilder
                 "표준 Skeleton / IK 입력 규격이 올바르지 않습니다.");
         }
 
+        if (setup.RigIKSetup == null ||
+            !Standard2DReferenceBuilder.Validate(
+                setup.CharacterRoot,
+                setup.RigIKSetup.RigSearchRoot,
+                setup.BodyAimReferenceBone,
+                false))
+        {
+            errors.Add(
+                "상체 기준 본 / RAP / WeaponSocket 구성이 올바르지 않습니다.");
+        }
+
         if (!Standard2DVisualDriverBuilder.Validate(
                 setup.CharacterRoot,
                 setup.SpriteResolvers,
@@ -166,7 +189,7 @@ public static class Standard2DCharacterBuilder
         Debug.Log(
             $"[{nameof(Standard2DCharacterSetup)} v{Standard2DCharacterSetup.ToolVersion}] " +
             $"'{setup.name}' 구성 Valid\n" +
-            $"Animator / IKSetup 연결 정상\n" +
+            $"Animator / IKSetup / Aim Anchor 연결 정상\n" +
             $"Visual Driver {resolverCount}개 정상",
             setup);
 

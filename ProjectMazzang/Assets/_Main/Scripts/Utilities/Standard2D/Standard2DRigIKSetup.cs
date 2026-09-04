@@ -12,7 +12,7 @@ using UnityEngine.U2D.IK;
 [RequireComponent(typeof(IKManager2D))]
 public sealed class Standard2DRigIKSetup : MonoBehaviour
 {
-    public const string ToolVersion = "6.0-BodyAim-CCD";
+    public const string ToolVersion = "6.1-BodyAim-Root";
 
     [Header("Rig Search")]
     [Tooltip(
@@ -66,7 +66,7 @@ public sealed class Standard2DRigIKSetup : MonoBehaviour
     [Header("Body Aim CCD Solver")]
     [Tooltip(
         "상체 조준 CCD의 반복 횟수입니다.\n" +
-        "체인 길이는 head Effector 기준 4로 고정됩니다.")]
+        "체인 길이는 CharSetup에서 선택한 기준 본까지 자동 계산됩니다.")]
     [Range(1, 50)]
     [SerializeField]
     private int _ccdIterations = 10;

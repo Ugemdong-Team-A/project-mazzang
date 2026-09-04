@@ -969,7 +969,7 @@ GameObject:
   - component: {fileID: -5442214398763671545}
   - component: {fileID: 700000000000000001}
   m_Layer: 7
-  m_Name: PC_TestChar
+  m_Name: PC_MasterCharacter
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -988,7 +988,6 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children:
-  - {fileID: 5916303175571782622}
   - {fileID: 3239413066992619661}
   - {fileID: 4423033987074635643}
   - {fileID: 9012758368865034393}
@@ -1275,7 +1274,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9af1a34e77f35fd408c7e0ee967fc507, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAim
-  aimOrigin: {fileID: 5916303175571782622}
   resolvedAimPivot: {fileID: 5832819814922250294}
   upperBodyAimRig: {fileID: 1031680382880314377}
   ccdTargetRadius: 3
@@ -1688,37 +1686,6 @@ Transform:
   - {fileID: 534010410655661832}
   - {fileID: 2338953937856615650}
   - {fileID: 636932328046927157}
-  m_Father: {fileID: 1402181065297912930}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &4763958198287447478
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 5916303175571782622}
-  m_Layer: 0
-  m_Name: AimOrigin
-  m_TagString: Untagged
-  m_Icon: {fileID: 1206586993520771344, guid: 0000000000000000d000000000000000, type: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &5916303175571782622
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4763958198287447478}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: 0.74917525, w: 0.6623719}
-  m_LocalPosition: {x: -0.0810245, y: 0.6738485, z: 0.002}
-  m_LocalScale: {x: 0.4999999, y: 0.4999999, z: 0.5}
-  m_ConstrainProportionsScale: 1
-  m_Children: []
   m_Father: {fileID: 1402181065297912930}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &4857947391477114205
@@ -2166,8 +2133,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5832819814922250294}
+  - component: {fileID: 910000000000000101}
   m_Layer: 0
-  m_Name: ResolveAimPivot
+  m_Name: ResolvedAimPivot
   m_TagString: Untagged
   m_Icon: {fileID: 1206586993520771344, guid: 0000000000000000d000000000000000, type: 0}
   m_NavMeshLayer: 0
@@ -2189,6 +2157,19 @@ Transform:
   - {fileID: 1384066503620454016}
   m_Father: {fileID: 5712794494562459526}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &910000000000000101
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6215454042645044224}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76d918fc509946a589cbab7bb478ef29, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::Standard2DAimAnchor
+  _weaponSocket: {fileID: 1384066503620454016}
 --- !u!1 &6242938474041374114
 GameObject:
   m_ObjectHideFlags: 0
@@ -3347,6 +3328,24 @@ MonoBehaviour:
   _ccdIterations: 10
   _ccdTolerance: 0.01
   _ccdVelocity: 1
+--- !u!114 &910000000000000201
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6906938825284602203}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f18dbeaa1cb24c3883b72bc0bb172c8c, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::Standard2DCharacterSetup
+  _animator: {fileID: 5591450170752557973}
+  _rigIKSetup: {fileID: 8366341547176452713}
+  _bodyAimReferenceBone: {fileID: 5712794494562459526}
+  _aimAnchor: {fileID: 910000000000000101}
+  _spriteLibrary: {fileID: 0}
+  _spriteResolvers: []
 --- !u!4 &7311802267396962290 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -4808416172314157292, guid: beb26fa88a710e044800de3c4c59a0fd, type: 3}
