@@ -104,7 +104,12 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
             return;
 
         EditorGUILayout.Space(8);
-        DrawInitialIKKeys(
+        DrawIKKeys(
+            animationWindow,
+            clip);
+
+        EditorGUILayout.Space(8);
+        DrawAllPartKeying(
             animationWindow,
             clip);
 
@@ -153,7 +158,7 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
         GUI.backgroundColor = previousColor;
     }
 
-    private void DrawInitialIKKeys(
+    private void DrawIKKeys(
         AnimationWindow animationWindow,
         AnimationClip clip)
     {
@@ -164,7 +169,7 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
         using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
         {
             EditorGUILayout.LabelField(
-                "IK 시작 포즈",
+                "IK 포즈 저장",
                 EditorStyles.boldLabel);
 
             EditorGUILayout.LabelField(
@@ -179,33 +184,69 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
                     MessageType.Warning);
             }
 
-            if (animationWindow.frame != 0)
-            {
-                EditorGUILayout.HelpBox(
-                    "현재 포즈를 정확히 저장하려면 먼저 0프레임으로 이동하세요.",
-                    MessageType.Info);
-
-                if (GUILayout.Button("0프레임으로 이동"))
-                {
-                    animationWindow.frame = 0;
-                    animationWindow.Repaint();
-                }
-
-                return;
-            }
-
             using (new EditorGUI.DisabledScope(
                        targets.Count !=
                        Standard2DRigDefinition.LimbSpecs.Count))
             {
                 if (GUILayout.Button(
-                        "현재 IK 포즈를 첫 키로 저장",
+                        "현재 프레임에 IK 포즈 저장",
                         GUILayout.Height(30)))
                 {
-                    SaveInitialIKKeys(
+                    SaveIKKeys(
                         animationWindow,
                         clip,
                         targets);
+                }
+            }
+        }
+    }
+
+    private void DrawAllPartKeying(
+        AnimationWindow animationWindow,
+        AnimationClip clip)
+    {
+        using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+        {
+            EditorGUILayout.LabelField(
+                "현재 스프라이트 상태 저장",
+                EditorStyles.boldLabel);
+
+            EditorGUILayout.LabelField(
+                "모든 부위",
+                $"{_parts.Length}개");
+
+            using (new EditorGUI.DisabledScope(_parts.Length == 0))
+            {
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    if (GUILayout.Button("현재 모습 저장"))
+                    {
+                        SaveAllPartKeys(
+                            animationWindow,
+                            clip,
+                            true,
+                            false);
+                    }
+
+                    if (GUILayout.Button("현재 순서 저장"))
+                    {
+                        SaveAllPartKeys(
+                            animationWindow,
+                            clip,
+                            false,
+                            true);
+                    }
+                }
+
+                if (GUILayout.Button(
+                        "현재 모습 + 순서 저장",
+                        GUILayout.Height(26)))
+                {
+                    SaveAllPartKeys(
+                        animationWindow,
+                        clip,
+                        true,
+                        true);
                 }
             }
         }
@@ -753,8 +794,19 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
         Type componentType,
         string propertyName)
     {
+        return CreateBinding(
+            _target,
+            componentType,
+            propertyName);
+    }
+
+    private EditorCurveBinding CreateBinding(
+        SpriteVisualAnimationDriver driver,
+        Type componentType,
+        string propertyName)
+    {
         string path = AnimationUtility.CalculateTransformPath(
-            _target.transform,
+            driver.transform,
             _animationRoot.transform);
 
         return EditorCurveBinding.FloatCurve(
@@ -787,13 +839,31 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
         int value,
         string undoName)
     {
+        float time = animationWindow.time;
+
+        Undo.RegisterCompleteObjectUndo(clip, undoName);
+
+        SetConstantKey(
+            clip,
+            binding,
+            value,
+            time);
+
+        EditorUtility.SetDirty(clip);
+        animationWindow.Repaint();
+        SceneView.RepaintAll();
+    }
+
+    private static void SetConstantKey(
+        AnimationClip clip,
+        EditorCurveBinding binding,
+        int value,
+        float time)
+    {
         AnimationCurve curve = AnimationUtility.GetEditorCurve(
                                   clip,
                                   binding) ??
                               new AnimationCurve();
-        float time = animationWindow.time;
-
-        Undo.RegisterCompleteObjectUndo(clip, undoName);
 
         int keyIndex;
         int existingIndex = FindKeyAtTime(curve, time);
@@ -819,10 +889,102 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
             keyIndex,
             AnimationUtility.TangentMode.Constant);
         AnimationUtility.SetEditorCurve(clip, binding, curve);
+    }
+
+    private void SaveAllPartKeys(
+        AnimationWindow animationWindow,
+        AnimationClip clip,
+        bool saveLabels,
+        bool saveOrders)
+    {
+        SpriteVisualAnimationDriver[] validParts = _parts
+            .Where(
+                driver => driver != null &&
+                          driver.Renderer != null &&
+                          driver.Resolver != null)
+            .ToArray();
+
+        int labelKeyCount = saveLabels
+            ? validParts.Count(driver => driver.Labels.Count > 0)
+            : 0;
+        int orderKeyCount = saveOrders
+            ? validParts.Length
+            : 0;
+
+        if (labelKeyCount == 0 && orderKeyCount == 0)
+        {
+            Debug.LogWarning(
+                $"[{nameof(SpriteVisualKeyingWindow)}] " +
+                "저장할 스프라이트 상태가 없습니다.",
+                clip);
+            return;
+        }
+
+        string undoName = saveLabels && saveOrders
+            ? "Save Current Sprite Visual Keys"
+            : saveLabels
+                ? "Save Current Sprite Label Keys"
+                : "Save Current Sprite Order Keys";
+
+        Undo.RegisterCompleteObjectUndo(
+            clip,
+            undoName);
+
+        float time = animationWindow.time;
+
+        foreach (SpriteVisualAnimationDriver driver in validParts)
+        {
+            if (saveLabels && driver.Labels.Count > 0)
+            {
+                SetConstantKey(
+                    clip,
+                    CreateBinding(
+                        driver,
+                        typeof(SpriteVisualAnimationDriver),
+                        LabelIndexProperty),
+                    GetCurrentLabelIndex(driver),
+                    time);
+            }
+
+            if (saveOrders)
+            {
+                SetConstantKey(
+                    clip,
+                    CreateBinding(
+                        driver,
+                        typeof(SpriteVisualAnimationDriver),
+                        SortingOrderProperty),
+                    driver.Renderer.sortingOrder,
+                    time);
+            }
+        }
 
         EditorUtility.SetDirty(clip);
         animationWindow.Repaint();
         SceneView.RepaintAll();
+
+        Debug.Log(
+            $"[{nameof(SpriteVisualKeyingWindow)}] " +
+            $"'{clip.name}' {animationWindow.frame}프레임에 " +
+            $"모습 {labelKeyCount}개, 순서 {orderKeyCount}개 키를 저장했습니다.",
+            clip);
+    }
+
+    private static int GetCurrentLabelIndex(
+        SpriteVisualAnimationDriver driver)
+    {
+        string[] labels = driver.Labels.ToArray();
+        string currentLabel = driver.Resolver.GetLabel();
+        int currentIndex = Array.IndexOf(
+            labels,
+            currentLabel);
+
+        return currentIndex >= 0
+            ? currentIndex
+            : Mathf.Clamp(
+                driver.LabelIndex,
+                0,
+                labels.Length - 1);
     }
 
     private void RefreshFromSelection()
@@ -1105,16 +1267,16 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
         return targets;
     }
 
-    private void SaveInitialIKKeys(
+    private void SaveIKKeys(
         AnimationWindow animationWindow,
         AnimationClip clip,
         IReadOnlyList<Transform> targets)
     {
-        const float firstFrameTime = 0f;
+        float time = animationWindow.time;
 
         Undo.RegisterCompleteObjectUndo(
             clip,
-            "Save Initial Limb IK Keys");
+            "Save Current Limb IK Keys");
 
         foreach (Transform target in targets)
         {
@@ -1134,44 +1296,44 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
                 path,
                 "m_LocalPosition.x",
                 position.x,
-                firstFrameTime);
+                time);
             SetTransformKey(
                 clip,
                 path,
                 "m_LocalPosition.y",
                 position.y,
-                firstFrameTime);
+                time);
             SetTransformKey(
                 clip,
                 path,
                 "m_LocalPosition.z",
                 position.z,
-                firstFrameTime);
+                time);
 
             SetTransformKey(
                 clip,
                 path,
                 "m_LocalRotation.x",
                 rotation.x,
-                firstFrameTime);
+                time);
             SetTransformKey(
                 clip,
                 path,
                 "m_LocalRotation.y",
                 rotation.y,
-                firstFrameTime);
+                time);
             SetTransformKey(
                 clip,
                 path,
                 "m_LocalRotation.z",
                 rotation.z,
-                firstFrameTime);
+                time);
             SetTransformKey(
                 clip,
                 path,
                 "m_LocalRotation.w",
                 rotation.w,
-                firstFrameTime);
+                time);
         }
 
         clip.EnsureQuaternionContinuity();
@@ -1181,7 +1343,7 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
 
         Debug.Log(
             $"[{nameof(SpriteVisualKeyingWindow)}] " +
-            $"'{clip.name}' 0프레임에 Limb IK Target {targets.Count}개의 " +
+            $"'{clip.name}' {animationWindow.frame}프레임에 Limb IK Target {targets.Count}개의 " +
             "Position/Rotation 키를 저장했습니다.",
             clip);
     }
