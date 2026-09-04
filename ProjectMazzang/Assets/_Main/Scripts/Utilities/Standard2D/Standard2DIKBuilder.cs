@@ -114,6 +114,22 @@ public static class Standard2DIKBuilder
             manager,
             Standard2DRigDefinition.BodyAimCcd);
 
+        if (!SynchronizeManagerSolvers(
+                setup,
+                manager))
+        {
+            Debug.LogError(
+                $"[{nameof(Standard2DIKBuilder)}] " +
+                "IKManager2D Solver 목록을 완성하지 못했습니다. " +
+                "생성된 Solver 계층과 이름을 확인해주세요.",
+                manager);
+
+            Undo.CollapseUndoOperations(
+                undoGroup);
+
+            return false;
+        }
+
         EditorUtility.SetDirty(manager);
         EditorUtility.SetDirty(setup);
 
@@ -143,6 +159,61 @@ public static class Standard2DIKBuilder
             setup);
 
         return true;
+    }
+
+    private static bool SynchronizeManagerSolvers(
+        Standard2DRigIKSetup setup,
+        IKManager2D manager)
+    {
+        List<Solver2D> expectedSolvers = new();
+
+        foreach (Standard2DRigDefinition.LimbSpec spec
+                 in Standard2DRigDefinition.LimbSpecs)
+        {
+            Transform solverTransform =
+                setup.SetupRoot.Find(spec.SolverName);
+            LimbSolver2D solver = solverTransform != null
+                ? solverTransform.GetComponent<LimbSolver2D>()
+                : null;
+
+            if (solver == null)
+                return false;
+
+            expectedSolvers.Add(solver);
+        }
+
+        Standard2DRigDefinition.CcdSpec ccdSpec =
+            Standard2DRigDefinition.BodyAimCcd;
+        Transform ccdTransform =
+            setup.SetupRoot.Find(ccdSpec.SolverName);
+        CCDSolver2D ccdSolver = ccdTransform != null
+            ? ccdTransform.GetComponent<CCDSolver2D>()
+            : null;
+
+        if (ccdSolver == null)
+            return false;
+
+        expectedSolvers.Add(ccdSolver);
+
+        Undo.RecordObject(
+            manager,
+            "Synchronize IK Manager Solvers");
+
+        manager.solvers.Clear();
+
+        foreach (Solver2D solver in expectedSolvers)
+            manager.AddSolver(solver);
+
+        bool isValid =
+            manager.solvers.Count == expectedSolvers.Count &&
+            manager.solvers.All(solver => solver != null) &&
+            expectedSolvers.All(manager.solvers.Contains);
+
+        EditorUtility.SetDirty(manager);
+        PrefabUtility.RecordPrefabInstancePropertyModifications(
+            manager);
+
+        return isValid;
     }
 
     public static void RemoveGenerated(
@@ -752,13 +823,14 @@ public static class Standard2DIKBuilder
         HashSet<string> solverNames =
             Standard2DRigDefinition.LimbSpecs
                 .Select(
-                    spec => spec.SolverName)
+                    spec => NormalizeGeneratedName(spec.SolverName))
                 .ToHashSet();
 
         solverNames.Add(
-            Standard2DRigDefinition
-                .BodyAimCcd
-                .SolverName);
+            NormalizeGeneratedName(
+                Standard2DRigDefinition
+                    .BodyAimCcd
+                    .SolverName));
 
         Solver2D[] allSolvers =
             setup.GetComponentsInChildren<Solver2D>(
@@ -769,7 +841,8 @@ public static class Standard2DIKBuilder
         {
             if (solver == null ||
                 !solverNames.Contains(
-                    solver.gameObject.name))
+                    NormalizeGeneratedName(
+                        solver.gameObject.name)))
             {
                 continue;
             }
@@ -826,6 +899,18 @@ public static class Standard2DIKBuilder
                     ccdEffector.gameObject);
             }
         }
+    }
+
+    private static string NormalizeGeneratedName(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return string.Empty;
+
+        return new string(
+            value
+                .Where(char.IsLetterOrDigit)
+                .Select(char.ToLowerInvariant)
+                .ToArray());
     }
 
     private static void RemoveSolversFromAllManagers(
