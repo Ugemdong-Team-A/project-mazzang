@@ -195,6 +195,12 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
 ## 스킬 확장 규칙
 
 - `SkillData`는 조정 가능한 정적 설정을 보관한다.
+- `SkillData.Patterns`는 비활성이 기본인 공통 패턴 설정을 보관한다. 현재 실행은 아직 기존
+  스킬 필드와 인터페이스를 사용하며 Patterns는 실행에 적용되지 않는다.
+- 공통 패턴 Inspector는 활성 체크와 펼침 상태를 분리하며, 비활성 값은 보존하고 편집만 막는다.
+  `ValidatePatterns`는 활성 설정의 유한한 수치와 Charge/Meter 동시 활성 오류를 보고하고 값을
+  변경하지 않는다. Inspector가 같은 검증을 표시하며 현재 장착 경로에는 적용하지 않는다.
+  Duration의 Behavior 출처는 행동 시간 사용을 표현하는 설정이며 실제 행동 지원 검증은 아직 연결하지 않았다.
 - `SkillData.Animation`은 선택적인 `SkillAnimationData`를 참조한다. 이 데이터는 Cast,
   실제 효과가 발동하는 Release, 지속 효과 뒤의 Recovery 클립을 보관하므로 복사하거나
   교체한 스킬도 캐릭터 Animator Controller를 갈아 끼우지 않고 자신의 연출을 함께 가져간다.
