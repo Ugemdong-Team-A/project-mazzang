@@ -14,39 +14,155 @@ public sealed class SkillPatternOptionsDrawer : PropertyDrawer
         return height;
     }
 
-    public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
+    public override void OnGUI(
+    Rect position,
+    SerializedProperty property,
+    GUIContent label)
     {
         EditorGUI.BeginProperty(position, label, property);
-        var header = new Rect(position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
+
         var enabled = property.FindPropertyRelative("enabled");
-        var toggle = new Rect(header.xMax - 20f, header.y, 20f, header.height);
-        header.width -= 24f;
-        property.isExpanded = EditorGUI.Foldout(header, property.isExpanded, label, true);
-        EditorGUI.PropertyField(toggle, enabled, GUIContent.none);
+
+        const float HeaderHeight = 18f;
+        const float FoldoutWidth = 16f;
+        const float ToggleWidth = 16f;
+        const float Gap = 1f;
+
+        var header = new Rect(
+            position.x,
+            position.y,
+            position.width,
+            HeaderHeight);
+
+        // ---------------------------------------------------------
+        // Volume 느낌의 Header Background
+        // ---------------------------------------------------------
+
+        Color headerColor = EditorGUIUtility.isProSkin
+            ? new Color(0.19f, 0.19f, 0.19f)
+            : new Color(0.76f, 0.76f, 0.76f);
+
+        Color borderColor = EditorGUIUtility.isProSkin
+            ? new Color(0.12f, 0.12f, 0.12f)
+            : new Color(0.58f, 0.58f, 0.58f);
+
+        EditorGUI.DrawRect(header, headerColor);
+
+        // 위/아래 1px 경계선
+        EditorGUI.DrawRect(
+            new Rect(header.x, header.y, header.width, 1f),
+            borderColor);
+
+        EditorGUI.DrawRect(
+            new Rect(header.x, header.yMax - 1f, header.width, 1f),
+            borderColor);
+
+        // ---------------------------------------------------------
+        // Foldout / Toggle / Label
+        // ---------------------------------------------------------
+
+        var foldoutRect = new Rect(
+            header.x + 2f,
+            header.y,
+            FoldoutWidth,
+            header.height);
+
+        var toggleRect = new Rect(
+            foldoutRect.xMax,
+            header.y + 1f,
+            ToggleWidth,
+            header.height - 2f);
+
+        var labelRect = new Rect(
+            toggleRect.xMax + Gap,
+            header.y,
+            header.xMax - toggleRect.xMax - Gap - 2f,
+            header.height);
+
+        // 화살표
+        property.isExpanded = EditorGUI.Foldout(
+            foldoutRect,
+            property.isExpanded,
+            GUIContent.none,
+            false);
+
+        // 활성화 체크
+        EditorGUI.PropertyField(
+            toggleRect,
+            enabled,
+            GUIContent.none);
+
+        // 이름
+        EditorGUI.LabelField(
+            labelRect,
+            label,
+            EditorStyles.label);
+
+        // 이름 클릭 → 열고 닫기
+        Event evt = Event.current;
+
+        if (evt.type == EventType.MouseDown &&
+            evt.button == 0 &&
+            labelRect.Contains(evt.mousePosition))
+        {
+            property.isExpanded = !property.isExpanded;
+            evt.Use();
+        }
+
+        // ---------------------------------------------------------
+        // Children
+        // ---------------------------------------------------------
 
         if (property.isExpanded)
         {
-            float y = position.y + header.height + EditorGUIUtility.standardVerticalSpacing;
+            float y =
+                header.yMax +
+                EditorGUIUtility.standardVerticalSpacing;
+
             EditorGUI.indentLevel++;
-            using (new EditorGUI.DisabledScope(!enabled.boolValue || enabled.hasMultipleDifferentValues))
+
+            using (new EditorGUI.DisabledScope(
+                       !enabled.boolValue ||
+                       enabled.hasMultipleDifferentValues))
             {
                 foreach (SerializedProperty child in Children(property))
                 {
-                    float height = EditorGUI.GetPropertyHeight(child, true);
-                    var source = property.FindPropertyRelative("source");
-                    bool fromBehavior = child.name == "seconds" && source != null &&
+                    float height =
+                        EditorGUI.GetPropertyHeight(child, true);
+
+                    var source =
+                        property.FindPropertyRelative("source");
+
+                    bool fromBehavior =
+                        child.name == "seconds" &&
+                        source != null &&
                         !source.hasMultipleDifferentValues &&
-                        source.enumValueIndex == (int)SkillDurationSource.Behavior;
+                        source.enumValueIndex ==
+                        (int)SkillDurationSource.Behavior;
+
                     using (new EditorGUI.DisabledScope(fromBehavior))
-                        EditorGUI.PropertyField(new Rect(position.x, y, position.width, height), child, true);
-                    y += height + EditorGUIUtility.standardVerticalSpacing;
+                    {
+                        EditorGUI.PropertyField(
+                            new Rect(
+                                position.x,
+                                y,
+                                position.width,
+                                height),
+                            child,
+                            true);
+                    }
+
+                    y +=
+                        height +
+                        EditorGUIUtility.standardVerticalSpacing;
                 }
             }
+
             EditorGUI.indentLevel--;
         }
+
         EditorGUI.EndProperty();
     }
-
     private static System.Collections.Generic.IEnumerable<SerializedProperty> Children(SerializedProperty property)
     {
         var child = property.Copy();
@@ -66,7 +182,7 @@ public sealed class SkillPatternSettingsEditor : Editor
     public override void OnInspectorGUI()
     {
         EditorGUILayout.HelpBox(
-            "공통 Patterns는 전환 준비용 설정입니다. 현재 실행은 기존 스킬 필드와 인터페이스를 사용합니다.",
+            "Use Common Patterns를 켜면 공통 설정으로 실행합니다. 기존 패턴 값을 먼저 옮기세요. 대시는 Duration을 켜고 Source를 Behavior로 설정하세요.",
             MessageType.Info);
         DrawDefaultInspector();
         foreach (Object item in targets)

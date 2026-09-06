@@ -41,7 +41,7 @@ public readonly struct PlayerStatModifiers
     }
 }
 
-public interface IPlayerStatModifierSkill
+/*public interface IPlayerStatModifierSkill
 {
     PlayerStatModifiers StatModifiers { get; }
-}
+}*/

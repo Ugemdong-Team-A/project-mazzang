@@ -127,11 +127,11 @@ public sealed class SkillSlotUI :
 
     private SkillData _skillData;
 
-    private IChargeSkill _chargeSkill;
+    private SkillPatternView _chargeSkill;
 
-    private IMeterSkill _meterSkill;
+    private SkillPatternView _meterSkill;
 
-    private IDurationSkill _durationSkill;
+    private SkillPatternView _durationSkill;
 
     private int _builtMaxCharges;
 
@@ -273,13 +273,13 @@ public sealed class SkillSlotUI :
                 _slot);
 
         _chargeSkill =
-            _skill as IChargeSkill;
+            _skill?.Patterns.Charge;
 
         _meterSkill =
-            _skill as IMeterSkill;
+            _skill?.Patterns.Meter;
 
         _durationSkill =
-            _skill as IDurationSkill;
+            _skill?.Patterns.DurationPattern;
 
         ResetMeterFeedback();
 

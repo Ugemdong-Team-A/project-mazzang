@@ -2,9 +2,9 @@ using Fusion;
 using UnityEngine;
 
 public sealed class FireballSkill :
-    ProjectileSkill,
+    ProjectileSkill/*,
     IRecoverySkill,
-    IActionLockSkill
+    IActionLockSkill*/
 {
     public float RecoveryDuration => ProjectileData.RecoveryDuration;
 

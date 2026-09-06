@@ -2,8 +2,8 @@ using Fusion;
 using UnityEngine;
 
 public class ProjectileSkill : 
-    Skill,
-    ICastTimeSkill
+    Skill/*,
+    ICastTimeSkill*/
 {
     protected Vector2 _aimDirection = Vector2.right;
     protected Vector2 _aimWorldPosition;

@@ -6,6 +6,10 @@ public enum SkillSlot : byte
 
 public abstract class Skill
 {
+    private SkillPatternView patterns;
+    public SkillPatternView Patterns => patterns ??= new SkillPatternView(this);
+    public virtual float BehaviorDuration => 0f;
+
     public SkillData Data
     {
         get;

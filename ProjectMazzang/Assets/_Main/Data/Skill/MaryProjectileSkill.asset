@@ -15,6 +15,42 @@ MonoBehaviour:
   cooldown: 0.1
   icon: {fileID: 21300000, guid: 1843257668d54f34e8bed29302eb7aa8, type: 3}
   animation: {fileID: 11400000, guid: 0c8970b16e3d40ed92256cced84ad8fc, type: 2}
+  patterns:
+    charge:
+      enabled: 1
+      maxCharges: 3
+      rechargeDuration: 2
+    meter:
+      enabled: 0
+      maxMeter: 100
+      cost: 100
+      passiveGainPerSecond: 2
+      damageGainPerDamage: 1
+    cast:
+      enabled: 1
+      seconds: 0.5
+    duration:
+      enabled: 0
+      source: 0
+      seconds: 1
+    recovery:
+      enabled: 0
+      seconds: 0
+    actionLock:
+      enabled: 0
+      duringCast: 1
+      duringActive: 1
+      duringRecovery: 1
+    statModifier:
+      enabled: 0
+      moveSpeed: 1
+      attackDamage: 1
+      maxHealth: 1
+      damageTaken: 1
+      visualScale: 1
+    appearance:
+      enabled: 0
+      library: {fileID: 0}
   castDuration: 0.65
   recoveryDuration: 0.2
   projectilePrefab: {fileID: 4790230235909349697, guid: 255b63bfd9c43c44c95a14ee65bb2283, type: 3}

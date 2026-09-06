@@ -2,10 +2,10 @@ using Fusion;
 using UnityEngine;
 
 public sealed class DeployableSkill :
-    Skill,
+    Skill/*,
     ICastTimeSkill,
     IRecoverySkill,
-    IActionLockSkill
+    IActionLockSkill*/
 {
     private bool _waitingToDeploy;
 

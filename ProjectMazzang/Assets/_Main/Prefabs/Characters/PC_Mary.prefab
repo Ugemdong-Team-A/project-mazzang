@@ -2497,7 +2497,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAim
   resolvedAimPivot: {fileID: 3859354892686883824}
-  upperBodyAimRig: {fileID: 0}
+  upperBodyAimRig: {fileID: 2777299031174690263}
   ccdTargetRadius: 3
   rigAngleOffset: 90
   maxBodyAimAngle: 60

@@ -15,6 +15,43 @@ MonoBehaviour:
   cooldown: 0
   icon: {fileID: 21300000, guid: 506c171542d7e424893c5bd8d909b5f9, type: 3}
   animation: {fileID: 11400000, guid: 0e012b1d9b40b6544a6d8998deb72563, type: 2}
+  patterns:
+    charge:
+      enabled: 0
+      maxCharges: 2
+      rechargeDuration: 2
+    meter:
+      enabled: 0
+      maxMeter: 100
+      cost: 100
+      passiveGainPerSecond: 2
+      damageGainPerDamage: 1
+    cast:
+      enabled: 0
+      seconds: 0
+    duration:
+      enabled: 0
+      source: 0
+      seconds: 1
+    recovery:
+      enabled: 0
+      seconds: 0
+    actionLock:
+      enabled: 0
+      duringCast: 1
+      duringActive: 1
+      duringRecovery: 1
+    statModifier:
+      enabled: 0
+      moveSpeed: 1
+      attackDamage: 1
+      maxHealth: 1
+      damageTaken: 1
+      visualScale: 1
+    appearance:
+      enabled: 0
+      library: {fileID: 0}
+  useCommonPatterns: 0
   maxCharges: 1
   rechargeDuration: 0
   startupDuration: 0.7

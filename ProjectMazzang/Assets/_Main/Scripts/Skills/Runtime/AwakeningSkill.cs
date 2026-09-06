@@ -1,10 +1,10 @@
 using UnityEngine.U2D.Animation;
 
 public sealed class AwakeningSkill :
-    Skill,
+    Skill/*,
     IDurationSkill,
     IPlayerStatModifierSkill,
-    IAppearanceModifierSkill
+    IAppearanceModifierSkill*/
 {
     private AwakeningSkillData AwakeningData =>
         (AwakeningSkillData)Data;

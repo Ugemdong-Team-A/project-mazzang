@@ -15,8 +15,13 @@ public abstract class SkillData :
     [SerializeField]
     private SkillAnimationData animation;
 
+    [Space]
     [SerializeField]
     private SkillPatternSettings patterns = new();
+
+    /*[Tooltip("켜면 기존 스킬별 패턴 필드 대신 공통 Patterns를 사용합니다. 기존 값을 먼저 옮기세요.")]
+    [SerializeField] private bool useCommonPatterns;
+    public bool UseCommonPatterns => useCommonPatterns;*/
 
     public SkillPatternSettings Patterns => patterns;
 

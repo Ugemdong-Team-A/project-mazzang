@@ -15,7 +15,7 @@ public enum SkillUsePhase : byte
     Recovery
 }
 
-
+/*
 /// <summary>
 /// 여러 번 저장해서 사용할 수 있는 스킬입니다.
 /// 각 Charge는 순차적으로 회복됩니다.
@@ -78,3 +78,4 @@ public interface IMeterSkill
 
     float DamageGainPerDamage { get; }
 }
+*/

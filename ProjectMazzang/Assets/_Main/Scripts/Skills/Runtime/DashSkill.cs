@@ -2,11 +2,11 @@ using Fusion;
 using UnityEngine;
 
 public class DashSkill :
-    Skill,
+    Skill/*,
     IChargeSkill,
     ICastTimeSkill,
     IDurationSkill,
-    IRecoverySkill
+    IRecoverySkill*/
 {
     private CapsuleCollider2D
         _movementCollider;
@@ -35,6 +35,8 @@ public class DashSkill :
         DashData != null
             ? DashData.Duration
             : 0f;
+
+    public override float BehaviorDuration => Duration;
 
     public float RecoveryDuration =>
         SkillData.RecoveryDuration;
@@ -130,9 +132,9 @@ public class DashSkill :
 
 
         float controlLockDuration =
-            SkillData.StartupDuration +
+            (Patterns.Cast?.CastDuration ?? 0f) +
             DashData.Duration +
-            SkillData.RecoveryDuration;
+            (Patterns.Recovery?.RecoveryDuration ?? 0f);
 
         Controller.TickCommands.RequestControlLock(
             PlayerControlLock.Movement |

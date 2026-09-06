@@ -390,7 +390,7 @@ public sealed class PlayerSkillController :
 
         StartCooldown(
             slot,
-            skill.Data.Cooldown);
+            skill.Patterns.Cooldown);
 
         BeginUsePhase(
             slot,
@@ -501,8 +501,7 @@ public sealed class PlayerSkillController :
         SkillSlot slot,
         Skill skill)
     {
-        if (skill is not
-            IChargeSkill)
+        if (skill?.Patterns.Charge == null)
         {
             return true;
         }
@@ -517,8 +516,7 @@ public sealed class PlayerSkillController :
         SkillSlot slot,
         Skill skill)
     {
-        if (skill is not
-            IChargeSkill chargeSkill)
+        if (skill?.Patterns.Charge is not { } chargeSkill)
         {
             return;
         }
@@ -556,8 +554,7 @@ public sealed class PlayerSkillController :
         SkillSlot slot,
         Skill skill)
     {
-        if (skill is not
-            IChargeSkill chargeSkill)
+        if (skill?.Patterns.Charge is not { } chargeSkill)
         {
             return;
         }
@@ -637,8 +634,7 @@ public sealed class PlayerSkillController :
             GetSkill(
                 slot);
 
-        return skill is
-            IChargeSkill chargeSkill
+        return skill?.Patterns.Charge is { } chargeSkill
                 ? Mathf.Max(
                     1,
                     chargeSkill.MaxCharges)
@@ -664,8 +660,7 @@ public sealed class PlayerSkillController :
             GetSkill(
                 slot);
 
-        if (skill is not
-            IChargeSkill chargeSkill)
+        if (skill?.Patterns.Charge is not { } chargeSkill)
         {
             return 0f;
         }
@@ -695,8 +690,7 @@ public sealed class PlayerSkillController :
         SkillSlot slot,
         Skill skill)
     {
-        if (skill is not
-            IMeterSkill meterSkill)
+        if (skill?.Patterns.Meter is not { } meterSkill)
         {
             return true;
         }
@@ -716,8 +710,7 @@ public sealed class PlayerSkillController :
         SkillSlot slot,
         Skill skill)
     {
-        if (skill is not
-            IMeterSkill meterSkill)
+        if (skill?.Patterns.Meter is not { } meterSkill)
         {
             return;
         }
@@ -737,8 +730,7 @@ public sealed class PlayerSkillController :
         bool isAlive)
     {
         if (!isAlive ||
-            skill is not
-                IMeterSkill meterSkill)
+            skill?.Patterns.Meter is not { } meterSkill)
         {
             return;
         }
@@ -776,8 +768,7 @@ public sealed class PlayerSkillController :
     public float GetMaxMeter(
         SkillSlot slot)
     {
-        return GetSkill(slot) is
-            IMeterSkill meterSkill
+        return GetSkill(slot)?.Patterns.Meter is { } meterSkill
                 ? Mathf.Max(
                     0f,
                     meterSkill.MaxMeter)
@@ -830,8 +821,7 @@ public sealed class PlayerSkillController :
              index < _skills.Length;
              index++)
         {
-            if (_skills[index] is not
-                IMeterSkill meterSkill)
+            if (_skills[index]?.Patterns.Meter is not { } meterSkill)
             {
                 continue;
             }
@@ -858,8 +848,7 @@ public sealed class PlayerSkillController :
         SkillSlot slot,
         Skill skill)
     {
-        if (skill is
-                ICastTimeSkill castSkill &&
+        if (skill?.Patterns.Cast is { } castSkill &&
             castSkill.CastDuration > 0f)
         {
             SetUsePhase(
@@ -952,8 +941,7 @@ public sealed class PlayerSkillController :
         SkillSlot slot,
         Skill skill)
     {
-        if (skill is
-                IDurationSkill durationSkill &&
+        if (skill?.Patterns.DurationPattern is { } durationSkill &&
             durationSkill.Duration > 0f)
         {
             SetUsePhase(
@@ -978,8 +966,7 @@ public sealed class PlayerSkillController :
         SkillSlot slot,
         Skill skill)
     {
-        if (skill is
-                IRecoverySkill recoverySkill &&
+        if (skill?.Patterns.Recovery is { } recoverySkill &&
             recoverySkill.RecoveryDuration > 0f)
         {
             SetUsePhase(
@@ -1131,7 +1118,7 @@ public sealed class PlayerSkillController :
     {
         if (GetUsePhase(slot) !=
                 SkillUsePhase.Active ||
-            skill is not IPlayerStatModifierSkill modifierSkill)
+            skill?.Patterns.Stats is not { } modifierSkill)
         {
             return;
         }
@@ -1168,7 +1155,7 @@ public sealed class PlayerSkillController :
     {
         if (GetUsePhase(slot) !=
                 SkillUsePhase.Active ||
-            skill is not IAppearanceModifierSkill modifierSkill)
+            skill?.Patterns.Appearance is not { } modifierSkill)
         {
             return null;
         }
@@ -1205,7 +1192,7 @@ public sealed class PlayerSkillController :
         SkillUsePhase phase =
             GetUsePhase(slot);
 
-        return skill is IActionLockSkill actionLockSkill &&
+        return skill?.Patterns.ActionLock is { } actionLockSkill &&
                phase != SkillUsePhase.None &&
                actionLockSkill.IsActionLocked(phase);
     }
@@ -1347,8 +1334,7 @@ public sealed class PlayerSkillController :
         Skill skill)
     {
         int charges =
-            skill is
-                IChargeSkill chargeSkill
+            skill?.Patterns.Charge is { } chargeSkill
                 ? Mathf.Clamp(
                     chargeSkill.MaxCharges,
                     1,
@@ -1402,6 +1388,12 @@ public sealed class PlayerSkillController :
                 "생성하지 못했습니다.",
                 data);
 
+            return null;
+        }
+
+        if (!data.ValidatePatterns(out string error))
+        {
+            Debug.LogError(data.name + ": " + error, data);
             return null;
         }
 
@@ -1475,9 +1467,6 @@ public sealed class PlayerSkillController :
         SkillSlot slot,
         TickTimer timer)
     {
-        if (GetSkill(slot) is IMeterSkill)
-            return;
-
         SkillSlotRuntimeState state =
             GetSlotState(
                 slot);
@@ -1504,9 +1493,6 @@ public sealed class PlayerSkillController :
         SkillSlot slot,
         TickTimer timer)
     {
-        if (GetSkill(slot) is IMeterSkill)
-            return;
-
         SkillSlotRuntimeState state =
             GetSlotState(
                 slot);
@@ -1524,9 +1510,6 @@ public sealed class PlayerSkillController :
         SkillSlot slot,
         int charges)
     {
-        if (GetSkill(slot) is IMeterSkill)
-            return;
-
         byte value =
             (byte)Mathf.Clamp(
                 charges,
