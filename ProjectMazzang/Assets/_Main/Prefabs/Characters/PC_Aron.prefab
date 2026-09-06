@@ -246,7 +246,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 76d918fc509946a589cbab7bb478ef29, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Standard2DAimAnchor
   _weaponSocket: {fileID: 6319642726234129766}
 --- !u!1 &1505949614913348748
@@ -1108,6 +1108,7 @@ MonoBehaviour:
   hitColorDuration: 0.1
   invulnerableAlpha: 0.35
   invulnerableBlinkInterval: 0.08
+  spriteLibrary: {fileID: 0}
 --- !u!114 &7875716468025387495
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1224,7 +1225,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerSkillController
   mainSkill: {fileID: 11400000, guid: de166367786245dcacf3f3fac4569c54, type: 2}
-  ultimateSkill: {fileID: 11400000, guid: 026d50920abc27d44808cdea8e7a85ee, type: 2}
+  ultimateSkill: {fileID: 11400000, guid: d47edf51b4312c14fa9b46f8f5656320, type: 2}
   _SkillAnimationSequence: 0
   _LastSkillAnimationSlot: 0
   _LastSkillAnimationPhase: 0
@@ -3070,6 +3071,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -8653719598885068355, guid: 222f50a16d0fc384681fb23995facb15, type: 3}
       insertIndex: -1
       addedObject: {fileID: 9082692565250050847}
+    - targetCorrespondingSourceObject: {fileID: -8653719598885068355, guid: 222f50a16d0fc384681fb23995facb15, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 910000000000000203}
   m_SourcePrefab: {fileID: 4843985084834002234, guid: 222f50a16d0fc384681fb23995facb15, type: 3}
 --- !u!4 &990269380042718361 stripped
 Transform:
@@ -3166,24 +3170,6 @@ MonoBehaviour:
   _ccdIterations: 10
   _ccdTolerance: 0.01
   _ccdVelocity: 1
---- !u!114 &910000000000000203
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2773701317187257125}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f18dbeaa1cb24c3883b72bc0bb172c8c, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::Standard2DCharacterSetup
-  _animator: {fileID: 9082692565250050847}
-  _rigIKSetup: {fileID: 7690230928918102751}
-  _bodyAimReferenceBone: {fileID: 3955188179563730424}
-  _aimAnchor: {fileID: 910000000000000103}
-  _spriteLibrary: {fileID: 0}
-  _spriteResolvers: []
 --- !u!95 &9082692565250050847
 Animator:
   serializedVersion: 7
@@ -3206,6 +3192,24 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &910000000000000203
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2773701317187257125}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f18dbeaa1cb24c3883b72bc0bb172c8c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Standard2DCharacterSetup
+  _animator: {fileID: 9082692565250050847}
+  _rigIKSetup: {fileID: 7690230928918102751}
+  _bodyAimReferenceBone: {fileID: 3955188179563730424}
+  _aimAnchor: {fileID: 910000000000000103}
+  _spriteLibrary: {fileID: 0}
+  _spriteResolvers: []
 --- !u!4 &3144858088149306021 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8485587923788158915, guid: 222f50a16d0fc384681fb23995facb15, type: 3}

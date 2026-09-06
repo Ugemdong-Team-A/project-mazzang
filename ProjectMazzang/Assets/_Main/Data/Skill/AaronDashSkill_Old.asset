@@ -17,15 +17,15 @@ MonoBehaviour:
   animation: {fileID: 11400000, guid: 0e012b1d9b40b6544a6d8998deb72563, type: 2}
   patterns:
     charge:
-      enabled: 1
+      enabled: 0
       maxCharges: 2
       rechargeDuration: 2
     meter:
-      enabled: 0
-      maxMeter: 100
-      cost: 100
-      passiveGainPerSecond: 2
-      damageGainPerDamage: 1
+      enabled: 1
+      maxMeter: 50
+      cost: 50
+      passiveGainPerSecond: 5
+      damageGainPerDamage: 10
     cast:
       enabled: 1
       seconds: 0
@@ -42,16 +42,15 @@ MonoBehaviour:
       duringActive: 1
       duringRecovery: 1
     statModifier:
-      enabled: 1
+      enabled: 0
       moveSpeed: 1
       attackDamage: 1
       maxHealth: 1
       damageTaken: 1
       visualScale: 1
     appearance:
-      enabled: 1
+      enabled: 0
       library: {fileID: 0}
-  useCommonPatterns: 0
   maxCharges: 2
   rechargeDuration: 2
   startupDuration: 0.1

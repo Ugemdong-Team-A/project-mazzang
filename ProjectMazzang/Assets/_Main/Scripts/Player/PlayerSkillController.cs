@@ -966,20 +966,26 @@ public sealed class PlayerSkillController :
         SkillSlot slot,
         Skill skill)
     {
-        if (skill?.Patterns.Recovery is { } recoverySkill &&
-            recoverySkill.RecoveryDuration > 0f)
+        if (skill?.Patterns.Recovery is { } recoverySkill)
         {
-            SetUsePhase(
+            if (recoverySkill.RecoveryDuration >= 0f)
+            {
+                SetUsePhase(
                 slot,
                 SkillUsePhase.Recovery);
 
-            SetPhaseTimer(
-                slot,
-                CreateTimer(
-                    recoverySkill
-                        .RecoveryDuration));
+                SetPhaseTimer(
+                    slot,
+                    CreateTimer(
+                        recoverySkill
+                            .RecoveryDuration));
 
-            return;
+                return;
+            }
+            else
+            {
+                Debug.LogWarning("Recovery 시간이 음수입니다!");
+            }
         }
 
         FinishUse(

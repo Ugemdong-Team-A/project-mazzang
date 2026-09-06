@@ -1,12 +1,7 @@
 using Fusion;
 using UnityEngine;
 
-public class DashSkill :
-    Skill/*,
-    IChargeSkill,
-    ICastTimeSkill,
-    IDurationSkill,
-    IRecoverySkill*/
+public class DashSkill : Skill
 {
     private CapsuleCollider2D
         _movementCollider;
