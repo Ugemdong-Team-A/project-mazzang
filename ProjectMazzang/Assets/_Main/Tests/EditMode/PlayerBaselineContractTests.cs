@@ -628,6 +628,70 @@ namespace ProjectMazzang.Tests
 
 
         [Test]
+        public void StandardPlayer_ActionLayer_EntersEveryAnimationPhase()
+        {
+            AnimatorController controller =
+                AssetDatabase.LoadAssetAtPath<AnimatorController>(
+                    "Assets/_Main/Art/Animators/" +
+                    "AC_StandardPlayer.controller");
+
+            Assert.That(controller, Is.Not.Null);
+
+            AnimatorStateMachine action =
+                controller.layers
+                    .Single(layer =>
+                        layer.name == "Action_FullBody")
+                    .stateMachine;
+
+            Dictionary<string, float> expectedPhases =
+                new()
+                {
+                    ["Cast"] = 1f,
+                    ["Release"] = 2f,
+                    ["Recovery"] = 3f
+                };
+
+            foreach (KeyValuePair<string, float> pair
+                     in expectedPhases)
+            {
+                AnimatorStateTransition entry =
+                    action.anyStateTransitions
+                        .Single(transition =>
+                            transition.destinationState != null &&
+                            transition.destinationState.name == pair.Key);
+
+                Assert.That(
+                    entry.conditions.Any(condition =>
+                        condition.parameter == "Skill" &&
+                        condition.mode == AnimatorConditionMode.If),
+                    Is.True,
+                    pair.Key + " 진입에는 공용 액션 트리거가 필요합니다.");
+
+                AnimatorCondition phase =
+                    entry.conditions.Single(condition =>
+                        condition.parameter == "SkillPhase");
+
+                Assert.That(
+                    phase.mode,
+                    Is.EqualTo(AnimatorConditionMode.Equals));
+                Assert.That(
+                    phase.threshold,
+                    Is.EqualTo(pair.Value));
+
+                AnimatorState state = entry.destinationState;
+
+                Assert.That(
+                    state.transitions.Any(transition =>
+                        transition.destinationState != null &&
+                        transition.destinationState.name == "Empty" &&
+                        transition.hasExitTime),
+                    Is.True,
+                    pair.Key + " 재생 후에는 Empty로 돌아가야 합니다.");
+            }
+        }
+
+
+        [Test]
         public void StandardPlayer_RunBlendsByFacingRelativeDirection()
         {
             Type animationType =
