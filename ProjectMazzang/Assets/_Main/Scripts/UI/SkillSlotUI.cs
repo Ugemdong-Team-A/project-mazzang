@@ -127,11 +127,11 @@ public sealed class SkillSlotUI :
 
     private SkillData _skillData;
 
-    private SkillPatternView _chargeSkill;
+    private ChargeSettings _chargeSkill;
 
-    private SkillPatternView _meterSkill;
+    private MeterSettings _meterSkill;
 
-    private SkillPatternView _durationSkill;
+    private SkillDurationSettings _durationSkill;
 
     private int _builtMaxCharges;
 
@@ -667,7 +667,7 @@ public sealed class SkillSlotUI :
         float cost =
             Mathf.Max(
                 0f,
-                _meterSkill.MeterCost);
+                _meterSkill.Cost);
 
         bool ready =
             current >= cost;
@@ -840,7 +840,7 @@ public sealed class SkillSlotUI :
 
 
         float duration =
-            _durationSkill.Duration;
+            _durationSkill.Seconds;
 
         float remaining =
             _controller.GetPhaseRemaining(

@@ -10,32 +10,38 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 72d6cd1899b960048ace9f5884c44cdf, type: 3}
-  m_Name: AaronDashSkill_Old
+  m_Name: AaronDashSkill
   m_EditorClassIdentifier: Assembly-CSharp::DashSkillData
   cooldown: 0
   icon: {fileID: 21300000, guid: 506c171542d7e424893c5bd8d909b5f9, type: 3}
   animation: {fileID: 11400000, guid: 0e012b1d9b40b6544a6d8998deb72563, type: 2}
   patterns:
     charge:
-      enabled: 0
+      enabled: 1
       maxCharges: 2
+      initialCharges: 2
+      costPerUse: 1
+      rechargeMode: 0
       rechargeDuration: 2
     meter:
       enabled: 1
       maxMeter: 50
+      initialMeter: 0
+      requiredMeter: 100
+      comsumeMode: 2
       cost: 50
       passiveGainPerSecond: 5
       damageGainPerDamage: 10
     cast:
       enabled: 1
-      seconds: 0
+      seconds: 0.7
     duration:
       enabled: 1
       source: 0
-      seconds: 1
+      seconds: 0.12
     recovery:
       enabled: 1
-      seconds: 0
+      seconds: 0.12
     actionLock:
       enabled: 1
       duringCast: 1
@@ -51,8 +57,4 @@ MonoBehaviour:
     appearance:
       enabled: 0
       library: {fileID: 0}
-  maxCharges: 2
-  rechargeDuration: 2
-  startupDuration: 0.1
-  recoveryDuration: 0.06
-  dash: {fileID: 11400000, guid: 6dd46f511dc74008bfe0070338752ca5, type: 2}
+  dash: {fileID: 11400000, guid: 82bf575658e2fa243a94474a4bdea373, type: 2}

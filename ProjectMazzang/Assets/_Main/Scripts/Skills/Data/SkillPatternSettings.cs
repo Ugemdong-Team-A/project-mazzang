@@ -40,8 +40,8 @@ public sealed class SkillPatternSettings
         Check(statModifier, "Stat Modifier", errors);
         Check(appearance, "Appearance", errors);
 
-        if (charge != null && meter != null && charge.Enabled && meter.Enabled)
-            errors.Add("현재 Charge와 Meter의 동시 사용은 지원하지 않습니다.");
+        /*if (charge != null && meter != null && charge.Enabled && meter.Enabled)
+            errors.Add("현재 Charge와 Meter의 동시 사용은 지원하지 않습니다.");*/
 
         error = string.Join("\n", errors);
         return errors.Count == 0;
@@ -71,12 +71,26 @@ public abstract class SkillPatternOptions
         !float.IsNaN(value) && !float.IsInfinity(value) && value >= 0f;
 }
 
+public enum SkillChargeRechargeMode
+{
+    Passive,
+    Timed
+}
+
 [Serializable]
 public sealed class ChargeSettings : SkillPatternOptions
 {
     [SerializeField, Range(1, 255)] private int maxCharges = 2;
+    [SerializeField, Range(0, 255)] private int initialCharges = 2;
+    [SerializeField, Range(1, 255)] private int costPerUse = 1;
+    [Space]
+    [SerializeField] private SkillChargeRechargeMode rechargeMode = SkillChargeRechargeMode.Passive;
     [SerializeField, Min(0f)] private float rechargeDuration = 2f;
+
     public int MaxCharges => maxCharges;
+    public int InitialCharges => initialCharges;
+    public int CostPerUse => costPerUse;
+    public SkillChargeRechargeMode RechargeMode => rechargeMode;
     public float RechargeDuration => rechargeDuration;
 
     public override bool Validate(out string error)
@@ -87,14 +101,29 @@ public sealed class ChargeSettings : SkillPatternOptions
     }
 }
 
+public enum SkillMeterConsumeMode
+{
+    None,
+    Cost,
+    Reset
+}
+
 [Serializable]
 public sealed class MeterSettings : SkillPatternOptions
 {
     [SerializeField, Min(0.01f)] private float maxMeter = 100f;
+    [SerializeField, Min(0.01f)] private float initialMeter = 0f;
+    [SerializeField, Min(0.01f)] private float requiredMeter = 100f;
+    [Space]
+    [SerializeField] private SkillMeterConsumeMode comsumeMode = SkillMeterConsumeMode.Reset;
     [SerializeField, Min(0f)] private float cost = 100f;
     [SerializeField, Min(0f)] private float passiveGainPerSecond = 2f;
     [SerializeField, Min(0f)] private float damageGainPerDamage = 1f;
+
     public float MaxMeter => maxMeter;
+    public float InitialMeter => initialMeter;
+    public float RequiredMeter => requiredMeter;
+    public SkillMeterConsumeMode ConsumeMode => comsumeMode;
     public float Cost => cost;
     public float PassiveGainPerSecond => passiveGainPerSecond;
     public float DamageGainPerDamage => damageGainPerDamage;

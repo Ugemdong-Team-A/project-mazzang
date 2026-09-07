@@ -17,7 +17,7 @@ MonoBehaviour:
   animation: {fileID: 0}
   patterns:
     charge:
-      enabled: 0
+      enabled: 1
       maxCharges: 2
       rechargeDuration: 2
     meter:
@@ -31,11 +31,11 @@ MonoBehaviour:
       seconds: 0.7
     duration:
       enabled: 1
-      source: 0
+      source: 1
       seconds: 0.08
     recovery:
-      enabled: 0
-      seconds: 0.28
+      enabled: 1
+      seconds: 0.02
     actionLock:
       enabled: 0
       duringCast: 1
@@ -51,8 +51,4 @@ MonoBehaviour:
     appearance:
       enabled: 0
       library: {fileID: 0}
-  maxCharges: 2
-  rechargeDuration: 2
-  startupDuration: 21.4
-  recoveryDuration: 0.06
   dash: {fileID: 11400000, guid: 6dd46f511dc74008bfe0070338752ca5, type: 2}

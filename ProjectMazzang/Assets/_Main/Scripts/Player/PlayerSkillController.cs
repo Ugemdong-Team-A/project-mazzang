@@ -501,60 +501,71 @@ public sealed class PlayerSkillController :
         SkillSlot slot,
         Skill skill)
     {
-        if (skill?.Patterns.Charge == null)
-        {
+        if (skill?.Patterns.Charge is not { } charge)
             return true;
-        }
 
-        return GetCurrentCharges(
-                   slot) >
-               0;
+        int cost =
+            Mathf.Max(
+                0,
+                charge.CostPerUse);
+
+        return GetCurrentCharges(slot) >= cost;
     }
 
 
     private void ConsumeCharge(
-        SkillSlot slot,
-        Skill skill)
+    SkillSlot slot,
+    Skill skill)
     {
-        if (skill?.Patterns.Charge is not { } chargeSkill)
+        if (skill?.Patterns.Charge is not { } charge)
+            return;
+
+        int cost =
+            Mathf.Max(
+                0,
+                charge.CostPerUse);
+
+        int next =
+            Mathf.Max(
+                0,
+                GetCurrentCharges(slot) - cost);
+
+        SetCurrentCharges(
+            slot,
+            next);
+
+        if (charge.RechargeMode !=
+            SkillChargeRechargeMode.Timed)
         {
             return;
         }
 
-        int current =
-            GetCurrentCharges(
-                slot);
-
-        if (current <= 0)
+        if (next >= charge.MaxCharges)
             return;
 
-        SetCurrentCharges(
-            slot,
-            current - 1);
+        TickTimer timer =
+            GetRechargeTimer(slot);
 
-
-        TickTimer rechargeTimer =
-            GetRechargeTimer(
-                slot);
-
-        if (rechargeTimer
-            .ExpiredOrNotRunning(
-                Runner))
+        if (timer.ExpiredOrNotRunning(Runner))
         {
             SetRechargeTimer(
                 slot,
                 CreateTimer(
-                    chargeSkill
-                        .RechargeDuration));
+                    charge.RechargeDuration));
         }
     }
-
 
     private void UpdateRecharge(
         SkillSlot slot,
         Skill skill)
     {
         if (skill?.Patterns.Charge is not { } chargeSkill)
+        {
+            return;
+        }
+
+        if (chargeSkill.RechargeMode 
+                != SkillChargeRechargeMode.Timed)
         {
             return;
         }
@@ -698,7 +709,7 @@ public sealed class PlayerSkillController :
         float cost =
             Mathf.Max(
                 0f,
-                meterSkill.MeterCost);
+                meterSkill.Cost);
 
         return GetCurrentMeter(
                    slot) >=
@@ -710,17 +721,27 @@ public sealed class PlayerSkillController :
         SkillSlot slot,
         Skill skill)
     {
-        if (skill?.Patterns.Meter is not { } meterSkill)
-        {
+        if (skill?.Patterns.Meter is not { } meter)
             return;
-        }
 
-        SetCurrentMeter(
-            slot,
-            GetCurrentMeter(slot) -
-            Mathf.Max(
-                0f,
-                meterSkill.MeterCost));
+        switch (meter.ConsumeMode)
+        {
+            case SkillMeterConsumeMode.None:
+                return;
+
+            case SkillMeterConsumeMode.Cost:
+                SetCurrentMeter(
+                    slot,
+                    GetCurrentMeter(slot) -
+                    Mathf.Max(0f, meter.Cost));
+                break;
+
+            case SkillMeterConsumeMode.Reset:
+                SetCurrentMeter(
+                    slot,
+                    0f);
+                break;
+        }
     }
 
 
@@ -849,7 +870,7 @@ public sealed class PlayerSkillController :
         Skill skill)
     {
         if (skill?.Patterns.Cast is { } castSkill &&
-            castSkill.CastDuration > 0f)
+            castSkill.Seconds > 0f)
         {
             SetUsePhase(
                 slot,
@@ -858,7 +879,7 @@ public sealed class PlayerSkillController :
             SetPhaseTimer(
                 slot,
                 CreateTimer(
-                    castSkill.CastDuration));
+                    castSkill.Seconds));
 
             return;
         }
@@ -942,7 +963,7 @@ public sealed class PlayerSkillController :
         Skill skill)
     {
         if (skill?.Patterns.DurationPattern is { } durationSkill &&
-            durationSkill.Duration > 0f)
+            durationSkill.Seconds > 0f)
         {
             SetUsePhase(
                 slot,
@@ -951,7 +972,7 @@ public sealed class PlayerSkillController :
             SetPhaseTimer(
                 slot,
                 CreateTimer(
-                    durationSkill.Duration));
+                    durationSkill.Seconds));
 
             return;
         }
@@ -966,9 +987,10 @@ public sealed class PlayerSkillController :
         SkillSlot slot,
         Skill skill)
     {
+
         if (skill?.Patterns.Recovery is { } recoverySkill)
         {
-            if (recoverySkill.RecoveryDuration >= 0f)
+            if (recoverySkill.Seconds > 0f)
             {
                 SetUsePhase(
                 slot,
@@ -978,13 +1000,12 @@ public sealed class PlayerSkillController :
                     slot,
                     CreateTimer(
                         recoverySkill
-                            .RecoveryDuration));
+                            .Seconds));
 
                 return;
             }
             else
             {
-                Debug.LogWarning("Recovery 시간이 음수입니다!");
             }
         }
 
@@ -1130,7 +1151,7 @@ public sealed class PlayerSkillController :
         }
 
         PlayerStatModifiers modifiers =
-            modifierSkill.StatModifiers;
+            modifierSkill.Modifiers;
 
         result =
             result.Combine(in modifiers);
@@ -1166,7 +1187,7 @@ public sealed class PlayerSkillController :
             return null;
         }
 
-        return modifierSkill.AppearanceLibraryAsset;
+        return modifierSkill.Library;
     }
 
 
@@ -1200,7 +1221,7 @@ public sealed class PlayerSkillController :
 
         return skill?.Patterns.ActionLock is { } actionLockSkill &&
                phase != SkillUsePhase.None &&
-               actionLockSkill.IsActionLocked(phase);
+               skill.Patterns.IsActionLocked(phase);
     }
 
 
@@ -1336,32 +1357,62 @@ public sealed class PlayerSkillController :
     // =========================================================
 
     private void ResetSlotRuntime(
-        SkillSlot slot,
-        Skill skill)
+    SkillSlot slot,
+    Skill skill)
     {
-        int charges =
-            skill?.Patterns.Charge is { } chargeSkill
-                ? Mathf.Clamp(
+        int charges = 0;
+        float meter = 0f;
+
+        if (skill?.Patterns.Charge is { } chargeSkill)
+        {
+            int maxCharges =
+                Mathf.Clamp(
                     chargeSkill.MaxCharges,
                     1,
-                    byte.MaxValue)
-                : 0;
+                    byte.MaxValue);
+
+            charges =
+                Mathf.Clamp(
+                    chargeSkill.InitialCharges,
+                    0,
+                    maxCharges);
+        }
+
+        if (skill?.Patterns.Meter is { } meterSkill)
+        {
+            float maxMeter =
+                Mathf.Max(
+                    0f,
+                    meterSkill.MaxMeter);
+
+            meter =
+                Mathf.Clamp(
+                    meterSkill.InitialMeter,
+                    0f,
+                    maxMeter);
+        }
 
         SkillSlotRuntimeState state =
             new()
             {
                 Phase =
                     SkillUsePhase.None,
+
                 Charges =
                     (byte)charges,
+
                 Meter =
-                    0f,
+                    meter,
+
                 AimDirection =
                     Vector2.zero,
+
                 CooldownTimer =
                     TickTimer.None,
+
                 PhaseTimer =
                     TickTimer.None,
+
                 RechargeTimer =
                     TickTimer.None
             };
