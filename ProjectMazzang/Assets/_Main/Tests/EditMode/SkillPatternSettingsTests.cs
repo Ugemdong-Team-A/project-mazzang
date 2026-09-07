@@ -163,7 +163,7 @@ namespace ProjectMazzang.Tests
         {
             serialized.FindProperty("patterns.charge.enabled").boolValue = true;
             serialized.FindProperty("patterns.meter.enabled").boolValue = true;
-            serialized.FindProperty("patterns.charge.resetByMeterMode").enumValueIndex = refillMode;
+            serialized.FindProperty("patterns.charge.meterRechargePolicy").enumValueIndex = refillMode;
             serialized.ApplyModifiedPropertiesWithoutUndo();
             object view = RuntimeView();
             Assert.That(view.GetType().GetMethod("CanGainMeter").Invoke(view, new object[] { 0, windowOpen }),
@@ -235,6 +235,27 @@ namespace ProjectMazzang.Tests
         {
             object skill = CreateRuntime(data);
             return skill.GetType().GetProperty("Patterns").GetValue(skill);
+        }
+
+        [TestCase("ChargeSettings", "meterRechargePolicy", "resetByMeterMode")]
+        [TestCase("MeterSettings", "consumeMode", "comsumeMode")]
+        public void RenamedSettingsPreserveSerializedFieldAliases(string typeName, string fieldName, string oldName)
+        {
+            FieldInfo field = Type.GetType(typeName + ", Assembly-CSharp", true)
+                .GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance);
+            var alias = field.GetCustomAttribute<UnityEngine.Serialization.FormerlySerializedAsAttribute>();
+            Assert.That(alias, Is.Not.Null);
+            Assert.That(alias.oldName, Is.EqualTo(oldName));
+        }
+
+        [TestCase("SkillChargeRechargeMode", "Meter", 0)]
+        [TestCase("SkillChargeRechargeMode", "Timed", 1)]
+        [TestCase("SkillMeterRechargePolicy", "Full", 0)]
+        [TestCase("SkillMeterRechargePolicy", "OneByOne", 1)]
+        public void RenamedEnumsPreserveSerializedValues(string typeName, string name, int value)
+        {
+            Type type = Type.GetType(typeName + ", Assembly-CSharp", true);
+            Assert.That(Convert.ToInt32(Enum.Parse(type, name)), Is.EqualTo(value));
         }
 
         [Test]

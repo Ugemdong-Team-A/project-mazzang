@@ -36,7 +36,7 @@ public sealed class SkillPatternView
             : null;
 
 
-    public SkillStatSettings Stats => 
+    public SkillStatSettings StatModifier =>
         Settings.StatModifier.Enabled 
         ? Settings.StatModifier 
         : null;
@@ -57,7 +57,7 @@ public sealed class SkillPatternView
 
     public float ActiveDuration => UsesChargeWindow ? skill.BehaviorDuration : Duration;
 
-    public bool UsesMeterRecharge => Charge?.RechargeMode == SkillChargeRechargeMode.Passive;
+    public bool UsesMeterRecharge => Charge?.RechargeMode == SkillChargeRechargeMode.Meter;
 
     public bool NeedsMeterPayment(bool windowOpen) => Meter != null &&
         !UsesMeterRecharge && !(UsesChargeWindow && windowOpen);
@@ -66,7 +66,7 @@ public sealed class SkillPatternView
     {
         if (Meter == null) return false;
         if (!UsesMeterRecharge) return true;
-        return Charge.ResetByMeterMode == SkillChargeResetByMeterMode.Full
+        return Charge.MeterRechargePolicy == SkillMeterRechargePolicy.Full
             ? charges < Charge.CostPerUse && !windowOpen
             : charges < Charge.MaxCharges;
     }

@@ -140,7 +140,20 @@ public sealed class SkillPatternOptionsDrawer : PropertyDrawer
                         source.enumValueIndex ==
                         (int)SkillDurationSource.Behavior;
 
-                    using (new EditorGUI.DisabledScope(fromBehavior))
+                    var rechargeMode = property.FindPropertyRelative("rechargeMode");
+                    bool knownRecharge = rechargeMode != null && !rechargeMode.hasMultipleDifferentValues;
+                    bool meterRecharge = knownRecharge &&
+                        rechargeMode.intValue == (int)SkillChargeRechargeMode.Meter;
+                    bool unusedChargeSetting = knownRecharge &&
+                        (meterRecharge
+                            ? child.name == "initialCharges" || child.name == "rechargeDuration"
+                            : child.name == "meterRechargePolicy");
+                    var consumeMode = property.FindPropertyRelative("consumeMode");
+                    bool unusedCost = child.name == "cost" && consumeMode != null &&
+                        !consumeMode.hasMultipleDifferentValues &&
+                        consumeMode.intValue != (int)SkillMeterConsumeMode.Cost;
+
+                    using (new EditorGUI.DisabledScope(fromBehavior || unusedChargeSetting || unusedCost))
                     {
                         EditorGUI.PropertyField(
                             new Rect(
@@ -184,7 +197,8 @@ public sealed class SkillPatternSettingsEditor : Editor
         EditorGUILayout.HelpBox(
             "대시 단독: Duration의 Active + Behavior. 횟수 제한 시간: ChargeWindow + Settings(초). " +
             "ChargeWindow는 첫 사용부터 시작하며 추가 사용으로 연장되지 않습니다. " +
-            "Timed는 횟수를 시간으로 회복하며, Meter를 함께 켜면 새 구간의 첫 사용에 Meter가 필요합니다.",
+            "Timed는 횟수를 시간으로 회복합니다. Meter를 함께 켜면 매 사용에 요구하며, " +
+            "ChargeWindow일 때만 구간의 첫 사용에 요구합니다. 회색 설정값은 보존됩니다.",
             MessageType.Info);
         DrawDefaultInspector();
         foreach (Object item in targets)

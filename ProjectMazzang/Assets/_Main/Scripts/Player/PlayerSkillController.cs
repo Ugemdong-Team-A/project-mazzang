@@ -535,7 +535,7 @@ public sealed class PlayerSkillController :
             if (skill.Patterns.CanGainMeter(current, IsChargeWindowOpen(slot)) &&
                 GetCurrentMeter(slot) >= GetMaxMeter(slot))
             {
-                SetCurrentCharges(slot, charge.ResetByMeterMode == SkillChargeResetByMeterMode.Full
+                SetCurrentCharges(slot, charge.MeterRechargePolicy == SkillMeterRechargePolicy.Full
                     ? charge.MaxCharges : current + 1);
                 SetCurrentMeter(slot, 0f);
             }
@@ -1092,7 +1092,7 @@ public sealed class PlayerSkillController :
     {
         if (GetUsePhase(slot) !=
                 SkillUsePhase.Active ||
-            skill?.Patterns.Stats is not { } modifierSkill)
+            skill?.Patterns.StatModifier is not { } modifierSkill)
         {
             return;
         }

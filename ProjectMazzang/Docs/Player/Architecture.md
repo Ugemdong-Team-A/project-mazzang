@@ -198,6 +198,9 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
 - `SkillData.Patterns`는 비활성이 기본인 공통 패턴 설정을 보관한다. 실행과 UI는
   `SkillPatternView`를 통해 활성 설정을 조회하며 비활성 패턴은 null로 노출한다.
 - 공통 패턴 Inspector는 활성 체크와 펼침 상태를 분리하며, 비활성 값은 보존하고 편집만 막는다.
+  Charge의 Meter/Timed에 해당하지 않는 설정과 비소모 방식의 Cost도 편집만 막는다.
+  기존 Passive enum 값 0은 Meter로 유지하며, meterRechargePolicy와 consumeMode 필드는
+  FormerlySerializedAs로 기존 resetByMeterMode/comsumeMode 에셋 값을 읽는다.
   `ValidatePatterns`는 활성 설정의 수치를 검증하고 값을 변경하지 않는다. Inspector와 장착 경로가
   같은 검증을 사용하며 Charge/Meter 동시 활성은 허용한다.
 - Duration의 기본 Mode는 Active다. Settings는 직접 지정한 시간, Behavior는
@@ -232,7 +235,7 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
 - 활성 Meter 설정은 생존 중 자연 충전되고 사용 시 ConsumeMode에 따라 처리된다.
   장착 변경 시 InitialMeter로 초기화하며 사망과 리스폰 사이에는 유지한다.
   사용 요구량은 RequiredMeter, 소모량은 Cost로 구분하며 Cost 방식은 둘 다 충족해야 한다.
-- Passive Charge의 Meter는 횟수 생산용이다. 사용 시 Meter를 다시 소모하지 않고 완충 시
+- Meter 방식 Charge의 Meter는 횟수 생산용이다. 사용 시 Meter를 다시 소모하지 않고 완충 시
   Full은 최대 횟수, OneByOne은 한 횟수로 바꾸며 Meter를 0으로 만든다. 초과 충전은 이월하지 않는다.
   Full은 사용 가능한 횟수가 없고 구간이 닫혔을 때만, OneByOne은 최대 횟수 미만일 때 충전한다.
   자연 충전과 Host 피해 보상은 동일한 허용 규칙을 사용하되 외부 지급 권한은 Host에 유지한다.
@@ -240,7 +243,7 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
   초기 횟수 0에서도 타이머를 시작하며 0초는 재충전 갱신 시 즉시 최대 횟수로 복구한다.
   Meter를 함께 사용하면 기본적으로 매번 요구·소모하고, ChargeWindow에서는 구간을 여는
   첫 사용에만 요구·소모한다. 열린 구간에서도 자연·피해 Meter 충전은 유지한다.
-- Passive에 Meter가 없거나, 사용 비용/요구량이 최대 보유량을 넘거나, ChargeWindow에 Charge나
+- Meter 방식에 Meter가 없거나, 사용 비용/요구량이 최대 보유량을 넘거나, ChargeWindow에 Charge나
   명시적인 양의 시간이 없는 설정은 장착 전에 거부한다. 쿨다운은 계속 매 사용 시 시작한다.
 - 피해 기반 충전은 `CombatDamageService`가 State Authority에서 확정된 실제 체력 감소량만
   공격자의 `IDamageDealtReceiver`에 전달하며, Meter 특성을 가진 모든 슬롯이 각 비율로 받는다.

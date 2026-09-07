@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.U2D.Animation;
 
 /// <summary>
@@ -40,8 +41,8 @@ public sealed class SkillPatternSettings
         Check(appearance, "Appearance", errors);
 
         if (charge != null && charge.Enabled &&
-            charge.RechargeMode == SkillChargeRechargeMode.Passive && !(meter?.Enabled ?? false))
-            errors.Add("Passive Charge에는 Meter가 필요합니다.");
+            charge.RechargeMode == SkillChargeRechargeMode.Meter && !(meter?.Enabled ?? false))
+            errors.Add("Meter 방식 Charge에는 Meter가 필요합니다.");
         if (duration != null && duration.Enabled && duration.Mode == SkillDurationMode.ChargeWindow &&
             (!(charge?.Enabled ?? false) || duration.Source != SkillDurationSource.Settings))
             errors.Add("ChargeWindow에는 Charge와 Settings 출처의 제한 시간이 필요합니다.");
@@ -76,34 +77,37 @@ public abstract class SkillPatternOptions
 
 public enum SkillChargeRechargeMode
 {
-    Passive,
-    Timed
+    Meter = 0,
+    Timed = 1
 }
 
-public enum SkillChargeResetByMeterMode
+public enum SkillMeterRechargePolicy
 {
-    Full,
-    OneByOne
+    Full = 0,
+    OneByOne = 1
 }
 
 [Serializable]
 public sealed class ChargeSettings : SkillPatternOptions
 {
     [SerializeField, Range(1, 255)] private int maxCharges = 2;
+    [Tooltip("Timed의 시작 횟수입니다. Meter 방식은 항상 0부터 시작합니다.")]
     [SerializeField, Range(0, 255)] private int initialCharges = 2;
     [SerializeField, Range(1, 255)] private int costPerUse = 1;
     [Space]
-    [SerializeField] private SkillChargeRechargeMode rechargeMode = SkillChargeRechargeMode.Passive;
-    [SerializeField] private SkillChargeResetByMeterMode resetByMeterMode = SkillChargeResetByMeterMode.Full;
+    [SerializeField] private SkillChargeRechargeMode rechargeMode = SkillChargeRechargeMode.Meter;
+    [FormerlySerializedAs("resetByMeterMode")]
+    [Tooltip("Full은 사용 가능한 횟수가 없고 사용 구간이 닫힌 뒤 완충하여 전체 보충, OneByOne은 최대 횟수 미만에서 완충마다 하나씩 보충합니다.")]
+    [SerializeField] private SkillMeterRechargePolicy meterRechargePolicy = SkillMeterRechargePolicy.Full;
     [SerializeField, Min(0f)] private float rechargeDuration = 2f;
 
     public int MaxCharges => maxCharges;
     public int InitialCharges
-        => RechargeMode == SkillChargeRechargeMode.Passive 
+        => RechargeMode == SkillChargeRechargeMode.Meter
         ? 0 : initialCharges;
     public int CostPerUse => costPerUse;
     public SkillChargeRechargeMode RechargeMode => rechargeMode;
-    public SkillChargeResetByMeterMode ResetByMeterMode => resetByMeterMode;
+    public SkillMeterRechargePolicy MeterRechargePolicy => meterRechargePolicy;
     public float RechargeDuration => rechargeDuration;
 
     public override bool Validate(out string error)
@@ -129,7 +133,9 @@ public sealed class MeterSettings : SkillPatternOptions
     [SerializeField, Min(0.01f)] private float initialMeter = 0f;
     [SerializeField, Min(0.01f)] private float requiredMeter = 100f;
     [Space]
-    [SerializeField] private SkillMeterConsumeMode comsumeMode = SkillMeterConsumeMode.Reset;
+    [FormerlySerializedAs("comsumeMode")]
+    [Tooltip("None은 요구량만 확인, Cost는 비용 차감, Reset은 0으로 초기화합니다. Meter 방식 Charge에서는 횟수 보충 시 Meter가 초기화됩니다.")]
+    [SerializeField] private SkillMeterConsumeMode consumeMode = SkillMeterConsumeMode.Reset;
     [SerializeField, Min(0f)] private float cost = 100f;
     [SerializeField, Min(0f)] private float passiveGainPerSecond = 2f;
     [SerializeField, Min(0f)] private float damageGainPerDamage = 1f;
@@ -137,7 +143,7 @@ public sealed class MeterSettings : SkillPatternOptions
     public float MaxMeter => maxMeter;
     public float InitialMeter => initialMeter;
     public float RequiredMeter => requiredMeter;
-    public SkillMeterConsumeMode ConsumeMode => comsumeMode;
+    public SkillMeterConsumeMode ConsumeMode => consumeMode;
     public float Cost => cost;
     public float PassiveGainPerSecond => passiveGainPerSecond;
     public float DamageGainPerDamage => damageGainPerDamage;
