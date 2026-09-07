@@ -77,6 +77,12 @@ public enum SkillChargeRechargeMode
     Timed
 }
 
+public enum SkillChargeResetByMeterMode
+{
+    Full,
+    OneByOne
+}
+
 [Serializable]
 public sealed class ChargeSettings : SkillPatternOptions
 {
@@ -85,12 +91,16 @@ public sealed class ChargeSettings : SkillPatternOptions
     [SerializeField, Range(1, 255)] private int costPerUse = 1;
     [Space]
     [SerializeField] private SkillChargeRechargeMode rechargeMode = SkillChargeRechargeMode.Passive;
+    [SerializeField] private SkillChargeResetByMeterMode resetByMeterMode = SkillChargeResetByMeterMode.Full;
     [SerializeField, Min(0f)] private float rechargeDuration = 2f;
 
     public int MaxCharges => maxCharges;
-    public int InitialCharges => initialCharges;
+    public int InitialCharges
+        => RechargeMode == SkillChargeRechargeMode.Passive 
+        ? 0 : initialCharges;
     public int CostPerUse => costPerUse;
     public SkillChargeRechargeMode RechargeMode => rechargeMode;
+    public SkillChargeResetByMeterMode ResetByMeterMode => resetByMeterMode;
     public float RechargeDuration => rechargeDuration;
 
     public override bool Validate(out string error)

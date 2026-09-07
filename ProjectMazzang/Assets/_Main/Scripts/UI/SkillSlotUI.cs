@@ -420,7 +420,8 @@ public sealed class SkillSlotUI :
 
         SetActive(
             chargeRoot,
-            maxCharges > 1);
+            /*!_meterSkill.Enabled
+            && */maxCharges > 1);
 
 
         if (maxCharges <= 1)
@@ -468,6 +469,7 @@ public sealed class SkillSlotUI :
 
 
         bool showCharges =
+            // !_meterSkill.Enabled &&
             maximum > 1;
 
         SetActive(
@@ -497,6 +499,7 @@ public sealed class SkillSlotUI :
 
 
         bool recharging =
+            !_meterSkill.Enabled &&
             current < maximum;
 
 

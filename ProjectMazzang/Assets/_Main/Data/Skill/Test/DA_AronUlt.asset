@@ -14,11 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AttackData
   attackId: 1
   displayName: 
-  startupDuration: 0.08
-  activeDuration: 0.06
-  recoveryDuration: 0.2
-  cooldown: 0.45
-  damage: 1
+  damage: 15
   knockbackForward: 15
   knockbackUp: 8
   crowdControl:
