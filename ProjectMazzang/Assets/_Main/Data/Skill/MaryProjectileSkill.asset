@@ -19,10 +19,17 @@ MonoBehaviour:
     charge:
       enabled: 1
       maxCharges: 3
+      initialCharges: 2
+      costPerUse: 1
+      rechargeMode: 1
+      meterRechargePolicy: 0
       rechargeDuration: 2
     meter:
       enabled: 0
       maxMeter: 100
+      initialMeter: 0
+      requiredMeter: 100
+      consumeMode: 2
       cost: 100
       passiveGainPerSecond: 2
       damageGainPerDamage: 1
@@ -31,6 +38,7 @@ MonoBehaviour:
       seconds: 0.5
     duration:
       enabled: 0
+      mode: 0
       source: 0
       seconds: 1
     recovery:

@@ -21,15 +21,15 @@ MonoBehaviour:
       maxCharges: 2
       initialCharges: 0
       costPerUse: 1
-      rechargeMode: 1
-      resetByMeterMode: 1
+      rechargeMode: 0
+      meterRechargePolicy: 0
       rechargeDuration: 2
     meter:
       enabled: 1
       maxMeter: 50
       initialMeter: 0
-      requiredMeter: 100
-      comsumeMode: 0
+      requiredMeter: 50
+      consumeMode: 0
       cost: 50
       passiveGainPerSecond: 10.01
       damageGainPerDamage: 10
@@ -38,6 +38,7 @@ MonoBehaviour:
       seconds: 0.7
     duration:
       enabled: 1
+      mode: 0
       source: 0
       seconds: 0.12
     recovery:

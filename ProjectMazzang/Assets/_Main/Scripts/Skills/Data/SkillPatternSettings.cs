@@ -95,7 +95,7 @@ public sealed class ChargeSettings : SkillPatternOptions
     [SerializeField, Range(0, 255)] private int initialCharges = 2;
     [SerializeField, Range(1, 255)] private int costPerUse = 1;
     [Space]
-    [SerializeField] private SkillChargeRechargeMode rechargeMode = SkillChargeRechargeMode.Meter;
+    [SerializeField] private SkillChargeRechargeMode rechargeMode = SkillChargeRechargeMode.Timed;
     [FormerlySerializedAs("resetByMeterMode")]
     [Tooltip("Full은 사용 가능한 횟수가 없고 사용 구간이 닫힌 뒤 완충하여 전체 보충, OneByOne은 최대 횟수 미만에서 완충마다 하나씩 보충합니다.")]
     [SerializeField] private SkillMeterRechargePolicy meterRechargePolicy = SkillMeterRechargePolicy.Full;
