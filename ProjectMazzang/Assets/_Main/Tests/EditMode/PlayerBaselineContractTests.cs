@@ -588,9 +588,9 @@ namespace ProjectMazzang.Tests
 
             foreach (string assetName in assetNames)
             {
-                ActionAnimationData animation =
+                ScriptableObject animation =
                     AssetDatabase.LoadAssetAtPath<
-                        ActionAnimationData>(
+                        ScriptableObject>(
                         "Assets/_Main/Data/Skill/Animation/" +
                         assetName + ".asset");
 
@@ -598,22 +598,32 @@ namespace ProjectMazzang.Tests
                     animation,
                     Is.Not.Null,
                     assetName + "은 공용 ActionAnimationData여야 합니다.");
+
+                Assert.That(
+                    animation.GetType().Name,
+                    Is.EqualTo("ActionAnimationData"));
             }
 
-            ActionAnimationData mary =
+            ScriptableObject mary =
                 AssetDatabase.LoadAssetAtPath<
-                    ActionAnimationData>(
+                    ScriptableObject>(
                     "Assets/_Main/Data/Skill/Animation/" +
                     "SA_MaryProjectile.asset");
 
+            SerializedObject serializedMary =
+                new(mary);
+
             Assert.That(
-                mary.GetClipData(
-                    ActionAnimationPhase.Cast).HasClip,
-                Is.True);
+                serializedMary.FindProperty("cast")
+                    .FindPropertyRelative("clip")
+                    .objectReferenceValue,
+                Is.Not.Null);
+
             Assert.That(
-                mary.GetClipData(
-                    ActionAnimationPhase.Release).HasClip,
-                Is.True);
+                serializedMary.FindProperty("release")
+                    .FindPropertyRelative("clip")
+                    .objectReferenceValue,
+                Is.Not.Null);
         }
 
 
