@@ -388,6 +388,8 @@ public sealed class PlayerSkillController :
             slot,
             skill);
 
+        BeginChargeWindow(slot, skill);
+
         StartCooldown(
             slot,
             skill.Patterns.Cooldown);
@@ -441,6 +443,8 @@ public sealed class PlayerSkillController :
     {
         if (skill == null)
             return;
+
+        UpdateChargeWindow(slot);
 
         UpdateMeter(
             slot,
@@ -513,151 +517,54 @@ public sealed class PlayerSkillController :
     }
 
 
-    private void ConsumeCharge(
-    SkillSlot slot,
-    Skill skill)
+    private void ConsumeCharge(SkillSlot slot, Skill skill)
     {
-        if (skill?.Patterns.Charge is not { } charge)
-            return;
-
-        if (charge.RechargeMode == SkillChargeRechargeMode.Passive &&
-            charge.ResetByMeterMode == SkillChargeResetByMeterMode.Full &&
-            GetCurrentCharges(slot) == GetMaxCharges(slot))
-        {
-            SetCurrentMeter(slot, 0f);
-        }
-
-        int cost =
-            Mathf.Max(
-                0,
-                charge.CostPerUse);
-
-        int next =
-            Mathf.Max(
-                0,
-                GetCurrentCharges(slot) - cost);
-
-        SetCurrentCharges(
-            slot,
-            next);
-
-        if (charge.RechargeMode !=
-            SkillChargeRechargeMode.Timed)
-        {
-            return;
-        }
-
-        if (next >= charge.MaxCharges)
-            return;
-
-        TickTimer timer =
-            GetRechargeTimer(slot);
-
-        if (timer.ExpiredOrNotRunning(Runner))
-        {
-            SetRechargeTimer(
-                slot,
-                CreateTimer(
-                    charge.RechargeDuration));
-        }
+        if (skill?.Patterns.Charge is not { } charge) return;
+        SetCurrentCharges(slot, GetCurrentCharges(slot) - charge.CostPerUse);
+        if (charge.RechargeMode == SkillChargeRechargeMode.Timed &&
+            !GetRechargeTimer(slot).IsRunning)
+            SetRechargeTimer(slot, CreateTimer(charge.RechargeDuration));
     }
 
-    private void UpdateRecharge(
-        SkillSlot slot,
-        Skill skill)
+    private void UpdateRecharge(SkillSlot slot, Skill skill)
     {
-        if (skill?.Patterns.Charge is not { } chargeSkill)
+        if (skill?.Patterns.Charge is not { } charge) return;
+        int current = GetCurrentCharges(slot);
+        if (skill.Patterns.UsesMeterRecharge)
         {
-            return;
-        }
-
-        int maximum =
-            Mathf.Clamp(
-                chargeSkill.MaxCharges,
-                1,
-                byte.MaxValue);
-
-        int current =
-            GetCurrentCharges(
-                slot);
-
-        if (skill?.Patterns.Meter is { } meterSkill &&
-            chargeSkill.RechargeMode 
-                == SkillChargeRechargeMode.Passive)
-        {
-            if(meterSkill != null &&
-                 GetCurrentMeter(slot) == GetMaxMeter(slot) &&
-                 current < maximum)
+            if (skill.Patterns.CanGainMeter(current, IsChargeWindowOpen(slot)) &&
+                GetCurrentMeter(slot) >= GetMaxMeter(slot))
             {
-                int set = chargeSkill.ResetByMeterMode
-                    == SkillChargeResetByMeterMode.OneByOne
-                    ? current + 1
-                    : maximum;
-
-                SetCurrentCharges(
-                slot,
-                set);
-
+                SetCurrentCharges(slot, charge.ResetByMeterMode == SkillChargeResetByMeterMode.Full
+                    ? charge.MaxCharges : current + 1);
                 SetCurrentMeter(slot, 0f);
             }
-
             return;
         }
 
-        Debug.Log(current + ", " + maximum);
-
-        if (current >= maximum)
+        if (current >= charge.MaxCharges)
         {
-            Debug.Log("SetRechargeTimer");
-
-            SetCurrentCharges(
-                slot,
-                maximum);
-
-            SetRechargeTimer(
-                slot,
-                TickTimer.None);
-
+            SetRechargeTimer(slot, TickTimer.None);
             return;
         }
-
-        TickTimer timer =
-            GetRechargeTimer(
-                slot);
-
-        if (!timer.Expired(
-                Runner))
+        // 0초는 즉시 최대 횟수로 복구한다. None의 만료를 기다리지 않는다.
+        if (charge.RechargeDuration <= 0f)
         {
+            SetCurrentCharges(slot, charge.MaxCharges);
+            SetRechargeTimer(slot, TickTimer.None);
             return;
         }
-
-        Debug.Log("Timer Expired");
-
-        current++;
-
-        SetCurrentCharges(
-            slot,
-            current);
-
-
-        if (current < maximum)
+        TickTimer timer = GetRechargeTimer(slot);
+        if (!timer.IsRunning)
         {
-            SetRechargeTimer(
-                slot,
-                CreateTimer(
-                    chargeSkill
-                        .RechargeDuration));
-
-            Debug.Log("Set Recharge Timer");
+            SetRechargeTimer(slot, CreateTimer(charge.RechargeDuration));
+            return;
         }
-        else
-        {
-            SetRechargeTimer(
-                slot,
-                TickTimer.None);
-        }
+        if (!timer.Expired(Runner)) return;
+        SetCurrentCharges(slot, current + 1);
+        SetRechargeTimer(slot, current + 1 < charge.MaxCharges
+            ? CreateTimer(charge.RechargeDuration) : TickTimer.None);
     }
-
 
     public int GetCurrentCharges(
         SkillSlot slot)
@@ -727,72 +634,31 @@ public sealed class PlayerSkillController :
     // Meter
     // =========================================================
 
-    private bool HasRequiredMeter(
-        SkillSlot slot,
-        Skill skill)
+    private bool HasRequiredMeter(SkillSlot slot, Skill skill)
     {
-        if (skill?.Patterns.Meter is not { } meterSkill)
-        {
+        if (skill == null || !skill.Patterns.NeedsMeterPayment(IsChargeWindowOpen(slot)))
             return true;
-        }
-
-        float required =
-            Mathf.Max(
-                0f,
-                meterSkill.RequiredMeter);
-
-        return (skill?.Patterns.Charge is { } chargeSkill &&
-                chargeSkill.RechargeMode == SkillChargeRechargeMode.Passive &&
-                GetCurrentCharges(slot) > 0) 
-                ||
-                GetCurrentMeter(
-                   slot) >= required;
+        MeterSettings meter = skill.Patterns.Meter;
+        float required = meter.ConsumeMode == SkillMeterConsumeMode.Cost
+            ? Mathf.Max(meter.RequiredMeter, meter.Cost) : meter.RequiredMeter;
+        return GetCurrentMeter(slot) >= required;
     }
 
-
-    private void ConsumeMeter(
-        SkillSlot slot,
-        Skill skill)
+    public bool HasReadyResources(SkillSlot slot)
     {
-        if (skill?.Patterns.Meter is not { } meter)
-            return;
-
-        if (skill?.Patterns.Charge is { } charge)
-        {
-            if (charge.RechargeMode
-                == SkillChargeRechargeMode.Passive)
-            {
-                if (charge.ResetByMeterMode
-                    == SkillChargeResetByMeterMode.OneByOne)
-                    return;
-
-                if (charge.ResetByMeterMode
-                    == SkillChargeResetByMeterMode.Full &&
-                GetCurrentCharges(slot) > 0)
-                    return;
-            }
-        }
-
-        switch (meter.ConsumeMode)
-        {
-            case SkillMeterConsumeMode.None:
-                return;
-
-            case SkillMeterConsumeMode.Cost:
-                SetCurrentMeter(
-                    slot,
-                    GetCurrentMeter(slot) -
-                    Mathf.Max(0f, meter.Cost));
-                break;
-
-            case SkillMeterConsumeMode.Reset:
-                SetCurrentMeter(
-                    slot,
-                    0f);
-                break;
-        }
+        Skill skill = GetSkill(slot);
+        return skill != null && HasAvailableCharge(slot, skill) && HasRequiredMeter(slot, skill);
     }
 
+    private void ConsumeMeter(SkillSlot slot, Skill skill)
+    {
+        if (!skill.Patterns.NeedsMeterPayment(IsChargeWindowOpen(slot))) return;
+        MeterSettings meter = skill.Patterns.Meter;
+        if (meter.ConsumeMode == SkillMeterConsumeMode.Cost)
+            SetCurrentMeter(slot, GetCurrentMeter(slot) - meter.Cost);
+        else if (meter.ConsumeMode == SkillMeterConsumeMode.Reset)
+            SetCurrentMeter(slot, 0f);
+    }
 
     private void UpdateMeter(
         SkillSlot slot,
@@ -805,17 +671,8 @@ public sealed class PlayerSkillController :
             return;
         }
 
-        if (skill?.Patterns.Charge is { } chargeSkill &&
-            chargeSkill.RechargeMode == SkillChargeRechargeMode.Passive)
-        {
-            if (chargeSkill.ResetByMeterMode == SkillChargeResetByMeterMode.OneByOne &&
-                GetCurrentCharges(slot) >= GetMaxCharges(slot))
-                return;
-
-            if (chargeSkill.ResetByMeterMode == SkillChargeResetByMeterMode.Full &&
-                GetCurrentCharges(slot) > 0)
-                return;
-        }
+        if (!skill.Patterns.CanGainMeter(GetCurrentCharges(slot), IsChargeWindowOpen(slot)))
+            return;
 
         float gainPerSecond =
             Mathf.Max(
@@ -883,10 +740,11 @@ public sealed class PlayerSkillController :
             return;
         }
 
-        SetCurrentMeter(
-            slot,
-            GetCurrentMeter(slot) +
-            amount);
+        Skill skill = GetSkill(slot);
+        if (skill == null || float.IsNaN(amount) || float.IsInfinity(amount) ||
+            !skill.Patterns.CanGainMeter(GetCurrentCharges(slot), IsChargeWindowOpen(slot)))
+            return;
+        SetCurrentMeter(slot, GetCurrentMeter(slot) + amount);
     }
 
 
@@ -925,6 +783,34 @@ public sealed class PlayerSkillController :
     // =========================================================
     // Use Phase
     // =========================================================
+
+    public bool IsChargeWindowOpen(SkillSlot slot)
+    {
+        TickTimer timer = GetSlotState(slot).ChargeWindowTimer;
+        return timer.IsRunning && !timer.Expired(Runner);
+    }
+
+    public float GetChargeWindowRemaining(SkillSlot slot) =>
+        GetSlotState(slot).ChargeWindowTimer.RemainingTime(Runner) ?? 0f;
+
+    private void BeginChargeWindow(SkillSlot slot, Skill skill)
+    {
+        if (!skill.Patterns.UsesChargeWindow || IsChargeWindowOpen(slot)) return;
+        SkillSlotRuntimeState state = GetSlotState(slot);
+        state.ChargeWindowTimer = CreateTimer(skill.Patterns.Duration);
+        SetSlotState(slot, state);
+    }
+
+    private void UpdateChargeWindow(SkillSlot slot)
+    {
+        SkillSlotRuntimeState state = GetSlotState(slot);
+        if (!state.ChargeWindowTimer.Expired(Runner)) return;
+        // 이미 시작한 행동은 완료시키고, 아직 사용하지 않은 횟수만 폐기한다.
+        state.Charges = 0;
+        state.ChargeWindowTimer = TickTimer.None;
+        state.RechargeTimer = TickTimer.None;
+        SetSlotState(slot, state);
+    }
 
     private void BeginUsePhase(
         SkillSlot slot,
@@ -1023,7 +909,7 @@ public sealed class PlayerSkillController :
         SkillSlot slot,
         Skill skill)
     {
-        float duration = skill?.Patterns.Duration ?? 0f;
+        float duration = skill?.Patterns.ActiveDuration ?? 0f;
         if (duration > 0f)
         {
             SetUsePhase(
@@ -1632,7 +1518,7 @@ public sealed class PlayerSkillController :
             (byte)Mathf.Clamp(
                 charges,
                 0,
-                byte.MaxValue);
+                GetMaxCharges(slot));
 
         SkillSlotRuntimeState state =
             GetSlotState(

@@ -5,7 +5,6 @@ using UnityEngine.U2D.Animation;
 
 /// <summary>
 /// 공유 에셋의 정적 설정입니다. 충전량과 타이머 등 플레이어 상태는 보관하지 않습니다.
-/// 기존 실행 경로는 아직 이 설정을 소비하지 않습니다.
 /// </summary>
 [Serializable]
 public sealed class SkillPatternSettings
@@ -40,8 +39,12 @@ public sealed class SkillPatternSettings
         Check(statModifier, "Stat Modifier", errors);
         Check(appearance, "Appearance", errors);
 
-        /*if (charge != null && meter != null && charge.Enabled && meter.Enabled)
-            errors.Add("현재 Charge와 Meter의 동시 사용은 지원하지 않습니다.");*/
+        if (charge != null && charge.Enabled &&
+            charge.RechargeMode == SkillChargeRechargeMode.Passive && !(meter?.Enabled ?? false))
+            errors.Add("Passive Charge에는 Meter가 필요합니다.");
+        if (duration != null && duration.Enabled && duration.Mode == SkillDurationMode.ChargeWindow &&
+            (!(charge?.Enabled ?? false) || duration.Source != SkillDurationSource.Settings))
+            errors.Add("ChargeWindow에는 Charge와 Settings 출처의 제한 시간이 필요합니다.");
 
         error = string.Join("\n", errors);
         return errors.Count == 0;
@@ -105,8 +108,9 @@ public sealed class ChargeSettings : SkillPatternOptions
 
     public override bool Validate(out string error)
     {
-        error = maxCharges >= 1 && maxCharges <= byte.MaxValue && NonNegative(rechargeDuration)
-            ? null : "횟수는 1~255, 재충전 시간은 유한한 0 이상의 값이어야 합니다.";
+        error = maxCharges >= 1 && maxCharges <= byte.MaxValue && NonNegative(rechargeDuration) &&
+            initialCharges >= 0 && initialCharges <= maxCharges && costPerUse >= 1 && costPerUse <= maxCharges
+            ? null : "최대 횟수는 1~255, 초기 횟수는 0~최대, 비용은 1~최대, 재충전 시간은 유한한 0 이상이어야 합니다.";
         return error == null;
     }
 }
@@ -140,7 +144,14 @@ public sealed class MeterSettings : SkillPatternOptions
 
     public override bool Validate(out string error)
     {
+        if (!NonNegative(requiredMeter) || requiredMeter > maxMeter)
+        {
+            error = "RequiredMeter는 유한한 0 이상이며 MaxMeter 이하여야 합니다.";
+            return false;
+        }
         error = NonNegative(maxMeter) && maxMeter > 0f &&
+            NonNegative(initialMeter) && initialMeter <= maxMeter &&
+            NonNegative(requiredMeter) && requiredMeter <= maxMeter &&
             NonNegative(cost) && cost <= maxMeter &&
             NonNegative(passiveGainPerSecond) && NonNegative(damageGainPerDamage)
             ? null : "최대량은 유한한 양수, 비용은 0~최대량, 충전 비율은 유한한 0 이상의 값이어야 합니다.";
@@ -166,9 +177,18 @@ public enum SkillDurationSource
     Behavior
 }
 
+public enum SkillDurationMode
+{
+    Active = 0,
+    ChargeWindow = 1
+}
+
 [Serializable]
 public sealed class SkillDurationSettings : SkillPatternOptions
 {
+    [Tooltip("Active는 개별 실행 시간, ChargeWindow는 첫 사용부터 남은 횟수를 사용할 수 있는 제한 시간입니다.")]
+    [SerializeField] private SkillDurationMode mode;
+    public SkillDurationMode Mode => mode;
     [Tooltip("Behavior는 대시 이동 시간처럼 스킬 행동이 제공하는 시간을 사용합니다.")]
     [SerializeField] private SkillDurationSource source;
     [SerializeField, Min(0.01f)] private float seconds = 1f;

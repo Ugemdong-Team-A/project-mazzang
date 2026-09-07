@@ -17,4 +17,7 @@ public struct SkillSlotRuntimeState :
     public TickTimer PhaseTimer;
 
     public TickTimer RechargeTimer;
+
+    // 개별 Cast/Active/Recovery와 독립적인 재사용 허용 구간.
+    public TickTimer ChargeWindowTimer;
 }

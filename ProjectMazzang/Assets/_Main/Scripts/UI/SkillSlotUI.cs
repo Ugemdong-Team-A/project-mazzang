@@ -639,10 +639,6 @@ public sealed class SkillSlotUI :
         }
 
 
-        float current =
-            _controller.GetCurrentMeter(
-                _slot);
-
         float normalized =
             _controller.GetMeterNormalized(
                 _slot);
@@ -667,13 +663,8 @@ public sealed class SkillSlotUI :
         }
 
 
-        float required =
-            Mathf.Max(
-                0f,
-                _meterSkill.RequiredMeter);
-
         bool ready =
-            current >= required;
+            _controller.HasReadyResources(_slot);
 
         int percentage =
             Mathf.FloorToInt(
@@ -829,10 +820,10 @@ public sealed class SkillSlotUI :
 
     private void RefreshDuration()
     {
+        bool window = _skill?.Patterns.UsesChargeWindow ?? false;
         if (_durationSkill == null ||
-            _controller.GetUsePhase(
-                _slot) !=
-            SkillUsePhase.Active)
+            (window ? !_controller.IsChargeWindowOpen(_slot) :
+                _controller.GetUsePhase(_slot) != SkillUsePhase.Active))
         {
             SetActive(
                 durationRoot,
@@ -846,8 +837,8 @@ public sealed class SkillSlotUI :
             _skill.Patterns.Duration;
 
         float remaining =
-            _controller.GetPhaseRemaining(
-                _slot);
+            window ? _controller.GetChargeWindowRemaining(_slot) :
+                _controller.GetPhaseRemaining(_slot);
 
 
         bool active =

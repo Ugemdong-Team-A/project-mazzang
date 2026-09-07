@@ -200,9 +200,15 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
 - 공통 패턴 Inspector는 활성 체크와 펼침 상태를 분리하며, 비활성 값은 보존하고 편집만 막는다.
   `ValidatePatterns`는 활성 설정의 수치를 검증하고 값을 변경하지 않는다. Inspector와 장착 경로가
   같은 검증을 사용하며 Charge/Meter 동시 활성은 허용한다.
-- Active 타이머, 대시의 사용 잠금 시간과 지속시간 UI는 `SkillPatternView.Duration`을 사용한다.
-  Settings는 직접 지정한 시간, Behavior는 `Skill.BehaviorDuration`을 사용한다. 현재 대시는
-  `DashData.Duration`을 제공하며, 별도의 행동 수명과 효과 수명은 아직 분리하지 않는다.
+- Duration의 기본 Mode는 Active다. Settings는 직접 지정한 시간, Behavior는
+  `Skill.BehaviorDuration`을 사용한다. 현재 대시는 `DashData.Duration`을 제공한다.
+- ChargeWindow Mode는 Charge가 필요하며 Settings의 초를 별도 Networked
+  `ChargeWindowTimer`로 관리한다. 첫 사용 성공부터 시작하고 재사용으로 연장하지 않는다.
+  만료 시 남은 횟수를 폐기하고 재충전 타이머를 초기화하되 이미 실행 중인 행동은 취소하지 않는다.
+  사망 중에도 구간 시간은 흐르며 장착 변경 시 초기화된다. 구간 전체의 버프 적용은 하지 않는다.
+- 개별 Active 타이머와 대시 잠금은 `ActiveDuration`을 사용한다. ChargeWindow에서는 행동이
+  제공한 시간만 Active에 사용하므로 긴 구간 시간 때문에 대시가 길어지거나 재사용이 막히지 않는다.
+  UI는 ChargeWindow일 때 별도 구간 시간을, Active일 때 개별 Phase 시간을 표시한다.
 - 투사체 시전 연출 시간은 기존 개별 Data 필드가 아니라 공통 Cast 설정을 사용한다.
 - `SkillData.Animation`은 선택적인 `SkillAnimationData`를 참조한다. 이 데이터는 Cast,
   실제 효과가 발동하는 Release, 지속 효과 뒤의 Recovery 클립을 보관하므로 복사하거나
@@ -225,14 +231,23 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
   Networked 슬롯 상태의 초기화와 외부 보상 지급은 State Authority만 수행한다.
 - 활성 Meter 설정은 생존 중 자연 충전되고 사용 시 ConsumeMode에 따라 처리된다.
   장착 변경 시 InitialMeter로 초기화하며 사망과 리스폰 사이에는 유지한다.
-  사용 요구량은 RequiredMeter, 소모량은 Cost로 구분한다. Passive Charge가 남아 있으면
-  Meter 사용 조건을 우회하는 현재 규칙은 유지한다.
+  사용 요구량은 RequiredMeter, 소모량은 Cost로 구분하며 Cost 방식은 둘 다 충족해야 한다.
+- Passive Charge의 Meter는 횟수 생산용이다. 사용 시 Meter를 다시 소모하지 않고 완충 시
+  Full은 최대 횟수, OneByOne은 한 횟수로 바꾸며 Meter를 0으로 만든다. 초과 충전은 이월하지 않는다.
+  Full은 사용 가능한 횟수가 없고 구간이 닫혔을 때만, OneByOne은 최대 횟수 미만일 때 충전한다.
+  자연 충전과 Host 피해 보상은 동일한 허용 규칙을 사용하되 외부 지급 권한은 Host에 유지한다.
+- Timed Charge는 Meter와 독립적으로 RechargeDuration마다 한 횟수씩 회복한다.
+  초기 횟수 0에서도 타이머를 시작하며 0초는 재충전 갱신 시 즉시 최대 횟수로 복구한다.
+  Meter를 함께 사용하면 기본적으로 매번 요구·소모하고, ChargeWindow에서는 구간을 여는
+  첫 사용에만 요구·소모한다. 열린 구간에서도 자연·피해 Meter 충전은 유지한다.
+- Passive에 Meter가 없거나, 사용 비용/요구량이 최대 보유량을 넘거나, ChargeWindow에 Charge나
+  명시적인 양의 시간이 없는 설정은 장착 전에 거부한다. 쿨다운은 계속 매 사용 시 시작한다.
 - 피해 기반 충전은 `CombatDamageService`가 State Authority에서 확정된 실제 체력 감소량만
   공격자의 `IDamageDealtReceiver`에 전달하며, Meter 특성을 가진 모든 슬롯이 각 비율로 받는다.
 - Meter 처리는 슬롯 이름이나 구체 스킬 타입이 아니라 활성 Meter 설정으로 판별한다.
 - `SkillSlotUI`도 활성 Meter 설정을 기준으로 Meter 레일과 퍼센트를 표시한다. 스킬이
   Meter를 사용하지 않으면 해당 UI를 숨기며, 슬롯 종류를 기준으로 궁극기라고 가정하지 않는다.
-  Meter의 READY 표시는 RequiredMeter 도달 여부이며 전체 스킬 사용 가능 판정은 아니다.
+  Meter의 READY 표시는 Charge와 Meter의 자원 조건이며 쿨다운·행동 잠금을 포함한 판정은 아니다.
   횟수 재충전 UI는 Meter 활성 여부가 아니라 Charge의 Timed 방식으로 판별한다.
 - `PlayerSkillController`는 활성 스킬의 합산 능력치 배율을 `PlayerTickState.ActiveStatModifiers`에
   공개한다. 이동과 외형처럼 배율을 소비하는 모듈은 SkillController를 직접 참조하지 않는다.

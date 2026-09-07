@@ -52,6 +52,25 @@ public sealed class SkillPatternView
         : null;
 
     // 런타임 해석이 필요한 값
+    public bool UsesChargeWindow => Charge != null &&
+        DurationPattern?.Mode == SkillDurationMode.ChargeWindow;
+
+    public float ActiveDuration => UsesChargeWindow ? skill.BehaviorDuration : Duration;
+
+    public bool UsesMeterRecharge => Charge?.RechargeMode == SkillChargeRechargeMode.Passive;
+
+    public bool NeedsMeterPayment(bool windowOpen) => Meter != null &&
+        !UsesMeterRecharge && !(UsesChargeWindow && windowOpen);
+
+    public bool CanGainMeter(int charges, bool windowOpen)
+    {
+        if (Meter == null) return false;
+        if (!UsesMeterRecharge) return true;
+        return Charge.ResetByMeterMode == SkillChargeResetByMeterMode.Full
+            ? charges < Charge.CostPerUse && !windowOpen
+            : charges < Charge.MaxCharges;
+    }
+
     public float Duration =>
         DurationPattern == null
             ? 0f

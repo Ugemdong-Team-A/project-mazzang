@@ -155,6 +155,102 @@ namespace ProjectMazzang.Tests
             }
         }
 
+        [TestCase(0, false, true)]
+        [TestCase(0, true, false)]
+        [TestCase(1, false, true)]
+        [TestCase(1, true, true)]
+        public void MeterGainUsesSamePolicyForEverySource(int refillMode, bool windowOpen, bool expected)
+        {
+            serialized.FindProperty("patterns.charge.enabled").boolValue = true;
+            serialized.FindProperty("patterns.meter.enabled").boolValue = true;
+            serialized.FindProperty("patterns.charge.resetByMeterMode").enumValueIndex = refillMode;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            object view = RuntimeView();
+            Assert.That(view.GetType().GetMethod("CanGainMeter").Invoke(view, new object[] { 0, windowOpen }),
+                Is.EqualTo(expected));
+            Assert.That(view.GetType().GetMethod("CanGainMeter").Invoke(view, new object[] { 2, windowOpen }),
+                Is.False);
+        }
+
+        [TestCase(0, false, false)]
+        [TestCase(0, true, false)]
+        [TestCase(1, false, true)]
+        [TestCase(1, true, false)]
+        public void ChargeWindowPaysMeterOnlyAtTimedWindowEntry(int rechargeMode, bool open, bool expected)
+        {
+            serialized.FindProperty("patterns.charge.enabled").boolValue = true;
+            serialized.FindProperty("patterns.charge.rechargeMode").enumValueIndex = rechargeMode;
+            serialized.FindProperty("patterns.meter.enabled").boolValue = true;
+            serialized.FindProperty("patterns.duration.enabled").boolValue = true;
+            serialized.FindProperty("patterns.duration.mode").enumValueIndex = 1;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            object view = RuntimeView();
+            Assert.That(view.GetType().GetMethod("NeedsMeterPayment").Invoke(view, new object[] { open }),
+                Is.EqualTo(expected));
+            // 제한 시간이 대시의 개별 Active 시간으로 들어가지 않는다.
+            Assert.That(view.GetType().GetProperty("ActiveDuration").GetValue(view), Is.EqualTo(0f));
+        }
+
+        [Test]
+        public void TimedWithoutWindowRequiresMeterOnEveryUse()
+        {
+            serialized.FindProperty("patterns.charge.enabled").boolValue = true;
+            serialized.FindProperty("patterns.charge.rechargeMode").enumValueIndex = 1;
+            serialized.FindProperty("patterns.meter.enabled").boolValue = true;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            object view = RuntimeView();
+            Assert.That(view.GetType().GetMethod("NeedsMeterPayment").Invoke(view, new object[] { true }), Is.True);
+        }
+
+        [Test]
+        public void PassiveRequiresMeterButTimedAllowsZeroInitialChargesAndZeroRechargeTime()
+        {
+            serialized.FindProperty("patterns.charge.enabled").boolValue = true;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            Assert.That(Validate(), Is.False);
+            serialized.FindProperty("patterns.charge.rechargeMode").enumValueIndex = 1;
+            serialized.FindProperty("patterns.charge.initialCharges").intValue = 0;
+            serialized.FindProperty("patterns.charge.rechargeDuration").floatValue = 0f;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            Assert.That(Validate(), Is.True);
+        }
+
+        [Test]
+        public void ChargeWindowRequiresChargesAndExplicitTime()
+        {
+            serialized.FindProperty("patterns.duration.enabled").boolValue = true;
+            serialized.FindProperty("patterns.duration.mode").enumValueIndex = 1;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            Assert.That(Validate(), Is.False);
+            serialized.FindProperty("patterns.charge.enabled").boolValue = true;
+            serialized.FindProperty("patterns.charge.rechargeMode").enumValueIndex = 1;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            Assert.That(Validate(), Is.True);
+            serialized.FindProperty("patterns.duration.source").enumValueIndex = 1;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            Assert.That(Validate(), Is.False);
+        }
+
+        private object RuntimeView()
+        {
+            object skill = CreateRuntime(data);
+            return skill.GetType().GetProperty("Patterns").GetValue(skill);
+        }
+
+        [Test]
+        public void UnreachableMeterRequirementIsRejected()
+        {
+            serialized.FindProperty("patterns.meter.enabled").boolValue = true;
+            serialized.FindProperty("patterns.meter.maxMeter").floatValue = 50f;
+            serialized.FindProperty("patterns.meter.cost").floatValue = 50f;
+            serialized.FindProperty("patterns.meter.requiredMeter").floatValue = 100f;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            Assert.That(Validate(), Is.False);
+            serialized.FindProperty("patterns.meter.requiredMeter").floatValue = 50f;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            Assert.That(Validate(), Is.True);
+        }
+
         private static object CreateRuntime(ScriptableObject definition)
         {
             object skill = definition.GetType().GetMethod("CreateSkill").Invoke(definition, null);

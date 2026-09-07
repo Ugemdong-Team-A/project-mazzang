@@ -182,7 +182,9 @@ public sealed class SkillPatternSettingsEditor : Editor
     public override void OnInspectorGUI()
     {
         EditorGUILayout.HelpBox(
-            "Use Common Patterns를 켜면 공통 설정으로 실행합니다. 기존 패턴 값을 먼저 옮기세요. 대시는 Duration을 켜고 Source를 Behavior로 설정하세요.",
+            "대시 단독: Duration의 Active + Behavior. 횟수 제한 시간: ChargeWindow + Settings(초). " +
+            "ChargeWindow는 첫 사용부터 시작하며 추가 사용으로 연장되지 않습니다. " +
+            "Timed는 횟수를 시간으로 회복하며, Meter를 함께 켜면 새 구간의 첫 사용에 Meter가 필요합니다.",
             MessageType.Info);
         DrawDefaultInspector();
         foreach (Object item in targets)
