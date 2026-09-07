@@ -22,6 +22,9 @@ public abstract class Weapon :
 
     [Header("Presentation")]
     [SerializeField]
+    private ActionAnimationData actionAnimation;
+
+    [SerializeField]
     private SortingGroup sortingGroup;
 
     [SerializeField]
@@ -66,6 +69,9 @@ public abstract class Weapon :
 
     public HeldWeaponView HeldView =>
         _heldView;
+
+    public ActionAnimationData Animation =>
+        actionAnimation;
 
     public bool TryGetHeldMuzzlePosition(
         out Vector2 position)

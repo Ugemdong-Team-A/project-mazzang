@@ -1,12 +1,3 @@
-public enum SkillAnimationPhase : byte
-{
-    None = 0,
-    Cast = 1,
-    Release = 2,
-    Recovery = 3
-}
-
-
 public enum SkillUsePhase : byte
 {
     None = 0,

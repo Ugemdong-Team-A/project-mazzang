@@ -52,7 +52,7 @@ public sealed class PlayerSkillController :
     }
 
     [Networked]
-    public SkillAnimationPhase LastSkillAnimationPhase
+    public ActionAnimationPhase LastSkillAnimationPhase
     {
         get;
         private set;
@@ -132,6 +132,11 @@ public sealed class PlayerSkillController :
 
         SkillControlLockTimer =
             TickTimer.None;
+
+        SkillAnimationSequence = 0;
+        LastSkillAnimationSlot = default;
+        LastSkillAnimationPhase =
+            ActionAnimationPhase.None;
     }
 
 
@@ -402,8 +407,8 @@ public sealed class PlayerSkillController :
             slot,
             GetUsePhase(slot) ==
                 SkillUsePhase.Cast
-                ? SkillAnimationPhase.Cast
-                : SkillAnimationPhase.Release);
+                ? ActionAnimationPhase.Cast
+                : ActionAnimationPhase.Release);
 
 
         skill.Activate(
@@ -415,13 +420,13 @@ public sealed class PlayerSkillController :
 
     private void PublishSkillAnimation(
         SkillSlot slot,
-        SkillAnimationPhase phase)
+        ActionAnimationPhase phase)
     {
-        SkillAnimationData animation =
+        ActionAnimationData animation =
             GetSkillData(slot)?.Animation;
 
         if (animation == null ||
-            animation.GetClip(phase) == null)
+            !animation.GetClipData(phase).HasClip)
         {
             return;
         }
@@ -458,6 +463,17 @@ public sealed class PlayerSkillController :
         UpdateUsePhase(
             slot,
             skill);
+
+        if (LastSkillAnimationSlot == slot &&
+            LastSkillAnimationPhase !=
+                ActionAnimationPhase.None &&
+            GetUsePhase(slot) ==
+                SkillUsePhase.None)
+        {
+            LastSkillAnimationPhase =
+                ActionAnimationPhase.None;
+            SkillAnimationSequence++;
+        }
     }
 
 
@@ -872,7 +888,7 @@ public sealed class PlayerSkillController :
 
                 PublishSkillAnimation(
                     slot,
-                    SkillAnimationPhase.Release);
+                    ActionAnimationPhase.Release);
 
                 break;
 
@@ -888,7 +904,7 @@ public sealed class PlayerSkillController :
                 {
                     PublishSkillAnimation(
                         slot,
-                        SkillAnimationPhase.Recovery);
+                        ActionAnimationPhase.Recovery);
                 }
 
                 break;

@@ -13,7 +13,7 @@ public abstract class SkillData :
 
     [Header("Presentation")]
     [SerializeField]
-    private SkillAnimationData animation;
+    private ActionAnimationData animation;
 
     [Space]
     [SerializeField]
@@ -42,7 +42,7 @@ public abstract class SkillData :
     public Sprite Icon
         => icon;
 
-    public SkillAnimationData Animation =>
+    public ActionAnimationData Animation =>
         animation;
 
     public abstract Skill CreateSkill();

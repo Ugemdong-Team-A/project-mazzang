@@ -9,9 +9,21 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f15ad6cb45b946e3a8a9e7c901ad1e71, type: 3}
+  m_Script: {fileID: 11500000, guid: d5e3e49ba872dc845a4e0f56b41474f2, type: 3}
   m_Name: SA_MaryProjectile
-  m_EditorClassIdentifier: Assembly-CSharp::SkillAnimationData
-  cast: {fileID: 7400000, guid: ae92c9e8f151eed4a82af4cdf41833ec, type: 2}
-  release: {fileID: 7400000, guid: 5c835152afe634d4db2329019ecb1b9b, type: 2}
-  recovery: {fileID: 0}
+  m_EditorClassIdentifier: Assembly-CSharp::ActionAnimationData
+  cast:
+    clip: {fileID: 7400000, guid: ae92c9e8f151eed4a82af4cdf41833ec, type: 2}
+    bodyMask: 0
+    aimComposition: 0
+    handIkPolicy: 0
+  release:
+    clip: {fileID: 7400000, guid: 5c835152afe634d4db2329019ecb1b9b, type: 2}
+    bodyMask: 0
+    aimComposition: 0
+    handIkPolicy: 0
+  recovery:
+    clip: {fileID: 0}
+    bodyMask: 0
+    aimComposition: 0
+    handIkPolicy: 0

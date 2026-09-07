@@ -46,6 +46,12 @@ public sealed class PlayerTickState
 
     public byte AttackId { get; internal set; }
 
+    public byte AttackAnimationSequence { get; internal set; }
+
+    public ActionAnimationPhase AttackAnimationPhase { get; internal set; }
+
+    public ActionAnimationData AttackAnimation { get; internal set; }
+
     /// <summary>
     /// 외부 제어 효과로 기본 공격이 잠긴 상태입니다.
     /// </summary>
@@ -58,9 +64,9 @@ public sealed class PlayerTickState
 
     public SkillSlot SkillAnimationSlot { get; internal set; }
 
-    public SkillAnimationPhase SkillAnimationPhase { get; internal set; }
+    public ActionAnimationPhase SkillAnimationPhase { get; internal set; }
 
-    public SkillAnimationData SkillAnimation { get; internal set; }
+    public ActionAnimationData SkillAnimation { get; internal set; }
 
     public PlayerStatModifiers ActiveStatModifiers { get; internal set; }
 
@@ -113,6 +119,12 @@ public sealed class PlayerTickState
 
     public bool HasEquippedWeapon { get; internal set; }
 
+    public byte WeaponAnimationSequence { get; internal set; }
+
+    public bool IsWeaponAnimationActive { get; internal set; }
+
+    public ActionAnimationData WeaponAnimation { get; internal set; }
+
 
     internal void Reset()
     {
@@ -137,13 +149,17 @@ public sealed class PlayerTickState
         IsAttacking = false;
         AttackSequence = 0;
         AttackId = 0;
+        AttackAnimationSequence = 0;
+        AttackAnimationPhase =
+            ActionAnimationPhase.None;
+        AttackAnimation = null;
         IsAttackControlLocked = false;
 
         HasSkill = false;
         SkillAnimationSequence = 0;
         SkillAnimationSlot = default;
         SkillAnimationPhase =
-            global::SkillAnimationPhase.None;
+            ActionAnimationPhase.None;
         SkillAnimation = null;
         ActiveStatModifiers =
             PlayerStatModifiers.Identity;
@@ -162,6 +178,9 @@ public sealed class PlayerTickState
         MaxBodyAimAngle = 0f;
 
         HasEquippedWeapon = false;
+        WeaponAnimationSequence = 0;
+        IsWeaponAnimationActive = false;
+        WeaponAnimation = null;
     }
 
 
@@ -214,5 +233,48 @@ public sealed class PlayerTickState
             !HasMovement || FacingRight,
             MaxBodyAimAngle,
             BodyAimAngle);
+    }
+
+
+    public bool TryGetActiveActionClipData(
+        out ActionAnimationClipData clipData)
+    {
+        if (SkillAnimation != null &&
+            SkillAnimationPhase !=
+                ActionAnimationPhase.None)
+        {
+            clipData =
+                SkillAnimation.GetClipData(
+                    SkillAnimationPhase);
+
+            if (clipData.HasClip)
+                return true;
+        }
+
+        if (AttackAnimation != null &&
+            AttackAnimationPhase !=
+                ActionAnimationPhase.None)
+        {
+            clipData =
+                AttackAnimation.GetClipData(
+                    AttackAnimationPhase);
+
+            if (clipData.HasClip)
+                return true;
+        }
+
+        if (IsWeaponAnimationActive &&
+            WeaponAnimation != null)
+        {
+            clipData =
+                WeaponAnimation.GetClipData(
+                    ActionAnimationPhase.Release);
+
+            if (clipData.HasClip)
+                return true;
+        }
+
+        clipData = default;
+        return false;
     }
 }

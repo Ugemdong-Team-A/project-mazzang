@@ -77,6 +77,20 @@ public sealed class PlayerWeaponController :
         set;
     }
 
+    [Networked]
+    private TickTimer WeaponAnimationTimer
+    {
+        get;
+        set;
+    }
+
+    [Networked]
+    public byte WeaponAnimationSequence
+    {
+        get;
+        private set;
+    }
+
 
     // =========================================================
     // State
@@ -137,6 +151,11 @@ public sealed class PlayerWeaponController :
 
         PreviousButtons =
             default;
+
+        WeaponAnimationTimer =
+            TickTimer.None;
+
+        WeaponAnimationSequence = 0;
     }
 
 
@@ -156,6 +175,13 @@ public sealed class PlayerWeaponController :
     public override void Simulate(
         in PlayerTick tick)
     {
+        if (WeaponAnimationTimer.IsRunning &&
+            WeaponAnimationTimer.Expired(Runner))
+        {
+            WeaponAnimationTimer =
+                TickTimer.None;
+        }
+
         TickPrepareAction(
             tick.State,
             false);
@@ -166,6 +192,13 @@ public sealed class PlayerWeaponController :
         PlayerTickState state)
     {
         state.HasEquippedWeapon = HasEquippedWeapon;
+        state.WeaponAnimationSequence =
+            WeaponAnimationSequence;
+        state.IsWeaponAnimationActive =
+            WeaponAnimationTimer.IsRunning &&
+            !WeaponAnimationTimer.Expired(Runner);
+        state.WeaponAnimation =
+            EquippedWeapon?.Animation;
     }
 
 
@@ -301,10 +334,20 @@ public sealed class PlayerWeaponController :
 
     public override void Present(in PlayerTickState tickState)
     {
+        if (tickState.TryGetActiveActionClipData(
+                out ActionAnimationClipData clipData))
+        {
+            ApplyActionHandIkPolicy(
+                clipData.HandIkPolicy);
+        }
+        else
+        {
+            UpdateWeaponIkBinding();
+        }
+
         if (weaponSocket == null ||
             !HasEquippedWeapon)
         {
-            UpdateWeaponIkBinding();
             return;
         }
 
@@ -317,8 +360,6 @@ public sealed class PlayerWeaponController :
                 .RefreshHeldPresentation(
                     false);
         }
-
-        UpdateWeaponIkBinding();
     }
 
 
@@ -495,6 +536,37 @@ public sealed class PlayerWeaponController :
     }
 
 
+    private void ApplyActionHandIkPolicy(
+        ActionHandIkPolicy policy)
+    {
+        switch (policy)
+        {
+            case ActionHandIkPolicy.AnimatedTargets:
+                RestoreAnimationHandIk();
+                break;
+
+            case ActionHandIkPolicy.WeaponGrips:
+                Weapon equippedWeapon =
+                    EquippedWeapon;
+
+                if (equippedWeapon?.HeldView != null)
+                {
+                    BindWeaponIk(
+                        equippedWeapon.HeldView);
+                }
+                else
+                {
+                    RestoreAnimationHandIk();
+                }
+                break;
+
+            default:
+                UpdateWeaponIkBinding();
+                break;
+        }
+    }
+
+
     private void BindWeaponIk(
         HeldWeaponView heldView)
     {
@@ -668,11 +740,33 @@ public sealed class PlayerWeaponController :
         if (weapon == null)
             return false;
 
-        return weapon.TryUse(
+        bool used = weapon.TryUse(
             origin,
             WeaponDirection,
             mirrored,
             attackDamageMultiplier);
+
+        if (used)
+        {
+            ActionAnimationClipData clipData =
+                weapon.Animation != null
+                    ? weapon.Animation.GetClipData(
+                        ActionAnimationPhase.Release)
+                    : default;
+
+            if (clipData.HasClip)
+            {
+                WeaponAnimationSequence++;
+                WeaponAnimationTimer =
+                    TickTimer.CreateFromSeconds(
+                        Runner,
+                        Mathf.Max(
+                            clipData.Clip.length,
+                            Runner.DeltaTime));
+            }
+        }
+
+        return used;
     }
 
 

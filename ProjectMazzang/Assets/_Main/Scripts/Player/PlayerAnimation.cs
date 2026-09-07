@@ -12,11 +12,20 @@ public sealed class PlayerAnimation :
     private const string ActionRecoveryPlaceholder =
         "ActionRecoveryPlaceholder";
 
+    private const string FullBodyLayer =
+        "Action_FullBody";
+
+    private const string UpperBodyLayer =
+        "Action_UpperBody";
+
+    private const string ArmsOnlyLayer =
+        "Action_ArmsOnly";
+
     [SerializeField]
     private Animator animator;
 
     private AnimatorOverrideController
-        _skillOverrideController;
+        _actionOverrideController;
 
     private byte _lastJumpSequence;
 
@@ -26,6 +35,10 @@ public sealed class PlayerAnimation :
 
     private bool _attackPresentationInitialized;
 
+    private byte _lastAttackAnimationSequence;
+
+    private bool _attackAnimationPresentationInitialized;
+
     private byte _lastDeathSequence;
 
     private bool _deathPresentationInitialized;
@@ -34,17 +47,23 @@ public sealed class PlayerAnimation :
 
     private bool _skillPresentationInitialized;
 
+    private byte _lastWeaponAnimationSequence;
+
+    private bool _weaponAnimationPresentationInitialized;
+
     public override PlayerTickStage Stage => PlayerTickStage.Finalize;
 
 
     public override void Spawned()
     {
-        InitializeSkillOverrideController();
+        InitializeActionOverrideController();
 
         _jumpPresentationInitialized = false;
         _attackPresentationInitialized = false;
+        _attackAnimationPresentationInitialized = false;
         _deathPresentationInitialized = false;
         _skillPresentationInitialized = false;
+        _weaponAnimationPresentationInitialized = false;
     }
 
 
@@ -88,16 +107,35 @@ public sealed class PlayerAnimation :
                 tickState.LastJumpType);
         }
 
+        HandleActionAnimation(
+            ref _lastWeaponAnimationSequence,
+            ref _weaponAnimationPresentationInitialized,
+            tickState.WeaponAnimationSequence,
+            ActionAnimationPhase.Release,
+            tickState.WeaponAnimation);
+
         if (tickState.HasCombat)
         {
-            HandleAttackAnimation(
-                tickState.AttackSequence,
-                tickState.AttackId);
+            HandleActionAnimation(
+                ref _lastAttackAnimationSequence,
+                ref _attackAnimationPresentationInitialized,
+                tickState.AttackAnimationSequence,
+                tickState.AttackAnimationPhase,
+                tickState.AttackAnimation);
+
+            if (tickState.AttackAnimation == null)
+            {
+                HandleAttackAnimation(
+                    tickState.AttackSequence,
+                    tickState.AttackId);
+            }
         }
 
         if (tickState.HasSkill)
         {
-            HandleSkillAnimation(
+            HandleActionAnimation(
+                ref _lastSkillAnimationSequence,
+                ref _skillPresentationInitialized,
                 tickState.SkillAnimationSequence,
                 tickState.SkillAnimationPhase,
                 tickState.SkillAnimation);
@@ -179,26 +217,30 @@ public sealed class PlayerAnimation :
     }
 
 
-    private void HandleSkillAnimation(
+    private void HandleActionAnimation(
+        ref byte previousSequence,
+        ref bool initialized,
         byte skillAnimationSequence,
-        SkillAnimationPhase phase,
-        SkillAnimationData animation)
+        ActionAnimationPhase phase,
+        ActionAnimationData animation)
     {
         if (!HasSequenceChanged(
-                ref _lastSkillAnimationSequence,
-                ref _skillPresentationInitialized,
+                ref previousSequence,
+                ref initialized,
                 skillAnimationSequence))
         {
             return;
         }
 
-        AnimationClip clip =
-            animation?.GetClip(phase);
+        ActionAnimationClipData clipData =
+            animation != null
+                ? animation.GetClipData(phase)
+                : default;
 
-        if (clip == null ||
-            !TryApplySkillOverride(
+        if (!clipData.HasClip ||
+            !TryApplyActionOverride(
                 phase,
-                clip))
+                clipData))
         {
             return;
         }
@@ -212,44 +254,44 @@ public sealed class PlayerAnimation :
     }
 
 
-    private void InitializeSkillOverrideController()
+    private void InitializeActionOverrideController()
     {
-        if (_skillOverrideController != null ||
+        if (_actionOverrideController != null ||
             animator == null ||
             animator.runtimeAnimatorController == null)
         {
             return;
         }
 
-        _skillOverrideController =
+        _actionOverrideController =
             new AnimatorOverrideController(
                 animator.runtimeAnimatorController)
             {
                 name =
                     $"{animator.runtimeAnimatorController.name} " +
-                    "(Player Skill Instance)"
+                    "(Player Action Instance)"
             };
 
         animator.runtimeAnimatorController =
-            _skillOverrideController;
+            _actionOverrideController;
     }
 
 
-    private bool TryApplySkillOverride(
-        SkillAnimationPhase phase,
-        AnimationClip clip)
+    private bool TryApplyActionOverride(
+        ActionAnimationPhase phase,
+        ActionAnimationClipData clipData)
     {
-        if (_skillOverrideController == null)
+        if (_actionOverrideController == null)
             return false;
 
         string placeholder =
             phase switch
             {
-                SkillAnimationPhase.Cast =>
+                ActionAnimationPhase.Cast =>
                     ActionCastPlaceholder,
-                SkillAnimationPhase.Release =>
+                ActionAnimationPhase.Release =>
                     ActionReleasePlaceholder,
-                SkillAnimationPhase.Recovery =>
+                ActionAnimationPhase.Recovery =>
                     ActionRecoveryPlaceholder,
                 _ =>
                     null
@@ -258,20 +300,57 @@ public sealed class PlayerAnimation :
         if (placeholder == null)
             return false;
 
-        _skillOverrideController[placeholder] =
-            clip;
+        SelectActionLayer(
+            clipData.BodyMask);
 
-        return _skillOverrideController[placeholder] ==
-               clip;
+        _actionOverrideController[placeholder] =
+            clipData.Clip;
+
+        return _actionOverrideController[placeholder] ==
+               clipData.Clip;
+    }
+
+
+    private void SelectActionLayer(
+        ActionBodyMask bodyMask)
+    {
+        SetLayerWeight(
+            FullBodyLayer,
+            bodyMask == ActionBodyMask.FullBody);
+
+        SetLayerWeight(
+            UpperBodyLayer,
+            bodyMask == ActionBodyMask.UpperBody);
+
+        SetLayerWeight(
+            ArmsOnlyLayer,
+            bodyMask == ActionBodyMask.ArmsOnly);
+    }
+
+
+    private void SetLayerWeight(
+        string layerName,
+        bool active)
+    {
+        int layerIndex =
+            animator.GetLayerIndex(
+                layerName);
+
+        if (layerIndex < 0)
+            return;
+
+        animator.SetLayerWeight(
+            layerIndex,
+            active ? 1f : 0f);
     }
 
 
     private void OnDestroy()
     {
-        if (_skillOverrideController != null)
+        if (_actionOverrideController != null)
         {
             Destroy(
-                _skillOverrideController);
+                _actionOverrideController);
         }
     }
 

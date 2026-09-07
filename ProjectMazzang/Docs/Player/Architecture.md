@@ -97,11 +97,14 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
 - `BoxAttackData`는 공통 결과에 박스 판정의 위치와 크기를 추가한다.
 - `PlayerAttackData`는 플레이어가 공격을 실행하는 Startup, Active, Recovery,
   Cooldown과 Aim, Movement 규칙을 SO로 보관한다. `PlayerCombat`은 인라인 공격 설정을
-  보관하지 않고 이 에셋만 참조한다.
+  보관하지 않고 이 에셋만 참조한다. 선택적인 `ActionAnimationData`를 연결하면 Startup,
+  Active, Recovery가 각각 공용 Cast, Release, Recovery 연출 단계를 발행한다.
 - `PlayerAttackData.Dash`가 있으면 공격 시작 Tick의 Aim 방향을 고정해 지정된 시간 동안
   일반 이동과 공격 이동 잠금보다 우선하는 속도를 `PlayerTickState`로 전달한다. 실제 Rigidbody
   변경은 계속 `PlayerMovement`가 담당하며, 대시 종료나 공격 취소 시 강제 속도를 제거한다.
-- 공격 자세는 `ProceduralAim`, `AnimationOnly`, `AnimationWithBodyAim` 중 하나를 선택한다.
+- `ActionAnimationData`가 없는 기존 공격은 `PlayerAttackData.Aim`의 공격 자세를 사용한다.
+  범용 액션 데이터가 있으면 현재 클립의 `ProceduralOverride`, `AnimationOnly`,
+  `AnimationWithBodyAim` 설정이 표현 단계의 상체 조준 합성을 우선한다.
   `ProceduralAim` 공격은 기본 포즈에서 4본 CCD를 풀고, `AnimationOnly`는 상체 조준 보정을 끈다.
   `AnimationWithBodyAim`은 4본 CCD로 각 본을 다시 분배하지 않고, Animator가 만든 상체를
   하나의 포즈처럼 Aim 방향까지 추가 회전한다.
@@ -213,13 +216,18 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
   제공한 시간만 Active에 사용하므로 긴 구간 시간 때문에 대시가 길어지거나 재사용이 막히지 않는다.
   UI는 ChargeWindow일 때 별도 구간 시간을, Active일 때 개별 Phase 시간을 표시한다.
 - 투사체 시전 연출 시간은 기존 개별 Data 필드가 아니라 공통 Cast 설정을 사용한다.
-- `SkillData.Animation`은 선택적인 `SkillAnimationData`를 참조한다. 이 데이터는 Cast,
-  실제 효과가 발동하는 Release, 지속 효과 뒤의 Recovery 클립을 보관하므로 복사하거나
-  교체한 스킬도 캐릭터 Animator Controller를 갈아 끼우지 않고 자신의 연출을 함께 가져간다.
+- `ActionAnimationData`는 기본 공격, 무기, 스킬이 공유하는 선택적 연출 에셋이다. Cast,
+  실제 효과가 발동하는 Release, Recovery의 각 클립마다 `FullBody`, `UpperBody`, `ArmsOnly`
+  고정 마스크 레이어와 상체 조준 합성, 손 IK 정책을 독립적으로 지정한다. 단계에 클립이
+  없으면 그 단계는 재생하지 않는다. 기존 스킬 애니메이션 에셋도 같은 형식으로 변환되어
+  별도의 스킬 전용 애니메이션 타입은 두지 않는다.
+- `SkillData.Animation`, `PlayerAttackData.Animation`, `Weapon.Animation`은 모두 같은
+  `ActionAnimationData` 타입을 참조한다. 무기는 성공한 기본 사용을 Release 단계로 발행한다.
 - `PlayerSkillController`는 구체 스킬 타입을 검사하지 않고 사용 슬롯과 애니메이션 단계를
   Networked 이벤트로 알린다. `PlayerAnimation`은 플레이어마다 만든
   `AnimatorOverrideController` 인스턴스의 공통 Cast/Release/Recovery 슬롯을 교체하므로 공유
-  Controller 에셋을 런타임에 수정하지 않는다. 각 슬롯은 실제 스킬 클립이 아니라 이름이 고유한
+  Controller 에셋을 런타임에 수정하지 않는다. 기본 공격과 무기 역시 같은 재생 경로를 사용한다.
+  각 슬롯은 실제 액션 클립이 아니라 이름이 고유한
   빈 Placeholder 클립을 Motion으로 가지며, `SkillPhase` 1/2/3이 해당 State를 선택한다.
 - 표준 스킬 클립은 캐릭터 본을 직접 키로 잡는 대신 `arm_l_solver/arm_l_solver_Target`과
   `arm_r_solver/arm_r_solver_Target` 같은 공통 IK Target 경로를 사용할 수 있다. 클립은 Target만

@@ -576,6 +576,48 @@ namespace ProjectMazzang.Tests
 
 
         [Test]
+        public void SkillAnimationAssets_UseSharedActionAnimationData()
+        {
+            string[] assetNames =
+            {
+                "SA_AronDash",
+                "SA_Awakening",
+                "SA_Fireball",
+                "SA_MaryProjectile"
+            };
+
+            foreach (string assetName in assetNames)
+            {
+                ActionAnimationData animation =
+                    AssetDatabase.LoadAssetAtPath<
+                        ActionAnimationData>(
+                        "Assets/_Main/Data/Skill/Animation/" +
+                        assetName + ".asset");
+
+                Assert.That(
+                    animation,
+                    Is.Not.Null,
+                    assetName + "은 공용 ActionAnimationData여야 합니다.");
+            }
+
+            ActionAnimationData mary =
+                AssetDatabase.LoadAssetAtPath<
+                    ActionAnimationData>(
+                    "Assets/_Main/Data/Skill/Animation/" +
+                    "SA_MaryProjectile.asset");
+
+            Assert.That(
+                mary.GetClipData(
+                    ActionAnimationPhase.Cast).HasClip,
+                Is.True);
+            Assert.That(
+                mary.GetClipData(
+                    ActionAnimationPhase.Release).HasClip,
+                Is.True);
+        }
+
+
+        [Test]
         public void StandardPlayer_RunBlendsByFacingRelativeDirection()
         {
             Type animationType =
@@ -1094,13 +1136,19 @@ namespace ProjectMazzang.Tests
                 tickStateType,
                 "SkillAnimationPhase",
                 GetRuntimeType(
-                    "SkillAnimationPhase"));
+                    "ActionAnimationPhase"));
 
             AssertPropertyType(
                 tickStateType,
                 "SkillAnimation",
                 GetRuntimeType(
-                    "SkillAnimationData"));
+                    "ActionAnimationData"));
+
+            AssertPropertyType(
+                tickStateType,
+                "AttackAnimation",
+                GetRuntimeType(
+                    "ActionAnimationData"));
 
             AssertPropertyType(
                 tickStateType,

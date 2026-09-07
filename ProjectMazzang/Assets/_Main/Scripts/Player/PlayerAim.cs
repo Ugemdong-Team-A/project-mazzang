@@ -273,11 +273,23 @@ public sealed class PlayerAim :
     {
         bool facingRight = tickState.FacingRight;
 
+        bool hasActionAnimation =
+            tickState.TryGetActiveActionClipData(
+                out ActionAnimationClipData clipData);
+
+        PlayerAimRigMode presentationRigMode =
+            hasActionAnimation
+                ? ResolveRigMode(
+                    clipData.AimComposition)
+                : RigMode;
+
         UpdateBodyAimPresentation(facingRight);
         UpdateRigPresentation(
             facingRight,
-            tickState.HasCombat &&
-            tickState.IsAttacking);
+            presentationRigMode,
+            hasActionAnimation ||
+            (tickState.HasCombat &&
+             tickState.IsAttacking));
     }
 
 
@@ -723,13 +735,14 @@ public sealed class PlayerAim :
 
     private void UpdateRigPresentation(
         bool facingRight,
-        bool isAttacking)
+        PlayerAimRigMode rigMode,
+        bool isActionPlaying)
     {
         _applyAnimationBodyAim =
-            RigMode ==
+            rigMode ==
             PlayerAimRigMode.AnimationWithBodyAim;
 
-        if (RigMode ==
+        if (rigMode ==
             PlayerAimRigMode.AnimationOnly)
         {
             if (upperBodyAimRig != null &&
@@ -764,7 +777,7 @@ public sealed class PlayerAim :
         // 평상시에는 달리기와 대기 클립의 가슴 움직임을 보존합니다.
         // 공격의 ProceduralAim만 기본 포즈에서 풀어 상체를 완전히 덮습니다.
         upperBodyAimRig.solveFromDefaultPose =
-            isAttacking;
+            isActionPlaying;
 
         // Target 회전이 아니라 Effector 위치로 상체 방향을 풉니다.
         upperBodyAimRig.constrainRotation = false;
@@ -775,6 +788,20 @@ public sealed class PlayerAim :
             upperBodyAimRig.enabled =
                 true;
         }
+    }
+
+
+    private static PlayerAimRigMode ResolveRigMode(
+        ActionAimComposition composition)
+    {
+        return composition switch
+        {
+            ActionAimComposition.AnimationOnly =>
+                PlayerAimRigMode.AnimationOnly,
+            ActionAimComposition.AnimationWithBodyAim =>
+                PlayerAimRigMode.AnimationWithBodyAim,
+            _ => PlayerAimRigMode.Procedural
+        };
     }
 
 

@@ -1,56 +1,112 @@
+using System;
 using UnityEngine;
 
-public class ActionAnimationData : ScriptableObject
+public enum ActionAnimationPhase : byte
 {
-    // [Header("")]
-    [SerializeField] AnimationClip actionAnimationClip;
-    [SerializeField] ActionAnimationPlayback actionAnimationPlayback;
-    [SerializeField] ActionBodyMask actionBodyMask;
-    [SerializeField] ActionAimComposition actionAimComposition;
-    [SerializeField] ActionHandIkPolicy actionHandIkPolicy;
-    [SerializeField] ActionAnimationSpeedMode actionAnimationSpeedMode;
-
+    None = 0,
+    Cast,
+    Release,
+    Recovery
 }
 
-public enum ActionAnimationPlayback
+public enum ActionBodyMask : byte
 {
-    PhaseClips,
-    ContinuousClip
-}
-
-public enum ActionBodyMask
-{
-    FullBody,
+    FullBody = 0,
     UpperBody,
     ArmsOnly
 }
 
-
-// 이미 존재하는 enum PlayerAttackPoseMode과 똑같지만
-// 공통 애니메이션 데이타이며 공격에 따라 액션도 참고할 수 있는 값이란 의미
-public enum ActionAimComposition
+public enum ActionAimComposition : byte
 {
-    ProceduralOverride,
+    ProceduralOverride = 0,
     AnimationOnly,
     AnimationWithBodyAim
 }
 
-// Inherit: 현재 장착 상태의 기본 정책
-// AnimatedTargets: 클립이 키로 저장한 손 IK Target 사용
-// WeaponGrips: Grip이 있는 손은 무기 Grip, 나머지는 애니메이션 Target 사용
-public enum ActionHandIkPolicy
+public enum ActionHandIkPolicy : byte
 {
-    Inherit,
+    Inherit = 0,
     AnimatedTargets,
     WeaponGrips
 }
 
-// NaturalSpeed: 클립 원래 속도
-// MatchGameplayPhase: 게임플레이 단계 시간에 맞춤
-// Multiplier: 지정 배율 적용
-public enum ActionAnimationSpeedMode
+[Serializable]
+public struct ActionAnimationClipData
 {
-    NaturalSpeed,
-    MatchGameplayPhase,
-    Multiplier
+    [SerializeField]
+    private AnimationClip clip;
+
+    [SerializeField]
+    private ActionBodyMask bodyMask;
+
+    [Tooltip(
+        "Procedural Override는 CCD가 포즈를 만들고, Animation Only는 클립을 그대로 사용하며, " +
+        "Animation With Body Aim은 클립 포즈에 조준 회전만 더합니다.")]
+    [SerializeField]
+    private ActionAimComposition aimComposition;
+
+    [Tooltip(
+        "Inherit는 현재 장착 상태를 유지합니다. Animated Targets는 클립의 손 IK Target을, " +
+        "Weapon Grips는 장착 무기의 Grip을 사용합니다.")]
+    [SerializeField]
+    private ActionHandIkPolicy handIkPolicy;
+
+    public AnimationClip Clip => clip;
+
+    public ActionBodyMask BodyMask => bodyMask;
+
+    public ActionAimComposition AimComposition =>
+        aimComposition;
+
+    public ActionHandIkPolicy HandIkPolicy =>
+        handIkPolicy;
+
+    public bool HasClip => clip != null;
+
+    public ActionAnimationClipData(
+        AnimationClip clip,
+        ActionBodyMask bodyMask,
+        ActionAimComposition aimComposition,
+        ActionHandIkPolicy handIkPolicy)
+    {
+        this.clip = clip;
+        this.bodyMask = bodyMask;
+        this.aimComposition = aimComposition;
+        this.handIkPolicy = handIkPolicy;
+    }
+}
+
+[CreateAssetMenu(
+    menuName = "Mazzang/Data/Animation/Action",
+    fileName = "ActionAnimation")]
+public class ActionAnimationData : ScriptableObject
+{
+    [Header("Cast")]
+    [SerializeField]
+    private ActionAnimationClipData cast;
+
+    [Header("Release")]
+    [SerializeField]
+    private ActionAnimationClipData release;
+
+    [Header("Recovery")]
+    [SerializeField]
+    private ActionAnimationClipData recovery;
+
+    public virtual bool HasAnyClip =>
+        cast.HasClip ||
+        release.HasClip ||
+        recovery.HasClip;
+
+    public virtual ActionAnimationClipData GetClipData(
+        ActionAnimationPhase phase)
+    {
+        return phase switch
+        {
+            ActionAnimationPhase.Cast => cast,
+            ActionAnimationPhase.Release => release,
+            ActionAnimationPhase.Recovery => recovery,
+            _ => default
+        };
+    }
 }
