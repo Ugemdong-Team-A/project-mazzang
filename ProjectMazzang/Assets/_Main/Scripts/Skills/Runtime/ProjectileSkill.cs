@@ -13,7 +13,7 @@ public class ProjectileSkill :
     protected ProjectileSkillData ProjectileData =>
         (ProjectileSkillData)Data;
 
-    public float CastDuration => ProjectileData.CastDuration;
+    public float CastDuration => Patterns.Cast?.Seconds ?? 0f;
 
     public override bool CanUse(
         in SkillUseContext useContext)

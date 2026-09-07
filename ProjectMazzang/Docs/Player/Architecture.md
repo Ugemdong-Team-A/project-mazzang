@@ -195,12 +195,15 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
 ## 스킬 확장 규칙
 
 - `SkillData`는 조정 가능한 정적 설정을 보관한다.
-- `SkillData.Patterns`는 비활성이 기본인 공통 패턴 설정을 보관한다. 현재 실행은 아직 기존
-  스킬 필드와 인터페이스를 사용하며 Patterns는 실행에 적용되지 않는다.
+- `SkillData.Patterns`는 비활성이 기본인 공통 패턴 설정을 보관한다. 실행과 UI는
+  `SkillPatternView`를 통해 활성 설정을 조회하며 비활성 패턴은 null로 노출한다.
 - 공통 패턴 Inspector는 활성 체크와 펼침 상태를 분리하며, 비활성 값은 보존하고 편집만 막는다.
-  `ValidatePatterns`는 활성 설정의 유한한 수치와 Charge/Meter 동시 활성 오류를 보고하고 값을
-  변경하지 않는다. Inspector가 같은 검증을 표시하며 현재 장착 경로에는 적용하지 않는다.
-  Duration의 Behavior 출처는 행동 시간 사용을 표현하는 설정이며 실제 행동 지원 검증은 아직 연결하지 않았다.
+  `ValidatePatterns`는 활성 설정의 수치를 검증하고 값을 변경하지 않는다. Inspector와 장착 경로가
+  같은 검증을 사용하며 Charge/Meter 동시 활성은 허용한다.
+- Active 타이머, 대시의 사용 잠금 시간과 지속시간 UI는 `SkillPatternView.Duration`을 사용한다.
+  Settings는 직접 지정한 시간, Behavior는 `Skill.BehaviorDuration`을 사용한다. 현재 대시는
+  `DashData.Duration`을 제공하며, 별도의 행동 수명과 효과 수명은 아직 분리하지 않는다.
+- 투사체 시전 연출 시간은 기존 개별 Data 필드가 아니라 공통 Cast 설정을 사용한다.
 - `SkillData.Animation`은 선택적인 `SkillAnimationData`를 참조한다. 이 데이터는 Cast,
   실제 효과가 발동하는 Release, 지속 효과 뒤의 Recovery 클립을 보관하므로 복사하거나
   교체한 스킬도 캐릭터 Animator Controller를 갈아 끼우지 않고 자신의 연출을 함께 가져간다.
@@ -220,19 +223,20 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
   `Cast → Active → Recovery` Networked 수명 주기를 관리한다.
 - 런타임 `Skill` 인스턴스는 예측과 표현을 위해 모든 peer에서 만들고,
   Networked 슬롯 상태의 초기화와 외부 보상 지급은 State Authority만 수행한다.
-- `IMeterSkill`의 Meter는 생존 중 자연 충전되고 사용 성공 시 비용이 차감된다.
-  장착 변경 시 0으로 초기화하며 사망과 리스폰 사이에는 유지한다.
+- 활성 Meter 설정은 생존 중 자연 충전되고 사용 시 ConsumeMode에 따라 처리된다.
+  장착 변경 시 InitialMeter로 초기화하며 사망과 리스폰 사이에는 유지한다.
+  사용 요구량은 RequiredMeter, 소모량은 Cost로 구분한다. Passive Charge가 남아 있으면
+  Meter 사용 조건을 우회하는 현재 규칙은 유지한다.
 - 피해 기반 충전은 `CombatDamageService`가 State Authority에서 확정된 실제 체력 감소량만
   공격자의 `IDamageDealtReceiver`에 전달하며, Meter 특성을 가진 모든 슬롯이 각 비율로 받는다.
-- Meter 처리는 슬롯 이름이나 구체 스킬 타입이 아니라 `IMeterSkill` 구현 여부로 판별한다.
-  현재 Mary의 `UltimateAwakeningSkill`은 Meter, Duration, Stat Modifier, Appearance 계약을
-  조합하고, Aron의 `AronUltimate`은 Meter와 Dash 계약을 조합한다.
-- `SkillSlotUI`도 같은 `IMeterSkill` 계약을 기준으로 Meter 레일과 퍼센트를 표시한다. 스킬이
+- Meter 처리는 슬롯 이름이나 구체 스킬 타입이 아니라 활성 Meter 설정으로 판별한다.
+- `SkillSlotUI`도 활성 Meter 설정을 기준으로 Meter 레일과 퍼센트를 표시한다. 스킬이
   Meter를 사용하지 않으면 해당 UI를 숨기며, 슬롯 종류를 기준으로 궁극기라고 가정하지 않는다.
+  Meter의 READY 표시는 RequiredMeter 도달 여부이며 전체 스킬 사용 가능 판정은 아니다.
+  횟수 재충전 UI는 Meter 활성 여부가 아니라 Charge의 Timed 방식으로 판별한다.
 - `PlayerSkillController`는 활성 스킬의 합산 능력치 배율을 `PlayerTickState.ActiveStatModifiers`에
   공개한다. 이동과 외형처럼 배율을 소비하는 모듈은 SkillController를 직접 참조하지 않는다.
-- 각성 데이터는 선택적인 `SpriteLibraryAsset`을 보관하고, 런타임 스킬은
-  `IAppearanceModifierSkill` 계약으로만 이를 노출한다. `PlayerSkillController`는 구체 각성 타입을
+- 공통 Appearance 설정은 선택적인 `SpriteLibraryAsset`을 보관한다. `PlayerSkillController`는 구체 각성 타입을
   모르며, 활성 스킬의 SLA를 `PlayerTickState.ActiveAppearanceLibraryAsset`에 공개한다.
 - 외형 SLA 자체는 Networked 값으로 전송하지 않는다. 이미 Networked인 스킬 슬롯의 Active 단계를
   모든 peer가 같은 정적 SkillData에 적용해 동일한 요청을 재구성한다. 두 슬롯이 동시에 외형을

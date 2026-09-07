@@ -128,7 +128,7 @@ public class DashSkill : Skill
 
         float controlLockDuration =
             (Patterns.Cast?.Seconds ?? 0f) +
-            DashData.Duration +
+            Patterns.Duration +
             (Patterns.Recovery?.Seconds ?? 0f);
 
         Controller.TickCommands.RequestControlLock(

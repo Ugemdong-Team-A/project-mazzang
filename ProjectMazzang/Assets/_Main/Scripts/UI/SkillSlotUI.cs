@@ -499,7 +499,7 @@ public sealed class SkillSlotUI :
 
 
         bool recharging =
-            !_meterSkill.Enabled &&
+            _chargeSkill.RechargeMode == SkillChargeRechargeMode.Timed &&
             current < maximum;
 
 
@@ -667,13 +667,13 @@ public sealed class SkillSlotUI :
         }
 
 
-        float cost =
+        float required =
             Mathf.Max(
                 0f,
-                _meterSkill.Cost);
+                _meterSkill.RequiredMeter);
 
         bool ready =
-            current >= cost;
+            current >= required;
 
         int percentage =
             Mathf.FloorToInt(
@@ -843,7 +843,7 @@ public sealed class SkillSlotUI :
 
 
         float duration =
-            _durationSkill.Seconds;
+            _skill.Patterns.Duration;
 
         float remaining =
             _controller.GetPhaseRemaining(

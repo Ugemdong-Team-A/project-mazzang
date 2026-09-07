@@ -1,6 +1,6 @@
 using UnityEngine.U2D.Animation;
 
-/// <summary>공통 설정을 읽고, 미전환 에셋만 기존 인터페이스 값으로 복구합니다.</summary>
+/// <summary>활성 공통 설정을 조회하고 행동 기반 지속시간을 해석합니다.</summary>
 public sealed class SkillPatternView
 {
     private readonly Skill skill;

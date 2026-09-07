@@ -736,17 +736,17 @@ public sealed class PlayerSkillController :
             return true;
         }
 
-        float cost =
+        float required =
             Mathf.Max(
                 0f,
-                meterSkill.Cost);
+                meterSkill.RequiredMeter);
 
         return (skill?.Patterns.Charge is { } chargeSkill &&
                 chargeSkill.RechargeMode == SkillChargeRechargeMode.Passive &&
                 GetCurrentCharges(slot) > 0) 
                 ||
                 GetCurrentMeter(
-                   slot) >= cost;
+                   slot) >= required;
     }
 
 
@@ -1023,8 +1023,8 @@ public sealed class PlayerSkillController :
         SkillSlot slot,
         Skill skill)
     {
-        if (skill?.Patterns.DurationPattern is { } durationSkill &&
-            durationSkill.Seconds > 0f)
+        float duration = skill?.Patterns.Duration ?? 0f;
+        if (duration > 0f)
         {
             SetUsePhase(
                 slot,
@@ -1033,7 +1033,7 @@ public sealed class PlayerSkillController :
             SetPhaseTimer(
                 slot,
                 CreateTimer(
-                    durationSkill.Seconds));
+                    duration));
 
             return;
         }
