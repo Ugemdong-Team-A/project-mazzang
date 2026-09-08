@@ -628,6 +628,32 @@ namespace ProjectMazzang.Tests
 
 
         [Test]
+        public void SkillAnimation_KeepsASeparatePresentationLifetime()
+        {
+            Type controllerType =
+                GetRuntimeType(
+                    "PlayerSkillController");
+
+            PropertyInfo timer =
+                controllerType.GetProperty(
+                    "SkillAnimationTimer",
+                    BindingFlags.NonPublic |
+                    BindingFlags.Instance);
+
+            Assert.That(timer, Is.Not.Null);
+            Assert.That(
+                timer.PropertyType.FullName,
+                Is.EqualTo("Fusion.TickTimer"));
+            Assert.That(
+                timer.CustomAttributes.Any(attribute =>
+                    attribute.AttributeType.FullName ==
+                    "Fusion.NetworkedAttribute"),
+                Is.True,
+                "스킬 판정이 끝나도 클립 정책을 동기화해 유지해야 합니다.");
+        }
+
+
+        [Test]
         public void StandardPlayer_ActionLayer_EntersEveryAnimationPhase()
         {
             AnimatorController controller =

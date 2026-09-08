@@ -58,6 +58,13 @@ public sealed class PlayerSkillController :
         private set;
     }
 
+    [Networked]
+    private TickTimer SkillAnimationTimer
+    {
+        get;
+        set;
+    }
+
 
     // =========================================================
     // Network State - Input
@@ -137,6 +144,8 @@ public sealed class PlayerSkillController :
         LastSkillAnimationSlot = default;
         LastSkillAnimationPhase =
             ActionAnimationPhase.None;
+        SkillAnimationTimer =
+            TickTimer.None;
     }
 
 
@@ -425,14 +434,24 @@ public sealed class PlayerSkillController :
         ActionAnimationData animation =
             GetSkillData(slot)?.Animation;
 
-        if (animation == null ||
-            !animation.GetClipData(phase).HasClip)
+        ActionAnimationClipData clipData =
+            animation != null
+                ? animation.GetClipData(phase)
+                : default;
+
+        if (!clipData.HasClip)
         {
             return;
         }
 
         LastSkillAnimationSlot = slot;
         LastSkillAnimationPhase = phase;
+        SkillAnimationTimer =
+            TickTimer.CreateFromSeconds(
+                Runner,
+                Mathf.Max(
+                    clipData.Clip.length,
+                    Runner.DeltaTime));
         SkillAnimationSequence++;
     }
 
@@ -467,11 +486,13 @@ public sealed class PlayerSkillController :
         if (LastSkillAnimationSlot == slot &&
             LastSkillAnimationPhase !=
                 ActionAnimationPhase.None &&
-            GetUsePhase(slot) ==
-                SkillUsePhase.None)
+            SkillAnimationTimer.IsRunning &&
+            SkillAnimationTimer.Expired(Runner))
         {
             LastSkillAnimationPhase =
                 ActionAnimationPhase.None;
+            SkillAnimationTimer =
+                TickTimer.None;
             SkillAnimationSequence++;
         }
     }
