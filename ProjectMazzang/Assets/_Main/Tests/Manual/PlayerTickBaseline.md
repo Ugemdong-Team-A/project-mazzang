@@ -101,6 +101,10 @@
 - 같은 `ActionAnimationData`를 기본 공격과 스킬에 각각 연결했을 때 실제로 존재하는
   Cast/Release/Recovery 클립만 재생된다. 단계별 Body Mask, 상체 조준 합성,
   Animated Targets/Weapon Grips 손 IK 정책이 서로 독립적으로 적용된다.
+- 같은 AAD 안에서 `FullBody → UpperBody/ArmsOnly` 또는 `UpperBody → ArmsOnly`로 전환하면
+  이전 단계가 놓는 부위가 한 프레임에 튀지 않고 짧게 Base 포즈로 이어진다.
+- Body Mask가 달라지는 전환 중에도 `ProceduralOverride`와 `AnimationWithBodyAim`의
+  최종 조준 방향과 허리 회전량이 유지된다.
 - 위치 키가 있는 상체 애니메이션 중 RAP 기반 마우스 조준이 허용하기 어려울 정도로 흔들리거나
   CCD Target과 서로 밀어내는 피드백이 생기지 않는다.
 - 총기 투사체는 장착 외형의 Muzzle 월드 위치에서 생성되고 Trail도 같은 Muzzle에서 시작한다.

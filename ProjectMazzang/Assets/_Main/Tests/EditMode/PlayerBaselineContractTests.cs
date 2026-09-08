@@ -663,11 +663,39 @@ namespace ProjectMazzang.Tests
 
             Assert.That(controller, Is.Not.Null);
 
+            AnimatorControllerLayer[] layers =
+                controller.layers;
+
+            int actionLayerIndex =
+                Array.FindIndex(
+                    layers,
+                    layer =>
+                        layer.name == "Action_FullBody");
+
+            Assert.That(
+                actionLayerIndex,
+                Is.GreaterThanOrEqualTo(0));
+
             AnimatorStateMachine action =
-                controller.layers
-                    .Single(layer =>
-                        layer.name == "Action_FullBody")
+                layers[actionLayerIndex]
                     .stateMachine;
+
+            foreach (string layerName in new[]
+                     {
+                         "Action_UpperBody",
+                         "Action_ArmsOnly"
+                     })
+            {
+                AnimatorControllerLayer syncedLayer =
+                    layers.Single(layer =>
+                        layer.name == layerName);
+
+                Assert.That(
+                    syncedLayer.syncedLayerIndex,
+                    Is.EqualTo(actionLayerIndex),
+                    layerName +
+                    "는 FullBody 상태 전환과 블렌드를 공유해야 합니다.");
+            }
 
             Dictionary<string, float> expectedPhases =
                 new()

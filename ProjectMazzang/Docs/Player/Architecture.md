@@ -240,7 +240,12 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
   `AnimatorOverrideController` 인스턴스의 공통 Cast/Release/Recovery 슬롯을 교체하므로 공유
   Controller 에셋을 런타임에 수정하지 않는다. 기본 공격과 무기 역시 같은 재생 경로를 사용한다.
   각 슬롯은 실제 액션 클립이 아니라 이름이 고유한
-  빈 Placeholder 클립을 Motion으로 가지며, `SkillPhase` 1/2/3이 해당 State를 선택한다.
+  빈 Placeholder 클립을 Motion으로 가진다. `SkillPhase` 1/2/3은 현재 단계를 표시하고,
+  `PlayerAnimation`은 해당 Cast/Release/Recovery State로 0.1초 고정 CrossFade한다.
+  단계별 Body Mask가 달라지면 세 고정 Action 레이어의 가중치도 같은 시간 동안 함께 보간한다.
+  따라서 `FullBody → UpperBody/ArmsOnly`, `UpperBody → ArmsOnly`에서 새 마스크가 놓는 부위는
+  이전에 평가된 포즈에서 Base 포즈로 자연스럽게 돌아간다. 본을 직접 덮어쓰지 않으므로
+  `ProceduralOverride`와 `AnimationWithBodyAim`의 후속 상체 합성을 침범하지 않는다.
 - 표준 스킬 클립은 캐릭터 본을 직접 키로 잡는 대신 `arm_l_solver/arm_l_solver_Target`과
   `arm_r_solver/arm_r_solver_Target` 같은 공통 IK Target 경로를 사용할 수 있다. 클립은 Target만
   움직이며 Solver의 활성 여부를 바꾸지 않는다. Solver 활성 정책은 기존 프리팹 설정과 무기

@@ -3,6 +3,8 @@ using UnityEngine;
 public sealed class PlayerAnimation :
     PlayerTickModule
 {
+    private const float ActionPoseBlendDuration = 0.1f;
+
     private const string BaseIdlePlaceholder =
         "Idle";
 
@@ -24,6 +26,13 @@ public sealed class PlayerAnimation :
     private const string ArmsOnlyLayer =
         "Action_ArmsOnly";
 
+    private static readonly string[] ActionLayerNames =
+    {
+        FullBodyLayer,
+        UpperBodyLayer,
+        ArmsOnlyLayer
+    };
+
     [SerializeField]
     private Animator animator;
 
@@ -33,6 +42,14 @@ public sealed class PlayerAnimation :
     private AnimationClip _defaultIdleAnimation;
 
     private AnimationClip _appliedStanceAnimation;
+
+    private readonly int[] _actionLayerIndices =
+        { -1, -1, -1 };
+
+    private readonly float[] _actionLayerTargets =
+        new float[ActionLayerNames.Length];
+
+    private bool _isBlendingActionLayers;
 
     private byte _lastJumpSequence;
 
@@ -64,6 +81,7 @@ public sealed class PlayerAnimation :
     public override void Spawned()
     {
         InitializeActionOverrideController();
+        InitializeActionLayers();
 
         _jumpPresentationInitialized = false;
         _attackPresentationInitialized = false;
@@ -159,6 +177,8 @@ public sealed class PlayerAnimation :
             HandleDeathAnimation(
                 tickState.DeathSequence);
         }
+
+        UpdateActionLayerWeights();
     }
 
 
@@ -262,8 +282,7 @@ public sealed class PlayerAnimation :
             "SkillPhase",
             (int)phase);
 
-        animator.SetTrigger(
-            "Skill");
+        BlendToActionPhase(phase);
     }
 
 
@@ -357,34 +376,152 @@ public sealed class PlayerAnimation :
     private void SelectActionLayer(
         ActionBodyMask bodyMask)
     {
-        SetLayerWeight(
-            FullBodyLayer,
+        SetActionLayerTarget(
+            0,
             bodyMask == ActionBodyMask.FullBody);
 
-        SetLayerWeight(
-            UpperBodyLayer,
+        SetActionLayerTarget(
+            1,
             bodyMask == ActionBodyMask.UpperBody);
 
-        SetLayerWeight(
-            ArmsOnlyLayer,
+        SetActionLayerTarget(
+            2,
             bodyMask == ActionBodyMask.ArmsOnly);
+
+        _isBlendingActionLayers = true;
     }
 
 
-    private void SetLayerWeight(
-        string layerName,
+    private void SetActionLayerTarget(
+        int actionLayer,
         bool active)
     {
-        int layerIndex =
-            animator.GetLayerIndex(
-                layerName);
+        _actionLayerTargets[actionLayer] =
+            active ? 1f : 0f;
+    }
 
-        if (layerIndex < 0)
+
+    private void InitializeActionLayers()
+    {
+        for (int index = 0;
+             index < ActionLayerNames.Length;
+             index++)
+        {
+            int layerIndex =
+                animator.GetLayerIndex(
+                    ActionLayerNames[index]);
+
+            _actionLayerIndices[index] =
+                layerIndex;
+
+            _actionLayerTargets[index] =
+                layerIndex >= 0
+                    ? animator.GetLayerWeight(
+                        layerIndex)
+                    : 0f;
+        }
+
+        _isBlendingActionLayers = false;
+    }
+
+
+    private void BlendToActionPhase(
+        ActionAnimationPhase phase)
+    {
+        string stateName =
+            phase switch
+            {
+                ActionAnimationPhase.Cast =>
+                    "Cast",
+                ActionAnimationPhase.Release =>
+                    "Release",
+                ActionAnimationPhase.Recovery =>
+                    "Recovery",
+                _ =>
+                    null
+            };
+
+        if (stateName == null)
             return;
 
-        animator.SetLayerWeight(
-            layerIndex,
-            active ? 1f : 0f);
+        int sourceLayerIndex =
+            _actionLayerIndices[0];
+
+        if (sourceLayerIndex < 0)
+        {
+            animator.SetTrigger(
+                "Skill");
+            return;
+        }
+
+        int stateHash =
+            Animator.StringToHash(
+                FullBodyLayer +
+                "." +
+                stateName);
+
+        if (!animator.HasState(
+                sourceLayerIndex,
+                stateHash))
+        {
+            animator.SetTrigger(
+                "Skill");
+            return;
+        }
+
+        // UpperBody와 ArmsOnly는 FullBody에 동기화된 레이어라
+        // 원본 상태만 전환하면 같은 블렌드 시간을 공유한다.
+        animator.CrossFadeInFixedTime(
+            stateHash,
+            ActionPoseBlendDuration,
+            sourceLayerIndex,
+            0f);
+    }
+
+
+    private void UpdateActionLayerWeights()
+    {
+        if (!_isBlendingActionLayers)
+            return;
+
+        float step =
+            ActionPoseBlendDuration <= 0f
+                ? 1f
+                : Time.deltaTime /
+                  ActionPoseBlendDuration;
+
+        bool finished = true;
+
+        for (int index = 0;
+             index < _actionLayerIndices.Length;
+             index++)
+        {
+            int layerIndex =
+                _actionLayerIndices[index];
+
+            if (layerIndex < 0)
+                continue;
+
+            float targetWeight =
+                _actionLayerTargets[index];
+
+            float nextWeight =
+                Mathf.MoveTowards(
+                    animator.GetLayerWeight(
+                        layerIndex),
+                    targetWeight,
+                    step);
+
+            animator.SetLayerWeight(
+                layerIndex,
+                nextWeight);
+
+            finished &= Mathf.Approximately(
+                nextWeight,
+                targetWeight);
+        }
+
+        _isBlendingActionLayers = !finished;
     }
 
 
