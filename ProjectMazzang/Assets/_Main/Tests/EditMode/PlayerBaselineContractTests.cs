@@ -1755,6 +1755,21 @@ namespace ProjectMazzang.Tests
                 directionMode?.ToString(),
                 Is.EqualTo("Facing"));
 
+            object stanceDirection =
+                weaponType.GetProperty(
+                        "StanceDirection")
+                    ?.GetValue(sword);
+
+            Assert.That(
+                stanceDirection?.ToString(),
+                Is.EqualTo("Facing"));
+
+            Assert.That(
+                weaponType.GetProperty(
+                        "StanceAnimation")
+                    ?.GetValue(sword),
+                Is.Null);
+
             object[] arguments =
             {
                 Vector2.up,

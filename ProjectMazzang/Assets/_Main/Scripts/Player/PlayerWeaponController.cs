@@ -226,7 +226,17 @@ public sealed class PlayerWeaponController :
     void IPlayerTickStateSource.CaptureTickState(
         PlayerTickState state)
     {
-        state.HasEquippedWeapon = HasEquippedWeapon;
+        Weapon equippedWeapon =
+            EquippedWeapon;
+
+        state.HasEquippedWeapon =
+            equippedWeapon != null;
+        state.UsesWeaponFacingStance =
+            equippedWeapon != null &&
+            equippedWeapon.StanceDirection ==
+                WeaponStanceDirection.Facing;
+        state.WeaponStanceAnimation =
+            equippedWeapon?.StanceAnimation;
         state.IsWeaponFacingLocked =
             IsWeaponDirectionLocked;
         state.WeaponFacingRight =
@@ -237,7 +247,7 @@ public sealed class PlayerWeaponController :
             WeaponAnimationTimer.IsRunning &&
             !WeaponAnimationTimer.Expired(Runner);
         state.WeaponAnimation =
-            EquippedWeapon?.GetPrimaryAnimation(
+            equippedWeapon?.GetPrimaryAnimation(
                 ActiveWeaponMove);
     }
 

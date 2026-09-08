@@ -227,6 +227,10 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
   확정한다. 확정된 같은 방향을 무기 판정과 방향별 애니메이션 선택에 사용한다.
 - `Facing`과 `FourWay` 무기 행동 중에는 확정한 좌우를 `PlayerTickState`로 공개한다.
   `PlayerAim`은 이 스냅샷을 따라 마우스로 인한 중간 반전을 막으며, 두 모듈은 서로 직접 참조하지 않는다.
+- 무기의 Stance 방향은 공격 방향과 별도로 설정한다. `Facing` Stance는 이동 모듈이 정한 좌우를
+  유지하고 평상시 상체 CCD를 끄며, Stance 클립이 비어 있으면 기존 Idle을 그대로 사용한다.
+- `PlayerAnimation`은 장착 무기의 선택적 Stance 클립만 기본 Idle 슬롯에 교체한다.
+  공격 클립은 기존 방향별 `ActionAnimationData`와 Action 레이어를 그대로 사용한다.
 - `PlayerSkillController`는 구체 스킬 타입을 검사하지 않고 사용 슬롯과 애니메이션 단계를
   Networked 이벤트로 알린다. `PlayerAnimation`은 플레이어마다 만든
   `AnimatorOverrideController` 인스턴스의 공통 Cast/Release/Recovery 슬롯을 교체하므로 공유

@@ -11,6 +11,12 @@ public enum WeaponAttackDirection : byte
     FourWay
 }
 
+public enum WeaponStanceDirection : byte
+{
+    Aim = 0,
+    Facing
+}
+
 public enum WeaponMoveDirection : byte
 {
     Neutral = 0,
@@ -34,6 +40,19 @@ public abstract class Weapon :
 
     [SerializeField]
     private WeaponPickupTrigger pickupTrigger;
+
+
+    [Header("Stance")]
+    [Tooltip(
+        "Aim: 평상시에도 마우스를 바라봅니다.\n" +
+        "Facing: 이동으로 정한 좌우를 바라보고 마우스 조준을 사용하지 않습니다.")]
+    [SerializeField]
+    private WeaponStanceDirection stanceDirection =
+        WeaponStanceDirection.Aim;
+
+    [Tooltip("장착 중 대기 자세입니다. 비어 있으면 캐릭터의 일반 Idle을 사용합니다.")]
+    [SerializeField]
+    private AnimationClip stanceAnimation;
 
 
     [Header("Attack Direction")]
@@ -116,22 +135,38 @@ public abstract class Weapon :
     public WeaponAttackDirection PrimaryDirection =>
         primaryDirection;
 
+    public WeaponStanceDirection StanceDirection =>
+        stanceDirection;
+
+    public AnimationClip StanceAnimation =>
+        stanceAnimation;
+
     public virtual float PrimaryActionDuration =>
         0f;
 
     public ActionAnimationData GetPrimaryAnimation(
         WeaponMoveDirection direction)
     {
-        return direction switch
+        ActionAnimationData animation =
+            direction switch
+            {
+                WeaponMoveDirection.Neutral =>
+                    neutralAnimation,
+                WeaponMoveDirection.Up =>
+                    upAnimation,
+                WeaponMoveDirection.Down =>
+                    downAnimation,
+                _ => sideAnimation
+            };
+
+        if (animation != null ||
+            primaryDirection !=
+                WeaponAttackDirection.Aim)
         {
-            WeaponMoveDirection.Neutral =>
-                neutralAnimation,
-            WeaponMoveDirection.Up =>
-                upAnimation,
-            WeaponMoveDirection.Down =>
-                downAnimation,
-            _ => sideAnimation
-        };
+            return animation;
+        }
+
+        return sideAnimation;
     }
 
     public Vector2 ResolvePrimaryDirection(

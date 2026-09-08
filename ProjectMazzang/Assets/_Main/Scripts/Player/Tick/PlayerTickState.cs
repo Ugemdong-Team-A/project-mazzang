@@ -119,6 +119,10 @@ public sealed class PlayerTickState
 
     public bool HasEquippedWeapon { get; internal set; }
 
+    public bool UsesWeaponFacingStance { get; internal set; }
+
+    public AnimationClip WeaponStanceAnimation { get; internal set; }
+
     public bool IsWeaponFacingLocked { get; internal set; }
 
     public bool WeaponFacingRight { get; internal set; }
@@ -182,6 +186,8 @@ public sealed class PlayerTickState
         MaxBodyAimAngle = 0f;
 
         HasEquippedWeapon = false;
+        UsesWeaponFacingStance = false;
+        WeaponStanceAnimation = null;
         IsWeaponFacingLocked = false;
         WeaponFacingRight = true;
         WeaponAnimationSequence = 0;

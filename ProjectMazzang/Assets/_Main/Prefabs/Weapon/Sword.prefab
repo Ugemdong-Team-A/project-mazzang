@@ -397,6 +397,8 @@ MonoBehaviour:
   rb: {fileID: 9023140553725785208}
   worldCollider: {fileID: 0}
   pickupTrigger: {fileID: 7881194972578852804}
+  stanceDirection: 1
+  stanceAnimation: {fileID: 0}
   primaryDirection: 1
   neutralAnimation: {fileID: 0}
   sideAnimation: {fileID: 0}

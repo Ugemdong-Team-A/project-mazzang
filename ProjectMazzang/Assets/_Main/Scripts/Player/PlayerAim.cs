@@ -265,7 +265,8 @@ public sealed class PlayerAim :
             facingRight,
             inputFacingDirection,
             tick.State.IsWeaponFacingLocked,
-            tick.State.WeaponFacingRight);
+            tick.State.WeaponFacingRight,
+            tick.State.UsesWeaponFacingStance);
 
         UpdateBodyAim(facingRight);
     }
@@ -283,7 +284,10 @@ public sealed class PlayerAim :
             hasActionAnimation
                 ? ResolveRigMode(
                     clipData.AimComposition)
-                : RigMode;
+                : !IsAimOverridden &&
+                  tickState.UsesWeaponFacingStance
+                    ? PlayerAimRigMode.AnimationOnly
+                    : RigMode;
 
         UpdateBodyAimPresentation(facingRight);
         UpdateRigPresentation(
@@ -570,7 +574,8 @@ public sealed class PlayerAim :
         bool facingRight,
         Vector2 facingDirection,
         bool isWeaponFacingLocked,
-        bool weaponFacingRight)
+        bool weaponFacingRight,
+        bool usesWeaponFacingStance)
     {        
         if (isWallSliding)
             return;
@@ -592,6 +597,9 @@ public sealed class PlayerAim :
 
             return;
         }
+
+        if (usesWeaponFacingStance)
+            return;
 
         TryUpdateFacingFromDirection(
             commands,

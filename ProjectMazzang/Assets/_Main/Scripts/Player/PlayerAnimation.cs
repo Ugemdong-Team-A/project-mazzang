@@ -3,6 +3,9 @@ using UnityEngine;
 public sealed class PlayerAnimation :
     PlayerTickModule
 {
+    private const string BaseIdlePlaceholder =
+        "Idle";
+
     private const string ActionCastPlaceholder =
         "ActionCastPlaceholder";
 
@@ -26,6 +29,10 @@ public sealed class PlayerAnimation :
 
     private AnimatorOverrideController
         _actionOverrideController;
+
+    private AnimationClip _defaultIdleAnimation;
+
+    private AnimationClip _appliedStanceAnimation;
 
     private byte _lastJumpSequence;
 
@@ -64,11 +71,17 @@ public sealed class PlayerAnimation :
         _deathPresentationInitialized = false;
         _skillPresentationInitialized = false;
         _weaponAnimationPresentationInitialized = false;
+        _appliedStanceAnimation = null;
     }
 
 
     public override void Present(in PlayerTickState tickState)
     {
+        HandleWeaponStance(
+            tickState.HasEquippedWeapon
+                ? tickState.WeaponStanceAnimation
+                : null);
+
         if (tickState.HasMovement)
         {
             Vector2 velocity =
@@ -274,6 +287,36 @@ public sealed class PlayerAnimation :
 
         animator.runtimeAnimatorController =
             _actionOverrideController;
+
+        _defaultIdleAnimation =
+            _actionOverrideController[
+                BaseIdlePlaceholder];
+    }
+
+
+    private void HandleWeaponStance(
+        AnimationClip stanceAnimation)
+    {
+        if (_actionOverrideController == null)
+            return;
+
+        AnimationClip nextAnimation =
+            stanceAnimation != null
+                ? stanceAnimation
+                : _defaultIdleAnimation;
+
+        if (_appliedStanceAnimation ==
+            nextAnimation)
+        {
+            return;
+        }
+
+        _actionOverrideController[
+            BaseIdlePlaceholder] =
+            nextAnimation;
+
+        _appliedStanceAnimation =
+            nextAnimation;
     }
 
 
