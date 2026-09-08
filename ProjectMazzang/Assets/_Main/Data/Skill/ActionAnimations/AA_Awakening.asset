@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5e3e49ba872dc845a4e0f56b41474f2, type: 3}
+  m_Name: AA_Awakening
+  m_EditorClassIdentifier: Assembly-CSharp::ActionAnimationData
+  cast:
+    clip: {fileID: 0}
+    bodyMask: 0
+    aimComposition: 0
+    handIkPolicy: 0
+  release:
+    clip: {fileID: 7400000, guid: b28d9f3e0a4159b7c6d5e4f3a2b10987, type: 2}
+    bodyMask: 0
+    aimComposition: 0
+    handIkPolicy: 0
+  recovery:
+    clip: {fileID: 0}
+    bodyMask: 0
+    aimComposition: 0
+    handIkPolicy: 0

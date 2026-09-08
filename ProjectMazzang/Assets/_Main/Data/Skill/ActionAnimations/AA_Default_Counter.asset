@@ -10,15 +10,15 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d5e3e49ba872dc845a4e0f56b41474f2, type: 3}
-  m_Name: SA_Awakening
+  m_Name: AA_Default_Counter
   m_EditorClassIdentifier: Assembly-CSharp::ActionAnimationData
   cast:
-    clip: {fileID: 0}
+    clip: {fileID: 7400000, guid: 78370ad55771c2342a48467c3f358c1c, type: 2}
     bodyMask: 0
-    aimComposition: 0
+    aimComposition: 2
     handIkPolicy: 0
   release:
-    clip: {fileID: 7400000, guid: b28d9f3e0a4159b7c6d5e4f3a2b10987, type: 2}
+    clip: {fileID: 0}
     bodyMask: 0
     aimComposition: 0
     handIkPolicy: 0
