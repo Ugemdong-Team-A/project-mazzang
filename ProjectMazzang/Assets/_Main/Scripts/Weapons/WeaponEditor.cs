@@ -62,6 +62,12 @@ public sealed class WeaponEditor : Editor
             "stanceAnimation",
             "primaryDirection",
             "secondaryDirection",
+            "defaultAttack",
+            "noDirectionAttack",
+            "sideAttack",
+            "downAttack",
+            "primaryAction",
+            "secondaryAction",
             "sortingGroup",
             "presentationTemplate",
             "visualSizeOffset"
@@ -129,7 +135,8 @@ public sealed class WeaponEditor : Editor
     {
         DrawAttackDirection(
             "주 공격",
-            "primaryDirection");
+            "primaryDirection",
+            WeaponButton.Primary);
 
         Weapon weapon =
             target as Weapon;
@@ -139,13 +146,15 @@ public sealed class WeaponEditor : Editor
         {
             DrawAttackDirection(
                 "보조 공격",
-                "secondaryDirection");
+                "secondaryDirection",
+                WeaponButton.Secondary);
         }
     }
 
     private void DrawAttackDirection(
         string title,
-        string propertyName)
+        string propertyName,
+        WeaponButton button)
     {
         EditorGUILayout.Space();
         EditorGUILayout.LabelField(
@@ -164,14 +173,72 @@ public sealed class WeaponEditor : Editor
             "바라보는 좌우",
             "브라울할라식");
 
-        if (direction != null &&
+        bool brawlhalla =
+            direction != null &&
             direction.enumValueIndex ==
-                (int)WeaponAttackDirection.Brawlhalla)
+                (int)WeaponAttackDirection.Brawlhalla;
+
+        bool hasDirectionalSlots =
+            button == WeaponButton.Primary &&
+            serializedObject.FindProperty(
+                "defaultAttack") != null;
+
+        if (brawlhalla &&
+            hasDirectionalSlots)
         {
             EditorGUILayout.HelpBox(
                 "위 입력 또는 방향 입력이 없으면 '방향 입력 없을 때', 좌우 입력은 '좌우 입력할 때', 아래 입력은 '아래 입력할 때' 슬롯을 사용합니다.",
                 MessageType.Info);
         }
+        else if (brawlhalla)
+        {
+            EditorGUILayout.HelpBox(
+                "이 무기는 아직 방향별 행동 슬롯을 사용하지 않습니다. 어느 방향에서도 아래의 같은 공격 데이터를 사용합니다.",
+                MessageType.Info);
+        }
+
+        DrawAttackSlots(
+            button,
+            direction);
+    }
+
+    private void DrawAttackSlots(
+        WeaponButton button,
+        SerializedProperty direction)
+    {
+        if (button == WeaponButton.Secondary)
+        {
+            DrawPropertyIfExists(
+                "secondaryAction");
+            return;
+        }
+
+        if (serializedObject.FindProperty(
+                "defaultAttack") == null)
+        {
+            DrawPropertyIfExists(
+                "primaryAction");
+            return;
+        }
+
+        bool brawlhalla =
+            direction != null &&
+            direction.enumValueIndex ==
+                (int)WeaponAttackDirection.Brawlhalla;
+
+        if (!brawlhalla)
+        {
+            DrawPropertyIfExists(
+                "defaultAttack");
+            return;
+        }
+
+        DrawPropertyIfExists(
+            "noDirectionAttack");
+        DrawPropertyIfExists(
+            "sideAttack");
+        DrawPropertyIfExists(
+            "downAttack");
     }
 
     private void DrawPresentation()
@@ -216,9 +283,7 @@ public sealed class WeaponEditor : Editor
 
             if (BaseProperties.Contains(
                     property.name) ||
-                property.name.StartsWith("_") ||
-                !ShouldDrawWeaponProperty(
-                    property.name))
+                property.name.StartsWith("_"))
             {
                 continue;
             }
@@ -250,30 +315,29 @@ public sealed class WeaponEditor : Editor
         }
     }
 
-    private bool ShouldDrawWeaponProperty(
+    private void DrawPropertyIfExists(
         string propertyName)
     {
-        bool swordSlot =
-            propertyName == "defaultAttack" ||
-            propertyName == "noDirectionAttack" ||
-            propertyName == "sideAttack" ||
-            propertyName == "downAttack";
-
-        if (!swordSlot)
-            return true;
-
-        SerializedProperty direction =
+        SerializedProperty property =
             serializedObject.FindProperty(
-                "primaryDirection");
+                propertyName);
 
-        bool brawlhalla =
-            direction != null &&
-            direction.enumValueIndex ==
-                (int)WeaponAttackDirection.Brawlhalla;
+        if (property == null)
+            return;
 
-        return brawlhalla
-            ? propertyName != "defaultAttack"
-            : propertyName == "defaultAttack";
+        string label =
+            KoreanLabels.TryGetValue(
+                propertyName,
+                out string koreanLabel)
+                ? koreanLabel
+                : property.displayName;
+
+        EditorGUILayout.PropertyField(
+            property,
+            new GUIContent(
+                label,
+                property.tooltip),
+            true);
     }
 
     private void DrawProperty(

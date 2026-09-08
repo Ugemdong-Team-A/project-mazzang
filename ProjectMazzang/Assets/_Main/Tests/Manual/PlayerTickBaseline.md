@@ -101,6 +101,10 @@
 - 같은 `ActionAnimationData`를 기본 공격과 스킬에 각각 연결했을 때 실제로 존재하는
   Cast/Release/Recovery 클립만 재생된다. 단계별 Body Mask, 상체 조준 합성,
   Animated Targets/Weapon Grips 손 IK 정책이 서로 독립적으로 적용된다.
+- Sword Inspector에서 주 공격을 브라울할라식으로 바꾸면 방향 입력 없음/좌우/아래 슬롯이
+  즉시 표시되고, 마우스 정밀 조준이나 바라보는 좌우로 바꾸면 단일 방향 공격만 표시된다.
+- 방향별 슬롯을 구현하지 않은 방패와 총기는 브라울할라식을 선택해도 기존 주/보조 공격 데이터가
+  표시되며, 모든 방향이 같은 데이터를 사용한다는 안내가 함께 표시된다.
 - 같은 AAD 안에서 `FullBody → UpperBody/ArmsOnly` 또는 `UpperBody → ArmsOnly`로 전환하면
   이전 단계가 놓는 부위가 한 프레임에 튀지 않고 짧게 Base 포즈로 이어진다.
 - Body Mask가 달라지는 전환 중에도 `ProceduralOverride`와 `AnimationWithBodyAim`의
