@@ -132,7 +132,10 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
   `Standard2DAimAnchor`를 찾으면 CharSetup을 참조하지 않고 표준 RAP으로 자동 동기화하며,
   조준 원점은 별도 `AimOrigin`이 아니라 RAP의 현재 월드 위치를 사용한다. 기준 본은 RAP의 부모,
   CCD Target은 Solver 체인에서 얻고 두 기준이 다르면 편집기 경고를 출력한다.
-  `PlayerWeaponController`는 손 Solver와 표시용 `WeaponSocket`만 명시적으로 참조한다.
+  `PlayerWeaponController`는 손 Solver와 표시용 `WeaponSocket`만 참조한다. 손 Solver의 명시적
+  참조가 비어 있으면 Spawn 시 표준 리그 규격의 `arm_l_solver`, `arm_r_solver`를 대소문자와
+  무관하게 한 번 찾아 복구한다. 이는 CharSetup을 참조하지 않는 런타임 안전망이며, 명시적
+  참조가 있으면 하위 오브젝트를 검색하지 않는다.
 - `PlayerAim`은 제한된 허리 각도와 최대 각도를 `PlayerTickState`에 공개한다. 무기는 이 스냅샷으로
   제한된 발사 방향을 계산하며 `PlayerAim`의 구체 타입을 직접 참조하지 않는다.
 - `maxBodyAimAngle`은 허리가 꺾이는 범위만 제한하고 `facingFlipAngle`은 좌우 반전 시점만 결정한다.

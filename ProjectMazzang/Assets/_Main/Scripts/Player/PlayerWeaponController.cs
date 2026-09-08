@@ -1,3 +1,4 @@
+using System;
 using Fusion;
 using Fusion.Addons.Physics;
 using UnityEngine;
@@ -165,6 +166,7 @@ public sealed class PlayerWeaponController :
                 ? networkRigidbody.InterpolationTarget
                 : null;
 
+        ResolveHandLimbReferences();
         CaptureAnimationHandIkTargets();
         RestoreAnimationHandIk();
 
@@ -592,6 +594,83 @@ public sealed class PlayerWeaponController :
     // =========================================================
     // Weapon IK
     // =========================================================
+
+    private void ResolveHandLimbReferences()
+    {
+        if (leftHandLimb != null &&
+            rightHandLimb != null)
+        {
+            return;
+        }
+
+        LimbSolver2D[] limbs =
+            GetComponentsInChildren<LimbSolver2D>(
+                true);
+
+        leftHandLimb ??=
+            FindStandardLimb(
+                limbs,
+                "arm_l");
+
+        rightHandLimb ??=
+            FindStandardLimb(
+                limbs,
+                "arm_r");
+
+        if (leftHandLimb == null ||
+            rightHandLimb == null)
+        {
+            Debug.LogWarning(
+                $"[{name}] 표준 양손 IK 제어기를 찾지 못해 " +
+                "무기 손잡이 연결이 일부 적용되지 않습니다.",
+                this);
+        }
+    }
+
+
+    private static LimbSolver2D FindStandardLimb(
+        LimbSolver2D[] limbs,
+        string prefix)
+    {
+        string solverName =
+            null;
+
+        foreach (Standard2DRigDefinition.LimbSpec spec
+                 in Standard2DRigDefinition.LimbSpecs)
+        {
+            if (!string.Equals(
+                    spec.Prefix,
+                    prefix,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            solverName =
+                spec.SolverName;
+            break;
+        }
+
+        if (string.IsNullOrEmpty(
+                solverName))
+        {
+            return null;
+        }
+
+        foreach (LimbSolver2D limb in limbs)
+        {
+            if (limb != null &&
+                string.Equals(
+                    limb.name,
+                    solverName,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return limb;
+            }
+        }
+
+        return null;
+    }
 
     private void UpdateWeaponIkBinding()
     {

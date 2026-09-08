@@ -115,6 +115,8 @@
   좌표를 계산하므로, 달리기·점프·상하 조준 중에도 캐릭터 손과 한 프레임씩 어긋나지 않는다.
 - 캐릭터에서 `Standard2DRigIKSetup`을 제거하거나 별도 에디터 작업용 오브젝트로 옮겨도,
   런타임에 명시적으로 연결한 상체 CCD와 손 Solver가 정상 동작한다.
+- `PlayerWeaponController`의 양손 Solver 참조를 비운 표준 캐릭터도 Spawn 시
+  `arm_l_solver`, `arm_r_solver`를 찾아 무기 Grip에 손을 정상 연결한다.
 - 재시뮬레이션 횟수와 관계없이 Aim 보간, 피격 색상, 무적 깜빡임 속도가 일정하다.
 - 처음 표시할 때 이미 존재하던 Jump, Attack, Skill, Death Sequence를 새 이벤트로 재생하지 않는다.
 - Health, MaxHealth, Lives와 생존 여부가 상태 UI 및 캐릭터 표시와 일치한다.
