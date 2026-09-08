@@ -85,6 +85,27 @@ public sealed class PlayerWeaponController :
     }
 
     [Networked]
+    private TickTimer WeaponActionTimer
+    {
+        get;
+        set;
+    }
+
+    [Networked]
+    private NetworkBool LockedWeaponFacingRight
+    {
+        get;
+        set;
+    }
+
+    [Networked]
+    private WeaponMoveDirection ActiveWeaponMove
+    {
+        get;
+        set;
+    }
+
+    [Networked]
     public byte WeaponAnimationSequence
     {
         get;
@@ -155,6 +176,13 @@ public sealed class PlayerWeaponController :
         WeaponAnimationTimer =
             TickTimer.None;
 
+        WeaponActionTimer =
+            TickTimer.None;
+
+        LockedWeaponFacingRight = true;
+        ActiveWeaponMove =
+            WeaponMoveDirection.Side;
+
         WeaponAnimationSequence = 0;
     }
 
@@ -182,6 +210,13 @@ public sealed class PlayerWeaponController :
                 TickTimer.None;
         }
 
+        if (WeaponActionTimer.IsRunning &&
+            WeaponActionTimer.Expired(Runner))
+        {
+            WeaponActionTimer =
+                TickTimer.None;
+        }
+
         TickPrepareAction(
             tick.State,
             false);
@@ -192,13 +227,18 @@ public sealed class PlayerWeaponController :
         PlayerTickState state)
     {
         state.HasEquippedWeapon = HasEquippedWeapon;
+        state.IsWeaponFacingLocked =
+            IsWeaponDirectionLocked;
+        state.WeaponFacingRight =
+            LockedWeaponFacingRight;
         state.WeaponAnimationSequence =
             WeaponAnimationSequence;
         state.IsWeaponAnimationActive =
             WeaponAnimationTimer.IsRunning &&
             !WeaponAnimationTimer.Expired(Runner);
         state.WeaponAnimation =
-            EquippedWeapon?.Animation;
+            EquippedWeapon?.GetPrimaryAnimation(
+                ActiveWeaponMove);
     }
 
 
@@ -207,6 +247,7 @@ public sealed class PlayerWeaponController :
         PlayerTickState state)
     {
         if (!commands.TryConsumeWeaponUse(
+                out Vector2 moveInput,
                 out Vector2 aimDirection))
         {
             return false;
@@ -220,11 +261,12 @@ public sealed class PlayerWeaponController :
         }
 
         TryUseWeapon(
+            moveInput,
             aimDirection,
             !state.HasHealth ||
             state.IsAlive,
-            state.HasMovement &&
-            !state.FacingRight,
+            !state.HasMovement ||
+            state.FacingRight,
             ResolveGameplayWeaponOrigin(
                 state),
             state.ActiveStatModifiers.AttackDamage);
@@ -245,7 +287,8 @@ public sealed class PlayerWeaponController :
         // 실제 게임플레이용 WeaponAngle은
         // StateAuthority가 현재 Tick 입력으로 확정한다.
         if (HasStateAuthority &&
-            hasInput)
+            hasInput &&
+            !IsWeaponDirectionLocked)
         {
             UpdateAuthoritativeWeaponAngle(
                 input.AimWorldPosition,
@@ -366,6 +409,10 @@ public sealed class PlayerWeaponController :
     // =========================================================
     // Weapon Aim
     // =========================================================
+
+    private bool IsWeaponDirectionLocked =>
+        WeaponActionTimer.IsRunning &&
+        !WeaponActionTimer.Expired(Runner);
 
     private void UpdateAuthoritativeWeaponAngle(
         Vector2 aimWorldPosition,
@@ -489,6 +536,12 @@ public sealed class PlayerWeaponController :
 
         EquippedWeaponObject =
             null;
+
+        WeaponAnimationTimer =
+            TickTimer.None;
+
+        WeaponActionTimer =
+            TickTimer.None;
 
         RestoreAnimationHandIk();
 
@@ -718,16 +771,13 @@ public sealed class PlayerWeaponController :
 
 
     private bool TryUseWeapon(
+        Vector2 moveInput,
         Vector2 aimDirection,
         bool isAlive,
-        bool mirrored,
+        bool facingRight,
         Vector2 origin,
         float attackDamageMultiplier)
     {
-        // 기존 aimDirection 인자는 호출 호환성을 위해 유지하지만,
-        // 실제 판정 방향은 StateAuthority가 확정한 WeaponAngle을 사용한다.
-        _ = aimDirection;
-
         if (!HasStateAuthority)
             return false;
 
@@ -740,17 +790,39 @@ public sealed class PlayerWeaponController :
         if (weapon == null)
             return false;
 
+        Vector2 useDirection =
+            weapon.ResolvePrimaryDirection(
+                moveInput,
+                aimDirection,
+                facingRight,
+                out WeaponMoveDirection moveDirection);
+
+        bool useFacingRight =
+            Mathf.Abs(useDirection.x) > 0.0001f
+                ? useDirection.x > 0f
+                : facingRight;
+
         bool used = weapon.TryUse(
             origin,
-            WeaponDirection,
-            mirrored,
+            useDirection,
+            !useFacingRight,
             attackDamageMultiplier);
 
         if (used)
         {
+            WeaponAngle =
+                DirectionToAngle(
+                    useDirection);
+            ActiveWeaponMove =
+                moveDirection;
+
+            ActionAnimationData animation =
+                weapon.GetPrimaryAnimation(
+                    moveDirection);
+
             ActionAnimationClipData clipData =
-                weapon.Animation != null
-                    ? weapon.Animation.GetClipData(
+                animation != null
+                    ? animation.GetClipData(
                         ActionAnimationPhase.Release)
                     : default;
 
@@ -763,6 +835,25 @@ public sealed class PlayerWeaponController :
                         Mathf.Max(
                             clipData.Clip.length,
                             Runner.DeltaTime));
+            }
+
+            if (weapon.PrimaryDirection !=
+                WeaponAttackDirection.Aim)
+            {
+                float actionDuration =
+                    Mathf.Max(
+                        weapon.PrimaryActionDuration,
+                        clipData.HasClip
+                            ? clipData.Clip.length
+                            : 0f,
+                        Runner.DeltaTime);
+
+                LockedWeaponFacingRight =
+                    useFacingRight;
+                WeaponActionTimer =
+                    TickTimer.CreateFromSeconds(
+                        Runner,
+                        actionDuration);
             }
         }
 

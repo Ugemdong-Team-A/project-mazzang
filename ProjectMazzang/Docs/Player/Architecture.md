@@ -221,8 +221,12 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
   고정 마스크 레이어와 상체 조준 합성, 손 IK 정책을 독립적으로 지정한다. 단계에 클립이
   없으면 그 단계는 재생하지 않는다. 기존 스킬 애니메이션 에셋도 같은 형식으로 변환되어
   별도의 스킬 전용 애니메이션 타입은 두지 않는다.
-- `SkillData.Animation`, `PlayerAttackData.Animation`, `Weapon.Animation`은 모두 같은
+- `SkillData.Animation`, `PlayerAttackData.Animation`, `Weapon`의 방향별 애니메이션은 모두 같은
   `ActionAnimationData` 타입을 참조한다. 무기는 성공한 기본 사용을 Release 단계로 발행한다.
+- 무기의 `Aim`, `Facing`, `FourWay` 방향 규칙은 입력을 받은 `PlayerWeaponController`가 한 번만
+  확정한다. 확정된 같은 방향을 무기 판정과 방향별 애니메이션 선택에 사용한다.
+- `Facing`과 `FourWay` 무기 행동 중에는 확정한 좌우를 `PlayerTickState`로 공개한다.
+  `PlayerAim`은 이 스냅샷을 따라 마우스로 인한 중간 반전을 막으며, 두 모듈은 서로 직접 참조하지 않는다.
 - `PlayerSkillController`는 구체 스킬 타입을 검사하지 않고 사용 슬롯과 애니메이션 단계를
   Networked 이벤트로 알린다. `PlayerAnimation`은 플레이어마다 만든
   `AnimatorOverrideController` 인스턴스의 공통 Cast/Release/Recovery 슬롯을 교체하므로 공유

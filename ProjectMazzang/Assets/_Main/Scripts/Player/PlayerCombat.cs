@@ -439,6 +439,7 @@ public sealed class PlayerCombat :
             if (Commands != null)
             {
                 Commands.RequestWeaponUse(
+                    input.Move,
                     aimDirection);
             }
 

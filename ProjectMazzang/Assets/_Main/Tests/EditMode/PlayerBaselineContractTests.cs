@@ -1728,6 +1728,68 @@ namespace ProjectMazzang.Tests
 
 
         [Test]
+        public void Sword_UsesFacingDirectionWithoutLateAimChanges()
+        {
+            GameObject swordPrefab =
+                AssetDatabase.LoadAssetAtPath<GameObject>(
+                    "Assets/_Main/Prefabs/Weapon/Sword.prefab");
+
+            Assert.That(swordPrefab, Is.Not.Null);
+
+            Type weaponType =
+                GetRuntimeType(
+                    "Weapon");
+
+            Component sword =
+                swordPrefab.GetComponent(
+                    weaponType);
+
+            Assert.That(sword, Is.Not.Null);
+
+            object directionMode =
+                weaponType.GetProperty(
+                        "PrimaryDirection")
+                    ?.GetValue(sword);
+
+            Assert.That(
+                directionMode?.ToString(),
+                Is.EqualTo("Facing"));
+
+            object[] arguments =
+            {
+                Vector2.up,
+                Vector2.up,
+                false,
+                null
+            };
+
+            Vector2 resolvedDirection =
+                (Vector2)weaponType
+                    .GetMethod(
+                        "ResolvePrimaryDirection")
+                    ?.Invoke(
+                        sword,
+                        arguments);
+
+            Assert.That(
+                resolvedDirection,
+                Is.EqualTo(Vector2.left));
+            Assert.That(
+                arguments[3]?.ToString(),
+                Is.EqualTo("Side"));
+
+            SerializedObject serializedSword =
+                new(sword);
+
+            Assert.That(
+                serializedSword.FindProperty(
+                        "useLatestAimDirectionOnDash")
+                    ?.boolValue,
+                Is.False);
+        }
+
+
+        [Test]
         public void DamageInfo_KeepsCrowdControlDefinition()
         {
             Type damageInfoType =

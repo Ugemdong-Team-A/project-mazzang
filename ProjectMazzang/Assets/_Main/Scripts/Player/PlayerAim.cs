@@ -263,7 +263,9 @@ public sealed class PlayerAim :
             tick.Commands,
             isWallSliding,
             facingRight,
-            inputFacingDirection);
+            inputFacingDirection,
+            tick.State.IsWeaponFacingLocked,
+            tick.State.WeaponFacingRight);
 
         UpdateBodyAim(facingRight);
     }
@@ -566,10 +568,20 @@ public sealed class PlayerAim :
         PlayerTickCommands commands,
         bool isWallSliding,
         bool facingRight,
-        Vector2 facingDirection)
+        Vector2 facingDirection,
+        bool isWeaponFacingLocked,
+        bool weaponFacingRight)
     {        
         if (isWallSliding)
             return;
+
+        if (isWeaponFacingLocked)
+        {
+            RequestFacing(
+                commands,
+                weaponFacingRight);
+            return;
+        }
 
         if (FacingMode ==
             PlayerAimFacingMode.Locked)

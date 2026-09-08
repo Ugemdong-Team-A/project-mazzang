@@ -397,6 +397,11 @@ MonoBehaviour:
   rb: {fileID: 9023140553725785208}
   worldCollider: {fileID: 0}
   pickupTrigger: {fileID: 7881194972578852804}
+  primaryDirection: 1
+  neutralAnimation: {fileID: 0}
+  sideAnimation: {fileID: 0}
+  upAnimation: {fileID: 0}
+  downAnimation: {fileID: 0}
   sortingGroup: {fileID: 2623011332169258659}
   presentationTemplate: {fileID: 6732957340894770001}
   visualSizeOffset: 0.5
@@ -408,7 +413,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 256
   dash: {fileID: 11400000, guid: 4fbe5c8f8e1f4c6bbfd7c493a982be10, type: 2}
-  useLatestAimDirectionOnDash: 1
+  useLatestAimDirectionOnDash: 0
   cooldown: 0.5
   attackDelay: 0.5
 --- !u!114 &4498004678548388021

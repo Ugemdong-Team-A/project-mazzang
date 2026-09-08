@@ -2,6 +2,22 @@ using Fusion;
 using Fusion.Addons.Physics;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.Serialization;
+
+public enum WeaponAttackDirection : byte
+{
+    Aim = 0,
+    Facing,
+    FourWay
+}
+
+public enum WeaponMoveDirection : byte
+{
+    Neutral = 0,
+    Side,
+    Up,
+    Down
+}
 
 [RequireComponent(typeof(NetworkObject))]
 [RequireComponent(typeof(Rigidbody2D))]
@@ -20,9 +36,36 @@ public abstract class Weapon :
     private WeaponPickupTrigger pickupTrigger;
 
 
-    [Header("Presentation")]
+    [Header("Attack Direction")]
+    [Tooltip(
+        "Aim: 마우스 방향으로 사용합니다.\n" +
+        "Facing: 공격을 시작한 좌우 방향으로 고정합니다.\n" +
+        "Four Way: 이동 입력으로 중립/옆/위/아래를 선택합니다.")]
     [SerializeField]
-    private ActionAnimationData actionAnimation;
+    private WeaponAttackDirection primaryDirection =
+        WeaponAttackDirection.Aim;
+
+
+    [Header("Primary Animation")]
+    [Tooltip("중립 공격 애니메이션입니다. 비어 있으면 애니메이션 없이 공격합니다.")]
+    [SerializeField]
+    private ActionAnimationData neutralAnimation;
+
+    [FormerlySerializedAs("actionAnimation")]
+    [Tooltip("좌우 공격 애니메이션입니다. 기존 단일 무기 애니메이션도 이 항목으로 이어집니다.")]
+    [SerializeField]
+    private ActionAnimationData sideAnimation;
+
+    [Tooltip("위 공격 애니메이션입니다. 비어 있으면 애니메이션 없이 공격합니다.")]
+    [SerializeField]
+    private ActionAnimationData upAnimation;
+
+    [Tooltip("아래 공격 애니메이션입니다. 비어 있으면 애니메이션 없이 공격합니다.")]
+    [SerializeField]
+    private ActionAnimationData downAnimation;
+
+
+    [Header("Presentation")]
 
     [SerializeField]
     private SortingGroup sortingGroup;
@@ -70,8 +113,118 @@ public abstract class Weapon :
     public HeldWeaponView HeldView =>
         _heldView;
 
-    public ActionAnimationData Animation =>
-        actionAnimation;
+    public WeaponAttackDirection PrimaryDirection =>
+        primaryDirection;
+
+    public virtual float PrimaryActionDuration =>
+        0f;
+
+    public ActionAnimationData GetPrimaryAnimation(
+        WeaponMoveDirection direction)
+    {
+        return direction switch
+        {
+            WeaponMoveDirection.Neutral =>
+                neutralAnimation,
+            WeaponMoveDirection.Up =>
+                upAnimation,
+            WeaponMoveDirection.Down =>
+                downAnimation,
+            _ => sideAnimation
+        };
+    }
+
+    public Vector2 ResolvePrimaryDirection(
+        Vector2 moveInput,
+        Vector2 aimDirection,
+        bool facingRight,
+        out WeaponMoveDirection moveDirection)
+    {
+        Vector2 facingDirection =
+            facingRight
+                ? Vector2.right
+                : Vector2.left;
+
+        switch (primaryDirection)
+        {
+            case WeaponAttackDirection.Facing:
+                moveDirection =
+                    WeaponMoveDirection.Side;
+                return facingDirection;
+
+            case WeaponAttackDirection.FourWay:
+                return ResolveFourWayDirection(
+                    moveInput,
+                    facingDirection,
+                    out moveDirection);
+
+            default:
+                return ResolveAimDirection(
+                    aimDirection,
+                    facingDirection,
+                    out moveDirection);
+        }
+    }
+
+    private static Vector2 ResolveFourWayDirection(
+        Vector2 moveInput,
+        Vector2 facingDirection,
+        out WeaponMoveDirection moveDirection)
+    {
+        if (moveInput.sqrMagnitude <= 0.0001f)
+        {
+            moveDirection =
+                WeaponMoveDirection.Neutral;
+            return facingDirection;
+        }
+
+        if (Mathf.Abs(moveInput.x) >=
+            Mathf.Abs(moveInput.y))
+        {
+            moveDirection =
+                WeaponMoveDirection.Side;
+            return moveInput.x >= 0f
+                ? Vector2.right
+                : Vector2.left;
+        }
+
+        if (moveInput.y >= 0f)
+        {
+            moveDirection =
+                WeaponMoveDirection.Up;
+            return Vector2.up;
+        }
+
+        moveDirection =
+            WeaponMoveDirection.Down;
+        return Vector2.down;
+    }
+
+    private static Vector2 ResolveAimDirection(
+        Vector2 aimDirection,
+        Vector2 fallbackDirection,
+        out WeaponMoveDirection moveDirection)
+    {
+        Vector2 direction =
+            aimDirection.sqrMagnitude > 0.0001f
+                ? aimDirection.normalized
+                : fallbackDirection;
+
+        if (Mathf.Abs(direction.x) >=
+            Mathf.Abs(direction.y))
+        {
+            moveDirection =
+                WeaponMoveDirection.Side;
+        }
+        else
+        {
+            moveDirection = direction.y >= 0f
+                ? WeaponMoveDirection.Up
+                : WeaponMoveDirection.Down;
+        }
+
+        return direction;
+    }
 
     public bool TryGetHeldMuzzlePosition(
         out Vector2 position)

@@ -78,6 +78,12 @@ public sealed class SwordWeapon :
             Vector2.right;
     }
 
+    public override float PrimaryActionDuration =>
+        attackDelay +
+        (dash != null
+            ? dash.Duration
+            : 0f);
+
 
     public override bool TryUse(
      Vector2 origin,

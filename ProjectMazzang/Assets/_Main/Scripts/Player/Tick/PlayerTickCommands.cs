@@ -39,6 +39,7 @@ public sealed class PlayerTickCommands
     private Vector2 _movementVelocity;
 
     private bool _weaponUseRequested;
+    private Vector2 _weaponMoveInput;
     private Vector2 _weaponAimDirection;
 
 
@@ -148,9 +149,11 @@ public sealed class PlayerTickCommands
 
 
     public void RequestWeaponUse(
+        Vector2 moveInput,
         Vector2 aimDirection)
     {
         _weaponUseRequested = true;
+        _weaponMoveInput = moveInput;
         _weaponAimDirection = aimDirection;
         Dispatch();
     }
@@ -305,15 +308,18 @@ public sealed class PlayerTickCommands
 
 
     internal bool TryConsumeWeaponUse(
+        out Vector2 moveInput,
         out Vector2 aimDirection)
     {
         if (!_weaponUseRequested)
         {
+            moveInput = default;
             aimDirection = default;
             return false;
         }
 
         _weaponUseRequested = false;
+        moveInput = _weaponMoveInput;
         aimDirection = _weaponAimDirection;
         return true;
     }
