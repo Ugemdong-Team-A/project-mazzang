@@ -92,8 +92,10 @@
   공격 도중 마우스를 반대편으로 옮겨도 캐릭터가 반전되지 않는다.
 - Sword 장착 중에는 마우스 위치가 아닌 이동 입력으로 좌우가 바뀌고 상체 CCD가 꺼진다.
   Stance 애니메이션이 비어 있으면 일반 Idle이 그대로 재생된다.
-- `FourWay` 무기는 이동 입력으로 중립/옆/위/아래를 한 번 확정하고, 같은 방향의 판정과
-  `ActionAnimationData`를 사용한다. 해당 방향 애니메이션이 비어 있어도 판정은 정상 실행된다.
+- `Brawlhalla` 무기는 방향 입력 없음 또는 위 입력을 `NoDirection`, 좌우 입력을 `Side`,
+  아래 입력을 `Down`으로 한 번 확정하고 같은 슬롯의 판정과 `ActionAnimationData`를 사용한다.
+- Primary와 Secondary는 서로 다른 방향 규칙과 AAD를 사용할 수 있다. Shield는 두 버튼 모두
+  기존 Aim 방식으로 밀치기와 패링을 실행한다.
 - 상체 기준 본이 회전해도 로컬 원점인 `ResolvedAimPivot`의 위치는 불필요하게 궤도를 그리지 않고,
   근접 판정·무기 드롭·총기 Muzzle fallback이 같은 Tick의 RAP 위치를 함께 사용한다.
 - 같은 `ActionAnimationData`를 기본 공격과 스킬에 각각 연결했을 때 실제로 존재하는

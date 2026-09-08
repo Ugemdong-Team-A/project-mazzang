@@ -400,24 +400,50 @@ MonoBehaviour:
   stanceDirection: 1
   stanceAnimation: {fileID: 0}
   primaryDirection: 1
-  neutralAnimation: {fileID: 0}
-  sideAnimation: {fileID: 0}
-  upAnimation: {fileID: 0}
-  downAnimation: {fileID: 0}
+  secondaryDirection: 0
   sortingGroup: {fileID: 2623011332169258659}
   presentationTemplate: {fileID: 6732957340894770001}
   visualSizeOffset: 0.5
   _Holder: {fileID: 0}
-  attack: {fileID: 11400000, guid: 762e944c78386a74dbc7593da86fe56d, type: 2}
-  hitboxSize: {x: 1.89, y: 1.6}
-  hitboxForwardOffset: 0.9
+  defaultAttack:
+    enabled: 1
+    animation: {fileID: 0}
+    attack: {fileID: 11400000, guid: 762e944c78386a74dbc7593da86fe56d, type: 2}
+    hitboxSize: {x: 1.89, y: 1.6}
+    hitboxForwardOffset: 0.9
+    dash: {fileID: 11400000, guid: 4fbe5c8f8e1f4c6bbfd7c493a982be10, type: 2}
+    cooldown: 0.5
+    hitDelay: 0.5
+  noDirectionAttack:
+    enabled: 0
+    animation: {fileID: 0}
+    attack: {fileID: 0}
+    hitboxSize: {x: 1.8, y: 0.8}
+    hitboxForwardOffset: 0.9
+    dash: {fileID: 0}
+    cooldown: 0.5
+    hitDelay: 0.5
+  sideAttack:
+    enabled: 0
+    animation: {fileID: 0}
+    attack: {fileID: 0}
+    hitboxSize: {x: 1.8, y: 0.8}
+    hitboxForwardOffset: 0.9
+    dash: {fileID: 0}
+    cooldown: 0.5
+    hitDelay: 0.5
+  downAttack:
+    enabled: 0
+    animation: {fileID: 0}
+    attack: {fileID: 0}
+    hitboxSize: {x: 1.8, y: 0.8}
+    hitboxForwardOffset: 0.9
+    dash: {fileID: 0}
+    cooldown: 0.5
+    hitDelay: 0.5
   hurtboxLayer:
     serializedVersion: 2
     m_Bits: 256
-  dash: {fileID: 11400000, guid: 4fbe5c8f8e1f4c6bbfd7c493a982be10, type: 2}
-  useLatestAimDirectionOnDash: 0
-  cooldown: 0.5
-  attackDelay: 0.5
 --- !u!114 &4498004678548388021
 MonoBehaviour:
   m_ObjectHideFlags: 0

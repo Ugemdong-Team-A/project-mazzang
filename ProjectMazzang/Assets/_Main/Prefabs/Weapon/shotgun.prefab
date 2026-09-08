@@ -397,10 +397,17 @@ MonoBehaviour:
   rb: {fileID: 9023140553725785208}
   worldCollider: {fileID: 0}
   pickupTrigger: {fileID: 7881194972578852804}
+  stanceDirection: 0
+  stanceAnimation: {fileID: 0}
+  primaryDirection: 0
+  secondaryDirection: 0
   sortingGroup: {fileID: 2623011332169258659}
   presentationTemplate: {fileID: 6732957340894770001}
   visualSizeOffset: 0.5
   _Holder: {fileID: 0}
+  primaryAction:
+    enabled: 1
+    animation: {fileID: 0}
   magazineSize: 5959
   fireInterval: 1
   pelletCount: 4

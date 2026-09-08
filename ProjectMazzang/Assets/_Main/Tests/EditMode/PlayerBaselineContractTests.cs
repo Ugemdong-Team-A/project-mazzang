@@ -1772,6 +1772,10 @@ namespace ProjectMazzang.Tests
 
             object[] arguments =
             {
+                Enum.Parse(
+                    GetRuntimeType(
+                        "WeaponButton"),
+                    "Primary"),
                 Vector2.up,
                 Vector2.up,
                 false,
@@ -1781,7 +1785,7 @@ namespace ProjectMazzang.Tests
             Vector2 resolvedDirection =
                 (Vector2)weaponType
                     .GetMethod(
-                        "ResolvePrimaryDirection")
+                        "ResolveActionDirection")
                     ?.Invoke(
                         sword,
                         arguments);
@@ -1790,17 +1794,204 @@ namespace ProjectMazzang.Tests
                 resolvedDirection,
                 Is.EqualTo(Vector2.left));
             Assert.That(
-                arguments[3]?.ToString(),
-                Is.EqualTo("Side"));
+                arguments[4]?.ToString(),
+                Is.EqualTo("Default"));
 
             SerializedObject serializedSword =
                 new(sword);
 
             Assert.That(
                 serializedSword.FindProperty(
-                        "useLatestAimDirectionOnDash")
-                    ?.boolValue,
-                Is.False);
+                        "defaultAttack")
+                    ?.FindPropertyRelative(
+                        "attack")
+                    ?.objectReferenceValue,
+                Is.Not.Null);
+        }
+
+
+        [Test]
+        public void BrawlhallaDirection_UsesNoDirectionSideAndDownSlots()
+        {
+            GameObject swordPrefab =
+                AssetDatabase.LoadAssetAtPath<GameObject>(
+                    "Assets/_Main/Prefabs/Weapon/Sword.prefab");
+
+            GameObject instance =
+                UnityEngine.Object.Instantiate(
+                    swordPrefab);
+
+            try
+            {
+                Type weaponType =
+                    GetRuntimeType(
+                        "Weapon");
+
+                Component weapon =
+                    instance.GetComponent(
+                        weaponType);
+
+                SerializedObject serializedWeapon =
+                    new(weapon);
+
+                serializedWeapon.FindProperty(
+                        "primaryDirection")
+                    .enumValueIndex = 2;
+                serializedWeapon
+                    .ApplyModifiedPropertiesWithoutUndo();
+
+                Type buttonType =
+                    GetRuntimeType(
+                        "WeaponButton");
+
+                object primary =
+                    Enum.Parse(
+                        buttonType,
+                        "Primary");
+
+                MethodInfo resolveDirection =
+                    weaponType.GetMethod(
+                        "ResolveActionDirection");
+
+                object[] noDirectionArguments =
+                {
+                    primary,
+                    Vector2.up,
+                    Vector2.right,
+                    false,
+                    null
+                };
+
+                Vector2 noDirection =
+                    (Vector2)resolveDirection.Invoke(
+                        weapon,
+                        noDirectionArguments);
+
+                Assert.That(
+                    noDirection,
+                    Is.EqualTo(Vector2.left));
+                Assert.That(
+                    noDirectionArguments[4]
+                        ?.ToString(),
+                    Is.EqualTo("NoDirection"));
+
+                object[] sideArguments =
+                {
+                    primary,
+                    Vector2.right,
+                    Vector2.up,
+                    false,
+                    null
+                };
+
+                Assert.That(
+                    (Vector2)resolveDirection.Invoke(
+                        weapon,
+                        sideArguments),
+                    Is.EqualTo(Vector2.right));
+                Assert.That(
+                    sideArguments[4]?.ToString(),
+                    Is.EqualTo("Side"));
+
+                object[] downArguments =
+                {
+                    primary,
+                    Vector2.down,
+                    Vector2.right,
+                    true,
+                    null
+                };
+
+                Assert.That(
+                    (Vector2)resolveDirection.Invoke(
+                        weapon,
+                        downArguments),
+                    Is.EqualTo(Vector2.down));
+                Assert.That(
+                    downArguments[4]?.ToString(),
+                    Is.EqualTo("Down"));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(
+                    instance);
+            }
+        }
+
+
+        [Test]
+        public void Shield_KeepsSeparateAimActionsForBothButtons()
+        {
+            GameObject shieldPrefab =
+                AssetDatabase.LoadAssetAtPath<GameObject>(
+                    "Assets/_Main/Prefabs/Weapon/Shield.prefab");
+
+            Assert.That(shieldPrefab, Is.Not.Null);
+
+            Type weaponType =
+                GetRuntimeType(
+                    "Weapon");
+
+            Component shield =
+                shieldPrefab.GetComponent(
+                    weaponType);
+
+            Assert.That(shield, Is.Not.Null);
+            Assert.That(
+                weaponType.GetProperty(
+                        "PrimaryDirection")
+                    ?.GetValue(shield)
+                    ?.ToString(),
+                Is.EqualTo("Aim"));
+            Assert.That(
+                weaponType.GetProperty(
+                        "SecondaryDirection")
+                    ?.GetValue(shield)
+                    ?.ToString(),
+                Is.EqualTo("Aim"));
+
+            Type buttonType =
+                GetRuntimeType(
+                    "WeaponButton");
+            Type slotType =
+                GetRuntimeType(
+                    "WeaponAttackSlot");
+
+            MethodInfo getAction =
+                weaponType.GetMethod(
+                    "GetAction");
+
+            object primaryAction =
+                getAction.Invoke(
+                    shield,
+                    new[]
+                    {
+                        Enum.Parse(
+                            buttonType,
+                            "Primary"),
+                        Enum.Parse(
+                            slotType,
+                            "Default")
+                    });
+
+            object secondaryAction =
+                getAction.Invoke(
+                    shield,
+                    new[]
+                    {
+                        Enum.Parse(
+                            buttonType,
+                            "Secondary"),
+                        Enum.Parse(
+                            slotType,
+                            "Default")
+                    });
+
+            Assert.That(primaryAction, Is.Not.Null);
+            Assert.That(secondaryAction, Is.Not.Null);
+            Assert.That(
+                secondaryAction,
+                Is.Not.SameAs(primaryAction));
         }
 
 

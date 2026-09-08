@@ -1,14 +1,14 @@
 using Fusion;
 using Fusion.Addons.Physics;
+using System;
 using UnityEngine;
 using UnityEngine.Rendering;
-using UnityEngine.Serialization;
 
 public enum WeaponAttackDirection : byte
 {
     Aim = 0,
     Facing,
-    FourWay
+    Brawlhalla
 }
 
 public enum WeaponStanceDirection : byte
@@ -17,12 +17,45 @@ public enum WeaponStanceDirection : byte
     Facing
 }
 
-public enum WeaponMoveDirection : byte
+public enum WeaponButton : byte
 {
-    Neutral = 0,
+    Primary = 0,
+    Secondary
+}
+
+public enum WeaponAttackSlot : byte
+{
+    Default = 0,
+    NoDirection,
     Side,
-    Up,
     Down
+}
+
+[Serializable]
+public class WeaponActionData
+{
+    [InspectorName("사용")]
+    [SerializeField]
+    private bool enabled = true;
+
+    [InspectorName("애니메이션")]
+    [SerializeField]
+    private ActionAnimationData animation;
+
+    public bool Enabled => enabled;
+
+    public ActionAnimationData Animation =>
+        animation;
+
+    public WeaponActionData()
+    {
+    }
+
+    protected WeaponActionData(
+        bool enabled)
+    {
+        this.enabled = enabled;
+    }
 }
 
 [RequireComponent(typeof(NetworkObject))]
@@ -59,29 +92,15 @@ public abstract class Weapon :
     [Tooltip(
         "Aim: 마우스 방향으로 사용합니다.\n" +
         "Facing: 공격을 시작한 좌우 방향으로 고정합니다.\n" +
-        "Four Way: 이동 입력으로 중립/옆/위/아래를 선택합니다.")]
+        "Brawlhalla: 방향 입력 없음/좌우/아래 슬롯을 선택합니다.")]
     [SerializeField]
     private WeaponAttackDirection primaryDirection =
         WeaponAttackDirection.Aim;
 
-
-    [Header("Primary Animation")]
-    [Tooltip("중립 공격 애니메이션입니다. 비어 있으면 애니메이션 없이 공격합니다.")]
+    [Tooltip("보조 공격의 방향 선택 방식입니다.")]
     [SerializeField]
-    private ActionAnimationData neutralAnimation;
-
-    [FormerlySerializedAs("actionAnimation")]
-    [Tooltip("좌우 공격 애니메이션입니다. 기존 단일 무기 애니메이션도 이 항목으로 이어집니다.")]
-    [SerializeField]
-    private ActionAnimationData sideAnimation;
-
-    [Tooltip("위 공격 애니메이션입니다. 비어 있으면 애니메이션 없이 공격합니다.")]
-    [SerializeField]
-    private ActionAnimationData upAnimation;
-
-    [Tooltip("아래 공격 애니메이션입니다. 비어 있으면 애니메이션 없이 공격합니다.")]
-    [SerializeField]
-    private ActionAnimationData downAnimation;
+    private WeaponAttackDirection secondaryDirection =
+        WeaponAttackDirection.Aim;
 
 
     [Header("Presentation")]
@@ -135,130 +154,93 @@ public abstract class Weapon :
     public WeaponAttackDirection PrimaryDirection =>
         primaryDirection;
 
+    public WeaponAttackDirection SecondaryDirection =>
+        secondaryDirection;
+
     public WeaponStanceDirection StanceDirection =>
         stanceDirection;
 
     public AnimationClip StanceAnimation =>
         stanceAnimation;
 
-    public virtual float PrimaryActionDuration =>
-        0f;
-
-    public ActionAnimationData GetPrimaryAnimation(
-        WeaponMoveDirection direction)
+    public WeaponAttackDirection GetDirectionMode(
+        WeaponButton button)
     {
-        ActionAnimationData animation =
-            direction switch
-            {
-                WeaponMoveDirection.Neutral =>
-                    neutralAnimation,
-                WeaponMoveDirection.Up =>
-                    upAnimation,
-                WeaponMoveDirection.Down =>
-                    downAnimation,
-                _ => sideAnimation
-            };
-
-        if (animation != null ||
-            primaryDirection !=
-                WeaponAttackDirection.Aim)
-        {
-            return animation;
-        }
-
-        return sideAnimation;
+        return button == WeaponButton.Secondary
+            ? secondaryDirection
+            : primaryDirection;
     }
 
-    public Vector2 ResolvePrimaryDirection(
+    public abstract WeaponActionData GetAction(
+        WeaponButton button,
+        WeaponAttackSlot slot);
+
+    public virtual float GetActionDuration(
+        WeaponButton button,
+        WeaponAttackSlot slot)
+    {
+        return 0f;
+    }
+
+    public Vector2 ResolveActionDirection(
+        WeaponButton button,
         Vector2 moveInput,
         Vector2 aimDirection,
         bool facingRight,
-        out WeaponMoveDirection moveDirection)
+        out WeaponAttackSlot slot)
     {
         Vector2 facingDirection =
             facingRight
                 ? Vector2.right
                 : Vector2.left;
 
-        switch (primaryDirection)
+        switch (GetDirectionMode(
+                    button))
         {
             case WeaponAttackDirection.Facing:
-                moveDirection =
-                    WeaponMoveDirection.Side;
+                slot =
+                    WeaponAttackSlot.Default;
                 return facingDirection;
 
-            case WeaponAttackDirection.FourWay:
-                return ResolveFourWayDirection(
+            case WeaponAttackDirection.Brawlhalla:
+                return ResolveBrawlhallaDirection(
                     moveInput,
                     facingDirection,
-                    out moveDirection);
+                    out slot);
 
             default:
-                return ResolveAimDirection(
-                    aimDirection,
-                    facingDirection,
-                    out moveDirection);
+                slot =
+                    WeaponAttackSlot.Default;
+                return aimDirection.sqrMagnitude > 0.0001f
+                    ? aimDirection.normalized
+                    : facingDirection;
         }
     }
 
-    private static Vector2 ResolveFourWayDirection(
+    private static Vector2 ResolveBrawlhallaDirection(
         Vector2 moveInput,
         Vector2 facingDirection,
-        out WeaponMoveDirection moveDirection)
+        out WeaponAttackSlot slot)
     {
-        if (moveInput.sqrMagnitude <= 0.0001f)
+        if (moveInput.y < -0.25f)
         {
-            moveDirection =
-                WeaponMoveDirection.Neutral;
-            return facingDirection;
+            slot =
+                WeaponAttackSlot.Down;
+            return Vector2.down;
         }
 
-        if (Mathf.Abs(moveInput.x) >=
-            Mathf.Abs(moveInput.y))
+        if (Mathf.Abs(moveInput.x) > 0.25f)
         {
-            moveDirection =
-                WeaponMoveDirection.Side;
+            slot =
+                WeaponAttackSlot.Side;
             return moveInput.x >= 0f
                 ? Vector2.right
                 : Vector2.left;
         }
 
-        if (moveInput.y >= 0f)
-        {
-            moveDirection =
-                WeaponMoveDirection.Up;
-            return Vector2.up;
-        }
-
-        moveDirection =
-            WeaponMoveDirection.Down;
-        return Vector2.down;
-    }
-
-    private static Vector2 ResolveAimDirection(
-        Vector2 aimDirection,
-        Vector2 fallbackDirection,
-        out WeaponMoveDirection moveDirection)
-    {
-        Vector2 direction =
-            aimDirection.sqrMagnitude > 0.0001f
-                ? aimDirection.normalized
-                : fallbackDirection;
-
-        if (Mathf.Abs(direction.x) >=
-            Mathf.Abs(direction.y))
-        {
-            moveDirection =
-                WeaponMoveDirection.Side;
-        }
-        else
-        {
-            moveDirection = direction.y >= 0f
-                ? WeaponMoveDirection.Up
-                : WeaponMoveDirection.Down;
-        }
-
-        return direction;
+        slot =
+            WeaponAttackSlot.NoDirection;
+        return facingDirection;
     }
 
     public bool TryGetHeldMuzzlePosition(
@@ -713,13 +695,16 @@ public abstract class Weapon :
     public abstract bool TryUse(
         Vector2 origin,
         Vector2 direction,
+        WeaponAttackSlot slot,
         bool mirrored,
         float attackDamageMultiplier);
 
     public virtual bool TryUseSecondary(
         Vector2 origin,
         Vector2 direction,
-        bool mirrored)
+        WeaponAttackSlot slot,
+        bool mirrored,
+        float attackDamageMultiplier)
     {
         return false;
     }

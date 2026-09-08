@@ -397,10 +397,20 @@ MonoBehaviour:
   rb: {fileID: 9023140553725785208}
   worldCollider: {fileID: 2778920603820171767}
   pickupTrigger: {fileID: 7881194972578852804}
+  stanceDirection: 0
+  stanceAnimation: {fileID: 0}
+  primaryDirection: 0
+  secondaryDirection: 0
   sortingGroup: {fileID: 2623011332169258659}
   presentationTemplate: {fileID: 6732957340894770001}
   visualSizeOffset: 0.5
   _Holder: {fileID: 0}
+  primaryAction:
+    enabled: 1
+    animation: {fileID: 0}
+  secondaryAction:
+    enabled: 1
+    animation: {fileID: 0}
   sharedCooldown: 1.35
   bashAttack: {fileID: 11400000, guid: e2a1f7c2b6d44a3fa92bc8e9d31f0104, type: 2}
   hitboxSize: {x: 1.25, y: 1.5}

@@ -6,6 +6,15 @@ public sealed class ShieldWeapon :
     Weapon,
     IParryVolume
 {
+    [Header("Actions")]
+    [SerializeField]
+    private WeaponActionData primaryAction =
+        new();
+
+    [SerializeField]
+    private WeaponActionData secondaryAction =
+        new();
+
     [Header("Shared Cooldown")]
     [Min(0f)]
     [SerializeField]
@@ -101,6 +110,24 @@ public sealed class ShieldWeapon :
 
     public override bool ConsumesParryInput => true;
 
+    public override WeaponActionData GetAction(
+        WeaponButton button,
+        WeaponAttackSlot slot)
+    {
+        return button == WeaponButton.Secondary
+            ? secondaryAction
+            : primaryAction;
+    }
+
+    public override float GetActionDuration(
+        WeaponButton button,
+        WeaponAttackSlot slot)
+    {
+        return button == WeaponButton.Secondary
+            ? parryDuration
+            : dashControlLock;
+    }
+
     public bool IsParryActive =>
         IsEquipped &&
         !ParryActiveTimer.ExpiredOrNotRunning(Runner);
@@ -154,6 +181,7 @@ public sealed class ShieldWeapon :
     public override bool TryUse(
         Vector2 origin,
         Vector2 direction,
+        WeaponAttackSlot slot,
         bool mirrored,
         float attackDamageMultiplier)
     {
@@ -178,7 +206,9 @@ public sealed class ShieldWeapon :
     public override bool TryUseSecondary(
         Vector2 origin,
         Vector2 direction,
-        bool mirrored)
+        WeaponAttackSlot slot,
+        bool mirrored,
+        float attackDamageMultiplier)
     {
         if (!CanStartAction())
             return false;

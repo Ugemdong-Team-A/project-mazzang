@@ -4,6 +4,11 @@ using UnityEngine;
 public sealed class ProjectileGun :
     Weapon
 {
+    [Header("Primary Action")]
+    [SerializeField]
+    private WeaponActionData primaryAction =
+        new();
+
     [Header("Gun")]
     [Min(1)]
     [SerializeField]
@@ -123,9 +128,19 @@ public sealed class ProjectileGun :
     // Fire
     // =========================================================
 
+    public override WeaponActionData GetAction(
+        WeaponButton button,
+        WeaponAttackSlot slot)
+    {
+        return button == WeaponButton.Primary
+            ? primaryAction
+            : null;
+    }
+
     public override bool TryUse(
         Vector2 origin,
         Vector2 direction,
+        WeaponAttackSlot slot,
         bool mirrored,
         float attackDamageMultiplier)
     {

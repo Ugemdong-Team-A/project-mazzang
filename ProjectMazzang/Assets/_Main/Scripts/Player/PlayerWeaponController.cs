@@ -99,7 +99,14 @@ public sealed class PlayerWeaponController :
     }
 
     [Networked]
-    private WeaponMoveDirection ActiveWeaponMove
+    private WeaponButton ActiveWeaponButton
+    {
+        get;
+        set;
+    }
+
+    [Networked]
+    private WeaponAttackSlot ActiveWeaponSlot
     {
         get;
         set;
@@ -180,8 +187,10 @@ public sealed class PlayerWeaponController :
             TickTimer.None;
 
         LockedWeaponFacingRight = true;
-        ActiveWeaponMove =
-            WeaponMoveDirection.Side;
+        ActiveWeaponButton =
+            WeaponButton.Primary;
+        ActiveWeaponSlot =
+            WeaponAttackSlot.Default;
 
         WeaponAnimationSequence = 0;
     }
@@ -247,8 +256,9 @@ public sealed class PlayerWeaponController :
             WeaponAnimationTimer.IsRunning &&
             !WeaponAnimationTimer.Expired(Runner);
         state.WeaponAnimation =
-            equippedWeapon?.GetPrimaryAnimation(
-                ActiveWeaponMove);
+            equippedWeapon?.GetAction(
+                ActiveWeaponButton,
+                ActiveWeaponSlot)?.Animation;
     }
 
 
@@ -271,6 +281,7 @@ public sealed class PlayerWeaponController :
         }
 
         TryUseWeapon(
+            WeaponButton.Primary,
             moveInput,
             aimDirection,
             !state.HasHealth ||
@@ -374,13 +385,25 @@ public sealed class PlayerWeaponController :
             input.Buttons;
 
         if (secondaryPressed &&
-            ConsumesParryInput)
+            ConsumesParryInput &&
+            !state.IsAttackControlLocked)
         {
-            TryUseSecondaryWeapon(
-                state.HasMovement &&
-                !state.FacingRight,
+            Vector2 aimDirection =
+                state.ResolveAimDirectionTo(
+                    input.AimWorldPosition);
+
+            TryUseWeapon(
+                WeaponButton.Secondary,
+                input.Move,
+                state.ResolveLimitedAimDirection(
+                    aimDirection),
+                !state.HasHealth ||
+                state.IsAlive,
+                !state.HasMovement ||
+                state.FacingRight,
                 ResolveGameplayWeaponOrigin(
-                    state));
+                    state),
+                state.ActiveStatModifiers.AttackDamage);
         }
     }
 
@@ -757,30 +780,8 @@ public sealed class PlayerWeaponController :
     // =========================================================
 
 
-    private bool TryUseSecondaryWeapon(
-        bool mirrored,
-        Vector2 origin)
-    {
-        if (!HasStateAuthority)
-            return false;
-
-        Weapon weapon =
-            EquippedWeapon;
-
-        if (weapon == null ||
-            !weapon.ConsumesParryInput)
-        {
-            return false;
-        }
-
-        return weapon.TryUseSecondary(
-            origin,
-            WeaponDirection,
-            mirrored);
-    }
-
-
     private bool TryUseWeapon(
+        WeaponButton button,
         Vector2 moveInput,
         Vector2 aimDirection,
         bool isAlive,
@@ -801,40 +802,62 @@ public sealed class PlayerWeaponController :
             return false;
 
         Vector2 useDirection =
-            weapon.ResolvePrimaryDirection(
+            weapon.ResolveActionDirection(
+                button,
                 moveInput,
                 aimDirection,
                 facingRight,
-                out WeaponMoveDirection moveDirection);
+                out WeaponAttackSlot slot);
+
+        WeaponActionData action =
+            weapon.GetAction(
+                button,
+                slot);
+
+        if (action == null ||
+            !action.Enabled)
+        {
+            return false;
+        }
 
         bool useFacingRight =
             Mathf.Abs(useDirection.x) > 0.0001f
                 ? useDirection.x > 0f
                 : facingRight;
 
-        bool used = weapon.TryUse(
-            origin,
-            useDirection,
-            !useFacingRight,
-            attackDamageMultiplier);
+        bool used = button == WeaponButton.Secondary
+            ? weapon.TryUseSecondary(
+                origin,
+                useDirection,
+                slot,
+                !useFacingRight,
+                attackDamageMultiplier)
+            : weapon.TryUse(
+                origin,
+                useDirection,
+                slot,
+                !useFacingRight,
+                attackDamageMultiplier);
 
         if (used)
         {
             WeaponAngle =
                 DirectionToAngle(
                     useDirection);
-            ActiveWeaponMove =
-                moveDirection;
+            ActiveWeaponButton = button;
+            ActiveWeaponSlot = slot;
 
             ActionAnimationData animation =
-                weapon.GetPrimaryAnimation(
-                    moveDirection);
+                action.Animation;
 
             ActionAnimationClipData clipData =
                 animation != null
                     ? animation.GetClipData(
                         ActionAnimationPhase.Release)
                     : default;
+
+            WeaponAnimationTimer =
+                TickTimer.None;
 
             if (clipData.HasClip)
             {
@@ -847,12 +870,18 @@ public sealed class PlayerWeaponController :
                             Runner.DeltaTime));
             }
 
-            if (weapon.PrimaryDirection !=
+            WeaponActionTimer =
+                TickTimer.None;
+
+            if (weapon.GetDirectionMode(
+                    button) !=
                 WeaponAttackDirection.Aim)
             {
                 float actionDuration =
                     Mathf.Max(
-                        weapon.PrimaryActionDuration,
+                        weapon.GetActionDuration(
+                            button,
+                            slot),
                         clipData.HasClip
                             ? clipData.Clip.length
                             : 0f,

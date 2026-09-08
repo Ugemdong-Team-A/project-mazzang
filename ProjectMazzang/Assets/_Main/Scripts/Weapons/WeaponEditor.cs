@@ -11,6 +11,12 @@ public sealed class WeaponEditor : Editor
         KoreanLabels =
             new Dictionary<string, string>
             {
+                ["defaultAttack"] = "단일 방향 공격",
+                ["noDirectionAttack"] = "방향 입력 없을 때",
+                ["sideAttack"] = "좌우 입력할 때",
+                ["downAttack"] = "아래 입력할 때",
+                ["primaryAction"] = "주 공격 연출",
+                ["secondaryAction"] = "보조 공격 연출",
                 ["attack"] = "공격 데이터",
                 ["bashAttack"] = "밀치기 공격 데이터",
                 ["hitboxSize"] = "판정 크기",
@@ -19,7 +25,6 @@ public sealed class WeaponEditor : Editor
                 ["dash"] = "돌진 데이터",
                 ["dashSpeed"] = "돌진 속도",
                 ["dashControlLock"] = "돌진 조작 제한 시간",
-                ["useLatestAimDirectionOnDash"] = "돌진 때 최신 조준 사용",
                 ["cooldown"] = "재사용 대기시간",
                 ["sharedCooldown"] = "공용 재사용 대기시간",
                 ["attackDelay"] = "판정 지연시간",
@@ -56,10 +61,7 @@ public sealed class WeaponEditor : Editor
             "stanceDirection",
             "stanceAnimation",
             "primaryDirection",
-            "neutralAnimation",
-            "sideAnimation",
-            "upAnimation",
-            "downAnimation",
+            "secondaryDirection",
             "sortingGroup",
             "presentationTemplate",
             "visualSizeOffset"
@@ -71,7 +73,7 @@ public sealed class WeaponEditor : Editor
 
         DrawScript();
         DrawStance();
-        DrawPrimaryAttack();
+        DrawAttackDirections();
         DrawPresentation();
         DrawWeaponSettings();
 
@@ -123,74 +125,52 @@ public sealed class WeaponEditor : Editor
         }
     }
 
-    private void DrawPrimaryAttack()
+    private void DrawAttackDirections()
+    {
+        DrawAttackDirection(
+            "주 공격",
+            "primaryDirection");
+
+        Weapon weapon =
+            target as Weapon;
+
+        if (weapon != null &&
+            weapon.ConsumesParryInput)
+        {
+            DrawAttackDirection(
+                "보조 공격",
+                "secondaryDirection");
+        }
+    }
+
+    private void DrawAttackDirection(
+        string title,
+        string propertyName)
     {
         EditorGUILayout.Space();
         EditorGUILayout.LabelField(
-            "주 공격",
+            title,
             EditorStyles.boldLabel);
 
         SerializedProperty direction =
             serializedObject.FindProperty(
-                "primaryDirection");
+                propertyName);
 
         DrawPopup(
             direction,
-            "공격 방향",
-            "공격을 시작할 때 판정과 애니메이션에 함께 사용할 방향을 정합니다.",
+            "입력 방식",
+            "입력 순간 판정과 애니메이션에 함께 사용할 방향을 정합니다.",
             "마우스 정밀 조준",
             "바라보는 좌우",
-            "이동 입력 4방향");
+            "브라울할라식");
 
-        if (direction == null)
-            return;
-
-        WeaponAttackDirection mode =
-            (WeaponAttackDirection)
-            direction.enumValueIndex;
-
-        switch (mode)
+        if (direction != null &&
+            direction.enumValueIndex ==
+                (int)WeaponAttackDirection.Brawlhalla)
         {
-            case WeaponAttackDirection.Facing:
-                DrawAnimation(
-                    "sideAnimation",
-                    "좌우 공격");
-                break;
-
-            case WeaponAttackDirection.FourWay:
-                DrawAnimation(
-                    "neutralAnimation",
-                    "중립 공격");
-                DrawAnimation(
-                    "sideAnimation",
-                    "좌우 공격");
-                DrawAnimation(
-                    "upAnimation",
-                    "위 공격");
-                DrawAnimation(
-                    "downAnimation",
-                    "아래 공격");
-
-                EditorGUILayout.HelpBox(
-                    "비어 있는 방향은 엉뚱한 애니메이션으로 대체하지 않고 판정만 실행합니다.",
-                    MessageType.None);
-                break;
-
-            default:
-                DrawAnimation(
-                    "sideAnimation",
-                    "기본 조준 공격");
-                DrawAnimation(
-                    "upAnimation",
-                    "위쪽 전용 공격");
-                DrawAnimation(
-                    "downAnimation",
-                    "아래쪽 전용 공격");
-
-                EditorGUILayout.HelpBox(
-                    "위·아래 전용 애니메이션이 비어 있으면 기본 조준 공격을 사용합니다.",
-                    MessageType.None);
-                break;
+            EditorGUILayout.HelpBox(
+                "위 입력 또는 방향 입력이 없으면 '방향 입력 없을 때', 좌우 입력은 '좌우 입력할 때', 아래 입력은 '아래 입력할 때' 슬롯을 사용합니다.",
+                MessageType.Info);
         }
     }
 
@@ -236,7 +216,9 @@ public sealed class WeaponEditor : Editor
 
             if (BaseProperties.Contains(
                     property.name) ||
-                property.name.StartsWith("_"))
+                property.name.StartsWith("_") ||
+                !ShouldDrawWeaponProperty(
+                    property.name))
             {
                 continue;
             }
@@ -261,35 +243,37 @@ public sealed class WeaponEditor : Editor
                         property.displayName,
                         property.tooltip);
 
-            bool directionLocked =
-                property.name ==
-                    "useLatestAimDirectionOnDash" &&
-                serializedObject.FindProperty(
-                        "primaryDirection")
-                    ?.enumValueIndex !=
-                (int)WeaponAttackDirection.Aim;
-
-            using (new EditorGUI.DisabledScope(
-                       directionLocked))
-            {
-                EditorGUILayout.PropertyField(
-                    property,
-                    label,
-                    true);
-            }
+            EditorGUILayout.PropertyField(
+                property,
+                label,
+                true);
         }
     }
 
-    private void DrawAnimation(
-        string propertyName,
-        string label)
+    private bool ShouldDrawWeaponProperty(
+        string propertyName)
     {
-        EditorGUILayout.PropertyField(
+        bool swordSlot =
+            propertyName == "defaultAttack" ||
+            propertyName == "noDirectionAttack" ||
+            propertyName == "sideAttack" ||
+            propertyName == "downAttack";
+
+        if (!swordSlot)
+            return true;
+
+        SerializedProperty direction =
             serializedObject.FindProperty(
-                propertyName),
-            new GUIContent(
-                label,
-                "이 공격에 사용할 Action Animation Data입니다."));
+                "primaryDirection");
+
+        bool brawlhalla =
+            direction != null &&
+            direction.enumValueIndex ==
+                (int)WeaponAttackDirection.Brawlhalla;
+
+        return brawlhalla
+            ? propertyName != "defaultAttack"
+            : propertyName == "defaultAttack";
     }
 
     private void DrawProperty(

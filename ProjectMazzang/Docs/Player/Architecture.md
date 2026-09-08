@@ -223,10 +223,14 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
   별도의 스킬 전용 애니메이션 타입은 두지 않는다.
 - `SkillData.Animation`, `PlayerAttackData.Animation`, `Weapon`의 방향별 애니메이션은 모두 같은
   `ActionAnimationData` 타입을 참조한다. 무기는 성공한 기본 사용을 Release 단계로 발행한다.
-- 무기의 `Aim`, `Facing`, `FourWay` 방향 규칙은 입력을 받은 `PlayerWeaponController`가 한 번만
+- 무기의 `Aim`, `Facing`, `Brawlhalla` 방향 규칙은 입력을 받은 `PlayerWeaponController`가 한 번만
   확정한다. 확정된 같은 방향을 무기 판정과 방향별 애니메이션 선택에 사용한다.
-- `Facing`과 `FourWay` 무기 행동 중에는 확정한 좌우를 `PlayerTickState`로 공개한다.
+- `Facing`과 `Brawlhalla` 무기 행동 중에는 확정한 좌우를 `PlayerTickState`로 공개한다.
   `PlayerAim`은 이 스냅샷을 따라 마우스로 인한 중간 반전을 막으며, 두 모듈은 서로 직접 참조하지 않는다.
+- Primary와 Secondary는 각각 방향 규칙을 가진다. `Brawlhalla`는 위 입력과 입력 없음을
+  `NoDirection`, 좌우 입력을 `Side`, 아래 입력을 `Down` 슬롯으로 확정한다.
+- 방향별 공격 슬롯은 사용 여부와 AAD를 함께 가지며, 근접 무기는 같은 슬롯에 데미지,
+  Box, 판정 시점, 돌진 설정까지 함께 둔다. 방향 판정과 연출 설정을 별도 배열로 관리하지 않는다.
 - 무기의 Stance 방향은 공격 방향과 별도로 설정한다. `Facing` Stance는 이동 모듈이 정한 좌우를
   유지하고 평상시 상체 CCD를 끄며, Stance 클립이 비어 있으면 기존 Idle을 그대로 사용한다.
 - `PlayerAnimation`은 장착 무기의 선택적 Stance 클립만 기본 Idle 슬롯에 교체한다.
