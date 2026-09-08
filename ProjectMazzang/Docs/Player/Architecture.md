@@ -250,6 +250,10 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
   `arm_r_solver/arm_r_solver_Target` 같은 공통 IK Target 경로를 사용할 수 있다. 클립은 Target만
   움직이며 Solver의 활성 여부를 바꾸지 않는다. Solver 활성 정책은 기존 프리팹 설정과 무기
   장착 로직이 계속 소유한다.
+- `Standard2DAnimationBaker`는 편집 중인 원본을 바꾸지 않고 별도 캐릭터 복제본에서 Limb IK를
+  프레임별로 평가한다. 결과에는 표준 Skeleton 전체의 FK Transform과 6개 Limb Target의 완전한
+  Transform 키를 함께 기록한다. 베이크 계산은 저장 위치나 실행 시점을 모르며, 현재 저장 방식과
+  사용자 진입점은 각각 별도 에셋 유틸리티와 `SpriteVisualKeyingWindow`가 담당한다.
 - 스킬 효과 발동 시점은 Networked Phase가 결정한다. Animation Event는 게임플레이 발동이나
   네트워크 결과를 결정하지 않는다.
 - `Skill` 런타임은 사용 조건과 실제 행동을 구현한다.

@@ -24,6 +24,13 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
     private Vector2 _orderStripScroll;
     private SpriteVisualAnimationDriver _lastOrderStripTarget;
     private int _lastOrderStripTargetIndex = -1;
+    private AnimationClip _lastBakedClip;
+    private Vector2 _windowScroll;
+    private AnimationClip _workingClip;
+    private AnimationClip _observedAnimationWindowClip;
+    private Animator _clipEditAnimator;
+    private RuntimeAnimatorController _originalController;
+    private AnimatorOverrideController _clipEditController;
 
     [MenuItem("Tools/2D Animation/Sprite Visual Keyer")]
     private static void Open()
@@ -46,6 +53,8 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
         titleContent = CreateTitleContent();
         minSize = new Vector2(340f, 320f);
         EditorApplication.update += Repaint;
+        EditorApplication.playModeStateChanged +=
+            OnPlayModeStateChanged;
         Selection.selectionChanged += OnSelectionChanged;
         Undo.undoRedoPerformed += OnUndoRedoPerformed;
         RefreshFromSelection();
@@ -53,7 +62,10 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
 
     private void OnDisable()
     {
+        RestoreClipEditController();
         EditorApplication.update -= Repaint;
+        EditorApplication.playModeStateChanged -=
+            OnPlayModeStateChanged;
         Selection.selectionChanged -= OnSelectionChanged;
         Undo.undoRedoPerformed -= OnUndoRedoPerformed;
         SpriteVisualKeyingWindowCompanion.SuppressUntilAnimationLosesFocus();
@@ -71,7 +83,23 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
         Repaint();
     }
 
+    private void OnPlayModeStateChanged(
+        PlayModeStateChange state)
+    {
+        if (state == PlayModeStateChange.ExitingEditMode)
+            RestoreClipEditController();
+    }
+
     private void OnGUI()
+    {
+        using EditorGUILayout.ScrollViewScope scroll =
+            new(_windowScroll);
+        _windowScroll = scroll.scrollPosition;
+
+        DrawWindowContent();
+    }
+
+    private void DrawWindowContent()
     {
         AnimationWindow animationWindow = GetAnimationWindow();
 
@@ -83,12 +111,15 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
             return;
         }
 
-        AnimationClip clip = animationWindow.animationClip;
+        SyncWorkingClip(animationWindow);
+        DrawClipSelection(animationWindow);
+
+        AnimationClip clip = _workingClip;
 
         if (clip == null)
         {
             EditorGUILayout.HelpBox(
-                "Animation Clip을 선택해주세요.",
+                "작업할 Animation Clip을 선택해주세요.",
                 MessageType.Info);
             return;
         }
@@ -103,10 +134,28 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
         if (_animationRoot == null)
             return;
 
+        bool isShownInAnimationWindow =
+            animationWindow.animationClip == clip;
+
+        if (!isShownInAnimationWindow)
+        {
+            EditorGUILayout.Space(8);
+            DrawFkBake(clip);
+
+            EditorGUILayout.HelpBox(
+                "FK 굽기는 가능하지만 현재 프레임 키 편집은 Animation 창에 표시된 " +
+                "클립에서만 가능합니다.",
+                MessageType.Warning);
+            return;
+        }
+
         EditorGUILayout.Space(8);
         DrawIKKeys(
             animationWindow,
             clip);
+
+        EditorGUILayout.Space(8);
+        DrawFkBake(clip);
 
         EditorGUILayout.Space(8);
         DrawAllPartKeying(
@@ -128,6 +177,56 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
         DrawTargetContext();
         EditorGUILayout.Space(8);
         DrawVisualKeys(animationWindow, clip);
+    }
+
+    private void DrawClipSelection(
+        AnimationWindow animationWindow)
+    {
+        using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+        {
+            EditorGUILayout.LabelField(
+                "작업 애니메이션",
+                EditorStyles.boldLabel);
+
+            EditorGUI.BeginChangeCheck();
+            AnimationClip selectedClip =
+                (AnimationClip)EditorGUILayout.ObjectField(
+                    "편집할 클립",
+                    _workingClip,
+                    typeof(AnimationClip),
+                    false);
+
+            if (EditorGUI.EndChangeCheck())
+            {
+                _workingClip = selectedClip;
+
+                if (selectedClip != null)
+                {
+                    TryShowWorkingClip(
+                        animationWindow,
+                        false);
+                }
+            }
+
+            if (_workingClip == null ||
+                animationWindow.animationClip == _workingClip)
+            {
+                return;
+            }
+
+            if (GUILayout.Button(
+                    "Animation 창에 표시",
+                    GUILayout.Height(24)))
+            {
+                TryShowWorkingClip(
+                    animationWindow,
+                    true);
+            }
+
+            EditorGUILayout.HelpBox(
+                "Controller 에셋과 Transition은 바꾸지 않고 임시 Override로 표시합니다.",
+                MessageType.Info);
+        }
     }
 
     private static void DrawHeader(
@@ -250,6 +349,125 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
                 }
             }
         }
+    }
+
+    private void DrawFkBake(AnimationClip sourceClip)
+    {
+        using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+        {
+            EditorGUILayout.LabelField(
+                "FK 애니메이션 굽기",
+                EditorStyles.boldLabel);
+
+            EditorGUILayout.HelpBox(
+                "현재 IK Target과 표준 Skeleton의 자세를 모든 프레임에 기록한 " +
+                "별도 Animation Clip을 만듭니다. 원본 클립은 변경하지 않습니다.",
+                MessageType.Info);
+
+            using (new EditorGUI.DisabledScope(
+                       _animationRoot == null))
+            {
+                GUIContent bakeContent = new(
+                    "현재 클립 FK로 굽기...",
+                    "선택한 캐릭터의 6개 Limb IK를 프레임마다 계산하고, " +
+                    "완성된 본 자세와 IK Target을 새 Animation Clip에 저장합니다.");
+
+                if (GUILayout.Button(
+                        bakeContent,
+                        GUILayout.Height(30)))
+                {
+                    BakeCurrentClip(sourceClip);
+                }
+            }
+
+            if (_lastBakedClip == null)
+                return;
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                using (new EditorGUI.DisabledScope(true))
+                {
+                    EditorGUILayout.ObjectField(
+                        "마지막 결과",
+                        _lastBakedClip,
+                        typeof(AnimationClip),
+                        false);
+                }
+
+                if (GUILayout.Button(
+                        "찾기",
+                        GUILayout.Width(44)))
+                {
+                    EditorGUIUtility.PingObject(
+                        _lastBakedClip);
+                }
+            }
+        }
+    }
+
+    private void BakeCurrentClip(AnimationClip sourceClip)
+    {
+        if (!Standard2DAnimationBaker.TryBake(
+                _animationRoot,
+                sourceClip,
+                out Standard2DAnimationBaker.Result result,
+                out string bakeError))
+        {
+            EditorUtility.DisplayDialog(
+                "FK 애니메이션 굽기 실패",
+                bakeError,
+                "확인");
+            return;
+        }
+
+        string assetPath =
+            EditorUtility.SaveFilePanelInProject(
+                "FK 애니메이션 저장",
+                sourceClip.name + "_FK",
+                "anim",
+                "원본과 분리된 FK Animation Clip의 저장 위치를 선택해주세요.",
+                Standard2DAnimationBakeAssets.GetDefaultDirectory(
+                    sourceClip));
+
+        if (string.IsNullOrEmpty(assetPath))
+        {
+            DestroyImmediate(result.Clip);
+            return;
+        }
+
+        if (!Standard2DAnimationBakeAssets.TrySave(
+                sourceClip,
+                result,
+                assetPath,
+                out AnimationClip savedClip,
+                out string saveError))
+        {
+            if (result.Clip != null &&
+                !AssetDatabase.Contains(result.Clip))
+            {
+                DestroyImmediate(result.Clip);
+            }
+
+            EditorUtility.DisplayDialog(
+                "FK 애니메이션 저장 실패",
+                saveError,
+                "확인");
+            return;
+        }
+
+        _lastBakedClip = savedClip;
+        EditorGUIUtility.PingObject(savedClip);
+        ShowNotification(
+            new GUIContent(
+                $"FK 굽기 완료 · 본 {result.BoneCount} · " +
+                $"Target {result.TargetCount} · 프레임 {result.FrameCount}"));
+
+        Debug.Log(
+            $"[{nameof(SpriteVisualKeyingWindow)}] " +
+            $"'{sourceClip.name}'을 '{assetPath}'에 FK로 구웠습니다. " +
+            $"본 {result.BoneCount}개, Target {result.TargetCount}개, " +
+            $"프레임 {result.FrameCount}개.",
+            savedClip);
     }
 
     private void DrawRigSelection(
@@ -987,6 +1205,195 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
                 labels.Length - 1);
     }
 
+    private void SyncWorkingClip(
+        AnimationWindow animationWindow)
+    {
+        AnimationClip animationWindowClip =
+            animationWindow.animationClip;
+
+        if (animationWindowClip ==
+            _observedAnimationWindowClip)
+        {
+            return;
+        }
+
+        _observedAnimationWindowClip =
+            animationWindowClip;
+
+        if (animationWindowClip == null)
+            return;
+
+        if (_clipEditController != null &&
+            animationWindowClip != _workingClip)
+        {
+            RestoreClipEditController();
+        }
+
+        _workingClip = animationWindowClip;
+    }
+
+    private bool TryShowWorkingClip(
+        AnimationWindow animationWindow,
+        bool showError)
+    {
+        if (_workingClip == null)
+            return false;
+
+        if (_animationRoot == null)
+        {
+            if (showError)
+            {
+                EditorUtility.DisplayDialog(
+                    "Animation Clip 표시 실패",
+                    "먼저 캐릭터 기준 Animator를 선택해주세요.",
+                    "확인");
+            }
+
+            return false;
+        }
+
+        RestoreClipEditController();
+
+        GameObject selected =
+            Selection.activeGameObject;
+        Animator selectedAnimator =
+            selected != null
+                ? selected.GetComponentInParent<Animator>()
+                : null;
+
+        if (selectedAnimator != _animationRoot)
+        {
+            Selection.activeGameObject =
+                _animationRoot.gameObject;
+        }
+
+        RuntimeAnimatorController controller =
+            _animationRoot.runtimeAnimatorController;
+
+        if (controller == null)
+        {
+            if (showError)
+            {
+                EditorUtility.DisplayDialog(
+                    "Animation Clip 표시 실패",
+                    "선택한 Animator에 Controller가 없습니다.",
+                    "확인");
+            }
+
+            return false;
+        }
+
+        if (!controller.animationClips.Contains(
+                _workingClip) &&
+            !TryCreateClipEditController(
+                controller,
+                out string controllerError))
+        {
+            if (showError)
+            {
+                EditorUtility.DisplayDialog(
+                    "Animation Clip 표시 실패",
+                    controllerError,
+                    "확인");
+            }
+
+            return false;
+        }
+
+        animationWindow.animationClip =
+            _workingClip;
+        _observedAnimationWindowClip =
+            animationWindow.animationClip;
+        animationWindow.Repaint();
+
+        bool displayed =
+            animationWindow.animationClip ==
+            _workingClip;
+
+        if (!displayed)
+        {
+            RestoreClipEditController();
+
+            if (showError)
+            {
+                EditorUtility.DisplayDialog(
+                    "Animation Clip 표시 실패",
+                    "Animation 창에서 클립을 선택하지 못했습니다. " +
+                    "캐릭터 Root를 선택한 뒤 다시 시도해주세요.",
+                    "확인");
+            }
+        }
+
+        return displayed;
+    }
+
+    private bool TryCreateClipEditController(
+        RuntimeAnimatorController sourceController,
+        out string error)
+    {
+        error = null;
+
+        AnimatorOverrideController overrideController =
+            new(sourceController)
+            {
+                name =
+                    sourceController.name +
+                    " (Clip Edit Session)",
+                hideFlags = HideFlags.HideAndDontSave
+            };
+        List<KeyValuePair<AnimationClip, AnimationClip>> overrides =
+            new(overrideController.overridesCount);
+        overrideController.GetOverrides(overrides);
+
+        AnimationClip placeholder =
+            overrides
+                .Select(pair => pair.Key)
+                .FirstOrDefault(
+                    clip => clip != null &&
+                            clip.name == "ActionReleasePlaceholder") ??
+            overrides
+                .Select(pair => pair.Key)
+                .FirstOrDefault(clip => clip != null);
+
+        if (placeholder == null)
+        {
+            DestroyImmediate(overrideController);
+            error =
+                "Controller에서 임시로 교체할 Animation Clip을 찾지 못했습니다.";
+            return false;
+        }
+
+        overrideController[placeholder] =
+            _workingClip;
+
+        _clipEditAnimator = _animationRoot;
+        _originalController = sourceController;
+        _clipEditController = overrideController;
+        _clipEditAnimator.runtimeAnimatorController =
+            _clipEditController;
+
+        return true;
+    }
+
+    private void RestoreClipEditController()
+    {
+        if (_clipEditAnimator != null &&
+            _clipEditController != null &&
+            _clipEditAnimator.runtimeAnimatorController ==
+            _clipEditController)
+        {
+            _clipEditAnimator.runtimeAnimatorController =
+                _originalController;
+        }
+
+        if (_clipEditController != null)
+            DestroyImmediate(_clipEditController);
+
+        _clipEditAnimator = null;
+        _originalController = null;
+        _clipEditController = null;
+    }
+
     private void RefreshFromSelection()
     {
         GameObject selected = Selection.activeGameObject;
@@ -1011,6 +1418,9 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
 
     private void SetAnimationRoot(Animator animator)
     {
+        if (_animationRoot != animator)
+            RestoreClipEditController();
+
         _animationRoot = animator;
         RefreshParts(false);
     }
