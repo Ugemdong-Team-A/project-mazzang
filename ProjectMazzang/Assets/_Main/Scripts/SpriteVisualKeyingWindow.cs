@@ -618,9 +618,9 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
                    characterSetup == null))
         {
             GUIContent refreshContent = new(
-                "캐릭터 구성 새로고침",
-                "Character Setup을 실행하고 Animator·IK·Sprite Resolver·Visual Driver " +
-                "참조와 Animation 창 표시를 다시 갱신합니다.");
+                "편집 정보 새로고침",
+                "현재 Animator·Sprite Resolver·Visual Driver 정보와 Animation 창 표시를 " +
+                "다시 읽습니다. 기존 IK는 다시 만들지 않습니다.");
 
             if (GUILayout.Button(
                     refreshContent,
@@ -636,7 +636,7 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
         {
             EditorGUILayout.HelpBox(
                 "캐릭터 기준에 Standard 2D Character Setup이 없어 " +
-                "구성 새로고침을 실행할 수 없습니다.",
+                "편집 정보를 새로고침할 수 없습니다.",
                 MessageType.Info);
         }
     }
@@ -671,7 +671,7 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
             ? _target.transform
             : null;
 
-        if (!Standard2DCharacterBuilder.BuildOrRefresh(setup))
+        if (!Standard2DCharacterBuilder.RefreshExisting(setup))
             return;
 
         _animationRoot = setup.Animator != null

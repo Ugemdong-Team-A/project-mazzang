@@ -167,6 +167,12 @@ public sealed class PlayerAim :
     // Fusion
     // =========================================================
 
+    private void OnEnable()
+    {
+        ResolveAimRigReferences();
+    }
+
+
     public override void Spawned()
     {
         ResolveAimRigReferences();
@@ -264,6 +270,7 @@ public sealed class PlayerAim :
             isWallSliding,
             facingRight,
             inputFacingDirection,
+            input.Move.x,
             tick.State.IsWeaponFacingLocked,
             tick.State.WeaponFacingRight,
             tick.State.UsesWeaponFacingStance);
@@ -573,6 +580,7 @@ public sealed class PlayerAim :
         bool isWallSliding,
         bool facingRight,
         Vector2 facingDirection,
+        float movementInputX,
         bool isWeaponFacingLocked,
         bool weaponFacingRight,
         bool usesWeaponFacingStance)
@@ -599,7 +607,17 @@ public sealed class PlayerAim :
         }
 
         if (usesWeaponFacingStance)
+        {
+            TryUpdateFacingFromDirection(
+                commands,
+                new Vector2(
+                    movementInputX,
+                    0f),
+                false,
+                facingRight);
+
             return;
+        }
 
         TryUpdateFacingFromDirection(
             commands,
@@ -1006,6 +1024,12 @@ public sealed class PlayerAim :
         }
 
         if (upperBodyAimRig == null)
+        {
+            upperBodyAimRig =
+                FindBodyAimRig();
+        }
+
+        if (upperBodyAimRig == null)
             return;
 
         IKChain2D chain =
@@ -1018,6 +1042,35 @@ public sealed class PlayerAim :
             resolvedAimPivot != null
                 ? resolvedAimPivot.parent
                 : chain?.rootTransform;
+    }
+
+
+    private CCDSolver2D FindBodyAimRig()
+    {
+        Transform referenceBone =
+            resolvedAimPivot != null
+                ? resolvedAimPivot.parent
+                : null;
+
+        if (referenceBone == null)
+            return null;
+
+        CCDSolver2D[] candidates =
+            GetComponentsInChildren<CCDSolver2D>(
+                true);
+
+        foreach (CCDSolver2D candidate in candidates)
+        {
+            IKChain2D chain =
+                candidate != null
+                    ? candidate.GetChain(0)
+                    : null;
+
+            if (chain?.rootTransform == referenceBone)
+                return candidate;
+        }
+
+        return null;
     }
 
 

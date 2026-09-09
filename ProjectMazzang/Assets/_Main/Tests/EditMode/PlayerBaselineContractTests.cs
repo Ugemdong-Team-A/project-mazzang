@@ -1876,6 +1876,186 @@ namespace ProjectMazzang.Tests
 
 
         [Test]
+        public void FacingStance_UsesMovementInputForFacing()
+        {
+            Type aimType =
+                GetRuntimeType(
+                    "PlayerAim");
+            Type commandsType =
+                GetRuntimeType(
+                    "PlayerTickCommands");
+
+            GameObject root =
+                new("Facing Stance Test");
+
+            try
+            {
+                Component aim =
+                    root.AddComponent(
+                        aimType);
+                object commands =
+                    Activator.CreateInstance(
+                        commandsType);
+
+                aimType.GetMethod(
+                        "UpdateFacing",
+                        BindingFlags.Instance |
+                        BindingFlags.NonPublic)
+                    ?.Invoke(
+                        aim,
+                        new object[]
+                        {
+                            commands,
+                            false,
+                            true,
+                            Vector2.right,
+                            -1f,
+                            false,
+                            true,
+                            true
+                        });
+
+                object[] consumeArguments =
+                {
+                    false
+                };
+
+                bool consumed =
+                    (bool)commandsType.GetMethod(
+                            "TryConsumeFacing",
+                            BindingFlags.Instance |
+                            BindingFlags.NonPublic)
+                        ?.Invoke(
+                            commands,
+                            consumeArguments);
+
+                Assert.That(
+                    consumed,
+                    Is.True);
+                Assert.That(
+                    consumeArguments[0],
+                    Is.EqualTo(false));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(
+                    root);
+            }
+        }
+
+
+        [Test]
+        public void PlayerAim_FindsRebuiltBodyCcdByReferenceBone()
+        {
+            Type aimType =
+                GetRuntimeType(
+                    "PlayerAim");
+            Type ccdType =
+                AppDomain.CurrentDomain
+                    .GetAssemblies()
+                    .Select(
+                        assembly =>
+                            assembly.GetType(
+                                "UnityEngine.U2D.IK.CCDSolver2D"))
+                    .First(
+                        type =>
+                            type != null);
+
+            GameObject root =
+                new("Aim CCD Recovery Test");
+            GameObject referenceObject =
+                new("chest");
+            GameObject pivotObject =
+                new("ResolvedAimPivot");
+            GameObject solverObject =
+                new("head_solver");
+            GameObject effectorObject =
+                new("head_effector");
+            GameObject targetObject =
+                new("head_solver_Target");
+
+            try
+            {
+                referenceObject.transform.SetParent(
+                    root.transform);
+                pivotObject.transform.SetParent(
+                    referenceObject.transform);
+                solverObject.transform.SetParent(
+                    root.transform);
+                effectorObject.transform.SetParent(
+                    referenceObject.transform);
+                targetObject.transform.SetParent(
+                    solverObject.transform);
+
+                Component aim =
+                    root.AddComponent(
+                        aimType);
+                Component solver =
+                    solverObject.AddComponent(
+                        ccdType);
+
+                SerializedObject serializedSolver =
+                    new(solver);
+                SerializedProperty chain =
+                    serializedSolver.FindProperty(
+                        "m_Chain");
+
+                chain.FindPropertyRelative(
+                        "m_EffectorTransform")
+                    .objectReferenceValue =
+                    effectorObject.transform;
+                chain.FindPropertyRelative(
+                        "m_TargetTransform")
+                    .objectReferenceValue =
+                    targetObject.transform;
+                chain.FindPropertyRelative(
+                        "m_TransformCount")
+                    .intValue = 1;
+
+                SerializedProperty transforms =
+                    chain.FindPropertyRelative(
+                        "m_Transforms");
+                transforms.arraySize = 1;
+                transforms.GetArrayElementAtIndex(0)
+                    .objectReferenceValue =
+                    referenceObject.transform;
+                serializedSolver
+                    .ApplyModifiedPropertiesWithoutUndo();
+
+                SerializedObject serializedAim =
+                    new(aim);
+                serializedAim.FindProperty(
+                        "resolvedAimPivot")
+                    .objectReferenceValue =
+                    pivotObject.transform;
+                serializedAim.FindProperty(
+                        "upperBodyAimRig")
+                    .objectReferenceValue = null;
+                serializedAim
+                    .ApplyModifiedPropertiesWithoutUndo();
+
+                object resolved =
+                    aimType.GetMethod(
+                            "FindBodyAimRig",
+                            BindingFlags.Instance |
+                            BindingFlags.NonPublic)
+                        ?.Invoke(
+                            aim,
+                            null);
+
+                Assert.That(
+                    resolved,
+                    Is.SameAs(solver));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(
+                    root);
+            }
+        }
+
+
+        [Test]
         public void BrawlhallaDirection_UsesNoDirectionSideAndDownSlots()
         {
             GameObject swordPrefab =

@@ -112,6 +112,8 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
   보존한다.
 - 상체 CCD는 프리팹에서 꺼 두어 Animation 창의 클립 미리보기를 침범하지 않고,
   플레이 중 `ProceduralAim`이 선택됐을 때 `PlayerAim`이 켠다.
+- `PlayerAim`은 저장된 상체 CCD 참조가 IK 재구성으로 사라져도 RAP의 부모 본과 Chain Root가
+  같은 CCD를 다시 찾아 연결한다. Sprite Visual 창의 편집 정보 새로고침은 기존 IK를 재생성하지 않는다.
 - `Standard2DRigIKSetup`은 편집기에서 표준 IK 구조를 생성하는 도구일 뿐이며, 플레이어 런타임
   컴포넌트는 이 도구의 존재나 보관 위치에 의존하지 않는다.
 - `Standard2DCharacterSetup`은 `Animator`가 있는 캐릭터 Root에서 IK와 Sprite Visual Driver 제작
@@ -245,7 +247,7 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
   현재 실제 방향별 슬롯은 Sword의 주 공격에만 있으며, 방패와 총기는 방향 규칙과 무관하게
   기존 주/보조 공격 데이터를 재사용한다. Inspector는 Sword에서 선택한 규칙에 맞는 슬롯만
   표시하고, 방향별 슬롯이 없는 무기에는 같은 데이터가 사용된다는 안내를 표시한다.
-- 무기의 Stance 방향은 공격 방향과 별도로 설정한다. `Facing` Stance는 이동 모듈이 정한 좌우를
+- 무기의 Stance 방향은 공격 방향과 별도로 설정한다. `Facing` Stance는 이동 입력으로 정한 좌우를
   유지하고 평상시 상체 CCD를 끄며, Stance 클립이 비어 있으면 기존 Idle을 그대로 사용한다.
 - `PlayerAnimation`은 장착 무기의 선택적 Stance 클립만 기본 Idle 슬롯에 교체한다.
   공격 클립은 기존 방향별 `ActionAnimationData`와 Action 레이어를 그대로 사용한다.

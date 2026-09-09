@@ -11,6 +11,40 @@ using UnityEngine.U2D.Animation;
 /// </summary>
 public static class Standard2DCharacterBuilder
 {
+    public static bool RefreshExisting(
+        Standard2DCharacterSetup setup)
+    {
+        if (Application.isPlaying ||
+            setup == null)
+        {
+            return false;
+        }
+
+        RefreshReferences(setup);
+
+        Standard2DVisualDriverBuilder.Result visualResult =
+            Standard2DVisualDriverBuilder.BuildOrRefresh(
+                setup.CharacterRoot,
+                setup.SpriteResolvers);
+
+        if (!visualResult.Success)
+        {
+            LogErrors(
+                setup,
+                "Sprite Visual 정보 새로고침 실패",
+                visualResult.Errors);
+
+            return false;
+        }
+
+        LogWarnings(
+            setup,
+            visualResult.Warnings);
+
+        return true;
+    }
+
+
     public static bool BuildOrRefresh(
         Standard2DCharacterSetup setup)
     {
