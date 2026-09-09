@@ -10,13 +10,21 @@ using UnityEngine.U2D.Animation;
 [Serializable]
 public sealed class SkillPatternSettings
 {
+    [InspectorName("사용 횟수")]
     [SerializeField] private ChargeSettings charge = new();
+    [InspectorName("게이지")]
     [SerializeField] private MeterSettings meter = new();
+    [InspectorName("준비 시간")]
     [SerializeField] private SkillTimeSettings cast = new();
+    [InspectorName("효과 지속")]
     [SerializeField] private SkillDurationSettings duration = new();
+    [InspectorName("마무리 시간")]
     [SerializeField] private SkillTimeSettings recovery = new();
+    [InspectorName("사용 중 조작 제한")]
     [SerializeField] private SkillActionLockSettings actionLock = new();
+    [InspectorName("능력치 변화")]
     [SerializeField] private SkillStatSettings statModifier = new();
+    [InspectorName("외형 변경")]
     [SerializeField] private SkillAppearanceSettings appearance = new();
 
     public ChargeSettings Charge => charge;

@@ -195,18 +195,92 @@ public sealed class SkillPatternSettingsEditor : Editor
     public override void OnInspectorGUI()
     {
         EditorGUILayout.HelpBox(
-            "대시 단독: Duration의 Active + Behavior. 횟수 제한 시간: ChargeWindow + Settings(초). " +
-            "ChargeWindow는 첫 사용부터 시작하며 추가 사용으로 연장되지 않습니다. " +
-            "Timed는 횟수를 시간으로 회복합니다. Meter를 함께 켜면 매 사용에 요구하며, " +
-            "ChargeWindow일 때만 구간의 첫 사용에 요구합니다. 회색 설정값은 보존됩니다.",
+            "스킬의 공통 정보와 필요한 기능만 켜서 사용합니다. " +
+            "꺼진 기능의 값은 보존되지만 게임에는 적용되지 않습니다.",
             MessageType.Info);
-        DrawDefaultInspector();
+
+        serializedObject.Update();
+
+        using (new EditorGUI.DisabledScope(true))
+            EditorGUILayout.PropertyField(
+                serializedObject.FindProperty("m_Script"));
+
+        EditorGUILayout.Space(4);
+        EditorGUILayout.LabelField(
+            "기본 정보",
+            EditorStyles.boldLabel);
+        DrawProperty("cooldown", "재사용 대기시간");
+        DrawProperty("icon", "아이콘");
+        DrawProperty("animation", "행동 애니메이션");
+
+        EditorGUILayout.Space(6);
+        DrawProperty("patterns", "선택 기능", true);
+
+        DrawSkillSpecificProperties();
+        serializedObject.ApplyModifiedProperties();
+
         foreach (Object item in targets)
         {
             var data = (SkillData)item;
             if (!data.ValidatePatterns(out string error))
                 EditorGUILayout.HelpBox(data.name + ": " + error, MessageType.Error);
         }
+    }
+
+    private void DrawProperty(
+        string propertyName,
+        string displayName,
+        bool includeChildren = false)
+    {
+        SerializedProperty property =
+            serializedObject.FindProperty(propertyName);
+
+        if (property == null)
+            return;
+
+        EditorGUILayout.PropertyField(
+            property,
+            new GUIContent(displayName),
+            includeChildren);
+    }
+
+    private void DrawSkillSpecificProperties()
+    {
+        SerializedProperty iterator =
+            serializedObject.GetIterator();
+        bool enterChildren = true;
+        bool drewHeading = false;
+
+        while (iterator.NextVisible(enterChildren))
+        {
+            enterChildren = false;
+
+            if (IsCommonProperty(iterator.name))
+                continue;
+
+            if (!drewHeading)
+            {
+                EditorGUILayout.Space(6);
+                EditorGUILayout.LabelField(
+                    "스킬 고유 설정",
+                    EditorStyles.boldLabel);
+                drewHeading = true;
+            }
+
+            EditorGUILayout.PropertyField(
+                iterator,
+                true);
+        }
+    }
+
+    private static bool IsCommonProperty(
+        string propertyName)
+    {
+        return propertyName == "m_Script" ||
+               propertyName == "cooldown" ||
+               propertyName == "icon" ||
+               propertyName == "animation" ||
+               propertyName == "patterns";
     }
 }
 #endif

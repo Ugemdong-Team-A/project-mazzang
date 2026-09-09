@@ -224,7 +224,11 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
   실제 효과가 발동하는 Release, Recovery의 각 클립마다 `FullBody`, `UpperBody`, `ArmsOnly`
   고정 마스크 레이어와 상체 조준 합성, 손 IK 정책을 독립적으로 지정한다. 단계에 클립이
   없으면 그 단계는 재생하지 않는다. 기존 스킬 애니메이션 에셋도 같은 형식으로 변환되어
-  별도의 스킬 전용 애니메이션 타입은 두지 않는다.
+  별도의 스킬 전용 애니메이션 타입은 두지 않는다. Inspector는 같은 직렬화 이름을 유지한 채
+  준비·실행·마무리 동작과 적용 부위·조준 혼합·손 위치 기준을 한국어 작업 용어로 표시한다.
+- `SkillData` Inspector는 공통 정보와 선택 기능을 먼저 표시한다. 선택 기능의 사용 횟수,
+  게이지, 준비·지속·마무리 시간, 조작 제한, 능력치와 외형 항목만 한국어로 구분하며,
+  개별 스킬 전용 필드는 기존 구조와 순서를 유지한다.
 - `SkillData.Animation`, `PlayerAttackData.Animation`, `Weapon`의 방향별 애니메이션은 모두 같은
   `ActionAnimationData` 타입을 참조한다. 무기는 성공한 기본 사용을 Release 단계로 발행한다.
 - 무기의 `Aim`, `Facing`, `Brawlhalla` 방향 규칙은 입력을 받은 `PlayerWeaponController`가 한 번만
