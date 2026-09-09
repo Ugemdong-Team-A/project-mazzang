@@ -31,6 +31,12 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
     private Animator _clipEditAnimator;
     private RuntimeAnimatorController _originalController;
     private AnimatorOverrideController _clipEditController;
+    [SerializeField]
+    private bool _showBulkKeying;
+    [SerializeField]
+    private bool _showProductionTools;
+    [SerializeField]
+    private bool _showPartDetails;
 
     [MenuItem("Tools/2D Animation/Sprite Visual Keyer")]
     private static void Open()
@@ -129,7 +135,7 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
             animationWindow.frame);
 
         EditorGUILayout.Space(8);
-        DrawRigSelection(animationWindow);
+        DrawRigSelection();
 
         if (_animationRoot == null)
             return;
@@ -140,7 +146,10 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
         if (!isShownInAnimationWindow)
         {
             EditorGUILayout.Space(8);
-            DrawFkBake(clip);
+            DrawProductionTools(
+                animationWindow,
+                clip,
+                true);
 
             EditorGUILayout.HelpBox(
                 "FK 굽기는 가능하지만 현재 프레임 키 편집은 Animation 창에 표시된 " +
@@ -149,23 +158,9 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
             return;
         }
 
-        EditorGUILayout.Space(8);
-        DrawIKKeys(
-            animationWindow,
-            clip);
-
-        EditorGUILayout.Space(8);
-        DrawFkBake(clip);
-
-        EditorGUILayout.Space(8);
-        DrawAllPartKeying(
-            animationWindow,
-            clip);
-
-        if (_target == null)
-            return;
-
-        if (_target.Renderer == null || _target.Resolver == null)
+        if (_target != null &&
+            (_target.Renderer == null ||
+             _target.Resolver == null))
         {
             EditorGUILayout.HelpBox(
                 "선택한 Driver의 SpriteResolver 또는 SpriteRenderer가 없습니다.",
@@ -173,10 +168,30 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
             return;
         }
 
+        if (_target != null)
+        {
+            EditorGUILayout.Space(8);
+            DrawSelectedPartKeying(
+                animationWindow,
+                clip);
+        }
+
         EditorGUILayout.Space(8);
-        DrawTargetContext();
+        DrawBulkKeying(
+            animationWindow,
+            clip);
+
         EditorGUILayout.Space(8);
-        DrawVisualKeys(animationWindow, clip);
+        DrawProductionTools(
+            animationWindow,
+            clip,
+            false);
+
+        if (_target != null)
+        {
+            EditorGUILayout.Space(8);
+            DrawPartDetails();
+        }
     }
 
     private void DrawClipSelection(
@@ -470,8 +485,7 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
             savedClip);
     }
 
-    private void DrawRigSelection(
-        AnimationWindow animationWindow)
+    private void DrawRigSelection()
     {
         using (new EditorGUILayout.HorizontalScope())
         {
@@ -498,46 +512,11 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
             return;
         }
 
-        Standard2DCharacterSetup characterSetup =
-            _animationRoot.GetComponent<Standard2DCharacterSetup>();
-
-        Color previousBackgroundColor = GUI.backgroundColor;
-        GUI.backgroundColor = new Color(0.35f, 0.65f, 0.95f, 1f);
-
-        using (new EditorGUI.DisabledScope(characterSetup == null))
-        {
-            GUIContent refreshContent = new(
-                "캐릭터 구성 새로고침",
-                "Character Setup을 실행하고 Animator·IK·Sprite Resolver·Visual Driver " +
-                "참조와 Animation 창 표시를 다시 갱신합니다.");
-
-            if (GUILayout.Button(
-                    refreshContent,
-                    EditorStyles.miniButton,
-                    GUILayout.Height(30)))
-            {
-                RefreshCharacterSetup(
-                    characterSetup,
-                    animationWindow);
-            }
-        }
-
-        GUI.backgroundColor = previousBackgroundColor;
-
-        if (characterSetup == null)
-        {
-            EditorGUILayout.HelpBox(
-                "캐릭터 기준에 Standard 2D Character Setup이 없어 " +
-                "구성 새로고침을 실행할 수 없습니다.",
-                MessageType.Info);
-        }
-
         if (_parts.Length == 0)
         {
             EditorGUILayout.HelpBox(
                 "캐릭터 기준 아래에서 Sprite Visual Driver를 찾지 못했습니다.",
                 MessageType.Warning);
-            DrawAddDriverButton();
             return;
         }
 
@@ -551,8 +530,141 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
             SelectPart(newIndex, true, true);
         else if (_target == null)
             SelectPart(newIndex, true);
+    }
 
-        DrawAddDriverButton();
+    private void DrawSelectedPartKeying(
+        AnimationWindow animationWindow,
+        AnimationClip clip)
+    {
+        using (new EditorGUILayout.VerticalScope(
+                   EditorStyles.helpBox))
+        {
+            GUIContent heading = new(
+                "선택 부위 편집",
+                EditorGUIUtility.IconContent(
+                    "SpriteRenderer Icon").image);
+
+            EditorGUILayout.LabelField(
+                heading,
+                EditorStyles.boldLabel);
+
+            EditorGUILayout.HelpBox(
+                "모습이나 순서를 바꾸면 현재 프레임에 즉시 키가 저장됩니다. " +
+                "잘못 바꾼 값은 Ctrl+Z로 되돌릴 수 있습니다.",
+                MessageType.Info);
+
+            DrawVisualKeys(
+                animationWindow,
+                clip);
+        }
+    }
+
+    private void DrawBulkKeying(
+        AnimationWindow animationWindow,
+        AnimationClip clip)
+    {
+        _showBulkKeying =
+            EditorGUILayout.BeginFoldoutHeaderGroup(
+                _showBulkKeying,
+                "여러 부위 한 번에 저장");
+
+        if (_showBulkKeying)
+        {
+            DrawIKKeys(
+                animationWindow,
+                clip);
+
+            EditorGUILayout.Space(4);
+
+            DrawAllPartKeying(
+                animationWindow,
+                clip);
+        }
+
+        EditorGUILayout.EndFoldoutHeaderGroup();
+    }
+
+    private void DrawProductionTools(
+        AnimationWindow animationWindow,
+        AnimationClip clip,
+        bool forceExpanded)
+    {
+        if (forceExpanded)
+            _showProductionTools = true;
+
+        _showProductionTools =
+            EditorGUILayout.BeginFoldoutHeaderGroup(
+                _showProductionTools,
+                "제작 및 구성 도구");
+
+        if (_showProductionTools)
+        {
+            DrawCharacterRefresh(
+                animationWindow);
+
+            DrawAddDriverButton();
+
+            EditorGUILayout.Space(4);
+
+            DrawFkBake(clip);
+        }
+
+        EditorGUILayout.EndFoldoutHeaderGroup();
+    }
+
+    private void DrawCharacterRefresh(
+        AnimationWindow animationWindow)
+    {
+        Standard2DCharacterSetup characterSetup =
+            _animationRoot != null
+                ? _animationRoot.GetComponent<
+                    Standard2DCharacterSetup>()
+                : null;
+
+        using (new EditorGUI.DisabledScope(
+                   characterSetup == null))
+        {
+            GUIContent refreshContent = new(
+                "캐릭터 구성 새로고침",
+                "Character Setup을 실행하고 Animator·IK·Sprite Resolver·Visual Driver " +
+                "참조와 Animation 창 표시를 다시 갱신합니다.");
+
+            if (GUILayout.Button(
+                    refreshContent,
+                    GUILayout.Height(24)))
+            {
+                RefreshCharacterSetup(
+                    characterSetup,
+                    animationWindow);
+            }
+        }
+
+        if (characterSetup == null)
+        {
+            EditorGUILayout.HelpBox(
+                "캐릭터 기준에 Standard 2D Character Setup이 없어 " +
+                "구성 새로고침을 실행할 수 없습니다.",
+                MessageType.Info);
+        }
+    }
+
+    private void DrawPartDetails()
+    {
+        _showPartDetails =
+            EditorGUILayout.BeginFoldoutHeaderGroup(
+                _showPartDetails,
+                "선택 부위 상세 정보");
+
+        if (_showPartDetails)
+        {
+            using (new EditorGUILayout.VerticalScope(
+                       EditorStyles.helpBox))
+            {
+                DrawTargetContext();
+            }
+        }
+
+        EditorGUILayout.EndFoldoutHeaderGroup();
     }
 
     private void RefreshCharacterSetup(

@@ -126,8 +126,9 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
   자동 연결하며, 유사 이름은 추측하지 않는다.
 - `SpriteVisualKeyingWindow`는 적합한 캐릭터를 선택하고 Animation 창에 포커스가 오면 함께 열리며,
   버튼을 눌렀을 때만 팔·다리·발 Limb Target 6개의 현재 위치와 회전 또는 전체 Driver의 현재 모습과
-  순서를 선택한 현재 프레임에 기록한다. 강조된 구성 새로고침은 CharSetup Build 뒤 Driver 목록과
-  Animation 창 표시를 다시 동기화한다.
+  순서를 선택한 현재 프레임에 기록한다. 선택 부위의 모습과 순서 편집을 일상 작업으로 먼저 표시하고,
+  여러 부위 저장과 Character Setup 새로고침·Driver 추가·FK 굽기는 접을 수 있는 별도 도구 영역에 둔다.
+  구성 새로고침은 CharSetup Build 뒤 Driver 목록과 Animation 창 표시를 다시 동기화한다.
 - `PlayerAim`은 상체 CCD Solver와 RAP Transform 하나만 직렬화한다. 하위에서 중립적인
   `Standard2DAimAnchor`를 찾으면 CharSetup을 참조하지 않고 표준 RAP으로 자동 동기화하며,
   조준 원점은 별도 `AimOrigin`이 아니라 RAP의 현재 월드 위치를 사용한다. 기준 본은 RAP의 부모,
