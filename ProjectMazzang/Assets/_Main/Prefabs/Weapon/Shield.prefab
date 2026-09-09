@@ -399,7 +399,7 @@ MonoBehaviour:
   pickupTrigger: {fileID: 7881194972578852804}
   stanceDirection: 0
   stanceAnimation: {fileID: 0}
-  primaryDirection: 2
+  primaryDirection: 0
   secondaryDirection: 0
   sortingGroup: {fileID: 2623011332169258659}
   presentationTemplate: {fileID: 6732957340894770001}

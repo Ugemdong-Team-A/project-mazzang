@@ -1839,6 +1839,43 @@ namespace ProjectMazzang.Tests
 
 
         [Test]
+        public void Sword_AttackSlots_UseSharedWeaponSlotData()
+        {
+            Type swordType =
+                GetRuntimeType(
+                    "SwordWeapon");
+            Type slotDataType =
+                GetRuntimeType(
+                    "WeaponAttackSlotData");
+
+            foreach (string fieldName in
+                     new[]
+                     {
+                         "defaultAttack",
+                         "noDirectionAttack",
+                         "sideAttack",
+                         "downAttack"
+                     })
+            {
+                FieldInfo field =
+                    swordType.GetField(
+                        fieldName,
+                        BindingFlags.Instance |
+                        BindingFlags.NonPublic);
+
+                Assert.That(
+                    field,
+                    Is.Not.Null,
+                    $"Sword에 {fieldName} 슬롯이 없습니다.");
+                Assert.That(
+                    field.FieldType,
+                    Is.EqualTo(slotDataType),
+                    $"{fieldName}이 공용 무기 공격 슬롯 형식을 사용해야 합니다.");
+            }
+        }
+
+
+        [Test]
         public void BrawlhallaDirection_UsesNoDirectionSideAndDownSlots()
         {
             GameObject swordPrefab =

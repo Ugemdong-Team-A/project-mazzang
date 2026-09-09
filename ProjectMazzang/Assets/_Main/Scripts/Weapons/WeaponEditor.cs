@@ -27,7 +27,6 @@ public sealed class WeaponEditor : Editor
                 ["dashControlLock"] = "돌진 조작 제한 시간",
                 ["cooldown"] = "재사용 대기시간",
                 ["sharedCooldown"] = "공용 재사용 대기시간",
-                ["attackDelay"] = "판정 지연시간",
                 ["magazineSize"] = "탄창 크기",
                 ["fireInterval"] = "발사 간격",
                 ["pelletCount"] = "산탄 수",

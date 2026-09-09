@@ -94,6 +94,8 @@
   Stance 애니메이션이 비어 있으면 일반 Idle이 그대로 재생된다.
 - `Brawlhalla` 무기는 방향 입력 없음 또는 위 입력을 `NoDirection`, 좌우 입력을 `Side`,
   아래 입력을 `Down`으로 한 번 확정하고 같은 슬롯의 판정과 `ActionAnimationData`를 사용한다.
+- Sword의 단일 방향·방향 입력 없음·좌우·아래 공격은 모두 같은 공용 무기 공격 슬롯 형식을
+  사용하며, 입력 방식을 바꿔 숨겨진 슬롯의 기존 설정값도 유지된다.
 - Primary와 Secondary는 서로 다른 방향 규칙과 AAD를 사용할 수 있다. Shield는 두 버튼 모두
   기존 Aim 방식으로 밀치기와 패링을 실행한다.
 - 상체 기준 본이 회전해도 로컬 원점인 `ResolvedAimPivot`의 위치는 불필요하게 궤도를 그리지 않고,

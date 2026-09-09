@@ -1,88 +1,25 @@
-using System;
 using System.Collections.Generic;
 using Fusion;
 using UnityEngine;
-
-[Serializable]
-public sealed class SwordAttackAction :
-    WeaponActionData
-{
-    [InspectorName("공격 데이터")]
-    [SerializeField]
-    private AttackData attack;
-
-    [InspectorName("판정 크기")]
-    [SerializeField]
-    private Vector2 hitboxSize =
-        new(1.8f, 0.8f);
-
-    [InspectorName("판정 앞 거리")]
-    [Min(0f)]
-    [SerializeField]
-    private float hitboxForwardOffset = 0.9f;
-
-    [InspectorName("돌진 데이터")]
-    [SerializeField]
-    private DashData dash;
-
-    [InspectorName("재사용 대기시간")]
-    [Min(0f)]
-    [SerializeField]
-    private float cooldown = 0.5f;
-
-    [InspectorName("판정 지연시간")]
-    [Min(0f)]
-    [SerializeField]
-    private float hitDelay = 0.5f;
-
-    public AttackData Attack => attack;
-
-    public Vector2 HitboxSize => hitboxSize;
-
-    public float HitboxForwardOffset =>
-        hitboxForwardOffset;
-
-    public DashData Dash => dash;
-
-    public float Cooldown => cooldown;
-
-    public float HitDelay => hitDelay;
-
-    public float Duration =>
-        hitDelay +
-        (dash != null
-            ? dash.Duration
-            : 0f);
-
-    public SwordAttackAction()
-    {
-    }
-
-    public SwordAttackAction(
-        bool enabled) :
-        base(enabled)
-    {
-    }
-}
 
 public sealed class SwordWeapon :
     Weapon
 {
     [Header("Primary Attack")]
     [SerializeField]
-    private SwordAttackAction defaultAttack =
+    private WeaponAttackSlotData defaultAttack =
         new();
 
     [SerializeField]
-    private SwordAttackAction noDirectionAttack =
+    private WeaponAttackSlotData noDirectionAttack =
         new(false);
 
     [SerializeField]
-    private SwordAttackAction sideAttack =
+    private WeaponAttackSlotData sideAttack =
         new(false);
 
     [SerializeField]
-    private SwordAttackAction downAttack =
+    private WeaponAttackSlotData downAttack =
         new(false);
 
     [Header("Target")]
@@ -149,7 +86,7 @@ public sealed class SwordWeapon :
         if (button != WeaponButton.Primary)
             return null;
 
-        return GetSwordAction(slot);
+        return GetAttack(slot);
     }
 
     public override float GetActionDuration(
@@ -157,7 +94,7 @@ public sealed class SwordWeapon :
         WeaponAttackSlot slot)
     {
         return button == WeaponButton.Primary
-            ? GetSwordAction(slot)?.Duration ?? 0f
+            ? GetAttack(slot)?.Duration ?? 0f
             : 0f;
     }
 
@@ -168,8 +105,8 @@ public sealed class SwordWeapon :
         bool mirrored,
         float attackDamageMultiplier)
     {
-        SwordAttackAction action =
-            GetSwordAction(slot);
+        WeaponAttackSlotData action =
+            GetAttack(slot);
 
         if (!CanAttack(action))
             return false;
@@ -208,8 +145,8 @@ public sealed class SwordWeapon :
 
         HitDelayTimer = TickTimer.None;
 
-        SwordAttackAction action =
-            GetSwordAction(
+        WeaponAttackSlotData action =
+            GetAttack(
                 ActiveAttackSlot);
 
         if (action == null ||
@@ -221,7 +158,7 @@ public sealed class SwordWeapon :
         ExecuteAttack(action);
     }
 
-    private SwordAttackAction GetSwordAction(
+    private WeaponAttackSlotData GetAttack(
         WeaponAttackSlot slot)
     {
         return slot switch
@@ -237,7 +174,7 @@ public sealed class SwordWeapon :
     }
 
     private bool CanAttack(
-        SwordAttackAction action)
+        WeaponAttackSlotData action)
     {
         return action != null &&
                action.Enabled &&
@@ -261,7 +198,7 @@ public sealed class SwordWeapon :
     }
 
     private void ExecuteAttack(
-        SwordAttackAction action)
+        WeaponAttackSlotData action)
     {
         if (Holder == null ||
             !Holder.TryGetComponent(
@@ -315,7 +252,7 @@ public sealed class SwordWeapon :
     }
 
     private void PerformAttack(
-        SwordAttackAction action,
+        WeaponAttackSlotData action,
         Vector2 origin,
         Vector2 direction)
     {
@@ -395,7 +332,7 @@ public sealed class SwordWeapon :
 
     private void OnDrawGizmosSelected()
     {
-        SwordAttackAction action =
+        WeaponAttackSlotData action =
             defaultAttack;
 
         if (action == null)
