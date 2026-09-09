@@ -127,7 +127,8 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
 - `SpriteVisualKeyingWindow`는 적합한 캐릭터를 선택하고 Animation 창에 포커스가 오면 함께 열리며,
   버튼을 눌렀을 때만 팔·다리·발 Limb Target 6개의 현재 위치와 회전 또는 전체 Driver의 현재 모습과
   순서를 선택한 현재 프레임에 기록한다. 선택 부위의 모습과 순서 편집을 일상 작업으로 먼저 표시하고,
-  여러 부위 저장과 Character Setup 새로고침·Driver 추가·FK 굽기는 접을 수 있는 별도 도구 영역에 둔다.
+  Character Setup 새로고침은 그 바로 위, 선택 부위 상세 정보는 바로 아래에 둔다. 여러 부위 저장은
+  접을 수 있는 영역으로, FK 굽기는 원본과 결과가 분리되는 제작 작업이므로 창 맨 아래에 둔다.
   구성 새로고침은 CharSetup Build 뒤 Driver 목록과 Animation 창 표시를 다시 동기화한다.
 - `PlayerAim`은 상체 CCD Solver와 RAP Transform 하나만 직렬화한다. 하위에서 중립적인
   `Standard2DAimAnchor`를 찾으면 CharSetup을 참조하지 않고 표준 RAP으로 자동 동기화하며,
@@ -226,6 +227,7 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
   없으면 그 단계는 재생하지 않는다. 기존 스킬 애니메이션 에셋도 같은 형식으로 변환되어
   별도의 스킬 전용 애니메이션 타입은 두지 않는다. Inspector는 같은 직렬화 이름을 유지한 채
   준비·실행·마무리 동작과 적용 부위·조준 혼합·손 위치 기준을 한국어 작업 용어로 표시한다.
+  각 단계는 단계명과 클립을 한 줄로 표시하고, 클립이 있는 단계만 세부 설정을 펼칠 수 있다.
 - `SkillData` Inspector는 공통 정보와 선택 기능을 먼저 표시한다. 선택 기능의 사용 횟수,
   게이지, 준비·지속·마무리 시간, 조작 제한, 능력치와 외형 항목만 한국어로 구분하며,
   개별 스킬 전용 필드는 기존 구조와 순서를 유지한다.

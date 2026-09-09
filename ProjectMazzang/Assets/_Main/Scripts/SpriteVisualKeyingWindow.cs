@@ -14,6 +14,8 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
     private const string SortingOrderProperty = "_sortingOrder";
     private const float OrderCardWidth = 76f;
     private const float OrderCardStep = 80f;
+    private const string FkBakeIconPath =
+        "Assets/_Main/Art/Editor/Icons/Standard2DAnimationBake.png";
 
     private Animator _animationRoot;
     private SpriteVisualAnimationDriver[] _parts =
@@ -31,10 +33,9 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
     private Animator _clipEditAnimator;
     private RuntimeAnimatorController _originalController;
     private AnimatorOverrideController _clipEditController;
+    private Texture2D _fkBakeIcon;
     [SerializeField]
     private bool _showBulkKeying;
-    [SerializeField]
-    private bool _showProductionTools;
     [SerializeField]
     private bool _showPartDetails;
 
@@ -146,15 +147,16 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
         if (!isShownInAnimationWindow)
         {
             EditorGUILayout.Space(8);
-            DrawProductionTools(
-                animationWindow,
-                clip,
-                true);
+            DrawCharacterRefresh(animationWindow);
+            DrawAddDriverButton();
 
             EditorGUILayout.HelpBox(
                 "FK 굽기는 가능하지만 현재 프레임 키 편집은 Animation 창에 표시된 " +
                 "클립에서만 가능합니다.",
                 MessageType.Warning);
+
+            EditorGUILayout.Space(8);
+            DrawFkBake(clip);
             return;
         }
 
@@ -168,12 +170,19 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
             return;
         }
 
+        EditorGUILayout.Space(8);
+        DrawCharacterRefresh(animationWindow);
+        DrawAddDriverButton();
+
         if (_target != null)
         {
             EditorGUILayout.Space(8);
             DrawSelectedPartKeying(
                 animationWindow,
                 clip);
+
+            EditorGUILayout.Space(8);
+            DrawPartDetails();
         }
 
         EditorGUILayout.Space(8);
@@ -182,16 +191,7 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
             clip);
 
         EditorGUILayout.Space(8);
-        DrawProductionTools(
-            animationWindow,
-            clip,
-            false);
-
-        if (_target != null)
-        {
-            EditorGUILayout.Space(8);
-            DrawPartDetails();
-        }
+        DrawFkBake(clip);
     }
 
     private void DrawClipSelection(
@@ -384,12 +384,21 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
             {
                 GUIContent bakeContent = new(
                     "현재 클립 FK로 굽기...",
+                    GetFkBakeIcon(),
                     "선택한 캐릭터의 6개 Limb IK를 프레임마다 계산하고, " +
                     "완성된 본 자세와 IK Target을 새 Animation Clip에 저장합니다.");
 
-                if (GUILayout.Button(
-                        bakeContent,
-                        GUILayout.Height(30)))
+                Vector2 previousIconSize =
+                    EditorGUIUtility.GetIconSize();
+                EditorGUIUtility.SetIconSize(
+                    new Vector2(24f, 24f));
+                bool bakeRequested = GUILayout.Button(
+                    bakeContent,
+                    GUILayout.Height(32));
+                EditorGUIUtility.SetIconSize(
+                    previousIconSize);
+
+                if (bakeRequested)
                 {
                     BakeCurrentClip(sourceClip);
                 }
@@ -418,6 +427,18 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
                 }
             }
         }
+    }
+
+    private Texture2D GetFkBakeIcon()
+    {
+        if (_fkBakeIcon == null)
+        {
+            _fkBakeIcon =
+                AssetDatabase.LoadAssetAtPath<Texture2D>(
+                    FkBakeIconPath);
+        }
+
+        return _fkBakeIcon;
     }
 
     private void BakeCurrentClip(AnimationClip sourceClip)
@@ -579,34 +600,6 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
             DrawAllPartKeying(
                 animationWindow,
                 clip);
-        }
-
-        EditorGUILayout.EndFoldoutHeaderGroup();
-    }
-
-    private void DrawProductionTools(
-        AnimationWindow animationWindow,
-        AnimationClip clip,
-        bool forceExpanded)
-    {
-        if (forceExpanded)
-            _showProductionTools = true;
-
-        _showProductionTools =
-            EditorGUILayout.BeginFoldoutHeaderGroup(
-                _showProductionTools,
-                "제작 및 구성 도구");
-
-        if (_showProductionTools)
-        {
-            DrawCharacterRefresh(
-                animationWindow);
-
-            DrawAddDriverButton();
-
-            EditorGUILayout.Space(4);
-
-            DrawFkBake(clip);
         }
 
         EditorGUILayout.EndFoldoutHeaderGroup();

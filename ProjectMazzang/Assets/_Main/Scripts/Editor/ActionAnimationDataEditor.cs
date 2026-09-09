@@ -32,8 +32,7 @@ public sealed class ActionAnimationDataEditor : Editor
         serializedObject.Update();
 
         EditorGUILayout.HelpBox(
-            "공격·무기·스킬이 공유하는 행동 애니메이션입니다. " +
-            "클립이 비어 있는 단계는 재생하지 않습니다.",
+            "준비·실행·마무리 중 클립이 있는 단계만 재생합니다.",
             MessageType.Info);
 
         using (new EditorGUI.DisabledScope(true))
@@ -74,20 +73,55 @@ public sealed class ActionAnimationDataEditor : Editor
             GUIContent heading = new(
                 displayName,
                 EditorGUIUtility.IconContent(
-                    "AnimationClip Icon").image);
+                    "AnimationClip Icon").image,
+                description);
 
-            EditorGUILayout.LabelField(
-                heading,
-                EditorStyles.boldLabel);
-            EditorGUILayout.LabelField(
-                description,
-                EditorStyles.wordWrappedMiniLabel);
+            SerializedProperty clip =
+                phase.FindPropertyRelative("clip");
+            bool hasClip = clip != null &&
+                (clip.hasMultipleDifferentValues ||
+                 clip.objectReferenceValue != null);
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (hasClip)
+                {
+                    phase.isExpanded =
+                        EditorGUILayout.Foldout(
+                            phase.isExpanded,
+                            heading,
+                            true,
+                            EditorStyles.foldout);
+                }
+                else
+                {
+                    EditorGUILayout.LabelField(
+                        heading,
+                        EditorStyles.boldLabel,
+                        GUILayout.Width(118));
+                }
+
+                if (clip != null)
+                {
+                    EditorGUILayout.PropertyField(
+                        clip,
+                        GUIContent.none);
+                }
+            }
+
+            if (!hasClip)
+                return;
+
+            if (!phase.isExpanded)
+            {
+                EditorGUILayout.LabelField(
+                    GetPhaseSummary(phase),
+                    EditorStyles.miniLabel);
+                return;
+            }
+
             EditorGUILayout.Space(2);
 
-            DrawChildProperty(
-                phase,
-                "clip",
-                "애니메이션 클립");
             DrawEnumProperty(
                 phase,
                 "bodyMask",
@@ -106,37 +140,43 @@ public sealed class ActionAnimationDataEditor : Editor
                 "손 위치 기준",
                 "손 IK가 따라갈 위치를 정합니다.",
                 HandIkPolicyNames);
-
-            SerializedProperty clip =
-                phase.FindPropertyRelative("clip");
-
-            if (clip != null &&
-                !clip.hasMultipleDifferentValues &&
-                clip.objectReferenceValue == null)
-            {
-                EditorGUILayout.LabelField(
-                    "클립 없음: 이 단계는 재생하지 않습니다.",
-                    EditorStyles.miniLabel);
-            }
         }
 
         EditorGUILayout.Space(3);
     }
 
-    private static void DrawChildProperty(
-        SerializedProperty parent,
-        string propertyName,
-        string displayName)
+    private static string GetPhaseSummary(
+        SerializedProperty phase)
     {
-        SerializedProperty property =
-            parent.FindPropertyRelative(propertyName);
+        return string.Join(
+            " · ",
+            GetEnumName(
+                phase.FindPropertyRelative("bodyMask"),
+                BodyMaskNames),
+            GetEnumName(
+                phase.FindPropertyRelative("aimComposition"),
+                AimCompositionNames),
+            GetEnumName(
+                phase.FindPropertyRelative("handIkPolicy"),
+                HandIkPolicyNames));
+    }
 
-        if (property == null)
-            return;
+    private static string GetEnumName(
+        SerializedProperty property,
+        string[] optionNames)
+    {
+        if (property == null ||
+            property.hasMultipleDifferentValues)
+        {
+            return "여러 값";
+        }
 
-        EditorGUILayout.PropertyField(
-            property,
-            new GUIContent(displayName));
+        int index = Mathf.Clamp(
+            property.enumValueIndex,
+            0,
+            optionNames.Length - 1);
+
+        return optionNames[index];
     }
 
     private static void DrawEnumProperty(
