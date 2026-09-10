@@ -103,10 +103,10 @@
 - 상체 기준 본이 회전해도 로컬 원점인 `ResolvedAimPivot`의 위치는 불필요하게 궤도를 그리지 않고,
   근접 판정·무기 드롭·총기 Muzzle fallback이 같은 Tick의 RAP 위치를 함께 사용한다.
 - 같은 `ActionAnimationData`를 기본 공격과 스킬에 각각 연결했을 때 실제로 존재하는
-  Cast/Release/Recovery 클립만 재생된다. 단계별 Body Mask, 상체 조준 합성,
+  Cast/Main/Recovery 클립만 재생된다. 단계별 Body Mask, 상체 조준 합성,
   Animated Targets/Weapon Grips 손 IK 정책이 서로 독립적으로 적용된다.
 - 실제로 진행되는 단계의 클립이 비어 있어도 공격·스킬·무기 판정과 Phase는 정상 진행된다.
-- Cast 뒤 Active가 없고 Recovery가 있으면 Release를 잘못 재생하지 않고 Recovery로 바로 넘어간다.
+- Cast 뒤 Active가 없고 Recovery가 있으면 Main을 잘못 재생하지 않고 Recovery로 바로 넘어간다.
 - 무기 애니메이션 종료·교체·해제 뒤에는 마지막 액션 자세가 남지 않고 Base 자세로 돌아간다.
 - AAD Inspector에서 준비·실행·마무리 동작과 적용 부위·조준 애니메이션 혼합 모드·손 위치 기준이
   한국어로 표시된다. 빈 단계는 단계명과 클립 선택만 보이고, 클립이 있는 단계는 접고 펼쳐도
@@ -173,11 +173,11 @@
 ### Skill Animation
 
 - MaryProjectileSkill을 사용하면 Cast 동안 양손이 모이는 검증 자세가 재생된다.
-- Cast가 끝나 투사체가 생성되는 Tick에 양손을 앞으로 내미는 Release 자세로 전환된다.
+- Cast가 끝나 투사체가 생성되는 Tick에 양손을 앞으로 내미는 Main 자세로 전환된다.
 - Recovery 클립이 있는 스킬은 `SkillPhase` 3에서 전용 Placeholder가 해당 클립으로 교체된다.
 - 스킬 재생이 손 Limb Solver의 기존 활성 여부를 임의로 변경하지 않는다.
 - 같은 MaryProjectileSkill을 다른 스킬 슬롯에 장착해도 슬롯 번호와 무관하게 같은 클립이 재생된다.
-- Host와 Client에서 Cast와 Release 전환 횟수가 같고 prediction 또는 resimulation으로 중복 재생되지 않는다.
+- Host와 Client에서 Cast와 Main 전환 횟수가 같고 prediction 또는 resimulation으로 중복 재생되지 않는다.
 
 ## Charge 조합 및 사용 제한 시간 회귀
 

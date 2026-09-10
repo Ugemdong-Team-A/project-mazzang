@@ -940,7 +940,7 @@ public sealed class PlayerWeaponController :
             ActionAnimationClipData clipData =
                 animation != null
                     ? animation.GetClipData(
-                        ActionAnimationPhase.Release)
+                        ActionAnimationPhase.Main)
                     : default;
 
             WeaponAnimationTimer =

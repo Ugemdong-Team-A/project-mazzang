@@ -949,7 +949,7 @@ public sealed class PlayerSkillController :
             SkillUsePhase.Cast =>
                 ActionAnimationPhase.Cast,
             SkillUsePhase.Active =>
-                ActionAnimationPhase.Release,
+                ActionAnimationPhase.Main,
             SkillUsePhase.Recovery =>
                 ActionAnimationPhase.Recovery,
             _ => ActionAnimationPhase.None

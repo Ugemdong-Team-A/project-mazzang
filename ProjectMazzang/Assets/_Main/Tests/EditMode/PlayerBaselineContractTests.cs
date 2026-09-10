@@ -454,12 +454,12 @@ namespace ProjectMazzang.Tests
                 animation.FindProperty("cast")
                     .objectReferenceValue as AnimationClip;
 
-            AnimationClip release =
-                animation.FindProperty("release")
+            AnimationClip main =
+                animation.FindProperty("main")
                     .objectReferenceValue as AnimationClip;
 
             Assert.That(cast, Is.Not.Null);
-            Assert.That(release, Is.Not.Null);
+            Assert.That(main, Is.Not.Null);
 
             string[] expectedTargetPaths =
             {
@@ -468,7 +468,7 @@ namespace ProjectMazzang.Tests
             };
 
             foreach (AnimationClip clip in
-                     new[] { cast, release })
+                     new[] { cast, main })
             {
                 string[] targetPaths =
                     AnimationUtility
@@ -505,7 +505,7 @@ namespace ProjectMazzang.Tests
 
             Assert.That(
                 clipNames,
-                Does.Contain("SkillReleasePlaceholder"));
+                Does.Contain("SkillMainPlaceholder"));
 
             Assert.That(
                 clipNames,
@@ -521,8 +521,8 @@ namespace ProjectMazzang.Tests
                 {
                     ["Skill_Cast"] =
                         "SkillCastPlaceholder",
-                    ["Skill_Release"] =
-                        "SkillReleasePlaceholder",
+                    ["Skill_Main"] =
+                        "SkillMainPlaceholder",
                     ["Skill_Recovery"] =
                         "SkillRecoveryPlaceholder"
                 };
@@ -546,7 +546,7 @@ namespace ProjectMazzang.Tests
                 new()
                 {
                     ["Skill_Cast"] = 1f,
-                    ["Skill_Release"] = 2f,
+                    ["Skill_Main"] = 2f,
                     ["Skill_Recovery"] = 3f
                 };
 
@@ -620,7 +620,7 @@ namespace ProjectMazzang.Tests
                 Is.Not.Null);
 
             Assert.That(
-                serializedMary.FindProperty("release")
+                serializedMary.FindProperty("main")
                     .FindPropertyRelative("clip")
                     .objectReferenceValue,
                 Is.Not.Null);
@@ -701,7 +701,7 @@ namespace ProjectMazzang.Tests
                 new()
                 {
                     ["Cast"] = 1f,
-                    ["Release"] = 2f,
+                    ["Main"] = 2f,
                     ["Recovery"] = 3f
                 };
 

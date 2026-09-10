@@ -11,8 +11,8 @@ public sealed class PlayerAnimation :
     private const string ActionCastPlaceholder =
         "ActionCastPlaceholder";
 
-    private const string ActionReleasePlaceholder =
-        "ActionReleasePlaceholder";
+    private const string ActionMainPlaceholder =
+        "ActionMainPlaceholder";
 
     private const string ActionRecoveryPlaceholder =
         "ActionRecoveryPlaceholder";
@@ -143,7 +143,7 @@ public sealed class PlayerAnimation :
             ref _weaponAnimationPresentationInitialized,
             tickState.WeaponAnimationSequence,
             tickState.IsWeaponAnimationActive
-                ? ActionAnimationPhase.Release
+                ? ActionAnimationPhase.Main
                 : ActionAnimationPhase.None,
             tickState.WeaponAnimation);
 
@@ -376,8 +376,8 @@ public sealed class PlayerAnimation :
             {
                 ActionAnimationPhase.Cast =>
                     ActionCastPlaceholder,
-                ActionAnimationPhase.Release =>
-                    ActionReleasePlaceholder,
+                ActionAnimationPhase.Main =>
+                    ActionMainPlaceholder,
                 ActionAnimationPhase.Recovery =>
                     ActionRecoveryPlaceholder,
                 _ =>
@@ -458,8 +458,8 @@ public sealed class PlayerAnimation :
             {
                 ActionAnimationPhase.Cast =>
                     "Cast",
-                ActionAnimationPhase.Release =>
-                    "Release",
+                ActionAnimationPhase.Main =>
+                    "Main",
                 ActionAnimationPhase.Recovery =>
                     "Recovery",
                 _ =>

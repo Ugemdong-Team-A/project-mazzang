@@ -1,12 +1,13 @@
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public enum ActionAnimationPhase : byte
 {
     None = 0,
-    Cast,
-    Release,
-    Recovery
+    Cast = 1,
+    Main = 2,
+    Recovery = 3
 }
 
 public enum ActionBodyMask : byte
@@ -85,9 +86,10 @@ public class ActionAnimationData : ScriptableObject
     [SerializeField]
     private ActionAnimationClipData cast;
 
-    [Header("Release")]
+    [Header("Main")]
+    [FormerlySerializedAs("release")]
     [SerializeField]
-    private ActionAnimationClipData release;
+    private ActionAnimationClipData main;
 
     [Header("Recovery")]
     [SerializeField]
@@ -95,7 +97,7 @@ public class ActionAnimationData : ScriptableObject
 
     public virtual bool HasAnyClip =>
         cast.HasClip ||
-        release.HasClip ||
+        main.HasClip ||
         recovery.HasClip;
 
     public virtual ActionAnimationClipData GetClipData(
@@ -104,7 +106,7 @@ public class ActionAnimationData : ScriptableObject
         return phase switch
         {
             ActionAnimationPhase.Cast => cast,
-            ActionAnimationPhase.Release => release,
+            ActionAnimationPhase.Main => main,
             ActionAnimationPhase.Recovery => recovery,
             _ => default
         };

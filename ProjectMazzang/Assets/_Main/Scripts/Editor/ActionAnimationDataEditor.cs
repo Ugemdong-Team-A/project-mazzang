@@ -42,15 +42,15 @@ public sealed class ActionAnimationDataEditor : Editor
         EditorGUILayout.Space(4);
         DrawPhase(
             "cast",
-            "준비 동작",
+            "Cast",
             "공격이나 스킬이 실행되기 전의 동작입니다.");
         DrawPhase(
-            "release",
-            "실행 동작",
+            "main",
+            "Main",
             "실제 공격이나 효과가 실행되는 동작입니다.");
         DrawPhase(
             "recovery",
-            "마무리 동작",
+            "Recovery",
             "실행 후 기본 자세로 돌아가는 동작입니다.");
 
         serializedObject.ApplyModifiedProperties();

@@ -98,7 +98,7 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
 - `PlayerAttackData`는 플레이어가 공격을 실행하는 Startup, Active, Recovery,
   Cooldown과 Aim, Movement 규칙을 SO로 보관한다. `PlayerCombat`은 인라인 공격 설정을
   보관하지 않고 이 에셋만 참조한다. 선택적인 `ActionAnimationData`를 연결하면 Startup,
-  Active, Recovery가 각각 공용 Cast, Release, Recovery 연출 단계를 발행한다.
+  Active, Recovery가 각각 공용 Cast, Main, Recovery 연출 단계를 발행한다.
 - `PlayerAttackData.Dash`가 있으면 공격 시작 Tick의 Aim 방향을 고정해 지정된 시간 동안
   일반 이동과 공격 이동 잠금보다 우선하는 속도를 `PlayerTickState`로 전달한다. 실제 Rigidbody
   변경은 계속 `PlayerMovement`가 담당하며, 대시 종료나 공격 취소 시 강제 속도를 제거한다.
@@ -224,20 +224,20 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
   UI는 ChargeWindow일 때 별도 구간 시간을, Active일 때 개별 Phase 시간을 표시한다.
 - 투사체 시전 연출 시간은 기존 개별 Data 필드가 아니라 공통 Cast 설정을 사용한다.
 - `ActionAnimationData`는 기본 공격, 무기, 스킬이 공유하는 선택적 연출 에셋이다. Cast,
-  실제 효과가 발동하는 Release, Recovery의 각 클립마다 `FullBody`, `UpperBody`, `ArmsOnly`
+  실제 효과가 발동하는 Main, Recovery의 각 클립마다 `FullBody`, `UpperBody`, `ArmsOnly`
   고정 마스크 레이어와 상체 조준 합성, 손 IK 정책을 독립적으로 지정한다. 단계에 클립이
   없으면 그 단계는 재생하지 않지만 게임플레이 단계 진행은 멈추지 않는다. 스킬이 Cast 뒤
-  Active 없이 Recovery로 바로 넘어가면 존재하지 않는 Release 대신 실제 Recovery만 발행한다.
+  Active 없이 Recovery로 바로 넘어가면 존재하지 않는 Main 대신 실제 Recovery만 발행한다.
   무기 액션이 끝나거나 교체·해제되면 남은 액션 레이어를 Base 자세로 되돌린다.
   기존 스킬 애니메이션 에셋도 같은 형식으로 변환되어
-  별도의 스킬 전용 애니메이션 타입은 두지 않는다. Inspector는 같은 직렬화 이름을 유지한 채
-  준비·실행·마무리 동작과 적용 부위·조준 혼합·손 위치 기준을 한국어 작업 용어로 표시한다.
+  별도의 스킬 전용 애니메이션 타입은 두지 않는다. 기존 `release` 직렬화 값은 `main`으로
+  자동 이전한다. Inspector의 단계명은 Cast·Main·Recovery로, 나머지 설정은 한국어 작업 용어로 표시한다.
   각 단계는 단계명과 클립을 한 줄로 표시하고, 클립이 있는 단계만 세부 설정을 펼칠 수 있다.
 - `SkillData` Inspector는 공통 정보와 선택 기능을 먼저 표시한다. 선택 기능의 사용 횟수,
   게이지, 준비·지속·마무리 시간, 조작 제한, 능력치와 외형 항목만 한국어로 구분하며,
   개별 스킬 전용 필드는 기존 구조와 순서를 유지한다.
 - `SkillData.Animation`, `PlayerAttackData.Animation`, `Weapon`의 방향별 애니메이션은 모두 같은
-  `ActionAnimationData` 타입을 참조한다. 무기는 성공한 기본 사용을 Release 단계로 발행한다.
+  `ActionAnimationData` 타입을 참조한다. 무기는 성공한 기본 사용을 Main 단계로 발행한다.
 - 무기의 `Aim`, `Facing`, `Brawlhalla` 방향 규칙은 입력을 받은 `PlayerWeaponController`가 한 번만
   확정한다. 확정된 같은 방향을 무기 판정과 방향별 애니메이션 선택에 사용한다.
 - `Facing`과 `Brawlhalla` 무기 행동 중에는 확정한 좌우를 `PlayerTickState`로 공개한다.
@@ -256,11 +256,11 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
   공격 클립은 기존 방향별 `ActionAnimationData`와 Action 레이어를 그대로 사용한다.
 - `PlayerSkillController`는 구체 스킬 타입을 검사하지 않고 사용 슬롯과 애니메이션 단계를
   Networked 이벤트로 알린다. `PlayerAnimation`은 플레이어마다 만든
-  `AnimatorOverrideController` 인스턴스의 공통 Cast/Release/Recovery 슬롯을 교체하므로 공유
+  `AnimatorOverrideController` 인스턴스의 공통 Cast/Main/Recovery 슬롯을 교체하므로 공유
   Controller 에셋을 런타임에 수정하지 않는다. 기본 공격과 무기 역시 같은 재생 경로를 사용한다.
   각 슬롯은 실제 액션 클립이 아니라 이름이 고유한
   빈 Placeholder 클립을 Motion으로 가진다. `SkillPhase` 1/2/3은 현재 단계를 표시하고,
-  `PlayerAnimation`은 해당 Cast/Release/Recovery State로 0.1초 고정 CrossFade한다.
+  `PlayerAnimation`은 해당 Cast/Main/Recovery State로 0.1초 고정 CrossFade한다.
   단계별 Body Mask가 달라지면 세 고정 Action 레이어의 가중치도 같은 시간 동안 함께 보간한다.
   따라서 `FullBody → UpperBody/ArmsOnly`, `UpperBody → ArmsOnly`에서 새 마스크가 놓는 부위는
   이전에 평가된 포즈에서 Base 포즈로 자연스럽게 돌아간다. 본을 직접 덮어쓰지 않으므로

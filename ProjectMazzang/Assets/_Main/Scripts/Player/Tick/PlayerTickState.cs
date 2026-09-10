@@ -280,7 +280,7 @@ public sealed class PlayerTickState
         {
             clipData =
                 WeaponAnimation.GetClipData(
-                    ActionAnimationPhase.Release);
+                    ActionAnimationPhase.Main);
 
             if (clipData.HasClip)
                 return true;

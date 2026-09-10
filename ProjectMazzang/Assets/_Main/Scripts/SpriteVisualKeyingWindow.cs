@@ -1455,7 +1455,7 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
                 .Select(pair => pair.Key)
                 .FirstOrDefault(
                     clip => clip != null &&
-                            clip.name == "ActionReleasePlaceholder") ??
+                            clip.name == "ActionMainPlaceholder") ??
             overrides
                 .Select(pair => pair.Key)
                 .FirstOrDefault(clip => clip != null);

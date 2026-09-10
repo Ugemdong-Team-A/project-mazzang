@@ -999,7 +999,7 @@ public sealed class PlayerCombat :
             PlayerAttackState.Startup =>
                 ActionAnimationPhase.Cast,
             PlayerAttackState.Active =>
-                ActionAnimationPhase.Release,
+                ActionAnimationPhase.Main,
             PlayerAttackState.Recovery =>
                 ActionAnimationPhase.Recovery,
             _ => ActionAnimationPhase.None
