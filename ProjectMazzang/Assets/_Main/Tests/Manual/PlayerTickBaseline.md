@@ -105,6 +105,9 @@
 - 같은 `ActionAnimationData`를 기본 공격과 스킬에 각각 연결했을 때 실제로 존재하는
   Cast/Release/Recovery 클립만 재생된다. 단계별 Body Mask, 상체 조준 합성,
   Animated Targets/Weapon Grips 손 IK 정책이 서로 독립적으로 적용된다.
+- 실제로 진행되는 단계의 클립이 비어 있어도 공격·스킬·무기 판정과 Phase는 정상 진행된다.
+- Cast 뒤 Active가 없고 Recovery가 있으면 Release를 잘못 재생하지 않고 Recovery로 바로 넘어간다.
+- 무기 애니메이션 종료·교체·해제 뒤에는 마지막 액션 자세가 남지 않고 Base 자세로 돌아간다.
 - AAD Inspector에서 준비·실행·마무리 동작과 적용 부위·조준 애니메이션 혼합 모드·손 위치 기준이
   한국어로 표시된다. 빈 단계는 단계명과 클립 선택만 보이고, 클립이 있는 단계는 접고 펼쳐도
   기존 세부 설정값이 유지된다.

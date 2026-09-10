@@ -142,7 +142,9 @@ public sealed class PlayerAnimation :
             ref _lastWeaponAnimationSequence,
             ref _weaponAnimationPresentationInitialized,
             tickState.WeaponAnimationSequence,
-            ActionAnimationPhase.Release,
+            tickState.IsWeaponAnimationActive
+                ? ActionAnimationPhase.Release
+                : ActionAnimationPhase.None,
             tickState.WeaponAnimation);
 
         if (tickState.HasCombat)
@@ -265,6 +267,12 @@ public sealed class PlayerAnimation :
             return;
         }
 
+        if (phase == ActionAnimationPhase.None)
+        {
+            ClearActionLayers();
+            return;
+        }
+
         ActionAnimationClipData clipData =
             animation != null
                 ? animation.GetClipData(phase)
@@ -283,6 +291,23 @@ public sealed class PlayerAnimation :
             (int)phase);
 
         BlendToActionPhase(phase);
+    }
+
+
+    private void ClearActionLayers()
+    {
+        animator.SetInteger(
+            "SkillPhase",
+            (int)ActionAnimationPhase.None);
+
+        for (int index = 0;
+             index < _actionLayerTargets.Length;
+             index++)
+        {
+            _actionLayerTargets[index] = 0f;
+        }
+
+        _isBlendingActionLayers = true;
     }
 
 

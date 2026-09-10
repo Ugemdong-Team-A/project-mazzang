@@ -219,6 +219,8 @@ public sealed class PlayerWeaponController :
         {
             WeaponAnimationTimer =
                 TickTimer.None;
+
+            WeaponAnimationSequence++;
         }
 
         if (WeaponActionTimer.IsRunning &&
@@ -572,8 +574,14 @@ public sealed class PlayerWeaponController :
         EquippedWeaponObject =
             null;
 
+        bool wasAnimationRunning =
+            WeaponAnimationTimer.IsRunning;
+
         WeaponAnimationTimer =
             TickTimer.None;
+
+        if (wasAnimationRunning)
+            WeaponAnimationSequence++;
 
         WeaponActionTimer =
             TickTimer.None;
@@ -938,9 +946,10 @@ public sealed class PlayerWeaponController :
             WeaponAnimationTimer =
                 TickTimer.None;
 
+            WeaponAnimationSequence++;
+
             if (clipData.HasClip)
             {
-                WeaponAnimationSequence++;
                 WeaponAnimationTimer =
                     TickTimer.CreateFromSeconds(
                         Runner,
