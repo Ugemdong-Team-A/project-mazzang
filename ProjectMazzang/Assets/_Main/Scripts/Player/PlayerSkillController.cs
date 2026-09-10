@@ -414,8 +414,10 @@ public sealed class PlayerSkillController :
 
         PublishSkillAnimation(
             slot,
-            ResolveAnimationPhase(
-                GetUsePhase(slot)));
+            GetUsePhase(slot) ==
+                SkillUsePhase.Cast
+                ? ActionAnimationPhase.Cast
+                : ActionAnimationPhase.Main);
 
 
         skill.Activate(
@@ -907,8 +909,7 @@ public sealed class PlayerSkillController :
 
                 PublishSkillAnimation(
                     slot,
-                    ResolveAnimationPhase(
-                        GetUsePhase(slot)));
+                    ActionAnimationPhase.Main);
 
                 break;
 
@@ -938,22 +939,6 @@ public sealed class PlayerSkillController :
 
                 break;
         }
-    }
-
-
-    private static ActionAnimationPhase ResolveAnimationPhase(
-        SkillUsePhase phase)
-    {
-        return phase switch
-        {
-            SkillUsePhase.Cast =>
-                ActionAnimationPhase.Cast,
-            SkillUsePhase.Active =>
-                ActionAnimationPhase.Main,
-            SkillUsePhase.Recovery =>
-                ActionAnimationPhase.Recovery,
-            _ => ActionAnimationPhase.None
-        };
     }
 
 
