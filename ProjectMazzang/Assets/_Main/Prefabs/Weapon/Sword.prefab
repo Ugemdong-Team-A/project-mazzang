@@ -398,7 +398,7 @@ MonoBehaviour:
   worldCollider: {fileID: 0}
   pickupTrigger: {fileID: 7881194972578852804}
   stanceDirection: 1
-  stanceAnimation: {fileID: 0}
+  stanceAnimation: {fileID: 7400000, guid: 2ae74d2ff5372054b9565df63525645e, type: 2}
   primaryDirection: 1
   secondaryDirection: 0
   sortingGroup: {fileID: 2623011332169258659}
@@ -407,7 +407,7 @@ MonoBehaviour:
   _Holder: {fileID: 0}
   defaultAttack:
     enabled: 1
-    animation: {fileID: 0}
+    animation: {fileID: 11400000, guid: 9fa929d705ae8874fab8885d9c36c0bd, type: 2}
     attack: {fileID: 11400000, guid: 762e944c78386a74dbc7593da86fe56d, type: 2}
     hitboxSize: {x: 1.89, y: 1.6}
     hitboxForwardOffset: 0.9

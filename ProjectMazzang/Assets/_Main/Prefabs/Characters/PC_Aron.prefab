@@ -1142,6 +1142,7 @@ MonoBehaviour:
   _AttackState: 0
   _CurrentAttackId: 0
   _AttackSequence: 0
+  _AttackAnimationSequence: 0
 --- !u!114 &4107694489920312526
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1212,6 +1213,7 @@ MonoBehaviour:
   repickupBlockDuration: 0.35
   _EquippedWeaponObject: {fileID: 0}
   _WeaponAngle: 0
+  _WeaponAnimationSequence: 0
 --- !u!114 &-5442214398763671545
 MonoBehaviour:
   m_ObjectHideFlags: 0
