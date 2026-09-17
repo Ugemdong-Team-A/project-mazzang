@@ -10,6 +10,12 @@ using UnityEngine.U2D.IK;
 
 public sealed class SpriteVisualKeyingWindow : EditorWindow
 {
+    private enum EditMode
+    {
+        Character,
+        Weapon
+    }
+
     private const string LabelIndexProperty = "pose";
     private const string SortingOrderProperty = "_sortingOrder";
     private const float OrderCardWidth = 76f;
@@ -35,11 +41,15 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
     private AnimatorOverrideController _clipEditController;
     private Texture2D _fkBakeIcon;
     [SerializeField]
+    private EditMode _editMode;
+    [SerializeField]
+    private GameObject _weaponAuthoringRoot;
+    [SerializeField]
     private bool _showBulkKeying;
     [SerializeField]
     private bool _showPartDetails;
 
-    [MenuItem("Tools/2D Animation/Sprite Visual Keyer")]
+    [MenuItem("Tools/2D Animation/Mazzang 2D Animation")]
     private static void Open()
     {
         ShowWindow();
@@ -123,6 +133,17 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
 
         AnimationClip clip = _workingClip;
 
+        if (clip != null)
+        {
+            DrawHeader(
+                clip,
+                animationWindow.frame);
+        }
+
+        EditorGUILayout.Space(8);
+        DrawRigSelection();
+        DrawEditMode();
+
         if (clip == null)
         {
             EditorGUILayout.HelpBox(
@@ -131,15 +152,19 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
             return;
         }
 
-        DrawHeader(
-            clip,
-            animationWindow.frame);
-
-        EditorGUILayout.Space(8);
-        DrawRigSelection();
-
         if (_animationRoot == null)
             return;
+
+        EditorGUILayout.Space(8);
+        DrawCharacterRefresh(animationWindow);
+
+        if (_editMode == EditMode.Weapon)
+        {
+            DrawWeaponWorkspace();
+            return;
+        }
+
+        DrawPartSelection();
 
         bool isShownInAnimationWindow =
             animationWindow.animationClip == clip;
@@ -147,7 +172,6 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
         if (!isShownInAnimationWindow)
         {
             EditorGUILayout.Space(8);
-            DrawCharacterRefresh(animationWindow);
             DrawAddDriverButton();
 
             EditorGUILayout.HelpBox(
@@ -170,8 +194,6 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
             return;
         }
 
-        EditorGUILayout.Space(8);
-        DrawCharacterRefresh(animationWindow);
         DrawAddDriverButton();
 
         if (_target != null)
@@ -256,7 +278,7 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
             GUI.backgroundColor = previousColor;
 
             GUIContent heading = new(
-                " Mazzang Sprite Visual Keyer",
+                " Mazzang 2D Animation",
                 EditorGUIUtility.IconContent("AnimationClip Icon").image);
 
             EditorGUILayout.LabelField(
@@ -530,8 +552,38 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
             EditorGUILayout.HelpBox(
                 "캐릭터 또는 캐릭터의 IK 제어기/부위를 선택해주세요.",
                 MessageType.Warning);
-            return;
         }
+    }
+
+    private void DrawEditMode()
+    {
+        EditorGUILayout.Space(8);
+
+        GUIContent[] modes =
+        {
+            new(
+                "캐릭터 편집",
+                EditorGUIUtility.IconContent("Avatar Icon").image),
+            new(
+                "무기 편집",
+                EditorGUIUtility.IconContent("Prefab Icon").image)
+        };
+
+        int selectedMode = GUILayout.Toolbar(
+            (int)_editMode,
+            modes,
+            GUILayout.Height(28));
+
+        if (selectedMode == (int)_editMode)
+            return;
+
+        _editMode = (EditMode)selectedMode;
+        GUI.FocusControl(null);
+    }
+
+    private void DrawPartSelection()
+    {
+        EditorGUILayout.Space(8);
 
         if (_parts.Length == 0)
         {
@@ -551,6 +603,63 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
             SelectPart(newIndex, true, true);
         else if (_target == null)
             SelectPart(newIndex, true);
+    }
+
+    private void DrawWeaponWorkspace()
+    {
+        EditorGUILayout.Space(8);
+
+        using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+        {
+            GUIContent heading = new(
+                "무기 애니메이션 편집",
+                EditorGUIUtility.IconContent("Prefab Icon").image);
+
+            EditorGUILayout.LabelField(
+                heading,
+                EditorStyles.boldLabel);
+
+            EditorGUI.BeginChangeCheck();
+            GameObject newRoot =
+                (GameObject)EditorGUILayout.ObjectField(
+                    "무기 작업 기준",
+                    _weaponAuthoringRoot,
+                    typeof(GameObject),
+                    true);
+
+            if (EditorGUI.EndChangeCheck())
+                _weaponAuthoringRoot = newRoot;
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                using (new EditorGUI.DisabledScope(
+                           Selection.activeGameObject == null))
+                {
+                    if (GUILayout.Button("현재 선택 사용"))
+                    {
+                        _weaponAuthoringRoot =
+                            Selection.activeGameObject;
+                    }
+                }
+
+                using (new EditorGUI.DisabledScope(
+                           _weaponAuthoringRoot == null))
+                {
+                    if (GUILayout.Button("씬에서 선택"))
+                    {
+                        Selection.activeGameObject =
+                            _weaponAuthoringRoot;
+                        EditorGUIUtility.PingObject(
+                            _weaponAuthoringRoot);
+                    }
+                }
+            }
+
+            EditorGUILayout.HelpBox(
+                "캐릭터와 작업 클립은 위의 공통 영역에서 유지됩니다. " +
+                "무기나 하위 부품을 선택해도 캐릭터 작업 기준은 바뀌지 않습니다.",
+                MessageType.Info);
+        }
     }
 
     private void DrawSelectedPartKeying(
@@ -1328,6 +1437,9 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
         if (animationWindowClip == null)
             return;
 
+        if (_editMode == EditMode.Weapon)
+            return;
+
         if (_clipEditController != null &&
             animationWindowClip != _workingClip)
         {
@@ -1504,6 +1616,9 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
         GameObject selected = Selection.activeGameObject;
 
         if (selected == null)
+            return;
+
+        if (_editMode == EditMode.Weapon)
             return;
 
         Animator animator = selected.GetComponentInParent<Animator>();
@@ -1935,9 +2050,9 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
     private static GUIContent CreateTitleContent()
     {
         return new GUIContent(
-            "Sprite Visual",
+            "2D Animation",
             EditorGUIUtility.IconContent("AnimationClip Icon").image,
-            "Mazzang Sprite Visual Keyer");
+            "Mazzang 2D Animation");
     }
 }
 

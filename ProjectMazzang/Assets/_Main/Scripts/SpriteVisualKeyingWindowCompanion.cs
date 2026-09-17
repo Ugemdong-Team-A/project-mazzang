@@ -5,7 +5,7 @@ using UnityEngine;
 
 /// <summary>
 /// 적합한 캐릭터를 선택한 상태에서 Animation Window에 포커스가 오면
-/// Sprite Visual Keyer를 함께 연다. Unity 기본 Ctrl+6 단축키는 변경하지 않는다.
+/// Mazzang 2D Animation 창을 함께 연다. Unity 기본 Ctrl+6 단축키는 변경하지 않는다.
 /// </summary>
 [InitializeOnLoad]
 public static class SpriteVisualKeyingWindowCompanion
