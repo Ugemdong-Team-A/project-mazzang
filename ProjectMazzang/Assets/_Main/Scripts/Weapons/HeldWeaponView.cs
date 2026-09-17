@@ -3,6 +3,8 @@ using UnityEngine;
 public sealed class HeldWeaponView :
     MonoBehaviour
 {
+    public const string RuntimeViewName = "HeldWeaponView";
+
     [Header("Anchors")]
     [SerializeField]
     private Transform muzzle;
@@ -13,6 +15,8 @@ public sealed class HeldWeaponView :
     [SerializeField]
     private Transform rightHandGrip;
 
+    private WeaponPose _pose;
+
     public Transform Muzzle =>
         muzzle;
 
@@ -22,6 +26,9 @@ public sealed class HeldWeaponView :
     public Transform RightHandGrip =>
         rightHandGrip;
 
+    public WeaponPose Pose =>
+        _pose;
+
     public void Initialize(
         Transform socket,
         int sortingOrder)
@@ -29,18 +36,24 @@ public sealed class HeldWeaponView :
         if (socket == null)
             return;
 
-        transform.SetParent(
-            socket,
-            false);
+        WeaponPose pose =
+            WeaponPose.GetOrCreate(socket);
 
-        transform.localPosition =
-            Vector3.zero;
+        Initialize(
+            pose,
+            sortingOrder);
+    }
 
-        transform.localRotation =
-            Quaternion.identity;
+    public void Initialize(
+        WeaponPose pose,
+        int sortingOrder)
+    {
+        if (pose == null)
+            return;
 
-        transform.localScale =
-            Vector3.one;
+        _pose = pose;
+        name = RuntimeViewName;
+        _pose.Attach(this);
 
         foreach (Collider2D collider
                  in GetComponentsInChildren<Collider2D>(true))
@@ -61,10 +74,17 @@ public sealed class HeldWeaponView :
     public void SetMirrored(
         bool mirrored)
     {
-        transform.localScale =
-            new Vector3(
-                1f,
-                mirrored ? -1f : 1f,
-                1f);
+        _pose?.SetMirrored(mirrored);
+    }
+
+    public void PlayAnimation(
+        AnimationClip clip)
+    {
+        _pose?.Play(clip);
+    }
+
+    public void StopAnimation()
+    {
+        _pose?.Stop();
     }
 }

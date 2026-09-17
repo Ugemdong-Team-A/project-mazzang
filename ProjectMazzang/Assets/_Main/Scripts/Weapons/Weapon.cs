@@ -42,10 +42,20 @@ public class WeaponActionData
     [SerializeField]
     private ActionAnimationData animation;
 
+    [InspectorName("무기 자체 애니메이션")]
+    [Tooltip(
+        "캐릭터 애니메이션과 동시에 재생할 무기 외형의 동작입니다. " +
+        "비어 있으면 무기는 WeaponSocket의 기본 자세를 유지합니다.")]
+    [SerializeField]
+    private AnimationClip weaponAnimation;
+
     public bool Enabled => enabled;
 
     public ActionAnimationData Animation =>
         animation;
+
+    public AnimationClip WeaponAnimation =>
+        weaponAnimation;
 
     public WeaponActionData()
     {
@@ -162,6 +172,9 @@ public abstract class Weapon :
 
     public AnimationClip StanceAnimation =>
         stanceAnimation;
+
+    public HeldWeaponView PresentationTemplate =>
+        presentationTemplate;
 
     public WeaponAttackDirection GetDirectionMode(
         WeaponButton button)
@@ -610,7 +623,7 @@ public abstract class Weapon :
             Vector3.one * 1f / visualSizeOffset;
 
         _heldView.name =
-            $"{name} Held View";
+            HeldWeaponView.RuntimeViewName;
 
         _heldView.gameObject
             .SetActive(
@@ -638,17 +651,37 @@ public abstract class Weapon :
     }
 
 
+    public void PlayHeldAnimation(
+        AnimationClip clip)
+    {
+        EnsureHeldView();
+        _heldView?.PlayAnimation(clip);
+    }
+
+
+    public void StopHeldAnimation()
+    {
+        _heldView?.StopAnimation();
+    }
+
+
     private void DestroyHeldView()
     {
         if (_heldView == null)
             return;
 
+        WeaponPose pose =
+            _heldView.Pose;
+
+        _heldView.StopAnimation();
         _heldView.gameObject
             .SetActive(
                 false);
 
-        Destroy(
-            _heldView.gameObject);
+        if (pose != null)
+            Destroy(pose.gameObject);
+        else
+            Destroy(_heldView.gameObject);
 
         _heldView =
             null;

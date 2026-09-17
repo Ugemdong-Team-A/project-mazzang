@@ -52,6 +52,12 @@ public sealed class PlayerWeaponController :
 
     private Transform _presentationRoot;
 
+    private Weapon _presentedWeapon;
+
+    private byte _lastPresentedWeaponAnimationSequence;
+
+    private bool _weaponAnimationPresentationInitialized;
+
 
     // =========================================================
     // Network State
@@ -195,6 +201,9 @@ public sealed class PlayerWeaponController :
             WeaponAttackSlot.Default;
 
         WeaponAnimationSequence = 0;
+        _presentedWeapon = null;
+        _lastPresentedWeaponAnimationSequence = 0;
+        _weaponAnimationPresentationInitialized = false;
     }
 
 
@@ -202,6 +211,9 @@ public sealed class PlayerWeaponController :
         NetworkRunner runner,
         bool hasState)
     {
+        _presentedWeapon?.StopHeldAnimation();
+        _presentedWeapon = null;
+        _weaponAnimationPresentationInitialized = false;
         _boundIkView =
             null;
     }
@@ -428,6 +440,7 @@ public sealed class PlayerWeaponController :
         if (weaponSocket == null ||
             !HasEquippedWeapon)
         {
+            StopPresentedWeaponAnimation();
             return;
         }
 
@@ -439,7 +452,51 @@ public sealed class PlayerWeaponController :
             equippedWeapon
                 .RefreshHeldPresentation(
                     false);
+
+            PresentWeaponAnimation(
+                equippedWeapon,
+                tickState);
         }
+    }
+
+
+    private void PresentWeaponAnimation(
+        Weapon weapon,
+        PlayerTickState state)
+    {
+        bool changed =
+            !_weaponAnimationPresentationInitialized ||
+            _presentedWeapon != weapon ||
+            _lastPresentedWeaponAnimationSequence !=
+                state.WeaponAnimationSequence;
+
+        if (!changed)
+            return;
+
+        _presentedWeapon?.StopHeldAnimation();
+        _presentedWeapon = weapon;
+        _lastPresentedWeaponAnimationSequence =
+            state.WeaponAnimationSequence;
+        _weaponAnimationPresentationInitialized = true;
+
+        if (!state.IsWeaponAnimationActive)
+            return;
+
+        AnimationClip weaponClip =
+            weapon.GetAction(
+                ActiveWeaponButton,
+                ActiveWeaponSlot)?.WeaponAnimation;
+
+        if (weaponClip != null)
+            weapon.PlayHeldAnimation(weaponClip);
+    }
+
+
+    private void StopPresentedWeaponAnimation()
+    {
+        _presentedWeapon?.StopHeldAnimation();
+        _presentedWeapon = null;
+        _weaponAnimationPresentationInitialized = false;
     }
 
 
@@ -943,18 +1000,30 @@ public sealed class PlayerWeaponController :
                         ActionAnimationPhase.Main)
                     : default;
 
+            AnimationClip weaponClip =
+                action.WeaponAnimation;
+
+            float animationDuration =
+                Mathf.Max(
+                    clipData.HasClip
+                        ? clipData.Clip.length
+                        : 0f,
+                    weaponClip != null
+                        ? weaponClip.length
+                        : 0f);
+
             WeaponAnimationTimer =
                 TickTimer.None;
 
             WeaponAnimationSequence++;
 
-            if (clipData.HasClip)
+            if (animationDuration > 0f)
             {
                 WeaponAnimationTimer =
                     TickTimer.CreateFromSeconds(
                         Runner,
                         Mathf.Max(
-                            clipData.Clip.length,
+                            animationDuration,
                             Runner.DeltaTime));
             }
 
@@ -970,9 +1039,7 @@ public sealed class PlayerWeaponController :
                         weapon.GetActionDuration(
                             button,
                             slot),
-                        clipData.HasClip
-                            ? clipData.Clip.length
-                            : 0f,
+                        animationDuration,
                         Runner.DeltaTime);
 
                 LockedWeaponFacingRight =

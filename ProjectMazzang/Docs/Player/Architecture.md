@@ -126,12 +126,17 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
   먼저 구성할 수 있고, SLA 정보 동기화 실패는 생성 실패가 아닌 경고로 보고한다. Resolver의
   Category가 비어 있고 GameObject 이름과 SLA Category가 정확히 일치하면 Category와 초기 Label을
   자동 연결하며, 유사 이름은 추측하지 않는다.
-- `SpriteVisualKeyingWindow`는 적합한 캐릭터를 선택하고 Animation 창에 포커스가 오면 함께 열리며,
+- `SpriteVisualKeyingWindow`는 `Mazzang 2D Animation` 작업 공간의 캐릭터/무기 편집 모드를 제공한다.
+  공통 영역의 캐릭터 기준과 비교용 클립은 모드를 바꿔도 유지한다. 캐릭터 편집 모드는 적합한
+  캐릭터를 선택하고 Animation 창에 포커스가 오면 함께 열리며,
   버튼을 눌렀을 때만 팔·다리·발 Limb Target 6개의 현재 위치와 회전 또는 전체 Driver의 현재 모습과
   순서를 선택한 현재 프레임에 기록한다. 선택 부위의 모습과 순서 편집을 일상 작업으로 먼저 표시하고,
   Character Setup 새로고침은 그 바로 위, 선택 부위 상세 정보는 바로 아래에 둔다. 여러 부위 저장은
   접을 수 있는 영역으로, FK 굽기는 원본과 결과가 분리되는 제작 작업이므로 창 맨 아래에 둔다.
   구성 새로고침은 CharSetup Build 뒤 Driver 목록과 Animation 창 표시를 다시 동기화한다.
+  무기 편집 모드는 캐릭터 클립을 읽기 전용으로 함께 시연하고 별도 무기 클립만 Animation 창에
+  기록한다. 임시 `WeaponPose` 아래의 장착 외형과 내부 부품은 자유롭게 선택할 수 있으며,
+  작업 범위 밖을 선택하면 세션을 없애지 않고 녹화만 멈춘다.
 - `PlayerAim`은 상체 CCD Solver와 RAP Transform 하나만 직렬화한다. 하위에서 중립적인
   `Standard2DAimAnchor`를 찾으면 CharSetup을 참조하지 않고 표준 RAP으로 자동 동기화하며,
   조준 원점은 별도 `AimOrigin`이 아니라 RAP의 현재 월드 위치를 사용한다. 기준 본은 RAP의 부모,
@@ -152,6 +157,11 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
 - Mary, Master, Aron의 `WeaponSocket`은 프리팹에서 `ResolvedAimPivot`의 직접 자식으로 두고,
   로컬 위치 `(0, 0, 0)`, 로컬 회전 `-90°`, 로컬 크기 `(1, 1, 1)`를 유지한다.
   런타임 코드는 이 계층을 재배치하거나 보정하지 않는다.
+- 장착 외형은 `WeaponSocket/WeaponPose/HeldWeaponView` 순서로 구성한다. `WeaponSocket`은 장착 기준,
+  `WeaponPose`는 반전과 무기 전용 동작, `HeldWeaponView`는 Muzzle·Grip과 내부 스프라이트를 담당한다.
+  무기 클립은 `WeaponPose`를 재생 루트로 삼아 `HeldWeaponView`와 내부 부품의 로컬 속성만 기록한다.
+  따라서 Animator와 RAP가 확정한 Socket 변환을 그대로 상속하며, 무기 클립이 RAP나 Socket을
+  덮어쓰지 않는다. 무기 동작은 손 IK보다 앞선 실행 순서에서 평가한다.
 - `PlayerAim`은 RAP 위치를 같은 Tick의 `PlayerTickState.AimOriginPosition`에 복사한다. `PlayerCombat`과
   `PlayerWeaponController`는 이 값을 근접 판정·드롭과 총기 Muzzle fallback 기준으로 재사용한다.
   따라서 기준 척추 본의 위치 애니메이션은 조준 원점에도 반영되며, 회전만으로는 로컬 원점인 RAP의
@@ -244,7 +254,7 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
   `PlayerAim`은 이 스냅샷을 따라 마우스로 인한 중간 반전을 막으며, 두 모듈은 서로 직접 참조하지 않는다.
 - Primary와 Secondary는 각각 방향 규칙을 가진다. `Brawlhalla`는 위 입력과 입력 없음을
   `NoDirection`, 좌우 입력을 `Side`, 아래 입력을 `Down` 슬롯으로 확정한다.
-- 방향별 공격 슬롯은 사용 여부와 AAD를 함께 가지며, 근접 무기는 같은 슬롯에 데미지,
+- 방향별 공격 슬롯은 사용 여부, 캐릭터 AAD, 선택적인 무기 자체 클립을 함께 가지며, 근접 무기는 같은 슬롯에 데미지,
   Box, 판정 시점, 돌진 설정까지 공용 `WeaponAttackSlotData`에 함께 둔다. 구체 무기 이름을
   포함한 슬롯 타입이나 방향 판정과 연출 설정을 나눈 별도 배열은 만들지 않는다.
   현재 실제 방향별 슬롯은 Sword의 주 공격에만 있으며, 방패와 총기는 방향 규칙과 무관하게
@@ -254,6 +264,9 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
   유지하고 평상시 상체 CCD를 끄며, Stance 클립이 비어 있으면 기존 Idle을 그대로 사용한다.
 - `PlayerAnimation`은 장착 무기의 선택적 Stance 클립만 기본 Idle 슬롯에 교체한다.
   공격 클립은 기존 방향별 `ActionAnimationData`와 Action 레이어를 그대로 사용한다.
+  무기 자체 클립은 AAD에 넣지 않고 같은 `WeaponActionData`에 나란히 둔다. 성공한 무기 사용 시
+  캐릭터 AAD와 무기 클립을 같은 Sequence로 시작하고, 둘 중 긴 클립이 끝날 때까지 무기 연출 상태를
+  유지한다. 무기 클립이 끝나거나 무기가 교체·해제되면 `WeaponPose` 아래 속성을 기본값으로 복구한다.
 - `PlayerSkillController`는 구체 스킬 타입을 검사하지 않고 사용 슬롯과 애니메이션 단계를
   Networked 이벤트로 알린다. `PlayerAnimation`은 플레이어마다 만든
   `AnimatorOverrideController` 인스턴스의 공통 Cast/Main/Recovery 슬롯을 교체하므로 공유

@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.U2D.Animation;
 using UnityEngine.U2D.IK;
@@ -43,7 +44,8 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
     [SerializeField]
     private EditMode _editMode;
     [SerializeField]
-    private GameObject _weaponAuthoringRoot;
+    private WeaponAnimationAuthoringPanel _weaponPanel =
+        new();
     [SerializeField]
     private bool _showBulkKeying;
     [SerializeField]
@@ -67,6 +69,8 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
 
     private void OnEnable()
     {
+        _weaponPanel ??=
+            new WeaponAnimationAuthoringPanel();
         titleContent = CreateTitleContent();
         minSize = new Vector2(340f, 320f);
         EditorApplication.update += Repaint;
@@ -79,6 +83,7 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
 
     private void OnDisable()
     {
+        _weaponPanel.Dispose();
         RestoreClipEditController();
         EditorApplication.update -= Repaint;
         EditorApplication.playModeStateChanged -=
@@ -90,6 +95,8 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
 
     private void OnSelectionChanged()
     {
+        _weaponPanel.HandleSelection(
+            Selection.activeGameObject);
         RefreshFromSelection();
         Repaint();
     }
@@ -104,7 +111,10 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
         PlayModeStateChange state)
     {
         if (state == PlayModeStateChange.ExitingEditMode)
+        {
+            _weaponPanel.Dispose();
             RestoreClipEditController();
+        }
     }
 
     private void OnGUI()
@@ -137,7 +147,8 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
         {
             DrawHeader(
                 clip,
-                animationWindow.frame);
+                animationWindow.frame,
+                _editMode == EditMode.Weapon);
         }
 
         EditorGUILayout.Space(8);
@@ -155,12 +166,20 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
         if (_animationRoot == null)
             return;
 
+        if (EditorUtility.IsPersistent(_animationRoot))
+        {
+            DrawPrefabEditingEntry();
+            return;
+        }
+
         EditorGUILayout.Space(8);
         DrawCharacterRefresh(animationWindow);
 
         if (_editMode == EditMode.Weapon)
         {
-            DrawWeaponWorkspace();
+            DrawWeaponWorkspace(
+                animationWindow,
+                clip);
             return;
         }
 
@@ -228,16 +247,20 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
             EditorGUI.BeginChangeCheck();
             AnimationClip selectedClip =
                 (AnimationClip)EditorGUILayout.ObjectField(
-                    "편집할 클립",
+                    _editMode == EditMode.Weapon
+                        ? "비교할 캐릭터 클립"
+                        : "편집할 클립",
                     _workingClip,
                     typeof(AnimationClip),
                     false);
 
             if (EditorGUI.EndChangeCheck())
             {
+                _weaponPanel.Dispose();
                 _workingClip = selectedClip;
 
-                if (selectedClip != null)
+                if (selectedClip != null &&
+                    _editMode == EditMode.Character)
                 {
                     TryShowWorkingClip(
                         animationWindow,
@@ -245,7 +268,8 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
                 }
             }
 
-            if (_workingClip == null ||
+            if (_editMode == EditMode.Weapon ||
+                _workingClip == null ||
                 animationWindow.animationClip == _workingClip)
             {
                 return;
@@ -268,7 +292,8 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
 
     private static void DrawHeader(
         AnimationClip clip,
-        int frame)
+        int frame,
+        bool isWeaponMode)
     {
         Color previousColor = GUI.backgroundColor;
         GUI.backgroundColor = new Color(0.35f, 0.65f, 0.95f, 1f);
@@ -285,7 +310,11 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
                 heading,
                 EditorStyles.boldLabel);
 
-            EditorGUILayout.LabelField("현재 클립", clip.name);
+            EditorGUILayout.LabelField(
+                isWeaponMode
+                    ? "비교할 캐릭터 클립"
+                    : "현재 클립",
+                clip.name);
             EditorGUILayout.LabelField(
                 "현재 프레임",
                 frame.ToString());
@@ -533,15 +562,20 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
         using (new EditorGUILayout.HorizontalScope())
         {
             EditorGUI.BeginChangeCheck();
-            Animator newRoot =
-                (Animator)EditorGUILayout.ObjectField(
+            GameObject selectedRoot =
+                (GameObject)EditorGUILayout.ObjectField(
                     "캐릭터 기준",
-                    _animationRoot,
-                    typeof(Animator),
+                    _animationRoot != null
+                        ? _animationRoot.gameObject
+                        : null,
+                    typeof(GameObject),
                     true);
 
             if (EditorGUI.EndChangeCheck())
-                SetAnimationRoot(newRoot);
+            {
+                SetAnimationRoot(
+                    FindCharacterAnimator(selectedRoot));
+            }
 
             if (GUILayout.Button("목록", GUILayout.Width(52)))
                 RefreshParts(true);
@@ -553,6 +587,38 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
                 "캐릭터 또는 캐릭터의 IK 제어기/부위를 선택해주세요.",
                 MessageType.Warning);
         }
+    }
+
+    private void DrawPrefabEditingEntry()
+    {
+        EditorGUILayout.HelpBox(
+            "프리팹 원본은 직접 녹화하지 않습니다. 프리팹 편집 모드에서 열어주세요.",
+            MessageType.Info);
+
+        if (!GUILayout.Button(
+                "프리팹 열고 편집",
+                GUILayout.Height(26)))
+        {
+            return;
+        }
+
+        string path =
+            AssetDatabase.GetAssetPath(
+                _animationRoot.gameObject);
+
+        if (string.IsNullOrEmpty(path))
+            return;
+
+        PrefabStage stage =
+            PrefabStageUtility.OpenPrefab(path);
+        Animator animator =
+            FindCharacterAnimator(
+                stage.prefabContentsRoot);
+        SetAnimationRoot(animator);
+        Selection.activeGameObject =
+            animator != null
+                ? animator.gameObject
+                : stage.prefabContentsRoot;
     }
 
     private void DrawEditMode()
@@ -576,6 +642,9 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
 
         if (selectedMode == (int)_editMode)
             return;
+
+        if (_editMode == EditMode.Weapon)
+            _weaponPanel.Dispose();
 
         _editMode = (EditMode)selectedMode;
         GUI.FocusControl(null);
@@ -605,61 +674,15 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
             SelectPart(newIndex, true);
     }
 
-    private void DrawWeaponWorkspace()
+    private void DrawWeaponWorkspace(
+        AnimationWindow animationWindow,
+        AnimationClip characterClip)
     {
         EditorGUILayout.Space(8);
-
-        using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
-        {
-            GUIContent heading = new(
-                "무기 애니메이션 편집",
-                EditorGUIUtility.IconContent("Prefab Icon").image);
-
-            EditorGUILayout.LabelField(
-                heading,
-                EditorStyles.boldLabel);
-
-            EditorGUI.BeginChangeCheck();
-            GameObject newRoot =
-                (GameObject)EditorGUILayout.ObjectField(
-                    "무기 작업 기준",
-                    _weaponAuthoringRoot,
-                    typeof(GameObject),
-                    true);
-
-            if (EditorGUI.EndChangeCheck())
-                _weaponAuthoringRoot = newRoot;
-
-            using (new EditorGUILayout.HorizontalScope())
-            {
-                using (new EditorGUI.DisabledScope(
-                           Selection.activeGameObject == null))
-                {
-                    if (GUILayout.Button("현재 선택 사용"))
-                    {
-                        _weaponAuthoringRoot =
-                            Selection.activeGameObject;
-                    }
-                }
-
-                using (new EditorGUI.DisabledScope(
-                           _weaponAuthoringRoot == null))
-                {
-                    if (GUILayout.Button("씬에서 선택"))
-                    {
-                        Selection.activeGameObject =
-                            _weaponAuthoringRoot;
-                        EditorGUIUtility.PingObject(
-                            _weaponAuthoringRoot);
-                    }
-                }
-            }
-
-            EditorGUILayout.HelpBox(
-                "캐릭터와 작업 클립은 위의 공통 영역에서 유지됩니다. " +
-                "무기나 하위 부품을 선택해도 캐릭터 작업 기준은 바뀌지 않습니다.",
-                MessageType.Info);
-        }
+        _weaponPanel.Draw(
+            _animationRoot,
+            characterClip,
+            animationWindow);
     }
 
     private void DrawSelectedPartKeying(
@@ -724,7 +747,8 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
                 : null;
 
         using (new EditorGUI.DisabledScope(
-                   characterSetup == null))
+                   characterSetup == null ||
+                   _weaponPanel.IsActive))
         {
             GUIContent refreshContent = new(
                 "편집 정보 새로고침",
@@ -775,6 +799,8 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
     {
         if (setup == null)
             return;
+
+        _weaponPanel.Dispose();
 
         Transform selectedPart = _target != null
             ? _target.transform
@@ -1621,10 +1647,8 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
         if (_editMode == EditMode.Weapon)
             return;
 
-        Animator animator = selected.GetComponentInParent<Animator>();
-
-        if (animator == null)
-            animator = selected.GetComponentInChildren<Animator>(true);
+        Animator animator =
+            FindCharacterAnimator(selected);
 
         if (animator != null && animator != _animationRoot)
             SetAnimationRoot(animator);
@@ -1636,10 +1660,50 @@ public sealed class SpriteVisualKeyingWindow : EditorWindow
             SelectDriver(selectedDriver, true);
     }
 
+    internal static Animator FindCharacterAnimator(
+        GameObject selected)
+    {
+        if (selected == null)
+            return null;
+
+        Standard2DCharacterSetup parentSetup =
+            selected.GetComponentInParent<
+                Standard2DCharacterSetup>();
+
+        if (parentSetup != null)
+            return parentSetup.GetComponent<Animator>();
+
+        Standard2DCharacterSetup[] childSetups =
+            selected.GetComponentsInChildren<
+                Standard2DCharacterSetup>(true);
+
+        if (childSetups.Length == 1)
+            return childSetups[0].GetComponent<Animator>();
+
+        if (childSetups.Length > 1)
+            return null;
+
+        Animator parentAnimator =
+            selected.GetComponentInParent<Animator>();
+
+        if (parentAnimator != null)
+            return parentAnimator;
+
+        Animator[] childAnimators =
+            selected.GetComponentsInChildren<Animator>(true);
+
+        return childAnimators.Length == 1
+            ? childAnimators[0]
+            : null;
+    }
+
     private void SetAnimationRoot(Animator animator)
     {
         if (_animationRoot != animator)
+        {
+            _weaponPanel.Dispose();
             RestoreClipEditController();
+        }
 
         _animationRoot = animator;
         RefreshParts(false);
