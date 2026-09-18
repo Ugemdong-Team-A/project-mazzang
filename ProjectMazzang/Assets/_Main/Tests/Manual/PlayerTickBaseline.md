@@ -117,6 +117,10 @@
   기존 세부 설정값이 유지된다.
 - SkillData Inspector에서 재사용 대기시간·아이콘·행동 애니메이션과 선택 기능이 먼저 보이며,
   개별 스킬 고유 설정과 기존 저장값은 유지된다.
+- SkillData Inspector의 사용 횟수와 스킬 게이지 하위 설정·선택지는 한국어로 표시되고,
+  Cast 이후 Pattern의 하위 필드는 기존 코드 이름을 유지한다.
+- 사용 횟수와 스킬 게이지 조합을 바꾸면 현재 사용하지 않는 필드는 숨겨지지만, 조합을 되돌렸을 때
+  이전에 입력한 값이 복원된다. 스킬 게이지 아래 안내 문장은 현재 조합의 실제 사용 조건과 일치한다.
 - Projectile, Deployable, Awakening 계열 SkillData Inspector에 공통 Cast·Duration·Recovery,
   Meter, 능력치, 외형 설정이 스킬 고유 필드로 중복 표시되지 않는다.
 - 스킬의 Cast·Active·Recovery 진행 시간과 ActionAnimationData의 Cast·Main·Recovery 전환이
@@ -196,16 +200,21 @@
 - Timed, InitialCharges=0, RechargeDuration=2에서 사용하지 않아도 2초마다 한 횟수가 찬다.
 - RechargeDuration=0은 재충전 갱신 시 최대 횟수가 되고 타이머 None에서 멈추지 않는다.
 - Timed + Meter에서 자원이 모두 충분해야 사용한다. MaxMeter=50, RequiredMeter=100은 설정 오류다.
-- Charge의 UseWindow를 Timed(예: 5초)로 설정하면 첫 사용에만 Meter를 지불하고,
+- ChargeWindowMode를 Timed(예: 5초)로 설정하면 첫 사용에만 Meter를 지불하고,
   5초 안의 추가 사용은 횟수만 지불한다. Cast/Recovery/Cooldown 잠금은 그대로 적용된다.
-- 추가 사용은 5초 타이머를 연장하지 않고, 만료 시 남은 횟수를 폐기한다. Timed는 다시 충전된다.
-- UseWindow가 Persistent이면 첫 사용 뒤 남은 횟수가 시간 제한 없이 유지되고 별도 구간 타이머가
+- ChargeWindowRefreshMode가 Fixed이면 추가 사용은 타이머를 연장하지 않고,
+  RefreshOnUse이면 성공한 추가 사용마다 남은 시간이 5초로 돌아간다.
+- 다음 사용에 필요한 횟수를 마지막으로 소비하면 제한 시간과 테두리가 즉시 닫힌다.
+  시간 방식의 RechargeTimer는 이때 취소되지 않고 계속 진행한다.
+- ChargeWindow가 만료되면 남은 횟수를 폐기하고 Timed 방식은 다시 충전된다.
+- ChargeWindowMode가 Persistent이면 첫 사용 뒤 남은 횟수가 시간 제한 없이 유지되고 별도 구간 타이머가
   실행되지 않는다.
-- Meter 방식 + Full과 Timed UseWindow는 완충 시 최대 횟수를 얻고 첫 사용부터 구간이 시작된다. 구간 종료 뒤 다시
+- Meter 방식 + Full과 Timed ChargeWindow는 완충 시 최대 횟수를 얻고, 사용 뒤 추가 사용 가능 횟수가
+  남았을 때 구간이 시작된다. 구간 종료 뒤 다시
   Meter가 충전되어 재사용 가능한지 확인한다. 공격 보상으로 Full의 대기 조건을 우회하지 않는다.
 - Meter 방식 + OneByOne은 최대 횟수 미만에서 충전하고 완충마다 한 횟수를 얻는다.
-- Timed UseWindow 5초와 DashData 이동 시간은 독립이다. 만료 직전에 시작한 대시는 정상 종료한다.
-- Timed UseWindow가 열리면 아이콘의 4면 테두리가 남은 비율에 따라 위, 오른쪽, 아래, 왼쪽 순서로
+- Timed ChargeWindow 5초와 DashData 이동 시간은 독립이다. 만료 직전에 시작한 대시는 정상 종료한다.
+- Timed ChargeWindow가 열리면 아이콘의 4면 테두리가 남은 비율에 따라 위, 오른쪽, 아래, 왼쪽 순서로
   사라지고, Active Duration 바와 동시에 표시되어도 서로의 비율을 덮어쓰지 않는다.
 - 사망 중에도 구간 만료·Timed 충전은 처리되며, 장착 변경 시 이전 구간이 남지 않는다.
 - Client 재시뮬레이션 뒤 횟수·Meter·구간 종료 Tick이 Host로 수렴하고 중복 소모가 없다.

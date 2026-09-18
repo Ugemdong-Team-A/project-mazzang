@@ -221,21 +221,31 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
 - `SkillPatternView`는 공통 Pattern의 유일한 런타임 해석 경로다. 구체 SkillData와 Skill은
   Cast, Duration, Recovery, Charge, Meter, ActionLock, StatModifier, Appearance 값을 다시
   선언하지 않고 투사체, 설치 위치, Dash처럼 실제 행동에만 필요한 데이터와 로직만 가진다.
-- 공통 패턴 Inspector는 활성 체크와 펼침 상태를 분리하며, 비활성 값은 보존하고 편집만 막는다.
-  Charge의 Meter/Timed에 해당하지 않는 설정, Persistent 사용 구간의 제한 시간,
-  비소모 방식의 Cost도 편집만 막는다.
-  기존 Passive enum 값 0은 Meter로 유지하며, meterRechargePolicy와 consumeMode 필드는
-  FormerlySerializedAs로 기존 resetByMeterMode/comsumeMode 에셋 값을 읽는다.
-  `ValidatePatterns`는 활성 설정의 수치를 검증하고 값을 변경하지 않는다. Inspector와 장착 경로가
-  같은 검증을 사용하며 Charge/Meter 동시 활성은 허용한다.
+- 공통 패턴 Inspector는 활성 체크와 펼침 상태를 분리한다. 비활성 패턴은 저장값을 보존한 채
+  편집만 막고, 활성 패턴 안에서도 현재 조합에 쓰이지 않는 설정은 숨기되 값을 변경하지 않는다.
+  시간 회복 Charge의 Meter 회복 결과, Meter 회복 Charge의 시작 횟수·회복 시간,
+  제한 시간 없음의 시간·갱신 정책, 비차감 Meter의 차감량이 이에 해당한다.
+- 세부 한국어 표시명은 `ChargeSettings`와 `MeterSettings` 및 관련 enum에만 적용한다.
+  Inspector에서는 각각 `사용 횟수`, `스킬 게이지`로 표시하고 Meter의 역할은 현재 Charge 조합에
+  맞는 짧은 설명으로 안내한다. 나머지 Pattern의 하위 필드는 코드 이름을 그대로 표시한다.
+- `meterRefillMode`는 `resetByMeterMode`, `meterRechargePolicy`를,
+  `chargeWindowMode`와 `chargeWindowDuration`은 각각 `useWindowMode`, `useWindowDuration`을,
+  `consumeMode`는 오타가 있던 `comsumeMode`를 `FormerlySerializedAs`로 읽는다.
+  기존 enum의 숫자값도 유지해 저장된 에셋의 의미를 바꾸지 않는다.
+- `ValidatePatterns`는 활성 조합에서 실제 사용하는 수치만 검증하며 값을 변경하지 않는다.
+  Inspector와 장착 경로가 같은 검증을 사용한다. Meter 회복 Charge에는 활성 Meter가 필요하고,
+  Active 단계에서만 적용되는 StatModifier와 Appearance에는 활성 Duration이 필요하다.
 - Duration은 개별 실행의 Active 지속시간만 담당한다. Settings는 직접 지정한 시간, Behavior는
   `Skill.BehaviorDuration`을 사용한다. 현재 대시는 `DashData.Duration`을 제공한다.
 - Cast, Active, Recovery 시간은 `SkillPatternView.GetPhaseDuration`으로 해석하고 세 단계의 합은
   `TotalUseDuration`으로 계산한다. 세 단계는 하나의 Networked `SkillUsePhase`와 `PhaseTimer`를
   공유하며 별도 실행 타임라인을 만들지 않는다.
-- Charge의 UseWindow가 Timed이면 설정된 초를 별도 Networked `ChargeWindowTimer`로 관리한다.
-  첫 사용 성공부터 시작하고 재사용으로 연장하지 않는다. Persistent이면 남은 횟수에 제한 시간을
-  두지 않는다.
+- Charge의 `ChargeWindowMode`가 `SkillChargeWindowMode.Timed`이면 설정된 초를 별도 Networked
+  `ChargeWindowTimer`로 관리한다. 성공한 사용 뒤 다시 사용할 횟수가 남아 있을 때 구간을 열며,
+  `SkillChargeWindowRefreshMode.Fixed`는 추가 사용으로 시간을 늘리지 않고
+  `RefreshOnUse`는 성공한 추가 사용마다 제한 시간을 처음부터 다시 시작한다.
+  다음 사용에 필요한 횟수가 남지 않으면 구간과 테두리를 즉시 닫되 진행 중인 시간 회복은 유지한다.
+  Persistent이면 남은 횟수에 제한 시간을 두지 않는다.
   만료 시 남은 횟수를 폐기하고 재충전 타이머를 초기화하되 이미 실행 중인 행동은 취소하지 않는다.
   사망 중에도 구간 시간은 흐르며 장착 변경 시 초기화된다. 구간 전체의 버프 적용은 하지 않는다.
 - 개별 Active 타이머와 대시 잠금은 항상 `ActiveDuration`을 사용한다. Charge 사용 구간과
@@ -254,8 +264,8 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
   각 단계는 단계명과 클립을 한 줄로 표시하고, 클립이 있는 단계만 세부 설정을 펼칠 수 있다.
   스킬에서는 기존 게임플레이 단계의 Cast를 Cast, Active 진입을 Main, Recovery를 Recovery로
   발행하며 `ActionAnimationData`가 별도 시간이나 게임플레이 Phase를 소유하지 않는다.
-- `SkillData` Inspector는 공통 정보와 선택 기능을 먼저 표시한다. 선택 기능의 사용 횟수,
-  게이지, 준비·지속·마무리 시간, 조작 제한, 능력치와 외형 항목만 한국어로 구분하며,
+- `SkillData` Inspector는 공통 정보와 선택 기능을 먼저 표시한다. 선택 기능의 상위 항목은
+  한국어로 구분하고, 사용 횟수와 스킬 게이지의 하위 필드·선택지만 한국어 작업 용어를 사용한다.
   개별 스킬 전용 필드는 기존 구조와 순서를 유지한다.
 - `SkillData.Animation`, `PlayerAttackData.Animation`, `Weapon`의 방향별 애니메이션은 모두 같은
   `ActionAnimationData` 타입을 참조한다. 무기는 성공한 기본 사용을 Main 단계로 발행한다.
@@ -308,15 +318,28 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
   장착 변경 시 InitialMeter로 초기화하며 사망과 리스폰 사이에는 유지한다.
   사용 요구량은 RequiredMeter, 소모량은 Cost로 구분하며 Cost 방식은 둘 다 충족해야 한다.
 - Meter 방식 Charge의 Meter는 횟수 생산용이다. 사용 시 Meter를 다시 소모하지 않고 완충 시
-  Full은 최대 횟수, OneByOne은 한 횟수로 바꾸며 Meter를 0으로 만든다. 초과 충전은 이월하지 않는다.
-  Full은 사용 가능한 횟수가 없고 Timed 사용 구간이 닫혔을 때만, OneByOne은 최대 횟수 미만일 때 충전한다.
+  `SkillChargeMeterRefillMode.Full`은 최대 횟수, OneByOne은 한 횟수로 바꾸며 Meter를 0으로 만든다.
+  이 조합에서는 RequiredMeter, ConsumeMode, Cost를 사용하지 않는다. 초과 충전은 이월하지 않는다.
+  Full은 사용 가능한 횟수가 없고 Timed ChargeWindow가 닫혔을 때만,
+  OneByOne은 최대 횟수 미만일 때 충전한다.
   자연 충전과 Host 피해 보상은 동일한 허용 규칙을 사용하되 외부 지급 권한은 Host에 유지한다.
 - Timed Charge는 Meter와 독립적으로 RechargeDuration마다 한 횟수씩 회복한다.
   초기 횟수 0에서도 타이머를 시작하며 0초는 재충전 갱신 시 즉시 최대 횟수로 복구한다.
-  Meter를 함께 사용하면 기본적으로 매번 요구·소모하고, Timed UseWindow에서는 구간을 여는
+  Meter를 함께 사용하면 기본적으로 매번 요구·소모하고, Timed ChargeWindow에서는 구간을 여는
   첫 사용에만 요구·소모한다. 열린 구간에서도 자연·피해 Meter 충전은 유지한다.
-- Meter 방식에 Meter가 없거나, 사용 비용/요구량이 최대 보유량을 넘거나, Timed UseWindow에
-  명시적인 양의 시간이 없는 설정은 장착 전에 거부한다. 쿨다운은 계속 매 사용 시 시작한다.
+- Meter 방식에 Meter가 없거나, Charge 차감량이 최대 횟수를 넘거나, 스킬 사용 자원인 Meter의
+  요구량·차감량이 최대치를 넘거나, Timed ChargeWindow에 명시적인 양의 시간이 없는 설정은
+  장착 전에 거부한다. 쿨다운은 계속 매 사용 시 시작한다.
+
+현재 Charge와 Meter 조합의 의미는 다음과 같다.
+
+| 사용 횟수 | 스킬 게이지 | 런타임 의미 |
+| --- | --- | --- |
+| 꺼짐 | 켜짐 | 궁극기형 게이지처럼 요구량과 사용 후 처리가 스킬 사용을 결정한다. |
+| 시간으로 회복 | 꺼짐 | 횟수만 소비하고 RechargeDuration마다 회복한다. |
+| 시간으로 회복 | 켜짐 | 횟수와 게이지를 모두 요구한다. Timed ChargeWindow가 열리면 첫 사용만 게이지를 처리한다. |
+| 스킬 게이지로 회복 | 켜짐 | 게이지가 최대치에 도달할 때 횟수로 변환하며 스킬 사용 자체는 횟수만 소비한다. |
+
 - 피해 기반 충전은 `CombatDamageService`가 State Authority에서 확정된 실제 체력 감소량만
   공격자의 `IDamageDealtReceiver`에 전달하며, Meter 특성을 가진 모든 슬롯이 각 비율로 받는다.
 - Meter 처리는 슬롯 이름이나 구체 스킬 타입이 아니라 활성 Meter 설정으로 판별한다.
