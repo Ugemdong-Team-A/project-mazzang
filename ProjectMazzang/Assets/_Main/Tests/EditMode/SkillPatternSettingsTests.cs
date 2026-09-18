@@ -30,6 +30,7 @@ namespace ProjectMazzang.Tests
         public void DisabledPatternsRetainValuesAndDoNotRejectLegacyData()
         {
             serialized.FindProperty("patterns.meter.cost").floatValue = 200f;
+            serialized.FindProperty("patterns.meter.consumeMode").enumValueIndex = 1;
             serialized.ApplyModifiedPropertiesWithoutUndo();
             Assert.That(Validate(), Is.True);
 
@@ -237,11 +238,81 @@ namespace ProjectMazzang.Tests
         public void PassiveRequiresMeterButTimedAllowsZeroInitialChargesAndZeroRechargeTime()
         {
             serialized.FindProperty("patterns.charge.enabled").boolValue = true;
+            serialized.FindProperty("patterns.charge.rechargeMode").enumValueIndex = 0;
             serialized.ApplyModifiedPropertiesWithoutUndo();
             Assert.That(Validate(), Is.False);
             serialized.FindProperty("patterns.charge.rechargeMode").enumValueIndex = 1;
             serialized.FindProperty("patterns.charge.initialCharges").intValue = 0;
             serialized.FindProperty("patterns.charge.rechargeDuration").floatValue = 0f;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            Assert.That(Validate(), Is.True);
+        }
+
+        [Test]
+        public void MeterRechargeIgnoresMeterUsePaymentSettings()
+        {
+            serialized.FindProperty("patterns.charge.enabled").boolValue = true;
+            serialized.FindProperty("patterns.charge.rechargeMode").enumValueIndex = 0;
+            serialized.FindProperty("patterns.meter.enabled").boolValue = true;
+            serialized.FindProperty("patterns.meter.maxMeter").floatValue = 50f;
+            serialized.FindProperty("patterns.meter.requiredMeter").floatValue = 100f;
+            serialized.FindProperty("patterns.meter.consumeMode").enumValueIndex = 1;
+            serialized.FindProperty("patterns.meter.cost").floatValue = 100f;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+
+            Assert.That(Validate(), Is.True);
+        }
+
+        [Test]
+        public void MeterRechargeStillValidatesSharedMeterSettings()
+        {
+            serialized.FindProperty("patterns.charge.enabled").boolValue = true;
+            serialized.FindProperty("patterns.charge.rechargeMode").enumValueIndex = 0;
+            serialized.FindProperty("patterns.meter.enabled").boolValue = true;
+            serialized.FindProperty("patterns.meter.passiveGainPerSecond").floatValue = -1f;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+
+            Assert.That(Validate(), Is.False);
+        }
+
+        [Test]
+        public void MeterUseValidatesOnlySelectedConsumeMode()
+        {
+            serialized.FindProperty("patterns.meter.enabled").boolValue = true;
+            serialized.FindProperty("patterns.meter.maxMeter").floatValue = 50f;
+            serialized.FindProperty("patterns.meter.requiredMeter").floatValue = 50f;
+            serialized.FindProperty("patterns.meter.cost").floatValue = 100f;
+            serialized.FindProperty("patterns.meter.consumeMode").enumValueIndex = 0;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            Assert.That(Validate(), Is.True);
+
+            serialized.FindProperty("patterns.meter.consumeMode").enumValueIndex = 1;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            Assert.That(Validate(), Is.False);
+        }
+
+        [Test]
+        public void MeterRechargeIgnoresTimedRechargeSettings()
+        {
+            serialized.FindProperty("patterns.charge.enabled").boolValue = true;
+            serialized.FindProperty("patterns.charge.rechargeMode").enumValueIndex = 0;
+            serialized.FindProperty("patterns.charge.initialCharges").intValue = 255;
+            serialized.FindProperty("patterns.charge.rechargeDuration").floatValue = -1f;
+            serialized.FindProperty("patterns.meter.enabled").boolValue = true;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+
+            Assert.That(Validate(), Is.True);
+        }
+
+        [TestCase("statModifier")]
+        [TestCase("appearance")]
+        public void ActiveOnlyPatternRequiresDuration(string pattern)
+        {
+            serialized.FindProperty("patterns." + pattern + ".enabled").boolValue = true;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            Assert.That(Validate(), Is.False);
+
+            serialized.FindProperty("patterns.duration.enabled").boolValue = true;
             serialized.ApplyModifiedPropertiesWithoutUndo();
             Assert.That(Validate(), Is.True);
         }
@@ -375,6 +446,42 @@ namespace ProjectMazzang.Tests
             serialized.FindProperty("patterns.meter.requiredMeter").floatValue = 50f;
             serialized.ApplyModifiedPropertiesWithoutUndo();
             Assert.That(Validate(), Is.True);
+        }
+
+        [TestCase("ChargeSettings", "maxCharges", "최대 보유 횟수")]
+        [TestCase("ChargeSettings", "rechargeMode", "횟수 보충 방식")]
+        [TestCase("MeterSettings", "consumeMode", "사용 후 처리")]
+        [TestCase("SkillDurationSettings", "source", "시간 결정 방식")]
+        [TestCase("SkillStatSettings", "damageTaken", "받는 피해 배율")]
+        public void PatternFieldsExposeHumanReadableInspectorNames(
+            string typeName,
+            string fieldName,
+            string expectedName)
+        {
+            FieldInfo field = Type.GetType(typeName + ", Assembly-CSharp", true)
+                .GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance);
+            var displayName = field.GetCustomAttribute<InspectorNameAttribute>();
+
+            Assert.That(displayName, Is.Not.Null);
+            Assert.That(displayName.displayName, Is.EqualTo(expectedName));
+        }
+
+        [TestCase("SkillChargeRechargeMode", "Meter", "게이지가 차면 보충")]
+        [TestCase("SkillChargeRechargeMode", "Timed", "시간이 지나면 보충")]
+        [TestCase("SkillMeterConsumeMode", "None", "유지")]
+        [TestCase("SkillMeterConsumeMode", "Cost", "지정량 차감")]
+        [TestCase("SkillDurationSource", "Behavior", "스킬 동작에서 결정")]
+        public void PatternEnumsExposeHumanReadableInspectorNames(
+            string typeName,
+            string valueName,
+            string expectedName)
+        {
+            FieldInfo value = Type.GetType(typeName + ", Assembly-CSharp", true)
+                .GetField(valueName, BindingFlags.Public | BindingFlags.Static);
+            var displayName = value.GetCustomAttribute<InspectorNameAttribute>();
+
+            Assert.That(displayName, Is.Not.Null);
+            Assert.That(displayName.displayName, Is.EqualTo(expectedName));
         }
 
         private static object CreateRuntime(ScriptableObject definition)

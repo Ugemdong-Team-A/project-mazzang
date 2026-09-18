@@ -39,20 +39,51 @@ public sealed class SkillPatternSettings
     public bool Validate(out string error)
     {
         var errors = new List<string>();
-        Check(charge, "Charge", errors);
-        Check(meter, "Meter", errors);
-        Check(cast, "Cast", errors);
-        Check(duration, "Duration", errors);
-        Check(recovery, "Recovery", errors);
-        Check(actionLock, "Action Lock", errors);
-        Check(statModifier, "Stat Modifier", errors);
-        Check(appearance, "Appearance", errors);
+        Check(charge, "사용 횟수", errors);
 
-        if (charge != null && charge.Enabled &&
-            charge.RechargeMode == SkillChargeRechargeMode.Meter && !(meter?.Enabled ?? false))
-            errors.Add("Meter 방식 Charge에는 Meter가 필요합니다.");
+        bool usesMeterRecharge = charge != null && charge.Enabled &&
+            charge.RechargeMode == SkillChargeRechargeMode.Meter;
+        CheckMeter(meter, usesMeterRecharge, errors);
+
+        Check(cast, "준비 시간", errors);
+        Check(duration, "효과 지속", errors);
+        Check(recovery, "마무리 시간", errors);
+        Check(actionLock, "사용 중 조작 제한", errors);
+        Check(statModifier, "능력치 변화", errors);
+        Check(appearance, "외형 변경", errors);
+
+        if (usesMeterRecharge && !(meter?.Enabled ?? false))
+            errors.Add("사용 횟수: '게이지가 차면 보충'을 사용하려면 게이지를 켜야 합니다.");
+
+        bool hasDuration = duration?.Enabled ?? false;
+        if ((statModifier?.Enabled ?? false) && !hasDuration)
+            errors.Add("능력치 변화: 효과 지속을 함께 켜야 실제 적용 시간을 정할 수 있습니다.");
+        if ((appearance?.Enabled ?? false) && !hasDuration)
+            errors.Add("외형 변경: 효과 지속을 함께 켜야 실제 적용 시간을 정할 수 있습니다.");
+
         error = string.Join("\n", errors);
         return errors.Count == 0;
+    }
+
+    private static void CheckMeter(
+        MeterSettings settings,
+        bool usedForChargeRecharge,
+        List<string> errors)
+    {
+        if (settings == null)
+        {
+            errors.Add("게이지: 설정이 없습니다.");
+            return;
+        }
+
+        if (!settings.Enabled)
+            return;
+
+        bool valid = usedForChargeRecharge
+            ? settings.ValidateForChargeRecharge(out string meterError)
+            : settings.Validate(out meterError);
+        if (!valid)
+            errors.Add("게이지: " + meterError);
     }
 
     private static void Check(SkillPatternOptions options, string label, List<string> errors)
@@ -81,39 +112,53 @@ public abstract class SkillPatternOptions
 
 public enum SkillChargeRechargeMode
 {
+    [InspectorName("게이지가 차면 보충")]
     Meter = 0,
+    [InspectorName("시간이 지나면 보충")]
     Timed = 1
 }
 
 public enum SkillMeterRechargePolicy
 {
+    [InspectorName("전부 보충")]
     Full = 0,
+    [InspectorName("1회씩 보충")]
     OneByOne = 1
 }
 
 public enum SkillChargeUseWindowMode
 {
+    [InspectorName("제한 없음")]
     Persistent = 0,
+    [InspectorName("제한 시간 사용")]
     Timed = 1
 }
 
 [Serializable]
 public sealed class ChargeSettings : SkillPatternOptions
 {
+    [InspectorName("최대 보유 횟수")]
     [SerializeField, Range(1, 255)] private int maxCharges = 2;
-    [Tooltip("Timed의 시작 횟수입니다. Meter 방식은 항상 0부터 시작합니다.")]
+    [InspectorName("시작 횟수")]
+    [Tooltip("시간으로 보충할 때 게임 시작 시 보유하는 횟수입니다. 게이지로 보충하면 항상 0부터 시작합니다.")]
     [SerializeField, Range(0, 255)] private int initialCharges = 2;
+    [InspectorName("한 번에 쓰는 횟수")]
     [SerializeField, Range(1, 255)] private int costPerUse = 1;
     [Space]
+    [InspectorName("횟수 보충 방식")]
     [SerializeField] private SkillChargeRechargeMode rechargeMode = SkillChargeRechargeMode.Timed;
     [FormerlySerializedAs("resetByMeterMode")]
-    [Tooltip("Full은 사용 가능한 횟수가 없고 사용 구간이 닫힌 뒤 완충하여 전체 보충, OneByOne은 최대 횟수 미만에서 완충마다 하나씩 보충합니다.")]
+    [InspectorName("게이지 완충 시")]
+    [Tooltip("전부 보충은 사용할 수 있는 횟수가 없을 때 게이지를 채워 최대치까지 보충합니다. 1회씩 보충은 최대치에 도달할 때까지 완충할 때마다 한 번을 보충합니다.")]
     [SerializeField] private SkillMeterRechargePolicy meterRechargePolicy = SkillMeterRechargePolicy.Full;
+    [InspectorName("1회 보충 시간")]
     [SerializeField, Min(0f)] private float rechargeDuration = 2f;
     [Space]
-    [Tooltip("Persistent는 남은 횟수를 시간 제한 없이 보존합니다. Timed는 첫 사용부터 제한 시간을 시작하고 만료 시 남은 횟수를 폐기합니다.")]
+    [InspectorName("남은 횟수 사용 기한")]
+    [Tooltip("제한 없음은 남은 횟수를 계속 보존합니다. 제한 시간 사용은 첫 사용부터 시간을 재고, 만료되면 남은 횟수를 없앱니다.")]
     [SerializeField] private SkillChargeUseWindowMode useWindowMode =
         SkillChargeUseWindowMode.Persistent;
+    [InspectorName("사용 제한 시간 (초)")]
     [SerializeField, Min(0.01f)] private float useWindowDuration = 5f;
 
     public int MaxCharges => maxCharges;
@@ -129,39 +174,61 @@ public sealed class ChargeSettings : SkillPatternOptions
 
     public override bool Validate(out string error)
     {
+        bool validRecharge = rechargeMode switch
+        {
+            SkillChargeRechargeMode.Meter =>
+                Enum.IsDefined(
+                    typeof(SkillMeterRechargePolicy),
+                    meterRechargePolicy),
+            SkillChargeRechargeMode.Timed =>
+                initialCharges >= 0 &&
+                initialCharges <= maxCharges &&
+                NonNegative(rechargeDuration),
+            _ => false
+        };
         bool validUseWindow =
             useWindowMode == SkillChargeUseWindowMode.Persistent ||
             (useWindowMode == SkillChargeUseWindowMode.Timed &&
              NonNegative(useWindowDuration) &&
              useWindowDuration > 0f);
 
-        error = maxCharges >= 1 && maxCharges <= byte.MaxValue && NonNegative(rechargeDuration) &&
-            initialCharges >= 0 && initialCharges <= maxCharges && costPerUse >= 1 && costPerUse <= maxCharges &&
+        error = maxCharges >= 1 && maxCharges <= byte.MaxValue && validRecharge &&
+            costPerUse >= 1 && costPerUse <= maxCharges &&
             validUseWindow
-            ? null : "최대 횟수는 1~255, 초기 횟수는 0~최대, 비용은 1~최대, 재충전 시간은 유한한 0 이상이어야 하며 Timed 사용 구간은 유한한 양수여야 합니다.";
+            ? null : "현재 보이는 설정을 확인하세요. 횟수는 허용 범위 안이어야 하고, 시간으로 보충할 때의 보충 시간은 유한한 0 이상, 제한 시간은 유한한 양수여야 합니다.";
         return error == null;
     }
 }
 
 public enum SkillMeterConsumeMode
 {
+    [InspectorName("유지")]
     None,
+    [InspectorName("지정량 차감")]
     Cost,
+    [InspectorName("전부 소모")]
     Reset
 }
 
 [Serializable]
 public sealed class MeterSettings : SkillPatternOptions
 {
+    [InspectorName("최대 게이지")]
     [SerializeField, Min(0.01f)] private float maxMeter = 100f;
-    [SerializeField, Min(0.01f)] private float initialMeter = 0f;
-    [SerializeField, Min(0.01f)] private float requiredMeter = 100f;
+    [InspectorName("시작 게이지")]
+    [SerializeField, Min(0f)] private float initialMeter = 0f;
+    [InspectorName("사용 가능 기준")]
+    [SerializeField, Min(0f)] private float requiredMeter = 100f;
     [Space]
     [FormerlySerializedAs("comsumeMode")]
-    [Tooltip("None은 요구량만 확인, Cost는 비용 차감, Reset은 0으로 초기화합니다. Meter 방식 Charge에서는 횟수 보충 시 Meter가 초기화됩니다.")]
+    [InspectorName("사용 후 처리")]
+    [Tooltip("유지는 게이지를 확인만 하고, 지정량 차감은 입력한 만큼 빼며, 전부 소모는 게이지를 0으로 만듭니다.")]
     [SerializeField] private SkillMeterConsumeMode consumeMode = SkillMeterConsumeMode.Reset;
+    [InspectorName("차감량")]
     [SerializeField, Min(0f)] private float cost = 100f;
+    [InspectorName("초당 충전량")]
     [SerializeField, Min(0f)] private float passiveGainPerSecond = 2f;
+    [InspectorName("피해 1당 충전량")]
     [SerializeField, Min(0f)] private float damageGainPerDamage = 1f;
 
     public float MaxMeter => maxMeter;
@@ -174,17 +241,30 @@ public sealed class MeterSettings : SkillPatternOptions
 
     public override bool Validate(out string error)
     {
-        if (!NonNegative(requiredMeter) || requiredMeter > maxMeter)
-        {
-            error = "RequiredMeter는 유한한 0 이상이며 MaxMeter 이하여야 합니다.";
-            return false;
-        }
-        error = NonNegative(maxMeter) && maxMeter > 0f &&
+        return Validate(usedForChargeRecharge: false, out error);
+    }
+
+    internal bool ValidateForChargeRecharge(out string error)
+    {
+        return Validate(usedForChargeRecharge: true, out error);
+    }
+
+    private bool Validate(bool usedForChargeRecharge, out string error)
+    {
+        bool validCommon = NonNegative(maxMeter) && maxMeter > 0f &&
             NonNegative(initialMeter) && initialMeter <= maxMeter &&
-            NonNegative(requiredMeter) && requiredMeter <= maxMeter &&
-            NonNegative(cost) && cost <= maxMeter &&
-            NonNegative(passiveGainPerSecond) && NonNegative(damageGainPerDamage)
-            ? null : "최대량은 유한한 양수, 비용은 0~최대량, 충전 비율은 유한한 0 이상의 값이어야 합니다.";
+            NonNegative(passiveGainPerSecond) &&
+            NonNegative(damageGainPerDamage);
+        bool validUseSettings = usedForChargeRecharge ||
+            (NonNegative(requiredMeter) &&
+             requiredMeter <= maxMeter &&
+             Enum.IsDefined(typeof(SkillMeterConsumeMode), consumeMode) &&
+             (consumeMode != SkillMeterConsumeMode.Cost ||
+              (NonNegative(cost) && cost <= maxMeter)));
+
+        error = validCommon && validUseSettings
+            ? null
+            : "현재 보이는 설정을 확인하세요. 최대 게이지는 유한한 양수, 시작값과 사용값은 0~최대, 충전량은 유한한 0 이상이어야 합니다.";
         return error == null;
     }
 }
@@ -192,6 +272,7 @@ public sealed class MeterSettings : SkillPatternOptions
 [Serializable]
 public sealed class SkillTimeSettings : SkillPatternOptions
 {
+    [InspectorName("시간 (초)")]
     [SerializeField, Min(0f)] private float seconds;
     public float Seconds => seconds;
     public override bool Validate(out string error)
@@ -203,15 +284,19 @@ public sealed class SkillTimeSettings : SkillPatternOptions
 
 public enum SkillDurationSource
 {
+    [InspectorName("직접 입력")]
     Settings,
+    [InspectorName("스킬 동작에서 결정")]
     Behavior
 }
 
 [Serializable]
 public sealed class SkillDurationSettings : SkillPatternOptions
 {
-    [Tooltip("Behavior는 대시 이동 시간처럼 스킬 행동이 제공하는 시간을 사용합니다.")]
+    [InspectorName("시간 결정 방식")]
+    [Tooltip("스킬 동작에서 결정을 선택하면 대시 이동 시간처럼 실제 행동이 제공하는 시간을 사용합니다.")]
     [SerializeField] private SkillDurationSource source;
+    [InspectorName("지속 시간 (초)")]
     [SerializeField, Min(0.01f)] private float seconds = 1f;
     public SkillDurationSource Source => source;
     public float Seconds => seconds;
@@ -227,8 +312,11 @@ public sealed class SkillDurationSettings : SkillPatternOptions
 [Serializable]
 public sealed class SkillActionLockSettings : SkillPatternOptions
 {
+    [InspectorName("준비 중")]
     [SerializeField] private bool duringCast = true;
+    [InspectorName("효과 지속 중")]
     [SerializeField] private bool duringActive = true;
+    [InspectorName("마무리 중")]
     [SerializeField] private bool duringRecovery = true;
 
     public bool IsLocked(SkillUsePhase phase) => Enabled && (phase switch
@@ -243,10 +331,15 @@ public sealed class SkillActionLockSettings : SkillPatternOptions
 [Serializable]
 public sealed class SkillStatSettings : SkillPatternOptions
 {
+    [InspectorName("이동 속도 배율")]
     [SerializeField, Min(0f)] private float moveSpeed = 1f;
+    [InspectorName("공격력 배율")]
     [SerializeField, Min(0f)] private float attackDamage = 1f;
+    [InspectorName("최대 체력 배율")]
     [SerializeField, Min(0.01f)] private float maxHealth = 1f;
+    [InspectorName("받는 피해 배율")]
     [SerializeField, Min(0f)] private float damageTaken = 1f;
+    [InspectorName("크기 배율")]
     [SerializeField, Min(0.01f)] private float visualScale = 1f;
 
     public PlayerStatModifiers Modifiers =>
@@ -265,6 +358,7 @@ public sealed class SkillStatSettings : SkillPatternOptions
 [Serializable]
 public sealed class SkillAppearanceSettings : SkillPatternOptions
 {
+    [InspectorName("변경할 외형")]
     [Tooltip("비어 있으면 기본 외형을 유지합니다.")]
     [SerializeField] private SpriteLibraryAsset library;
     public SpriteLibraryAsset Library => library;

@@ -11,6 +11,8 @@ public sealed class SkillPatternOptionsDrawer : PropertyDrawer
         if (!property.isExpanded) return height;
         foreach (SerializedProperty child in Children(property))
             height += EditorGUI.GetPropertyHeight(child, true) + EditorGUIUtility.standardVerticalSpacing;
+        if (ShouldShowContextHelp(property))
+            height += ContextHelpHeight + EditorGUIUtility.standardVerticalSpacing;
         return height;
     }
 
@@ -159,12 +161,20 @@ public sealed class SkillPatternOptionsDrawer : PropertyDrawer
                     bool unusedCost = child.name == "cost" && consumeMode != null &&
                         !consumeMode.hasMultipleDifferentValues &&
                         consumeMode.intValue != (int)SkillMeterConsumeMode.Cost;
+                    bool meterUsedForChargeRecharge =
+                        UsesMeterForChargeRecharge(property);
+                    bool unusedMeterUseSetting =
+                        meterUsedForChargeRecharge &&
+                        (child.name == "requiredMeter" ||
+                         child.name == "consumeMode" ||
+                         child.name == "cost");
 
                     using (new EditorGUI.DisabledScope(
                                fromBehavior ||
                                unusedChargeSetting ||
                                persistentUseWindow ||
-                               unusedCost))
+                               unusedCost ||
+                               unusedMeterUseSetting))
                     {
                         EditorGUI.PropertyField(
                             new Rect(
@@ -180,6 +190,14 @@ public sealed class SkillPatternOptionsDrawer : PropertyDrawer
                         height +
                         EditorGUIUtility.standardVerticalSpacing;
                 }
+
+                if (ShouldShowContextHelp(property))
+                {
+                    EditorGUI.HelpBox(
+                        new Rect(position.x, y, position.width, ContextHelpHeight),
+                        ContextHelpText,
+                        MessageType.Info);
+                }
             }
 
             EditorGUI.indentLevel--;
@@ -187,6 +205,39 @@ public sealed class SkillPatternOptionsDrawer : PropertyDrawer
 
         EditorGUI.EndProperty();
     }
+
+    private const float ContextHelpHeight = 58f;
+    private const string ContextHelpText =
+        "이 게이지는 사용 횟수를 보충하는 자원입니다. 게이지가 가득 차면 횟수로 바뀌므로 사용 가능 기준과 사용 후 처리는 적용되지 않습니다.";
+
+    private static bool ShouldShowContextHelp(SerializedProperty property)
+    {
+        SerializedProperty enabled = property.FindPropertyRelative("enabled");
+        return property.name == "meter" &&
+               enabled != null &&
+               enabled.boolValue &&
+               !enabled.hasMultipleDifferentValues &&
+               UsesMeterForChargeRecharge(property);
+    }
+
+    private static bool UsesMeterForChargeRecharge(SerializedProperty property)
+    {
+        int separator = property.propertyPath.LastIndexOf('.');
+        if (separator < 0)
+            return false;
+
+        string patternsPath = property.propertyPath.Substring(0, separator);
+        SerializedProperty charge = property.serializedObject.FindProperty(
+            patternsPath + ".charge");
+        SerializedProperty enabled = charge?.FindPropertyRelative("enabled");
+        SerializedProperty rechargeMode = charge?.FindPropertyRelative("rechargeMode");
+
+        return enabled != null && enabled.boolValue &&
+               !enabled.hasMultipleDifferentValues &&
+               rechargeMode != null && !rechargeMode.hasMultipleDifferentValues &&
+               rechargeMode.intValue == (int)SkillChargeRechargeMode.Meter;
+    }
+
     private static System.Collections.Generic.IEnumerable<SerializedProperty> Children(SerializedProperty property)
     {
         var child = property.Copy();
