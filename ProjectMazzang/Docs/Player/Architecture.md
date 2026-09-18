@@ -35,10 +35,15 @@ Fusion Render
 
 씬 로컬 `BattleCameraController`는 `NetworkPlayerData`의 로컬 캐릭터 변경을 관찰해
 `NetworkRigidbody`의 Interpolation Target인 `PlayerHealth.CameraTarget`을 따라간다.
-전투 카메라는 `CinemachinePositionComposer`의 화면 데드존과 축별 감쇠로만 추적하며,
-커서·조준·Facing이나 Lookahead를 카메라 위치 입력으로 사용하지 않는다.
-화면 오프셋과 Orthographic Size는 `Gameplay` 씬의 전투 카메라가 소유하며,
-`MapRuntime`과 맵 프리팹은 카메라를 호출하거나 카메라 설정을 보관하지 않는다.
+전투 카메라는 `CinemachinePositionComposer`의 데드존·축별 감쇠와 보간된 표시 대상의
+프레임 이동량을 사용한다. 수평 이동은 방향 전환 지연과 최대 선행 거리를 두고,
+수직 이동은 일정 속도로 지속 낙하할 때만 아래를 선행한다.
+커서·조준·Facing과 Cinemachine Lookahead는 카메라 위치 입력으로 사용하지 않는다.
+화면 오프셋과 Orthographic Size는 `Gameplay` 씬이 소유한다. `MapRuntime`은 시작 시
+기존 `outZoneBounds`를 선택적인 카메라 컨트롤러에 전달하고, 카메라는 이 영역으로
+`CinemachineConfiner2D`를 자동 구성한다. 맵 프리팹에 카메라 전용 설정은 추가하지 않는다.
+대상의 큰 순간이동과 리스폰은 기존 감쇠 상태를 초기화한다. 대상이 사라지면
+마지막 카메라 위치에서 대기하고, 경기 종료·결과 상태에서만 Winner Camera로 전환한다.
 플레이어 모듈은 카메라에 자신을 등록하거나 카메라 존재 여부에 의존하지 않으므로,
 카메라 컨트롤러가 없는 테스트 씬에서도 동일한 Spawn·사망·리스폰 파이프라인을 실행한다.
 
