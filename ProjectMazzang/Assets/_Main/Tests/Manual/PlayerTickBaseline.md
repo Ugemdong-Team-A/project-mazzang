@@ -162,6 +162,9 @@
   카메라 중심과 Orthographic Size가 바뀌지 않는다.
 - 카메라는 `NetworkRigidbody`의 Interpolation Target인 캐릭터 `Visibles`를 따라가며,
   이동·점프·착지 중 플레이어 외형과 배경이 서로 다른 Tick 위치를 참조해 떨리지 않는다.
+- 플레이어가 작은 화면 데드존 안에서 이동할 때 카메라는 불필요하게 따라가지 않고,
+  데드존을 벗어나면 수평은 완만하게, 수직은 더 빠르게 추적한다.
+- 제자리에서 커서를 좌우로 반복 이동하거나 Facing을 빠르게 반전해도 카메라 중심이 흔들리지 않는다.
 - 로컬 플레이어 사망과 리스폰 동안 같은 캐릭터의 카메라 추적이 유지되고,
   매치 종료 시에만 Winner Camera로 전환된다.
 - `BattleCameraController`가 없는 테스트 씬에서도 플레이어 Spawn, 사망, 리스폰, Despawn이

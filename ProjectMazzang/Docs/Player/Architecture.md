@@ -35,6 +35,8 @@ Fusion Render
 
 씬 로컬 `BattleCameraController`는 `NetworkPlayerData`의 로컬 캐릭터 변경을 관찰해
 `NetworkRigidbody`의 Interpolation Target인 `PlayerHealth.CameraTarget`을 따라간다.
+전투 카메라는 `CinemachinePositionComposer`의 화면 데드존과 축별 감쇠로만 추적하며,
+커서·조준·Facing이나 Lookahead를 카메라 위치 입력으로 사용하지 않는다.
 플레이어 모듈은 카메라에 자신을 등록하거나 카메라 존재 여부에 의존하지 않으므로,
 카메라 컨트롤러가 없는 테스트 씬에서도 동일한 Spawn·사망·리스폰 파이프라인을 실행한다.
 

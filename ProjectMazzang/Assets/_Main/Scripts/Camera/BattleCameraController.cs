@@ -14,7 +14,8 @@ public sealed class BattleCameraController : MonoBehaviour
     [SerializeField]
     private CinemachineCamera winnerCamera;
 
-    private CinemachineFollow _cameraFollow;
+    private CinemachinePositionComposer
+        _positionComposer;
 
     private NetworkGameManager _gameManager;
     private NetworkPlayerData _localPlayerData;
@@ -120,19 +121,19 @@ public sealed class BattleCameraController : MonoBehaviour
 
         ResolveBattleCameraComponents();
 
-        if (_cameraFollow != null)
+        if (_positionComposer != null)
         {
-            Vector3 followOffset =
-                _cameraFollow.FollowOffset;
+            Vector3 targetOffset =
+                _positionComposer.TargetOffset;
 
-            followOffset.x =
+            targetOffset.x =
                 map.CameraFollowOffset.x;
 
-            followOffset.y =
+            targetOffset.y =
                 map.CameraFollowOffset.y;
 
-            _cameraFollow.FollowOffset =
-                followOffset;
+            _positionComposer.TargetOffset =
+                targetOffset;
         }
 
         if (battleCamera != null)
@@ -148,9 +149,9 @@ public sealed class BattleCameraController : MonoBehaviour
         if (battleCamera == null)
             return;
 
-        _cameraFollow ??=
+        _positionComposer ??=
             battleCamera.GetComponent<
-                CinemachineFollow>();
+                CinemachinePositionComposer>();
     }
 
 
