@@ -402,7 +402,7 @@ public sealed class PlayerSkillController :
             slot,
             skill);
 
-        BeginChargeWindow(slot, skill);
+        UpdateChargeWindowAfterUse(slot, skill);
 
         StartCooldown(
             slot,
@@ -572,7 +572,7 @@ public sealed class PlayerSkillController :
             if (skill.Patterns.CanGainMeter(current, IsChargeWindowOpen(slot)) &&
                 GetCurrentMeter(slot) >= GetMaxMeter(slot))
             {
-                SetCurrentCharges(slot, charge.MeterRechargePolicy == SkillMeterRechargePolicy.Full
+                SetCurrentCharges(slot, charge.MeterRefillMode == SkillChargeMeterRefillMode.Full
                     ? charge.MaxCharges : current + 1);
                 SetCurrentMeter(slot, 0f);
             }
@@ -830,10 +830,26 @@ public sealed class PlayerSkillController :
     public float GetChargeWindowRemaining(SkillSlot slot) =>
         GetSlotState(slot).ChargeWindowTimer.RemainingTime(Runner) ?? 0f;
 
-    private void BeginChargeWindow(SkillSlot slot, Skill skill)
+    private void UpdateChargeWindowAfterUse(SkillSlot slot, Skill skill)
     {
-        if (!skill.Patterns.UsesChargeWindow || IsChargeWindowOpen(slot)) return;
+        if (!skill.Patterns.UsesChargeWindow)
+            return;
+
         SkillSlotRuntimeState state = GetSlotState(slot);
+
+        // 더 사용할 수 있는 횟수가 없다면 표시와 입력 구간을 즉시 닫는다.
+        if (!skill.Patterns.CanContinueChargeWindow(state.Charges))
+        {
+            state.ChargeWindowTimer = TickTimer.None;
+            SetSlotState(slot, state);
+            return;
+        }
+
+        bool windowOpen = state.ChargeWindowTimer.IsRunning &&
+            !state.ChargeWindowTimer.Expired(Runner);
+        if (!skill.Patterns.ShouldRestartChargeWindow(windowOpen))
+            return;
+
         state.ChargeWindowTimer = CreateTimer(skill.Patterns.ChargeWindowDuration);
         SetSlotState(slot, state);
     }

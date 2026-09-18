@@ -114,7 +114,7 @@ public sealed class SkillSlotUI :
     private TMP_Text durationText;
 
 
-    [Header("Charge Use Window")]
+    [Header("Charge Window")]
     [SerializeField]
     private Color chargeWindowBorderColor =
         new(
@@ -903,15 +903,15 @@ public sealed class SkillSlotUI :
 
 
     // =========================================================
-    // Charge Use Window
+    // Charge Window
     // =========================================================
 
     private void RefreshChargeWindow()
     {
         bool active =
             _chargeSkill != null &&
-            _chargeSkill.UseWindowMode ==
-                SkillChargeUseWindowMode.Timed &&
+            _chargeSkill.ChargeWindowMode ==
+                SkillChargeWindowMode.Timed &&
             _controller.IsChargeWindowOpen(
                 _slot);
 
@@ -927,7 +927,7 @@ public sealed class SkillSlotUI :
         EnsureChargeWindowBorder();
 
         float duration =
-            _chargeSkill.UseWindowDuration;
+            _chargeSkill.ChargeWindowDuration;
 
         float remaining =
             _controller.GetChargeWindowRemaining(
@@ -959,7 +959,7 @@ public sealed class SkillSlotUI :
 
         _chargeWindowBorderRoot =
             new GameObject(
-                "ChargeUseWindowBorder",
+                "ChargeWindowBorder",
                 typeof(RectTransform));
 
         _chargeWindowBorderRoot.layer =

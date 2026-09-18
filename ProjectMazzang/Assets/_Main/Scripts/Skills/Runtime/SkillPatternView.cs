@@ -53,12 +53,25 @@ public sealed class SkillPatternView
 
     // 런타임 해석이 필요한 값
     public bool UsesChargeWindow => Charge != null &&
-        Charge.UseWindowMode == SkillChargeUseWindowMode.Timed;
+        Charge.ChargeWindowMode == SkillChargeWindowMode.Timed;
 
     public float ChargeWindowDuration =>
         UsesChargeWindow
-            ? Charge.UseWindowDuration
+            ? Charge.ChargeWindowDuration
             : 0f;
+
+    public bool RefreshesChargeWindowOnUse =>
+        UsesChargeWindow &&
+        Charge.ChargeWindowRefreshMode ==
+            SkillChargeWindowRefreshMode.RefreshOnUse;
+
+    public bool CanContinueChargeWindow(int remainingCharges) =>
+        UsesChargeWindow &&
+        remainingCharges >= Charge.CostPerUse;
+
+    public bool ShouldRestartChargeWindow(bool windowOpen) =>
+        UsesChargeWindow &&
+        (!windowOpen || RefreshesChargeWindowOnUse);
 
     public float ActiveDuration =>
         DurationPattern == null
@@ -101,7 +114,7 @@ public sealed class SkillPatternView
     {
         if (Meter == null) return false;
         if (!UsesMeterRecharge) return true;
-        return Charge.MeterRechargePolicy == SkillMeterRechargePolicy.Full
+        return Charge.MeterRefillMode == SkillChargeMeterRefillMode.Full
             ? charges < Charge.CostPerUse && !windowOpen
             : charges < Charge.MaxCharges;
     }

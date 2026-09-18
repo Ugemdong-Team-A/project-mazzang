@@ -9,9 +9,9 @@ public sealed class SkillPatternOptionsDrawer : PropertyDrawer
     {
         float height = EditorGUIUtility.singleLineHeight;
         if (!property.isExpanded) return height;
-        foreach (SerializedProperty child in Children(property))
+        foreach (SerializedProperty child in VisibleChildren(property))
             height += EditorGUI.GetPropertyHeight(child, true) + EditorGUIUtility.standardVerticalSpacing;
-        if (ShouldShowContextHelp(property))
+        if (GetContextHelpText(property) != null)
             height += ContextHelpHeight + EditorGUIUtility.standardVerticalSpacing;
         return height;
     }
@@ -127,7 +127,7 @@ public sealed class SkillPatternOptionsDrawer : PropertyDrawer
                        !enabled.boolValue ||
                        enabled.hasMultipleDifferentValues))
             {
-                foreach (SerializedProperty child in Children(property))
+                foreach (SerializedProperty child in VisibleChildren(property))
                 {
                     float height =
                         EditorGUI.GetPropertyHeight(child, true);
@@ -142,39 +142,7 @@ public sealed class SkillPatternOptionsDrawer : PropertyDrawer
                         source.enumValueIndex ==
                         (int)SkillDurationSource.Behavior;
 
-                    var rechargeMode = property.FindPropertyRelative("rechargeMode");
-                    bool knownRecharge = rechargeMode != null && !rechargeMode.hasMultipleDifferentValues;
-                    bool meterRecharge = knownRecharge &&
-                        rechargeMode.intValue == (int)SkillChargeRechargeMode.Meter;
-                    bool unusedChargeSetting = knownRecharge &&
-                        (meterRecharge
-                            ? child.name == "initialCharges" || child.name == "rechargeDuration"
-                            : child.name == "meterRechargePolicy");
-                    var useWindowMode = property.FindPropertyRelative("useWindowMode");
-                    bool persistentUseWindow =
-                        child.name == "useWindowDuration" &&
-                        useWindowMode != null &&
-                        !useWindowMode.hasMultipleDifferentValues &&
-                        useWindowMode.enumValueIndex ==
-                            (int)SkillChargeUseWindowMode.Persistent;
-                    var consumeMode = property.FindPropertyRelative("consumeMode");
-                    bool unusedCost = child.name == "cost" && consumeMode != null &&
-                        !consumeMode.hasMultipleDifferentValues &&
-                        consumeMode.intValue != (int)SkillMeterConsumeMode.Cost;
-                    bool meterUsedForChargeRecharge =
-                        UsesMeterForChargeRecharge(property);
-                    bool unusedMeterUseSetting =
-                        meterUsedForChargeRecharge &&
-                        (child.name == "requiredMeter" ||
-                         child.name == "consumeMode" ||
-                         child.name == "cost");
-
-                    using (new EditorGUI.DisabledScope(
-                               fromBehavior ||
-                               unusedChargeSetting ||
-                               persistentUseWindow ||
-                               unusedCost ||
-                               unusedMeterUseSetting))
+                    using (new EditorGUI.DisabledScope(fromBehavior))
                     {
                         EditorGUI.PropertyField(
                             new Rect(
@@ -191,11 +159,12 @@ public sealed class SkillPatternOptionsDrawer : PropertyDrawer
                         EditorGUIUtility.standardVerticalSpacing;
                 }
 
-                if (ShouldShowContextHelp(property))
+                string contextHelp = GetContextHelpText(property);
+                if (contextHelp != null)
                 {
                     EditorGUI.HelpBox(
                         new Rect(position.x, y, position.width, ContextHelpHeight),
-                        ContextHelpText,
+                        contextHelp,
                         MessageType.Info);
                 }
             }
@@ -207,28 +176,45 @@ public sealed class SkillPatternOptionsDrawer : PropertyDrawer
     }
 
     private const float ContextHelpHeight = 58f;
-    private const string ContextHelpText =
-        "이 게이지는 사용 횟수를 보충하는 자원입니다. 게이지가 가득 차면 횟수로 바뀌므로 사용 가능 기준과 사용 후 처리는 적용되지 않습니다.";
 
-    private static bool ShouldShowContextHelp(SerializedProperty property)
+    private static string GetContextHelpText(SerializedProperty property)
     {
         SerializedProperty enabled = property.FindPropertyRelative("enabled");
-        return property.name == "meter" &&
-               enabled != null &&
-               enabled.boolValue &&
-               !enabled.hasMultipleDifferentValues &&
-               UsesMeterForChargeRecharge(property);
+        if (property.name != "meter" ||
+            enabled == null ||
+            !enabled.boolValue ||
+            enabled.hasMultipleDifferentValues)
+        {
+            return null;
+        }
+
+        SerializedProperty charge = FindSibling(property, "charge");
+        SerializedProperty chargeEnabled = charge?.FindPropertyRelative("enabled");
+        bool usesCharge = chargeEnabled != null && chargeEnabled.boolValue &&
+            !chargeEnabled.hasMultipleDifferentValues;
+
+        if (!usesCharge)
+        {
+            return "설정한 자동 충전과 준 피해로 게이지가 차며, 사용 필요량에 도달하면 스킬을 사용할 수 있습니다.";
+        }
+
+        if (UsesMeterForChargeRecharge(property))
+            return "게이지가 가득 차면 사용 횟수를 회복합니다.";
+
+        SerializedProperty windowMode =
+            charge.FindPropertyRelative("chargeWindowMode");
+        bool usesWindow = windowMode != null &&
+            !windowMode.hasMultipleDifferentValues &&
+            windowMode.intValue == (int)SkillChargeWindowMode.Timed;
+
+        return usesWindow
+            ? "횟수와 게이지가 모두 있어야 처음 사용할 수 있습니다. 제한 시간 동안의 추가 사용은 횟수만 차감합니다."
+            : "사용 횟수와 게이지가 모두 있어야 스킬을 사용할 수 있습니다.";
     }
 
     private static bool UsesMeterForChargeRecharge(SerializedProperty property)
     {
-        int separator = property.propertyPath.LastIndexOf('.');
-        if (separator < 0)
-            return false;
-
-        string patternsPath = property.propertyPath.Substring(0, separator);
-        SerializedProperty charge = property.serializedObject.FindProperty(
-            patternsPath + ".charge");
+        SerializedProperty charge = FindSibling(property, "charge");
         SerializedProperty enabled = charge?.FindPropertyRelative("enabled");
         SerializedProperty rechargeMode = charge?.FindPropertyRelative("rechargeMode");
 
@@ -236,6 +222,89 @@ public sealed class SkillPatternOptionsDrawer : PropertyDrawer
                !enabled.hasMultipleDifferentValues &&
                rechargeMode != null && !rechargeMode.hasMultipleDifferentValues &&
                rechargeMode.intValue == (int)SkillChargeRechargeMode.Meter;
+    }
+
+    private static System.Collections.Generic.IEnumerable<SerializedProperty>
+        VisibleChildren(SerializedProperty property)
+    {
+        foreach (SerializedProperty child in Children(property))
+        {
+            if (ShouldShowChild(property, child))
+                yield return child;
+        }
+    }
+
+    private static bool ShouldShowChild(
+        SerializedProperty property,
+        SerializedProperty child)
+    {
+        if (property.name == "charge")
+        {
+            SerializedProperty rechargeMode =
+                property.FindPropertyRelative("rechargeMode");
+            if (rechargeMode != null &&
+                !rechargeMode.hasMultipleDifferentValues)
+            {
+                bool meterRecharge = rechargeMode.intValue ==
+                    (int)SkillChargeRechargeMode.Meter;
+                if (meterRecharge &&
+                    (child.name == "initialCharges" ||
+                     child.name == "rechargeDuration"))
+                {
+                    return false;
+                }
+
+                if (!meterRecharge && child.name == "meterRefillMode")
+                    return false;
+            }
+
+            SerializedProperty windowMode =
+                property.FindPropertyRelative("chargeWindowMode");
+            if (windowMode != null &&
+                !windowMode.hasMultipleDifferentValues &&
+                windowMode.intValue == (int)SkillChargeWindowMode.Persistent &&
+                (child.name == "chargeWindowDuration" ||
+                 child.name == "chargeWindowRefreshMode"))
+            {
+                return false;
+            }
+        }
+
+        if (property.name == "meter")
+        {
+            if (UsesMeterForChargeRecharge(property) &&
+                (child.name == "requiredMeter" ||
+                 child.name == "consumeMode" ||
+                 child.name == "cost"))
+            {
+                return false;
+            }
+
+            SerializedProperty consumeMode =
+                property.FindPropertyRelative("consumeMode");
+            if (child.name == "cost" &&
+                consumeMode != null &&
+                !consumeMode.hasMultipleDifferentValues &&
+                consumeMode.intValue != (int)SkillMeterConsumeMode.Cost)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static SerializedProperty FindSibling(
+        SerializedProperty property,
+        string siblingName)
+    {
+        int separator = property.propertyPath.LastIndexOf('.');
+        if (separator < 0)
+            return null;
+
+        string parentPath = property.propertyPath.Substring(0, separator);
+        return property.serializedObject.FindProperty(
+            parentPath + "." + siblingName);
     }
 
     private static System.Collections.Generic.IEnumerable<SerializedProperty> Children(SerializedProperty property)

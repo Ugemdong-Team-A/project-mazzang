@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
 using UnityEditor;
@@ -194,7 +195,7 @@ namespace ProjectMazzang.Tests
         {
             serialized.FindProperty("patterns.charge.enabled").boolValue = true;
             serialized.FindProperty("patterns.meter.enabled").boolValue = true;
-            serialized.FindProperty("patterns.charge.meterRechargePolicy").enumValueIndex = refillMode;
+            serialized.FindProperty("patterns.charge.meterRefillMode").enumValueIndex = refillMode;
             serialized.ApplyModifiedPropertiesWithoutUndo();
             object view = RuntimeView();
             Assert.That(view.GetType().GetMethod("CanGainMeter").Invoke(view, new object[] { 0, windowOpen }),
@@ -211,8 +212,8 @@ namespace ProjectMazzang.Tests
         {
             serialized.FindProperty("patterns.charge.enabled").boolValue = true;
             serialized.FindProperty("patterns.charge.rechargeMode").enumValueIndex = rechargeMode;
-            serialized.FindProperty("patterns.charge.useWindowMode").enumValueIndex = 1;
-            serialized.FindProperty("patterns.charge.useWindowDuration").floatValue = 5f;
+            serialized.FindProperty("patterns.charge.chargeWindowMode").enumValueIndex = 1;
+            serialized.FindProperty("patterns.charge.chargeWindowDuration").floatValue = 5f;
             serialized.FindProperty("patterns.meter.enabled").boolValue = true;
             serialized.ApplyModifiedPropertiesWithoutUndo();
             object view = RuntimeView();
@@ -322,12 +323,12 @@ namespace ProjectMazzang.Tests
         {
             serialized.FindProperty("patterns.charge.enabled").boolValue = true;
             serialized.FindProperty("patterns.charge.rechargeMode").enumValueIndex = 1;
-            serialized.FindProperty("patterns.charge.useWindowMode").enumValueIndex = 1;
-            serialized.FindProperty("patterns.charge.useWindowDuration").floatValue = 0f;
+            serialized.FindProperty("patterns.charge.chargeWindowMode").enumValueIndex = 1;
+            serialized.FindProperty("patterns.charge.chargeWindowDuration").floatValue = 0f;
             serialized.ApplyModifiedPropertiesWithoutUndo();
             Assert.That(Validate(), Is.False);
 
-            serialized.FindProperty("patterns.charge.useWindowDuration").floatValue = 5f;
+            serialized.FindProperty("patterns.charge.chargeWindowDuration").floatValue = 5f;
             serialized.ApplyModifiedPropertiesWithoutUndo();
             Assert.That(Validate(), Is.True);
         }
@@ -336,8 +337,8 @@ namespace ProjectMazzang.Tests
         public void ChargeWindowDoesNotReplaceActiveDuration()
         {
             serialized.FindProperty("patterns.charge.enabled").boolValue = true;
-            serialized.FindProperty("patterns.charge.useWindowMode").enumValueIndex = 1;
-            serialized.FindProperty("patterns.charge.useWindowDuration").floatValue = 5f;
+            serialized.FindProperty("patterns.charge.chargeWindowMode").enumValueIndex = 1;
+            serialized.FindProperty("patterns.charge.chargeWindowDuration").floatValue = 5f;
             serialized.FindProperty("patterns.duration.enabled").boolValue = true;
             serialized.FindProperty("patterns.duration.source").enumValueIndex = 0;
             serialized.FindProperty("patterns.duration.seconds").floatValue = 0.25f;
@@ -349,16 +350,79 @@ namespace ProjectMazzang.Tests
         }
 
         [Test]
-        public void PersistentChargesDoNotExposeAUseWindow()
+        public void PersistentChargesDoNotExposeAChargeWindow()
         {
             serialized.FindProperty("patterns.charge.enabled").boolValue = true;
             serialized.FindProperty("patterns.charge.rechargeMode").enumValueIndex = 1;
-            serialized.FindProperty("patterns.charge.useWindowMode").enumValueIndex = 0;
+            serialized.FindProperty("patterns.charge.chargeWindowMode").enumValueIndex = 0;
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
             object view = RuntimeView();
             Assert.That(view.GetType().GetProperty("UsesChargeWindow").GetValue(view), Is.False);
             Assert.That(view.GetType().GetProperty("ChargeWindowDuration").GetValue(view), Is.EqualTo(0f));
+        }
+
+        [TestCase(0, false)]
+        [TestCase(1, true)]
+        public void ChargeWindowExposesSelectedRefreshPolicy(int refreshMode, bool expected)
+        {
+            serialized.FindProperty("patterns.charge.enabled").boolValue = true;
+            serialized.FindProperty("patterns.charge.chargeWindowMode").enumValueIndex = 1;
+            serialized.FindProperty("patterns.charge.chargeWindowRefreshMode").enumValueIndex = refreshMode;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+
+            object view = RuntimeView();
+            Assert.That(
+                view.GetType().GetProperty("RefreshesChargeWindowOnUse").GetValue(view),
+                Is.EqualTo(expected));
+        }
+
+        [TestCase(0, true, false)]
+        [TestCase(0, false, true)]
+        [TestCase(1, true, true)]
+        public void ChargeWindowRestartDecisionMatchesPolicy(
+            int refreshMode,
+            bool windowOpen,
+            bool expectedRestart)
+        {
+            serialized.FindProperty("patterns.charge.enabled").boolValue = true;
+            serialized.FindProperty("patterns.charge.chargeWindowMode").enumValueIndex = 1;
+            serialized.FindProperty("patterns.charge.chargeWindowRefreshMode").enumValueIndex = refreshMode;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+
+            object view = RuntimeView();
+            Assert.That(
+                view.GetType().GetMethod("ShouldRestartChargeWindow")
+                    .Invoke(view, new object[] { windowOpen }),
+                Is.EqualTo(expectedRestart));
+        }
+
+        [TestCase(0, false)]
+        [TestCase(1, true)]
+        public void ChargeWindowContinuesOnlyWithAnotherUse(
+            int remainingCharges,
+            bool expected)
+        {
+            serialized.FindProperty("patterns.charge.enabled").boolValue = true;
+            serialized.FindProperty("patterns.charge.chargeWindowMode").enumValueIndex = 1;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+
+            object view = RuntimeView();
+            Assert.That(
+                view.GetType().GetMethod("CanContinueChargeWindow")
+                    .Invoke(view, new object[] { remainingCharges }),
+                Is.EqualTo(expected));
+        }
+
+        [Test]
+        public void TimedChargeWindowRejectsUnknownRefreshPolicy()
+        {
+            serialized.FindProperty("patterns.charge.enabled").boolValue = true;
+            serialized.FindProperty("patterns.charge.chargeWindowMode").enumValueIndex = 1;
+            serialized.FindProperty("patterns.charge.chargeWindowRefreshMode").intValue = 99;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+
+            Assert.That(Validate(), Is.False);
         }
 
         [Test]
@@ -411,23 +475,28 @@ namespace ProjectMazzang.Tests
             return skill.GetType().GetProperty("Patterns").GetValue(skill);
         }
 
-        [TestCase("ChargeSettings", "meterRechargePolicy", "resetByMeterMode")]
+        [TestCase("ChargeSettings", "meterRefillMode", "resetByMeterMode")]
+        [TestCase("ChargeSettings", "meterRefillMode", "meterRechargePolicy")]
+        [TestCase("ChargeSettings", "chargeWindowMode", "useWindowMode")]
+        [TestCase("ChargeSettings", "chargeWindowDuration", "useWindowDuration")]
         [TestCase("MeterSettings", "consumeMode", "comsumeMode")]
         public void RenamedSettingsPreserveSerializedFieldAliases(string typeName, string fieldName, string oldName)
         {
             FieldInfo field = Type.GetType(typeName + ", Assembly-CSharp", true)
                 .GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance);
-            var alias = field.GetCustomAttribute<UnityEngine.Serialization.FormerlySerializedAsAttribute>();
-            Assert.That(alias, Is.Not.Null);
-            Assert.That(alias.oldName, Is.EqualTo(oldName));
+            var aliases = field
+                .GetCustomAttributes<UnityEngine.Serialization.FormerlySerializedAsAttribute>();
+            Assert.That(aliases.Any(alias => alias.oldName == oldName), Is.True);
         }
 
         [TestCase("SkillChargeRechargeMode", "Meter", 0)]
         [TestCase("SkillChargeRechargeMode", "Timed", 1)]
-        [TestCase("SkillMeterRechargePolicy", "Full", 0)]
-        [TestCase("SkillMeterRechargePolicy", "OneByOne", 1)]
-        [TestCase("SkillChargeUseWindowMode", "Persistent", 0)]
-        [TestCase("SkillChargeUseWindowMode", "Timed", 1)]
+        [TestCase("SkillChargeMeterRefillMode", "Full", 0)]
+        [TestCase("SkillChargeMeterRefillMode", "OneByOne", 1)]
+        [TestCase("SkillChargeWindowMode", "Persistent", 0)]
+        [TestCase("SkillChargeWindowMode", "Timed", 1)]
+        [TestCase("SkillChargeWindowRefreshMode", "Fixed", 0)]
+        [TestCase("SkillChargeWindowRefreshMode", "RefreshOnUse", 1)]
         public void RenamedEnumsPreserveSerializedValues(string typeName, string name, int value)
         {
             Type type = Type.GetType(typeName + ", Assembly-CSharp", true);
@@ -448,11 +517,11 @@ namespace ProjectMazzang.Tests
             Assert.That(Validate(), Is.True);
         }
 
-        [TestCase("ChargeSettings", "maxCharges", "최대 보유 횟수")]
-        [TestCase("ChargeSettings", "rechargeMode", "횟수 보충 방식")]
-        [TestCase("MeterSettings", "consumeMode", "사용 후 처리")]
-        [TestCase("SkillDurationSettings", "source", "시간 결정 방식")]
-        [TestCase("SkillStatSettings", "damageTaken", "받는 피해 배율")]
+        [TestCase("ChargeSettings", "maxCharges", "최대 횟수")]
+        [TestCase("ChargeSettings", "rechargeMode", "횟수 회복 방식")]
+        [TestCase("ChargeSettings", "chargeWindowRefreshMode", "추가 사용 시")]
+        [TestCase("SkillPatternSettings", "meter", "스킬 게이지")]
+        [TestCase("MeterSettings", "consumeMode", "사용 후 게이지")]
         public void PatternFieldsExposeHumanReadableInspectorNames(
             string typeName,
             string fieldName,
@@ -466,11 +535,11 @@ namespace ProjectMazzang.Tests
             Assert.That(displayName.displayName, Is.EqualTo(expectedName));
         }
 
-        [TestCase("SkillChargeRechargeMode", "Meter", "게이지가 차면 보충")]
-        [TestCase("SkillChargeRechargeMode", "Timed", "시간이 지나면 보충")]
+        [TestCase("SkillChargeRechargeMode", "Meter", "스킬 게이지로 회복")]
+        [TestCase("SkillChargeRechargeMode", "Timed", "시간으로 회복")]
+        [TestCase("SkillChargeWindowRefreshMode", "RefreshOnUse", "제한 시간 다시 시작")]
         [TestCase("SkillMeterConsumeMode", "None", "유지")]
-        [TestCase("SkillMeterConsumeMode", "Cost", "지정량 차감")]
-        [TestCase("SkillDurationSource", "Behavior", "스킬 동작에서 결정")]
+        [TestCase("SkillMeterConsumeMode", "Cost", "일부 차감")]
         public void PatternEnumsExposeHumanReadableInspectorNames(
             string typeName,
             string valueName,
@@ -482,6 +551,21 @@ namespace ProjectMazzang.Tests
 
             Assert.That(displayName, Is.Not.Null);
             Assert.That(displayName.displayName, Is.EqualTo(expectedName));
+        }
+
+        [TestCase("SkillTimeSettings", "seconds")]
+        [TestCase("SkillDurationSettings", "source")]
+        [TestCase("SkillActionLockSettings", "duringCast")]
+        [TestCase("SkillStatSettings", "moveSpeed")]
+        [TestCase("SkillAppearanceSettings", "library")]
+        public void DetailedKoreanInspectorNamesStayScopedToChargeAndMeter(
+            string typeName,
+            string fieldName)
+        {
+            FieldInfo field = Type.GetType(typeName + ", Assembly-CSharp", true)
+                .GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance);
+
+            Assert.That(field.GetCustomAttribute<InspectorNameAttribute>(), Is.Null);
         }
 
         private static object CreateRuntime(ScriptableObject definition)
