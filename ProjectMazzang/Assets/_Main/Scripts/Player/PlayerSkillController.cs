@@ -834,7 +834,7 @@ public sealed class PlayerSkillController :
     {
         if (!skill.Patterns.UsesChargeWindow || IsChargeWindowOpen(slot)) return;
         SkillSlotRuntimeState state = GetSlotState(slot);
-        state.ChargeWindowTimer = CreateTimer(skill.Patterns.Duration);
+        state.ChargeWindowTimer = CreateTimer(skill.Patterns.ChargeWindowDuration);
         SetSlotState(slot, state);
     }
 

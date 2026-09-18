@@ -148,12 +148,23 @@ public sealed class SkillPatternOptionsDrawer : PropertyDrawer
                         (meterRecharge
                             ? child.name == "initialCharges" || child.name == "rechargeDuration"
                             : child.name == "meterRechargePolicy");
+                    var useWindowMode = property.FindPropertyRelative("useWindowMode");
+                    bool persistentUseWindow =
+                        child.name == "useWindowDuration" &&
+                        useWindowMode != null &&
+                        !useWindowMode.hasMultipleDifferentValues &&
+                        useWindowMode.enumValueIndex ==
+                            (int)SkillChargeUseWindowMode.Persistent;
                     var consumeMode = property.FindPropertyRelative("consumeMode");
                     bool unusedCost = child.name == "cost" && consumeMode != null &&
                         !consumeMode.hasMultipleDifferentValues &&
                         consumeMode.intValue != (int)SkillMeterConsumeMode.Cost;
 
-                    using (new EditorGUI.DisabledScope(fromBehavior || unusedChargeSetting || unusedCost))
+                    using (new EditorGUI.DisabledScope(
+                               fromBehavior ||
+                               unusedChargeSetting ||
+                               persistentUseWindow ||
+                               unusedCost))
                     {
                         EditorGUI.PropertyField(
                             new Rect(

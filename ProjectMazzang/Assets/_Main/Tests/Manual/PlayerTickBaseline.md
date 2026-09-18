@@ -192,13 +192,17 @@
 - Timed, InitialCharges=0, RechargeDuration=2에서 사용하지 않아도 2초마다 한 횟수가 찬다.
 - RechargeDuration=0은 재충전 갱신 시 최대 횟수가 되고 타이머 None에서 멈추지 않는다.
 - Timed + Meter에서 자원이 모두 충분해야 사용한다. MaxMeter=50, RequiredMeter=100은 설정 오류다.
-- Duration을 ChargeWindow + Settings(예: 5초)로 설정하면 첫 사용에만 Meter를 지불하고,
+- Charge의 UseWindow를 Timed(예: 5초)로 설정하면 첫 사용에만 Meter를 지불하고,
   5초 안의 추가 사용은 횟수만 지불한다. Cast/Recovery/Cooldown 잠금은 그대로 적용된다.
 - 추가 사용은 5초 타이머를 연장하지 않고, 만료 시 남은 횟수를 폐기한다. Timed는 다시 충전된다.
-- Meter 방식 + Full은 완충 시 최대 횟수를 얻고 첫 사용부터 구간이 시작된다. 구간 종료 뒤 다시
+- UseWindow가 Persistent이면 첫 사용 뒤 남은 횟수가 시간 제한 없이 유지되고 별도 구간 타이머가
+  실행되지 않는다.
+- Meter 방식 + Full과 Timed UseWindow는 완충 시 최대 횟수를 얻고 첫 사용부터 구간이 시작된다. 구간 종료 뒤 다시
   Meter가 충전되어 재사용 가능한지 확인한다. 공격 보상으로 Full의 대기 조건을 우회하지 않는다.
 - Meter 방식 + OneByOne은 최대 횟수 미만에서 충전하고 완충마다 한 횟수를 얻는다.
-- ChargeWindow 5초와 DashData 이동 시간은 독립이다. 만료 직전에 시작한 대시는 정상 종료한다.
+- Timed UseWindow 5초와 DashData 이동 시간은 독립이다. 만료 직전에 시작한 대시는 정상 종료한다.
+- Timed UseWindow가 열리면 아이콘의 4면 테두리가 남은 비율에 따라 위, 오른쪽, 아래, 왼쪽 순서로
+  사라지고, Active Duration 바와 동시에 표시되어도 서로의 비율을 덮어쓰지 않는다.
 - 사망 중에도 구간 만료·Timed 충전은 처리되며, 장착 변경 시 이전 구간이 남지 않는다.
 - Client 재시뮬레이션 뒤 횟수·Meter·구간 종료 Tick이 Host로 수렴하고 중복 소모가 없다.
 

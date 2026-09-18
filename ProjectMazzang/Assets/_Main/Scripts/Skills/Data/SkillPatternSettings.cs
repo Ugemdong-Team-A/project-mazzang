@@ -51,10 +51,6 @@ public sealed class SkillPatternSettings
         if (charge != null && charge.Enabled &&
             charge.RechargeMode == SkillChargeRechargeMode.Meter && !(meter?.Enabled ?? false))
             errors.Add("Meter 방식 Charge에는 Meter가 필요합니다.");
-        if (duration != null && duration.Enabled && duration.Mode == SkillDurationMode.ChargeWindow &&
-            (!(charge?.Enabled ?? false) || duration.Source != SkillDurationSource.Settings))
-            errors.Add("ChargeWindow에는 Charge와 Settings 출처의 제한 시간이 필요합니다.");
-
         error = string.Join("\n", errors);
         return errors.Count == 0;
     }
@@ -95,6 +91,12 @@ public enum SkillMeterRechargePolicy
     OneByOne = 1
 }
 
+public enum SkillChargeUseWindowMode
+{
+    Persistent = 0,
+    Timed = 1
+}
+
 [Serializable]
 public sealed class ChargeSettings : SkillPatternOptions
 {
@@ -108,6 +110,11 @@ public sealed class ChargeSettings : SkillPatternOptions
     [Tooltip("Full은 사용 가능한 횟수가 없고 사용 구간이 닫힌 뒤 완충하여 전체 보충, OneByOne은 최대 횟수 미만에서 완충마다 하나씩 보충합니다.")]
     [SerializeField] private SkillMeterRechargePolicy meterRechargePolicy = SkillMeterRechargePolicy.Full;
     [SerializeField, Min(0f)] private float rechargeDuration = 2f;
+    [Space]
+    [Tooltip("Persistent는 남은 횟수를 시간 제한 없이 보존합니다. Timed는 첫 사용부터 제한 시간을 시작하고 만료 시 남은 횟수를 폐기합니다.")]
+    [SerializeField] private SkillChargeUseWindowMode useWindowMode =
+        SkillChargeUseWindowMode.Persistent;
+    [SerializeField, Min(0.01f)] private float useWindowDuration = 5f;
 
     public int MaxCharges => maxCharges;
     public int InitialCharges
@@ -117,12 +124,21 @@ public sealed class ChargeSettings : SkillPatternOptions
     public SkillChargeRechargeMode RechargeMode => rechargeMode;
     public SkillMeterRechargePolicy MeterRechargePolicy => meterRechargePolicy;
     public float RechargeDuration => rechargeDuration;
+    public SkillChargeUseWindowMode UseWindowMode => useWindowMode;
+    public float UseWindowDuration => useWindowDuration;
 
     public override bool Validate(out string error)
     {
+        bool validUseWindow =
+            useWindowMode == SkillChargeUseWindowMode.Persistent ||
+            (useWindowMode == SkillChargeUseWindowMode.Timed &&
+             NonNegative(useWindowDuration) &&
+             useWindowDuration > 0f);
+
         error = maxCharges >= 1 && maxCharges <= byte.MaxValue && NonNegative(rechargeDuration) &&
-            initialCharges >= 0 && initialCharges <= maxCharges && costPerUse >= 1 && costPerUse <= maxCharges
-            ? null : "최대 횟수는 1~255, 초기 횟수는 0~최대, 비용은 1~최대, 재충전 시간은 유한한 0 이상이어야 합니다.";
+            initialCharges >= 0 && initialCharges <= maxCharges && costPerUse >= 1 && costPerUse <= maxCharges &&
+            validUseWindow
+            ? null : "최대 횟수는 1~255, 초기 횟수는 0~최대, 비용은 1~최대, 재충전 시간은 유한한 0 이상이어야 하며 Timed 사용 구간은 유한한 양수여야 합니다.";
         return error == null;
     }
 }
@@ -191,18 +207,9 @@ public enum SkillDurationSource
     Behavior
 }
 
-public enum SkillDurationMode
-{
-    Active = 0,
-    ChargeWindow = 1
-}
-
 [Serializable]
 public sealed class SkillDurationSettings : SkillPatternOptions
 {
-    [Tooltip("Active는 개별 실행 시간, ChargeWindow는 첫 사용부터 남은 횟수를 사용할 수 있는 제한 시간입니다.")]
-    [SerializeField] private SkillDurationMode mode;
-    public SkillDurationMode Mode => mode;
     [Tooltip("Behavior는 대시 이동 시간처럼 스킬 행동이 제공하는 시간을 사용합니다.")]
     [SerializeField] private SkillDurationSource source;
     [SerializeField, Min(0.01f)] private float seconds = 1f;

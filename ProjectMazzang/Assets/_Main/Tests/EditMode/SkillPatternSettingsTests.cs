@@ -3,6 +3,7 @@ using System.Reflection;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace ProjectMazzang.Tests
 {
@@ -180,15 +181,16 @@ namespace ProjectMazzang.Tests
         {
             serialized.FindProperty("patterns.charge.enabled").boolValue = true;
             serialized.FindProperty("patterns.charge.rechargeMode").enumValueIndex = rechargeMode;
+            serialized.FindProperty("patterns.charge.useWindowMode").enumValueIndex = 1;
+            serialized.FindProperty("patterns.charge.useWindowDuration").floatValue = 5f;
             serialized.FindProperty("patterns.meter.enabled").boolValue = true;
-            serialized.FindProperty("patterns.duration.enabled").boolValue = true;
-            serialized.FindProperty("patterns.duration.mode").enumValueIndex = 1;
             serialized.ApplyModifiedPropertiesWithoutUndo();
             object view = RuntimeView();
             Assert.That(view.GetType().GetMethod("NeedsMeterPayment").Invoke(view, new object[] { open }),
                 Is.EqualTo(expected));
             // 제한 시간이 대시의 개별 Active 시간으로 들어가지 않는다.
             Assert.That(view.GetType().GetProperty("ActiveDuration").GetValue(view), Is.EqualTo(0f));
+            Assert.That(view.GetType().GetProperty("ChargeWindowDuration").GetValue(view), Is.EqualTo(5f));
         }
 
         [Test]
@@ -216,19 +218,91 @@ namespace ProjectMazzang.Tests
         }
 
         [Test]
-        public void ChargeWindowRequiresChargesAndExplicitTime()
+        public void TimedChargeWindowRequiresExplicitTime()
         {
-            serialized.FindProperty("patterns.duration.enabled").boolValue = true;
-            serialized.FindProperty("patterns.duration.mode").enumValueIndex = 1;
-            serialized.ApplyModifiedPropertiesWithoutUndo();
-            Assert.That(Validate(), Is.False);
             serialized.FindProperty("patterns.charge.enabled").boolValue = true;
             serialized.FindProperty("patterns.charge.rechargeMode").enumValueIndex = 1;
-            serialized.ApplyModifiedPropertiesWithoutUndo();
-            Assert.That(Validate(), Is.True);
-            serialized.FindProperty("patterns.duration.source").enumValueIndex = 1;
+            serialized.FindProperty("patterns.charge.useWindowMode").enumValueIndex = 1;
+            serialized.FindProperty("patterns.charge.useWindowDuration").floatValue = 0f;
             serialized.ApplyModifiedPropertiesWithoutUndo();
             Assert.That(Validate(), Is.False);
+
+            serialized.FindProperty("patterns.charge.useWindowDuration").floatValue = 5f;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            Assert.That(Validate(), Is.True);
+        }
+
+        [Test]
+        public void ChargeWindowDoesNotReplaceActiveDuration()
+        {
+            serialized.FindProperty("patterns.charge.enabled").boolValue = true;
+            serialized.FindProperty("patterns.charge.useWindowMode").enumValueIndex = 1;
+            serialized.FindProperty("patterns.charge.useWindowDuration").floatValue = 5f;
+            serialized.FindProperty("patterns.duration.enabled").boolValue = true;
+            serialized.FindProperty("patterns.duration.source").enumValueIndex = 0;
+            serialized.FindProperty("patterns.duration.seconds").floatValue = 0.25f;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+
+            object view = RuntimeView();
+            Assert.That(view.GetType().GetProperty("ActiveDuration").GetValue(view), Is.EqualTo(0.25f));
+            Assert.That(view.GetType().GetProperty("ChargeWindowDuration").GetValue(view), Is.EqualTo(5f));
+        }
+
+        [Test]
+        public void PersistentChargesDoNotExposeAUseWindow()
+        {
+            serialized.FindProperty("patterns.charge.enabled").boolValue = true;
+            serialized.FindProperty("patterns.charge.rechargeMode").enumValueIndex = 1;
+            serialized.FindProperty("patterns.charge.useWindowMode").enumValueIndex = 0;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+
+            object view = RuntimeView();
+            Assert.That(view.GetType().GetProperty("UsesChargeWindow").GetValue(view), Is.False);
+            Assert.That(view.GetType().GetProperty("ChargeWindowDuration").GetValue(view), Is.EqualTo(0f));
+        }
+
+        [Test]
+        public void ChargeWindowBorderBuildsFourNonBlockingSegments()
+        {
+            var slotObject = new GameObject("SkillSlot", typeof(RectTransform));
+            var iconObject = new GameObject(
+                "Icon",
+                typeof(RectTransform),
+                typeof(CanvasRenderer),
+                typeof(Image));
+
+            try
+            {
+                iconObject.transform.SetParent(slotObject.transform, false);
+                Type slotType = Type.GetType("SkillSlotUI, Assembly-CSharp", true);
+                Component slot = slotObject.AddComponent(slotType);
+                Image icon = iconObject.GetComponent<Image>();
+
+                slotType.GetField("iconImage", BindingFlags.NonPublic | BindingFlags.Instance)
+                    .SetValue(slot, icon);
+                slotType.GetMethod("EnsureChargeWindowBorder", BindingFlags.NonPublic | BindingFlags.Instance)
+                    .Invoke(slot, null);
+
+                var border = (GameObject)slotType
+                    .GetField("_chargeWindowBorderRoot", BindingFlags.NonPublic | BindingFlags.Instance)
+                    .GetValue(slot);
+                var segments = (Image[])slotType
+                    .GetField("_chargeWindowBorderSegments", BindingFlags.NonPublic | BindingFlags.Instance)
+                    .GetValue(slot);
+
+                Assert.That(border, Is.Not.Null);
+                Assert.That(border.transform.parent, Is.EqualTo(icon.transform));
+                Assert.That(segments, Has.Length.EqualTo(4));
+                foreach (Image segment in segments)
+                {
+                    Assert.That(segment, Is.Not.Null);
+                    Assert.That(segment.raycastTarget, Is.False);
+                }
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(slotObject);
+            }
         }
 
         private object RuntimeView()
@@ -252,6 +326,8 @@ namespace ProjectMazzang.Tests
         [TestCase("SkillChargeRechargeMode", "Timed", 1)]
         [TestCase("SkillMeterRechargePolicy", "Full", 0)]
         [TestCase("SkillMeterRechargePolicy", "OneByOne", 1)]
+        [TestCase("SkillChargeUseWindowMode", "Persistent", 0)]
+        [TestCase("SkillChargeUseWindowMode", "Timed", 1)]
         public void RenamedEnumsPreserveSerializedValues(string typeName, string name, int value)
         {
             Type type = Type.GetType(typeName + ", Assembly-CSharp", true);

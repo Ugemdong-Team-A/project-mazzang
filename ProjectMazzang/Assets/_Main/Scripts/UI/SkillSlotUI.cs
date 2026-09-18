@@ -114,9 +114,30 @@ public sealed class SkillSlotUI :
     private TMP_Text durationText;
 
 
+    [Header("Charge Use Window")]
+    [SerializeField]
+    private Color chargeWindowBorderColor =
+        new(
+            1f,
+            0.76f,
+            0.22f,
+            1f);
+
+    [Min(1f)]
+    [SerializeField]
+    private float chargeWindowBorderThickness =
+        3f;
+
+
     private readonly List<Image>
         _chargePips =
             new();
+
+    private GameObject _chargeWindowBorderRoot;
+
+    private readonly Image[]
+        _chargeWindowBorderSegments =
+            new Image[4];
 
     private PlayerSkillController
         _controller;
@@ -161,6 +182,7 @@ public sealed class SkillSlotUI :
         RefreshCharge();
         RefreshMeter();
         RefreshDuration();
+        RefreshChargeWindow();
     }
 
 
@@ -241,6 +263,10 @@ public sealed class SkillSlotUI :
             false);
 
         SetActive(
+            _chargeWindowBorderRoot,
+            false);
+
+        SetActive(
             shortcutText?.gameObject,
             false);
     }
@@ -318,6 +344,10 @@ public sealed class SkillSlotUI :
 
             SetActive(
                 durationRoot,
+                false);
+
+            SetActive(
+                _chargeWindowBorderRoot,
                 false);
 
             return;
@@ -820,10 +850,9 @@ public sealed class SkillSlotUI :
 
     private void RefreshDuration()
     {
-        bool window = _skill?.Patterns.UsesChargeWindow ?? false;
         if (_durationSkill == null ||
-            (window ? !_controller.IsChargeWindowOpen(_slot) :
-                _controller.GetUsePhase(_slot) != SkillUsePhase.Active))
+            _controller.GetUsePhase(_slot) !=
+                SkillUsePhase.Active)
         {
             SetActive(
                 durationRoot,
@@ -837,8 +866,8 @@ public sealed class SkillSlotUI :
             _skill.Patterns.Duration;
 
         float remaining =
-            window ? _controller.GetChargeWindowRemaining(_slot) :
-                _controller.GetPhaseRemaining(_slot);
+            _controller.GetPhaseRemaining(
+                _slot);
 
 
         bool active =
@@ -870,6 +899,240 @@ public sealed class SkillSlotUI :
         SetTimeText(
             durationText,
             remaining);
+    }
+
+
+    // =========================================================
+    // Charge Use Window
+    // =========================================================
+
+    private void RefreshChargeWindow()
+    {
+        bool active =
+            _chargeSkill != null &&
+            _chargeSkill.UseWindowMode ==
+                SkillChargeUseWindowMode.Timed &&
+            _controller.IsChargeWindowOpen(
+                _slot);
+
+        if (!active)
+        {
+            SetActive(
+                _chargeWindowBorderRoot,
+                false);
+
+            return;
+        }
+
+        EnsureChargeWindowBorder();
+
+        float duration =
+            _chargeSkill.UseWindowDuration;
+
+        float remaining =
+            _controller.GetChargeWindowRemaining(
+                _slot);
+
+        float normalized =
+            duration > 0f
+                ? Mathf.Clamp01(
+                    remaining /
+                    duration)
+                : 0f;
+
+        SetChargeWindowBorderProgress(
+            normalized);
+
+        SetActive(
+            _chargeWindowBorderRoot,
+            normalized > 0f);
+    }
+
+
+    private void EnsureChargeWindowBorder()
+    {
+        if (_chargeWindowBorderRoot != null ||
+            iconImage == null)
+        {
+            return;
+        }
+
+        _chargeWindowBorderRoot =
+            new GameObject(
+                "ChargeUseWindowBorder",
+                typeof(RectTransform));
+
+        _chargeWindowBorderRoot.layer =
+            gameObject.layer;
+
+        RectTransform root =
+            (RectTransform)_chargeWindowBorderRoot
+                .transform;
+
+        root.SetParent(
+            iconImage.rectTransform,
+            false);
+
+        root.anchorMin =
+            Vector2.zero;
+
+        root.anchorMax =
+            Vector2.one;
+
+        root.offsetMin =
+            Vector2.zero;
+
+        root.offsetMax =
+            Vector2.zero;
+
+        root.SetAsLastSibling();
+
+        _chargeWindowBorderSegments[0] =
+            CreateChargeWindowBorderSegment(
+                "Top",
+                new Vector2(0f, 1f),
+                new Vector2(1f, 1f),
+                new Vector2(0f, 1f),
+                new Vector2(
+                    0f,
+                    chargeWindowBorderThickness));
+
+        _chargeWindowBorderSegments[1] =
+            CreateChargeWindowBorderSegment(
+                "Right",
+                new Vector2(1f, 0f),
+                new Vector2(1f, 1f),
+                new Vector2(1f, 1f),
+                new Vector2(
+                    chargeWindowBorderThickness,
+                    0f));
+
+        _chargeWindowBorderSegments[2] =
+            CreateChargeWindowBorderSegment(
+                "Bottom",
+                new Vector2(0f, 0f),
+                new Vector2(1f, 0f),
+                new Vector2(1f, 0f),
+                new Vector2(
+                    0f,
+                    chargeWindowBorderThickness));
+
+        _chargeWindowBorderSegments[3] =
+            CreateChargeWindowBorderSegment(
+                "Left",
+                new Vector2(0f, 0f),
+                new Vector2(0f, 1f),
+                new Vector2(0f, 0f),
+                new Vector2(
+                    chargeWindowBorderThickness,
+                    0f));
+    }
+
+
+    private Image CreateChargeWindowBorderSegment(
+        string segmentName,
+        Vector2 anchorMin,
+        Vector2 anchorMax,
+        Vector2 pivot,
+        Vector2 sizeDelta)
+    {
+        GameObject segmentObject =
+            new GameObject(
+                segmentName,
+                typeof(RectTransform),
+                typeof(CanvasRenderer),
+                typeof(Image));
+
+        segmentObject.layer =
+            gameObject.layer;
+
+        RectTransform segmentTransform =
+            (RectTransform)segmentObject.transform;
+
+        segmentTransform.SetParent(
+            _chargeWindowBorderRoot.transform,
+            false);
+
+        segmentTransform.anchorMin =
+            anchorMin;
+
+        segmentTransform.anchorMax =
+            anchorMax;
+
+        segmentTransform.pivot =
+            pivot;
+
+        segmentTransform.anchoredPosition =
+            Vector2.zero;
+
+        segmentTransform.sizeDelta =
+            sizeDelta;
+
+        Image segment =
+            segmentObject.GetComponent<Image>();
+
+        segment.color =
+            chargeWindowBorderColor;
+
+        segment.raycastTarget =
+            false;
+
+        return segment;
+    }
+
+
+    private void SetChargeWindowBorderProgress(
+        float normalized)
+    {
+        float perimeter =
+            Mathf.Clamp01(normalized) *
+            4f;
+
+        // 시간이 줄면 위 → 오른쪽 → 아래 → 왼쪽 순서로 테두리가 사라집니다.
+        SetChargeWindowSegmentProgress(
+            _chargeWindowBorderSegments[0],
+            Mathf.Clamp01(perimeter - 3f),
+            true);
+
+        SetChargeWindowSegmentProgress(
+            _chargeWindowBorderSegments[1],
+            Mathf.Clamp01(perimeter - 2f),
+            false);
+
+        SetChargeWindowSegmentProgress(
+            _chargeWindowBorderSegments[2],
+            Mathf.Clamp01(perimeter - 1f),
+            true);
+
+        SetChargeWindowSegmentProgress(
+            _chargeWindowBorderSegments[3],
+            Mathf.Clamp01(perimeter),
+            false);
+    }
+
+
+    private static void SetChargeWindowSegmentProgress(
+        Graphic segment,
+        float normalized,
+        bool horizontal)
+    {
+        if (segment == null)
+            return;
+
+        Vector3 scale =
+            Vector3.one;
+
+        if (horizontal)
+        {
+            scale.x = normalized;
+        }
+        else
+        {
+            scale.y = normalized;
+        }
+
+        segment.rectTransform.localScale =
+            scale;
     }
 
 

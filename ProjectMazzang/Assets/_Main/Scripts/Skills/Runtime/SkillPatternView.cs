@@ -53,9 +53,14 @@ public sealed class SkillPatternView
 
     // 런타임 해석이 필요한 값
     public bool UsesChargeWindow => Charge != null &&
-        DurationPattern?.Mode == SkillDurationMode.ChargeWindow;
+        Charge.UseWindowMode == SkillChargeUseWindowMode.Timed;
 
-    public float ActiveDuration => UsesChargeWindow ? skill.BehaviorDuration : Duration;
+    public float ChargeWindowDuration =>
+        UsesChargeWindow
+            ? Charge.UseWindowDuration
+            : 0f;
+
+    public float ActiveDuration => Duration;
 
     public bool UsesMeterRecharge => Charge?.RechargeMode == SkillChargeRechargeMode.Meter;
 
