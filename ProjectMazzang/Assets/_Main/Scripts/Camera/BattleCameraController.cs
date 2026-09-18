@@ -14,9 +14,6 @@ public sealed class BattleCameraController : MonoBehaviour
     [SerializeField]
     private CinemachineCamera winnerCamera;
 
-    private CinemachinePositionComposer
-        _positionComposer;
-
     private NetworkGameManager _gameManager;
     private NetworkPlayerData _localPlayerData;
     private NetworkObject _localCharacter;
@@ -40,7 +37,6 @@ public sealed class BattleCameraController : MonoBehaviour
 
         Instance = this;
 
-        ResolveBattleCameraComponents();
         RestoreBattleView();
     }
 
@@ -106,52 +102,6 @@ public sealed class BattleCameraController : MonoBehaviour
         {
             Instance = null;
         }
-    }
-
-
-    // =========================================================
-    // Map Settings
-    // =========================================================
-
-    public void ApplyMapSettings(
-        MapRuntime map)
-    {
-        if (map == null)
-            return;
-
-        ResolveBattleCameraComponents();
-
-        if (_positionComposer != null)
-        {
-            Vector3 targetOffset =
-                _positionComposer.TargetOffset;
-
-            targetOffset.x =
-                map.CameraFollowOffset.x;
-
-            targetOffset.y =
-                map.CameraFollowOffset.y;
-
-            _positionComposer.TargetOffset =
-                targetOffset;
-        }
-
-        if (battleCamera != null)
-        {
-            battleCamera.Lens.OrthographicSize =
-                map.CameraOrthographicSize;
-        }
-    }
-
-
-    private void ResolveBattleCameraComponents()
-    {
-        if (battleCamera == null)
-            return;
-
-        _positionComposer ??=
-            battleCamera.GetComponent<
-                CinemachinePositionComposer>();
     }
 
 

@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 public sealed class MapRuntime : MonoBehaviour
 {
@@ -25,16 +24,6 @@ public sealed class MapRuntime : MonoBehaviour
             32f,
             23f);
 
-    [Header("Camera")]
-    [SerializeField]
-    private Vector2 cameraFollowOffset =
-        Vector2.up;
-
-    [FormerlySerializedAs("minimumOrthoSize")]
-    [Min(0.01f)]
-    [SerializeField]
-    private float cameraOrthographicSize = 6.5f;
-
     private readonly List<Vector2>
         _threatPositions =
             new();
@@ -47,20 +36,6 @@ public sealed class MapRuntime : MonoBehaviour
 
     public Rect OutZoneBounds =>
         outZoneBounds;
-
-    public Vector2 CameraFollowOffset =>
-        cameraFollowOffset;
-
-    public float CameraOrthographicSize =>
-        cameraOrthographicSize;
-
-
-    private void Start()
-    {
-        BattleCameraController.Instance?
-            .ApplyMapSettings(
-                this);
-    }
 
     public Transform GetSpawnPoint(int index)
     {
@@ -182,11 +157,6 @@ public sealed class MapRuntime : MonoBehaviour
 
     private void OnValidate()
     {
-        cameraOrthographicSize =
-            Mathf.Max(
-                0.01f,
-                cameraOrthographicSize);
-
         playableBounds.width =
             Mathf.Max(
                 0f,

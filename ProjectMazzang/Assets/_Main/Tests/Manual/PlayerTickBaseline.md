@@ -160,6 +160,8 @@
 
 - Host와 Client의 전투 카메라는 각각 자신의 로컬 플레이어만 따라가며, 다른 플레이어가 멀어져도
   카메라 중심과 Orthographic Size가 바뀌지 않는다.
+- 어느 맵 프리팹을 Spawn해도 맵이 카메라를 다시 설정하지 않으며,
+  `Gameplay` 씬에 지정된 오프셋과 Orthographic Size가 유지된다.
 - 카메라는 `NetworkRigidbody`의 Interpolation Target인 캐릭터 `Visibles`를 따라가며,
   이동·점프·착지 중 플레이어 외형과 배경이 서로 다른 Tick 위치를 참조해 떨리지 않는다.
 - 플레이어가 작은 화면 데드존 안에서 이동할 때 카메라는 불필요하게 따라가지 않고,
