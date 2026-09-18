@@ -158,10 +158,6 @@ public sealed class PlayerHealth :
         _lastHealth =
             Health;
 
-        BattleCameraController.Instance?
-            .AddTarget(
-                CameraTarget);
-
         if (!HasStateAuthority)
             return;
 
@@ -200,17 +196,6 @@ public sealed class PlayerHealth :
 
         ClearPendingCrowdControls();
     }
-
-
-    public override void Despawned(
-        NetworkRunner runner,
-        bool hasState)
-    {
-        BattleCameraController.Instance?
-            .RemoveTarget(
-                CameraTarget);
-    }
-
 
     public override PlayerTickStage Stage =>
         PlayerTickStage.Begin;
@@ -809,24 +794,13 @@ public sealed class PlayerHealth :
 
     private void OnDeadChanged()
     {
-        BattleCameraController bcc =
-            BattleCameraController.Instance;
-
         if (IsDead)
         {
-            bcc?.RemoveTarget(
-                CameraTarget);
-
             CameraShakeService.PlayDefaultDeath(
                 CameraTarget.position);
 
             LocalDeathOccurred?
                 .Invoke(this);
-        }
-        else
-        {
-            bcc?.AddTarget(
-                CameraTarget);
         }
     }
 }

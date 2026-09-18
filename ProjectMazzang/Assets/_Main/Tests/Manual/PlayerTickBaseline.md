@@ -156,6 +156,19 @@
 - 처음 표시할 때 이미 존재하던 Jump, Attack, Skill, Death Sequence를 새 이벤트로 재생하지 않는다.
 - Health, MaxHealth, Lives와 생존 여부가 상태 UI 및 캐릭터 표시와 일치한다.
 
+### 로컬 플레이어 카메라
+
+- Host와 Client의 전투 카메라는 각각 자신의 로컬 플레이어만 따라가며, 다른 플레이어가 멀어져도
+  카메라 중심과 Orthographic Size가 바뀌지 않는다.
+- 카메라는 `NetworkRigidbody`의 Interpolation Target인 캐릭터 `Visibles`를 따라가며,
+  이동·점프·착지 중 플레이어 외형과 배경이 서로 다른 Tick 위치를 참조해 떨리지 않는다.
+- 로컬 플레이어 사망과 리스폰 동안 같은 캐릭터의 카메라 추적이 유지되고,
+  매치 종료 시에만 Winner Camera로 전환된다.
+- `BattleCameraController`가 없는 테스트 씬에서도 플레이어 Spawn, 사망, 리스폰, Despawn이
+  예외 없이 동작한다.
+- 패럴랙스 배경은 Cinemachine의 최종 카메라 갱신 뒤 한 번만 이동하고,
+  플레이어 또는 카메라의 시뮬레이션 위치를 다시 변경하지 않는다.
+
 ### 예측과 권위 상태
 
 - Client 입력으로 이동, 점프, 공격할 때 지속적인 위치 correction이 발생하지 않는다.

@@ -96,12 +96,16 @@ public sealed class MagicCliffsArenaVisual :
         foreach (ParallaxLayer layer
                  in _parallaxLayers)
         {
+            Vector3 cameraOffset =
+                cameraPosition -
+                layer.Origin;
+
             layer.Transform.position =
                 layer.Origin +
                 new Vector3(
-                    cameraPosition.x *
+                    cameraOffset.x *
                     layer.Follow,
-                    cameraPosition.y *
+                    cameraOffset.y *
                     layer.Follow,
                     0f);
         }

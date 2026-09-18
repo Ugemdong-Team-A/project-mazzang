@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public sealed class MapRuntime : MonoBehaviour
 {
@@ -8,9 +9,6 @@ public sealed class MapRuntime : MonoBehaviour
     private Transform[] spawnPoints;
 
     [Header("Arena")]
-    [SerializeField]
-    private Transform cameraAnchor;
-
     [SerializeField]
     private Rect playableBounds =
         new Rect(
@@ -32,25 +30,10 @@ public sealed class MapRuntime : MonoBehaviour
     private Vector2 cameraFollowOffset =
         Vector2.up;
 
-    [Min(0f)]
-    [SerializeField]
-    private float fullWeightDistance = 12f;
-
-    [Min(0f)]
-    [SerializeField]
-    private float farTargetDistance = 18f;
-
-    [Range(0f, 1f)]
-    [SerializeField]
-    private float farTargetWeight;
-
+    [FormerlySerializedAs("minimumOrthoSize")]
     [Min(0.01f)]
     [SerializeField]
-    private float minimumOrthoSize = 6.5f;
-
-    [Min(0.01f)]
-    [SerializeField]
-    private float maximumOrthoSize = 10.5f;
+    private float cameraOrthographicSize = 6.5f;
 
     private readonly List<Vector2>
         _threatPositions =
@@ -58,11 +41,6 @@ public sealed class MapRuntime : MonoBehaviour
 
     public int SpawnPointCount =>
         spawnPoints?.Length ?? 0;
-
-    public Transform CameraAnchor =>
-        cameraAnchor != null
-            ? cameraAnchor
-            : transform;
 
     public Rect PlayableBounds =>
         playableBounds;
@@ -73,20 +51,8 @@ public sealed class MapRuntime : MonoBehaviour
     public Vector2 CameraFollowOffset =>
         cameraFollowOffset;
 
-    public float FullWeightDistance =>
-        fullWeightDistance;
-
-    public float FarTargetDistance =>
-        farTargetDistance;
-
-    public float FarTargetWeight =>
-        farTargetWeight;
-
-    public float MinimumOrthoSize =>
-        minimumOrthoSize;
-
-    public float MaximumOrthoSize =>
-        maximumOrthoSize;
+    public float CameraOrthographicSize =>
+        cameraOrthographicSize;
 
 
     private void Start()
@@ -216,25 +182,10 @@ public sealed class MapRuntime : MonoBehaviour
 
     private void OnValidate()
     {
-        fullWeightDistance =
-            Mathf.Max(
-                0f,
-                fullWeightDistance);
-
-        farTargetDistance =
-            Mathf.Max(
-                fullWeightDistance + 0.01f,
-                farTargetDistance);
-
-        minimumOrthoSize =
+        cameraOrthographicSize =
             Mathf.Max(
                 0.01f,
-                minimumOrthoSize);
-
-        maximumOrthoSize =
-            Mathf.Max(
-                minimumOrthoSize,
-                maximumOrthoSize);
+                cameraOrthographicSize);
 
         playableBounds.width =
             Mathf.Max(
@@ -268,13 +219,6 @@ public sealed class MapRuntime : MonoBehaviour
             outZoneBounds,
             Color.red);
 
-        if (cameraAnchor != null)
-        {
-            Gizmos.color = Color.cyan;
-            Gizmos.DrawWireSphere(
-                cameraAnchor.position,
-                0.3f);
-        }
     }
 
 

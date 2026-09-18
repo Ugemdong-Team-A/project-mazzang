@@ -33,6 +33,11 @@ Fusion Render
 `Stage + Order`가 중복되면 오류를 출력하고 파이프라인을 시작하지 않는다.
 각 Tick 모듈 역시 동료 모듈의 구체 타입을 직접 참조하지 않으며, EditMode 계약 테스트가 이 규칙을 보호한다.
 
+씬 로컬 `BattleCameraController`는 `NetworkPlayerData`의 로컬 캐릭터 변경을 관찰해
+`NetworkRigidbody`의 Interpolation Target인 `PlayerHealth.CameraTarget`을 따라간다.
+플레이어 모듈은 카메라에 자신을 등록하거나 카메라 존재 여부에 의존하지 않으므로,
+카메라 컨트롤러가 없는 테스트 씬에서도 동일한 Spawn·사망·리스폰 파이프라인을 실행한다.
+
 ## 현재 Tick 순서
 
 | 순서 | 모듈 | Stage | Order |
