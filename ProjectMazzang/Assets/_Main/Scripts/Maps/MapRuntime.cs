@@ -37,6 +37,14 @@ public sealed class MapRuntime : MonoBehaviour
     public Rect OutZoneBounds =>
         outZoneBounds;
 
+
+    private void Start()
+    {
+        BattleCameraController.Instance?
+            .ApplyMapBounds(
+                this);
+    }
+
     public Transform GetSpawnPoint(int index)
     {
         if (index < 0 ||

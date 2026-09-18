@@ -65,12 +65,24 @@ public sealed class BattleCameraController : MonoBehaviour
     [SerializeField]
     private float verticalLeadSmoothTime = 0.3f;
 
+    [Header("Warp Recovery")]
+    [Min(0.01f)]
+    [SerializeField]
+    private float targetWarpDistance = 4f;
+
     private CinemachinePositionComposer
         _positionComposer;
+
+    private CinemachineConfiner2D
+        _cameraConfiner;
+
+    private BoxCollider2D
+        _cameraConfinerBounds;
 
     private NetworkGameManager _gameManager;
     private NetworkPlayerData _localPlayerData;
     private NetworkObject _localCharacter;
+    private PlayerHealth _localHealth;
 
     private Transform _battleTarget;
 
@@ -88,6 +100,7 @@ public sealed class BattleCameraController : MonoBehaviour
     private int _horizontalLeadDirection;
     private int _pendingLeadDirection;
     private bool _hasPreviousTargetPosition;
+    private bool _wasLocalCharacterDead;
 
 
     // =========================================================
@@ -114,6 +127,9 @@ public sealed class BattleCameraController : MonoBehaviour
 
     private void LateUpdate()
     {
+        if (HandleRespawnTransition())
+            return;
+
         UpdateMovementComposition();
     }
 
@@ -245,6 +261,11 @@ public sealed class BattleCameraController : MonoBehaviour
             Mathf.Max(
                 0.01f,
                 verticalLeadSmoothTime);
+
+        targetWarpDistance =
+            Mathf.Max(
+                0.01f,
+                targetWarpDistance);
     }
 
 #endif
@@ -259,14 +280,33 @@ public sealed class BattleCameraController : MonoBehaviour
         if (battleCamera == null)
             return;
 
-        _positionComposer =
-            battleCamera.GetComponent<
-                CinemachinePositionComposer>();
-
-        if (_positionComposer != null)
+        if (_positionComposer == null)
         {
-            _baseTargetOffset =
-                _positionComposer.TargetOffset;
+            _positionComposer =
+                battleCamera.GetComponent<
+                    CinemachinePositionComposer>();
+
+            if (_positionComposer != null)
+            {
+                _baseTargetOffset =
+                    _positionComposer.TargetOffset;
+            }
+        }
+
+        if (_cameraConfiner == null)
+        {
+            _cameraConfiner =
+                battleCamera.GetComponent<
+                    CinemachineConfiner2D>();
+        }
+
+        if (_cameraConfinerBounds == null &&
+            _cameraConfiner != null)
+        {
+            _cameraConfinerBounds =
+                _cameraConfiner
+                    .BoundingShape2D as
+                    BoxCollider2D;
         }
     }
 
@@ -296,9 +336,23 @@ public sealed class BattleCameraController : MonoBehaviour
             return;
         }
 
+        Vector3 frameDelta =
+            targetPosition -
+            _previousTargetPosition;
+
+        if (frameDelta.sqrMagnitude >=
+            targetWarpDistance *
+            targetWarpDistance)
+        {
+            NotifyTargetWarp(frameDelta);
+            ResetMovementComposition(
+                _battleTarget);
+
+            return;
+        }
+
         Vector2 frameVelocity =
-            (targetPosition -
-             _previousTargetPosition) /
+            frameDelta /
             deltaTime;
 
         _previousTargetPosition =
@@ -505,6 +559,159 @@ public sealed class BattleCameraController : MonoBehaviour
     }
 
 
+    private bool HandleRespawnTransition()
+    {
+        if (_localHealth == null)
+            return false;
+
+        bool isDead =
+            _localHealth.IsDead;
+
+        bool respawned =
+            _wasLocalCharacterDead &&
+            !isDead;
+
+        _wasLocalCharacterDead =
+            isDead;
+
+        if (!respawned ||
+            _battleTarget == null)
+        {
+            return false;
+        }
+
+        if (_hasPreviousTargetPosition)
+        {
+            Vector3 positionDelta =
+                _battleTarget.position -
+                _previousTargetPosition;
+
+            NotifyTargetWarp(
+                positionDelta);
+        }
+
+        ResetMovementComposition(
+            _battleTarget);
+
+        if (battleCamera != null)
+        {
+            battleCamera.PreviousStateIsValid =
+                false;
+        }
+
+        return true;
+    }
+
+
+    private void NotifyTargetWarp(
+        Vector3 positionDelta)
+    {
+        if (battleCamera == null ||
+            positionDelta.sqrMagnitude <=
+            Mathf.Epsilon)
+        {
+            return;
+        }
+
+        battleCamera.OnTargetObjectWarped(
+            _battleTarget,
+            positionDelta);
+    }
+
+
+    // =========================================================
+    // Map Bounds
+    // =========================================================
+
+    public void ApplyMapBounds(
+        MapRuntime map)
+    {
+        if (map == null)
+            return;
+
+        ResolveComposition();
+
+        if (_cameraConfiner == null ||
+            _cameraConfinerBounds == null)
+        {
+            return;
+        }
+
+        Rect localBounds =
+            map.OutZoneBounds;
+
+        Transform mapTransform =
+            map.transform;
+
+        Transform boundsTransform =
+            _cameraConfinerBounds.transform;
+
+        boundsTransform.position =
+            mapTransform.TransformPoint(
+                new Vector3(
+                    localBounds.center.x,
+                    localBounds.center.y,
+                    0f));
+
+        boundsTransform.rotation =
+            mapTransform.rotation;
+
+        boundsTransform.localScale =
+            ResolveLocalScale(
+                boundsTransform.parent,
+                mapTransform.lossyScale);
+
+        _cameraConfinerBounds.offset =
+            Vector2.zero;
+
+        _cameraConfinerBounds.size =
+            localBounds.size;
+
+        _cameraConfiner
+            .InvalidateBoundingShapeCache();
+
+        if (battleCamera != null)
+        {
+            battleCamera.PreviousStateIsValid =
+                false;
+        }
+    }
+
+
+    private static Vector3 ResolveLocalScale(
+        Transform parent,
+        Vector3 worldScale)
+    {
+        if (parent == null)
+            return worldScale;
+
+        Vector3 parentScale =
+            parent.lossyScale;
+
+        return new Vector3(
+            DivideScale(
+                worldScale.x,
+                parentScale.x),
+            DivideScale(
+                worldScale.y,
+                parentScale.y),
+            DivideScale(
+                worldScale.z,
+                parentScale.z));
+    }
+
+
+    private static float DivideScale(
+        float value,
+        float divisor)
+    {
+        return Mathf.Abs(divisor) >
+               Mathf.Epsilon
+            ? value / divisor
+            : value;
+    }
+
+
     // =========================================================
     // Game Manager Bind
     // =========================================================
@@ -697,6 +904,18 @@ public sealed class BattleCameraController : MonoBehaviour
         _localCharacter =
             character;
 
+        _localHealth = null;
+
+        if (_localCharacter != null)
+        {
+            _localCharacter.TryGetComponent(
+                out _localHealth);
+        }
+
+        _wasLocalCharacterDead =
+            _localHealth != null &&
+            _localHealth.IsDead;
+
         SetBattleTarget(
             ResolveCameraTarget(
                 _localCharacter));
@@ -707,6 +926,8 @@ public sealed class BattleCameraController : MonoBehaviour
     {
         _localCharacter = null;
         _localPlayerData = null;
+        _localHealth = null;
+        _wasLocalCharacterDead = false;
 
         SetBattleTarget(null);
     }
@@ -727,7 +948,9 @@ public sealed class BattleCameraController : MonoBehaviour
 
         battleCamera.Follow = target;
 
-        // 새 캐릭터에 이전 대상의 감쇠 상태를 이어 붙이지 않는다.
+        // 대상이 사라지면 마지막으로 유효했던 위치가
+        // 안전한 대기 화면으로 남는다.
+        // 새 캐릭터에는 이전 대상의 감쇠 상태를 이어 붙이지 않는다.
         battleCamera.PreviousStateIsValid = false;
     }
 
