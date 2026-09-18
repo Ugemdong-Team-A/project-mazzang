@@ -17,7 +17,7 @@ MonoBehaviour:
     bodyMask: 0
     aimComposition: 2
     handIkPolicy: 0
-  release:
+  main:
     clip: {fileID: 0}
     bodyMask: 0
     aimComposition: 0

@@ -14,10 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ActionAnimationData
   cast:
     clip: {fileID: 7400000, guid: 8ee262fde471c9942a9f9abc22e2e276, type: 2}
-    bodyMask: 0
-    aimComposition: 0
+    bodyMask: 1
+    aimComposition: 2
     handIkPolicy: 0
-  release:
+  main:
     clip: {fileID: 0}
     bodyMask: 0
     aimComposition: 0

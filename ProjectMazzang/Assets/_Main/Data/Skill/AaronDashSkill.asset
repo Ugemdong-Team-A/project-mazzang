@@ -18,12 +18,15 @@ MonoBehaviour:
   patterns:
     charge:
       enabled: 1
-      maxCharges: 2
+      maxCharges: 3
       initialCharges: 0
       costPerUse: 1
       rechargeMode: 0
-      meterRechargePolicy: 0
+      meterRefillMode: 0
       rechargeDuration: 2
+      chargeWindowMode: 1
+      chargeWindowDuration: 5
+      chargeWindowRefreshMode: 0
     meter:
       enabled: 1
       maxMeter: 50
@@ -38,7 +41,6 @@ MonoBehaviour:
       seconds: 0.7
     duration:
       enabled: 1
-      mode: 0
       source: 0
       seconds: 0.12
     recovery:
