@@ -23,21 +23,25 @@ namespace ProjectMazzang.Tests
 
         [TestCase("AwakeningSkill")]
         [TestCase("UltimateAwakeningSkill")]
-        public void AwakeningSkills_ExposeAppearanceThroughContract(
+        public void AwakeningSkills_UseCommonAppearancePattern(
             string skillTypeName)
         {
-            Type contractType =
-                GetRuntimeType(
-                    "IAppearanceModifierSkill");
-
             Type skillType =
                 GetRuntimeType(
                     skillTypeName);
 
             Assert.That(
-                contractType.IsAssignableFrom(
-                    skillType),
-                Is.True,
+                RuntimeAssembly.GetType(
+                    "IAppearanceModifierSkill"),
+                Is.Null);
+
+            Assert.That(
+                skillType.GetProperty(
+                    "AppearanceLibraryAsset",
+                    BindingFlags.DeclaredOnly |
+                    BindingFlags.Instance |
+                    BindingFlags.Public),
+                Is.Null,
                 skillTypeName);
         }
 
@@ -126,7 +130,7 @@ namespace ProjectMazzang.Tests
 
 
         [Test]
-        public void MaryAwakening_AllowsEmptyAppearanceAsset()
+        public void MaryAwakening_StoresAppearanceInCommonPattern()
         {
             ScriptableObject data =
                 AssetDatabase.LoadAssetAtPath<ScriptableObject>(
@@ -137,18 +141,25 @@ namespace ProjectMazzang.Tests
                 data,
                 Is.Not.Null);
 
+            using SerializedObject serialized =
+                new(data);
+
             SerializedProperty property =
-                new SerializedObject(data)
-                    .FindProperty(
-                        "appearanceLibraryAsset");
+                serialized.FindProperty(
+                    "patterns.appearance.library");
 
             Assert.That(
                 property,
                 Is.Not.Null);
 
             Assert.That(
-                property.objectReferenceValue,
+                data.GetType().GetField(
+                    "appearanceLibraryAsset",
+                    BindingFlags.DeclaredOnly |
+                    BindingFlags.Instance |
+                    BindingFlags.NonPublic),
                 Is.Null);
+
         }
 
 

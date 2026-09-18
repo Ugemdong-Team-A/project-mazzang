@@ -863,7 +863,7 @@ public sealed class SkillSlotUI :
 
 
         float duration =
-            _skill.Patterns.Duration;
+            _skill.Patterns.ActiveDuration;
 
         float remaining =
             _controller.GetPhaseRemaining(

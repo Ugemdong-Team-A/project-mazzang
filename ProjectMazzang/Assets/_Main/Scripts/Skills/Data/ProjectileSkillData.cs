@@ -6,10 +6,6 @@ using UnityEngine;
     fileName = "DefaultProjectileSkillData")]
 public class ProjectileSkillData : SkillData
 {
-    [Header("Timing")]
-    [Min(0f)][SerializeField] private float castDuration = 0.65f;
-    [Min(0f)][SerializeField] private float recoveryDuration = 0.2f;
-
     [Header("Projectile")]
     [SerializeField] private NetworkObject projectilePrefab;
 
@@ -23,8 +19,6 @@ public class ProjectileSkillData : SkillData
     [Tooltip("비워두면 코드 기반 임시 시전 연출을 사용합니다.")]
     [SerializeField] private GameObject castVfxPrefab;
 
-    public float CastDuration => castDuration;
-    public float RecoveryDuration => recoveryDuration;
     public NetworkObject ProjectilePrefab => projectilePrefab;
     public float SpawnForward => spawnForward;
     public float SpawnUp => spawnUp;

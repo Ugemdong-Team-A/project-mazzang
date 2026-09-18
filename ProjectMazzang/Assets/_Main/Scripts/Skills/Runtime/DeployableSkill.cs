@@ -2,23 +2,13 @@ using Fusion;
 using UnityEngine;
 
 public sealed class DeployableSkill :
-    Skill/*,
-    ICastTimeSkill,
-    IRecoverySkill,
-    IActionLockSkill*/
+    Skill
 {
     private bool _waitingToDeploy;
 
 
     private DeployableSkillData DeployableData =>
         (DeployableSkillData)Data;
-
-    public float CastDuration =>
-        DeployableData.CastDuration;
-
-    public float RecoveryDuration =>
-        DeployableData.RecoveryDuration;
-
 
     public override bool CanUse(
         in SkillUseContext useContext)
@@ -67,13 +57,6 @@ public sealed class DeployableSkill :
     public override void Cancel()
     {
         _waitingToDeploy = false;
-    }
-
-
-    public bool IsActionLocked(
-        SkillUsePhase phase)
-    {
-        return phase == SkillUsePhase.Cast;
     }
 
 

@@ -7,7 +7,7 @@ using UnityEngine.U2D.Animation;
 /// 플레이어의 Skill Slot과 Runtime Skill을 관리합니다.
 ///
 /// 모든 Active Skill의 기본 Cooldown과,
-/// Skill이 구현한 공통 패턴
+/// SkillData에 활성화된 공통 패턴
 /// (Charge / Cast / Duration / Recovery)의
 /// Network Runtime State를 관리합니다.
 ///
@@ -853,8 +853,11 @@ public sealed class PlayerSkillController :
         SkillSlot slot,
         Skill skill)
     {
-        if (skill?.Patterns.Cast is { } castSkill &&
-            castSkill.Seconds > 0f)
+        float duration =
+            skill?.Patterns.GetPhaseDuration(
+                SkillUsePhase.Cast) ?? 0f;
+
+        if (duration > 0f)
         {
             SetUsePhase(
                 slot,
@@ -863,7 +866,7 @@ public sealed class PlayerSkillController :
             SetPhaseTimer(
                 slot,
                 CreateTimer(
-                    castSkill.Seconds));
+                    duration));
 
             return;
         }
@@ -946,7 +949,10 @@ public sealed class PlayerSkillController :
         SkillSlot slot,
         Skill skill)
     {
-        float duration = skill?.Patterns.ActiveDuration ?? 0f;
+        float duration =
+            skill?.Patterns.GetPhaseDuration(
+                SkillUsePhase.Active) ?? 0f;
+
         if (duration > 0f)
         {
             SetUsePhase(
@@ -971,26 +977,22 @@ public sealed class PlayerSkillController :
         SkillSlot slot,
         Skill skill)
     {
+        float duration =
+            skill?.Patterns.GetPhaseDuration(
+                SkillUsePhase.Recovery) ?? 0f;
 
-        if (skill?.Patterns.Recovery is { } recoverySkill)
+        if (duration > 0f)
         {
-            if (recoverySkill.Seconds > 0f)
-            {
-                SetUsePhase(
+            SetUsePhase(
                 slot,
                 SkillUsePhase.Recovery);
 
-                SetPhaseTimer(
-                    slot,
-                    CreateTimer(
-                        recoverySkill
-                            .Seconds));
+            SetPhaseTimer(
+                slot,
+                CreateTimer(
+                    duration));
 
-                return;
-            }
-            else
-            {
-            }
+            return;
         }
 
         FinishUse(

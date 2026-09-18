@@ -13,28 +13,10 @@ public class DashSkill : Skill
         SkillData.Dash;
 
 
-    // =========================================================
-    // Skill Pattern
-    // =========================================================
-
-    /*public int MaxCharges =>
-        SkillData.MaxCharges;
-
-    public float RechargeDuration =>
-        SkillData.RechargeDuration;
-*/
-    /*public float CastDuration =>
-        SkillData.StartupDuration;*/
-
-    public float Duration =>
+    public override float BehaviorDuration =>
         DashData != null
             ? DashData.Duration
             : 0f;
-
-    public override float BehaviorDuration => Duration;
-
-    /*public float RecoveryDuration =>
-        SkillData.RecoveryDuration;*/
 
 
     // =========================================================
@@ -126,16 +108,11 @@ public class DashSkill : Skill
 
 
 
-        float controlLockDuration =
-            (Patterns.Cast?.Seconds ?? 0f) +
-            Patterns.ActiveDuration +
-            (Patterns.Recovery?.Seconds ?? 0f);
-
         Controller.TickCommands.RequestControlLock(
             PlayerControlLock.Movement |
             PlayerControlLock.Attack |
             PlayerControlLock.Skill,
-            controlLockDuration);
+            Patterns.TotalUseDuration);
 
         RequestMovementVelocity(
             Vector2.zero);

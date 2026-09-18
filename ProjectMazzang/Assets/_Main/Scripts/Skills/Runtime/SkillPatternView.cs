@@ -1,6 +1,6 @@
-using UnityEngine.U2D.Animation;
-
-/// <summary>활성 공통 설정을 조회하고 행동 기반 지속시간을 해석합니다.</summary>
+/// <summary>
+/// 활성 공통 Pattern을 조회하고 행동 기반 지속시간을 해석하는 단일 런타임 경로입니다.
+/// </summary>
 public sealed class SkillPatternView
 {
     private readonly Skill skill;
@@ -37,19 +37,19 @@ public sealed class SkillPatternView
 
 
     public SkillStatSettings StatModifier =>
-        Settings.StatModifier.Enabled 
-        ? Settings.StatModifier 
-        : null;
+        Settings.StatModifier.Enabled
+            ? Settings.StatModifier
+            : null;
 
-    public SkillAppearanceSettings Appearance 
-        => Settings.Appearance.Enabled 
-        ? Settings.Appearance 
-        : null;
+    public SkillAppearanceSettings Appearance =>
+        Settings.Appearance.Enabled
+            ? Settings.Appearance
+            : null;
 
-    public SkillActionLockSettings ActionLock 
-        => Settings.ActionLock.Enabled 
-        ? Settings.ActionLock 
-        : null;
+    public SkillActionLockSettings ActionLock =>
+        Settings.ActionLock.Enabled
+            ? Settings.ActionLock
+            : null;
 
     // 런타임 해석이 필요한 값
     public bool UsesChargeWindow => Charge != null &&
@@ -60,7 +60,37 @@ public sealed class SkillPatternView
             ? Charge.UseWindowDuration
             : 0f;
 
-    public float ActiveDuration => Duration;
+    public float ActiveDuration =>
+        DurationPattern == null
+            ? 0f
+            : DurationPattern.Source ==
+              SkillDurationSource.Behavior
+                ? skill.BehaviorDuration
+                : DurationPattern.Seconds;
+
+    /// <summary>
+    /// 게임플레이의 단일 Cast → Active → Recovery 수명 주기에서
+    /// 각 단계가 점유하는 시간을 반환합니다.
+    /// </summary>
+    public float GetPhaseDuration(
+        SkillUsePhase phase)
+    {
+        return phase switch
+        {
+            SkillUsePhase.Cast =>
+                Cast?.Seconds ?? 0f,
+            SkillUsePhase.Active =>
+                ActiveDuration,
+            SkillUsePhase.Recovery =>
+                Recovery?.Seconds ?? 0f,
+            _ => 0f
+        };
+    }
+
+    public float TotalUseDuration =>
+        GetPhaseDuration(SkillUsePhase.Cast) +
+        GetPhaseDuration(SkillUsePhase.Active) +
+        GetPhaseDuration(SkillUsePhase.Recovery);
 
     public bool UsesMeterRecharge => Charge?.RechargeMode == SkillChargeRechargeMode.Meter;
 
@@ -75,14 +105,6 @@ public sealed class SkillPatternView
             ? charges < Charge.CostPerUse && !windowOpen
             : charges < Charge.MaxCharges;
     }
-
-    public float Duration =>
-        DurationPattern == null
-            ? 0f
-            : DurationPattern.Source ==
-              SkillDurationSource.Behavior
-                ? skill.BehaviorDuration
-                : DurationPattern.Seconds;
 
     public float Cooldown =>
         skill.Data.Cooldown;

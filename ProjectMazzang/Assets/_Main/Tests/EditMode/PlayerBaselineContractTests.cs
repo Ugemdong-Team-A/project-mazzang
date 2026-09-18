@@ -1565,23 +1565,30 @@ namespace ProjectMazzang.Tests
 
 
         [Test]
-        public void MeterSkill_KeepsGenericRuntimeContract()
+        public void MeterPattern_KeepsGenericRuntimeContract()
         {
-            Type meterSkillType =
+            Assert.That(
+                RuntimeAssembly.GetType(
+                    "IMeterSkill"),
+                Is.Null);
+
+            Type meterSettingsType =
                 GetRuntimeType(
-                    "IMeterSkill");
+                    "MeterSettings");
 
             foreach (string propertyName in
                      new[]
                      {
                          "MaxMeter",
-                         "MeterCost",
+                         "InitialMeter",
+                         "RequiredMeter",
+                         "Cost",
                          "PassiveGainPerSecond",
                          "DamageGainPerDamage"
                      })
             {
                 AssertPropertyType(
-                    meterSkillType,
+                    meterSettingsType,
                     propertyName,
                     typeof(float));
             }
@@ -1600,14 +1607,8 @@ namespace ProjectMazzang.Tests
 
 
         [Test]
-        public void UltimateAwakeningSkill_CombinesGenericPatterns()
+        public void UltimateAwakeningSkill_UsesOnlyCommonPatterns()
         {
-            AssertInterfaces(
-                "UltimateAwakeningSkill",
-                "IMeterSkill",
-                "IDurationSkill",
-                "IPlayerStatModifierSkill");
-
             ScriptableObject data =
                 AssetDatabase.LoadAssetAtPath<
                     ScriptableObject>(
@@ -1620,30 +1621,33 @@ namespace ProjectMazzang.Tests
                 Is.EqualTo(
                     "UltimateAwakeningSkillData"));
 
-            AssertProperty(
-                data,
-                "MaxMeter",
-                100f);
+            Assert.That(
+                data.GetType()
+                    .GetProperty("Patterns")
+                    ?.GetValue(data),
+                Is.Not.Null);
 
-            AssertProperty(
-                data,
-                "MeterCost",
-                100f);
-
-            AssertProperty(
-                data,
-                "PassiveGainPerSecond",
-                2f);
-
-            AssertProperty(
-                data,
-                "DamageGainPerDamage",
-                1f);
-
-            AssertProperty(
-                data,
-                "Duration",
-                8f);
+            foreach (string fieldName in
+                     new[]
+                     {
+                         "maxMeter",
+                         "meterCost",
+                         "passiveGainPerSecond",
+                         "damageGainPerDamage",
+                         "duration",
+                         "moveSpeedMultiplier",
+                         "appearanceLibraryAsset"
+                     })
+            {
+                Assert.That(
+                    data.GetType().GetField(
+                        fieldName,
+                        BindingFlags.DeclaredOnly |
+                        BindingFlags.Instance |
+                        BindingFlags.NonPublic),
+                    Is.Null,
+                    fieldName);
+            }
 
             object runtimeSkill =
                 data.GetType()
@@ -1658,6 +1662,28 @@ namespace ProjectMazzang.Tests
                 runtimeSkill.GetType().Name,
                 Is.EqualTo(
                     "UltimateAwakeningSkill"));
+
+            foreach (string propertyName in
+                     new[]
+                     {
+                         "MaxMeter",
+                         "MeterCost",
+                         "PassiveGainPerSecond",
+                         "DamageGainPerDamage",
+                         "Duration",
+                         "StatModifiers",
+                         "AppearanceLibraryAsset"
+                     })
+            {
+                Assert.That(
+                    runtimeSkill.GetType().GetProperty(
+                        propertyName,
+                        BindingFlags.DeclaredOnly |
+                        BindingFlags.Instance |
+                        BindingFlags.Public),
+                    Is.Null,
+                    propertyName);
+            }
         }
 
 

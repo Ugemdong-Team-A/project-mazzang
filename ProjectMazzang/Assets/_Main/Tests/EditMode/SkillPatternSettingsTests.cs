@@ -114,7 +114,7 @@ namespace ProjectMazzang.Tests
 
                 object skill = CreateRuntime(data);
                 object view = skill.GetType().GetProperty("Patterns").GetValue(skill);
-                PropertyInfo duration = view.GetType().GetProperty("Duration");
+                PropertyInfo duration = view.GetType().GetProperty("ActiveDuration");
                 Assert.That(duration.GetValue(view), Is.EqualTo(0.25f));
 
                 serialized.FindProperty("patterns.duration.source").enumValueIndex = 0;
@@ -132,28 +132,57 @@ namespace ProjectMazzang.Tests
         }
 
         [Test]
-        public void ProjectilePresentationUsesCommonCastSetting()
+        public void ActionPhaseDurationsUseOneCommonTimeline()
         {
-            var projectile = ScriptableObject.CreateInstance(Type.GetType("ProjectileSkillData, Assembly-CSharp", true));
-            try
-            {
-                using var settings = new SerializedObject(projectile);
-                settings.FindProperty("castDuration").floatValue = 9f;
-                settings.FindProperty("patterns.cast.enabled").boolValue = true;
-                settings.FindProperty("patterns.cast.seconds").floatValue = 0.4f;
-                settings.ApplyModifiedPropertiesWithoutUndo();
-                object skill = CreateRuntime(projectile);
-                PropertyInfo cast = skill.GetType().GetProperty("CastDuration");
-                Assert.That(cast.GetValue(skill), Is.EqualTo(0.4f));
+            serialized.FindProperty("patterns.cast.enabled").boolValue = true;
+            serialized.FindProperty("patterns.cast.seconds").floatValue = 0.4f;
+            serialized.FindProperty("patterns.duration.enabled").boolValue = true;
+            serialized.FindProperty("patterns.duration.source").enumValueIndex = 0;
+            serialized.FindProperty("patterns.duration.seconds").floatValue = 0.25f;
+            serialized.FindProperty("patterns.recovery.enabled").boolValue = true;
+            serialized.FindProperty("patterns.recovery.seconds").floatValue = 0.2f;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
 
-                settings.FindProperty("patterns.cast.enabled").boolValue = false;
-                settings.ApplyModifiedPropertiesWithoutUndo();
-                Assert.That(cast.GetValue(skill), Is.EqualTo(0f));
-            }
-            finally
-            {
-                UnityEngine.Object.DestroyImmediate(projectile);
-            }
+            object view = RuntimeView();
+            MethodInfo getDuration = view.GetType().GetMethod("GetPhaseDuration");
+            Type phaseType = Type.GetType("SkillUsePhase, Assembly-CSharp", true);
+
+            Assert.That(getDuration.Invoke(view, new[] { Enum.ToObject(phaseType, 1) }), Is.EqualTo(0.4f));
+            Assert.That(getDuration.Invoke(view, new[] { Enum.ToObject(phaseType, 2) }), Is.EqualTo(0.25f));
+            Assert.That(getDuration.Invoke(view, new[] { Enum.ToObject(phaseType, 3) }), Is.EqualTo(0.2f));
+            Assert.That(
+                view.GetType().GetProperty("TotalUseDuration").GetValue(view),
+                Is.EqualTo(0.85f).Within(0.0001f));
+        }
+
+        [TestCase("ProjectileSkillData", "castDuration")]
+        [TestCase("ProjectileSkillData", "recoveryDuration")]
+        [TestCase("DeployableSkillData", "castDuration")]
+        [TestCase("DeployableSkillData", "recoveryDuration")]
+        [TestCase("AwakeningSkillData", "duration")]
+        [TestCase("AwakeningSkillData", "moveSpeedMultiplier")]
+        [TestCase("AwakeningSkillData", "appearanceLibraryAsset")]
+        [TestCase("UltimateAwakeningSkillData", "maxMeter")]
+        [TestCase("UltimateAwakeningSkillData", "meterCost")]
+        [TestCase("UltimateAwakeningSkillData", "passiveGainPerSecond")]
+        [TestCase("UltimateAwakeningSkillData", "damageGainPerDamage")]
+        [TestCase("UltimateAwakeningSkillData", "duration")]
+        [TestCase("UltimateAwakeningSkillData", "moveSpeedMultiplier")]
+        [TestCase("UltimateAwakeningSkillData", "appearanceLibraryAsset")]
+        public void ConcreteSkillDataDoesNotDuplicateCommonPatternFields(
+            string typeName,
+            string fieldName)
+        {
+            FieldInfo field =
+                Type.GetType(typeName + ", Assembly-CSharp", true)
+                    .GetField(
+                        fieldName,
+                        BindingFlags.DeclaredOnly |
+                        BindingFlags.Instance |
+                        BindingFlags.NonPublic |
+                        BindingFlags.Public);
+
+            Assert.That(field, Is.Null);
         }
 
         [TestCase(0, false, true)]

@@ -117,6 +117,10 @@
   기존 세부 설정값이 유지된다.
 - SkillData Inspector에서 재사용 대기시간·아이콘·행동 애니메이션과 선택 기능이 먼저 보이며,
   개별 스킬 고유 설정과 기존 저장값은 유지된다.
+- Projectile, Deployable, Awakening 계열 SkillData Inspector에 공통 Cast·Duration·Recovery,
+  Meter, 능력치, 외형 설정이 스킬 고유 필드로 중복 표시되지 않는다.
+- 스킬의 Cast·Active·Recovery 진행 시간과 ActionAnimationData의 Cast·Main·Recovery 전환이
+  동일한 Networked Phase를 따르며 별도 타이머 때문에 서로 어긋나지 않는다.
 - Sword Inspector에서 주 공격을 브라울할라식으로 바꾸면 방향 입력 없음/좌우/아래 슬롯이
   즉시 표시되고, 마우스 정밀 조준이나 바라보는 좌우로 바꾸면 단일 방향 공격만 표시된다.
 - 방향별 슬롯을 구현하지 않은 방패와 총기는 브라울할라식을 선택해도 기존 주/보조 공격 데이터가

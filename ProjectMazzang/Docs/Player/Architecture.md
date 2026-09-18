@@ -195,7 +195,8 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
 - `Projectile`의 루트 표시는 `NetworkTransform` 보간만 사용한다. `Render()`에서 같은 루트 Transform에
   별도 Lerp를 다시 적용하지 않는다. Trail 원점은 생성 순간의 확정 위치를 Networked 상태로 한 번
   보관하므로 발사 후 플레이어나 장착 무기를 역으로 탐색하지 않는다.
-- `ProjectileSkillData`는 시전과 회복 시간, 생성 위치, 생성할 투사체 프리팹만 보관한다.
+- `ProjectileSkillData`는 생성 위치와 생성할 투사체 프리팹처럼 투사체 행동에만 필요한 값을
+  보관한다. 시전과 회복 시간은 공통 Pattern에서만 설정한다.
 - 스킬은 투사체의 방향과 소유자만 초기화하며, 투사체의 밸런스 값을 중복해서 보관하지 않는다.
 
 ## Control Lock
@@ -217,6 +218,9 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
 - `SkillData`는 조정 가능한 정적 설정을 보관한다.
 - `SkillData.Patterns`는 비활성이 기본인 공통 패턴 설정을 보관한다. 실행과 UI는
   `SkillPatternView`를 통해 활성 설정을 조회하며 비활성 패턴은 null로 노출한다.
+- `SkillPatternView`는 공통 Pattern의 유일한 런타임 해석 경로다. 구체 SkillData와 Skill은
+  Cast, Duration, Recovery, Charge, Meter, ActionLock, StatModifier, Appearance 값을 다시
+  선언하지 않고 투사체, 설치 위치, Dash처럼 실제 행동에만 필요한 데이터와 로직만 가진다.
 - 공통 패턴 Inspector는 활성 체크와 펼침 상태를 분리하며, 비활성 값은 보존하고 편집만 막는다.
   Charge의 Meter/Timed에 해당하지 않는 설정, Persistent 사용 구간의 제한 시간,
   비소모 방식의 Cost도 편집만 막는다.
@@ -226,6 +230,9 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
   같은 검증을 사용하며 Charge/Meter 동시 활성은 허용한다.
 - Duration은 개별 실행의 Active 지속시간만 담당한다. Settings는 직접 지정한 시간, Behavior는
   `Skill.BehaviorDuration`을 사용한다. 현재 대시는 `DashData.Duration`을 제공한다.
+- Cast, Active, Recovery 시간은 `SkillPatternView.GetPhaseDuration`으로 해석하고 세 단계의 합은
+  `TotalUseDuration`으로 계산한다. 세 단계는 하나의 Networked `SkillUsePhase`와 `PhaseTimer`를
+  공유하며 별도 실행 타임라인을 만들지 않는다.
 - Charge의 UseWindow가 Timed이면 설정된 초를 별도 Networked `ChargeWindowTimer`로 관리한다.
   첫 사용 성공부터 시작하고 재사용으로 연장하지 않는다. Persistent이면 남은 횟수에 제한 시간을
   두지 않는다.
@@ -245,6 +252,8 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
   별도의 스킬 전용 애니메이션 타입은 두지 않는다. 기존 `release` 직렬화 값은 `main`으로
   자동 이전한다. Inspector의 단계명은 Cast·Main·Recovery로, 나머지 설정은 한국어 작업 용어로 표시한다.
   각 단계는 단계명과 클립을 한 줄로 표시하고, 클립이 있는 단계만 세부 설정을 펼칠 수 있다.
+  스킬에서는 기존 게임플레이 단계의 Cast를 Cast, Active 진입을 Main, Recovery를 Recovery로
+  발행하며 `ActionAnimationData`가 별도 시간이나 게임플레이 Phase를 소유하지 않는다.
 - `SkillData` Inspector는 공통 정보와 선택 기능을 먼저 표시한다. 선택 기능의 사용 횟수,
   게이지, 준비·지속·마무리 시간, 조작 제한, 능력치와 외형 항목만 한국어로 구분하며,
   개별 스킬 전용 필드는 기존 구조와 순서를 유지한다.

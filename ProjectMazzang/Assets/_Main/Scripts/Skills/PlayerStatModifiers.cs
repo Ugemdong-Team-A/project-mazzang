@@ -40,8 +40,3 @@ public readonly struct PlayerStatModifiers
             VisualScale * other.VisualScale);
     }
 }
-
-/*public interface IPlayerStatModifierSkill
-{
-    PlayerStatModifiers StatModifiers { get; }
-}*/
