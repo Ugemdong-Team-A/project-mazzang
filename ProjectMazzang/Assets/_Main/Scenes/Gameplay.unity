@@ -1632,6 +1632,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleCameraController
   battleCamera: {fileID: 161591455}
   winnerCamera: {fileID: 612820503}
+  velocityResponse: 12
+  horizontalStopSpeed: 0.25
+  horizontalReverseSpeed: 1
+  horizontalSpeedForMaxLead: 8
+  directionChangeDelay: 0.15
+  maximumHorizontalLead: 1.5
+  horizontalLeadSmoothTime: 0.35
+  fallSpeedThreshold: 3.5
+  fallSpeedForMaxLead: 12
+  fallLeadDelay: 0.12
+  maximumFallLead: 1
+  verticalLeadSmoothTime: 0.3
 --- !u!4 &1156076516
 Transform:
   m_ObjectHideFlags: 0

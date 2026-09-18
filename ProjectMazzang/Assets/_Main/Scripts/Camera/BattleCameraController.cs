@@ -2,6 +2,7 @@ using Fusion;
 using Unity.Cinemachine;
 using UnityEngine;
 
+[DefaultExecutionOrder(-100)]
 public sealed class BattleCameraController : MonoBehaviour
 {
     public static BattleCameraController Instance { get; private set; }
@@ -14,11 +15,79 @@ public sealed class BattleCameraController : MonoBehaviour
     [SerializeField]
     private CinemachineCamera winnerCamera;
 
+    [Header("Movement Composition")]
+    [Min(0.01f)]
+    [SerializeField]
+    private float velocityResponse = 12f;
+
+    [Min(0f)]
+    [SerializeField]
+    private float horizontalStopSpeed = 0.25f;
+
+    [Min(0f)]
+    [SerializeField]
+    private float horizontalReverseSpeed = 1f;
+
+    [Min(0.01f)]
+    [SerializeField]
+    private float horizontalSpeedForMaxLead = 8f;
+
+    [Min(0f)]
+    [SerializeField]
+    private float directionChangeDelay = 0.15f;
+
+    [Min(0f)]
+    [SerializeField]
+    private float maximumHorizontalLead = 1.5f;
+
+    [Min(0.01f)]
+    [SerializeField]
+    private float horizontalLeadSmoothTime = 0.35f;
+
+    [Header("Fall Composition")]
+    [Min(0f)]
+    [SerializeField]
+    private float fallSpeedThreshold = 3.5f;
+
+    [Min(0.01f)]
+    [SerializeField]
+    private float fallSpeedForMaxLead = 12f;
+
+    [Min(0f)]
+    [SerializeField]
+    private float fallLeadDelay = 0.12f;
+
+    [Min(0f)]
+    [SerializeField]
+    private float maximumFallLead = 1f;
+
+    [Min(0.01f)]
+    [SerializeField]
+    private float verticalLeadSmoothTime = 0.3f;
+
+    private CinemachinePositionComposer
+        _positionComposer;
+
     private NetworkGameManager _gameManager;
     private NetworkPlayerData _localPlayerData;
     private NetworkObject _localCharacter;
 
     private Transform _battleTarget;
+
+    private Vector3 _baseTargetOffset;
+    private Vector3 _previousTargetPosition;
+    private Vector2 _smoothedVelocity;
+
+    private float _horizontalLead;
+    private float _horizontalLeadVelocity;
+    private float _verticalLead;
+    private float _verticalLeadVelocity;
+    private float _directionChangeTime;
+    private float _fallLeadTime;
+
+    private int _horizontalLeadDirection;
+    private int _pendingLeadDirection;
+    private bool _hasPreviousTargetPosition;
 
 
     // =========================================================
@@ -37,7 +106,15 @@ public sealed class BattleCameraController : MonoBehaviour
 
         Instance = this;
 
+        ResolveComposition();
+        ResetMovementComposition(null);
         RestoreBattleView();
+    }
+
+
+    private void LateUpdate()
+    {
+        UpdateMovementComposition();
     }
 
 
@@ -101,6 +178,329 @@ public sealed class BattleCameraController : MonoBehaviour
         if (Instance == this)
         {
             Instance = null;
+        }
+    }
+
+
+#if UNITY_EDITOR
+
+    private void OnValidate()
+    {
+        velocityResponse =
+            Mathf.Max(
+                0.01f,
+                velocityResponse);
+
+        horizontalStopSpeed =
+            Mathf.Max(
+                0f,
+                horizontalStopSpeed);
+
+        horizontalReverseSpeed =
+            Mathf.Max(
+                horizontalStopSpeed,
+                horizontalReverseSpeed);
+
+        horizontalSpeedForMaxLead =
+            Mathf.Max(
+                horizontalStopSpeed + 0.01f,
+                horizontalSpeedForMaxLead);
+
+        directionChangeDelay =
+            Mathf.Max(
+                0f,
+                directionChangeDelay);
+
+        maximumHorizontalLead =
+            Mathf.Max(
+                0f,
+                maximumHorizontalLead);
+
+        horizontalLeadSmoothTime =
+            Mathf.Max(
+                0.01f,
+                horizontalLeadSmoothTime);
+
+        fallSpeedThreshold =
+            Mathf.Max(
+                0f,
+                fallSpeedThreshold);
+
+        fallSpeedForMaxLead =
+            Mathf.Max(
+                fallSpeedThreshold + 0.01f,
+                fallSpeedForMaxLead);
+
+        fallLeadDelay =
+            Mathf.Max(
+                0f,
+                fallLeadDelay);
+
+        maximumFallLead =
+            Mathf.Max(
+                0f,
+                maximumFallLead);
+
+        verticalLeadSmoothTime =
+            Mathf.Max(
+                0.01f,
+                verticalLeadSmoothTime);
+    }
+
+#endif
+
+
+    // =========================================================
+    // Movement Composition
+    // =========================================================
+
+    private void ResolveComposition()
+    {
+        if (battleCamera == null)
+            return;
+
+        _positionComposer =
+            battleCamera.GetComponent<
+                CinemachinePositionComposer>();
+
+        if (_positionComposer != null)
+        {
+            _baseTargetOffset =
+                _positionComposer.TargetOffset;
+        }
+    }
+
+
+    private void UpdateMovementComposition()
+    {
+        if (_positionComposer == null ||
+            _battleTarget == null)
+        {
+            return;
+        }
+
+        float deltaTime = Time.deltaTime;
+
+        if (deltaTime <= Mathf.Epsilon)
+            return;
+
+        Vector3 targetPosition =
+            _battleTarget.position;
+
+        if (!_hasPreviousTargetPosition)
+        {
+            _previousTargetPosition =
+                targetPosition;
+
+            _hasPreviousTargetPosition = true;
+            return;
+        }
+
+        Vector2 frameVelocity =
+            (targetPosition -
+             _previousTargetPosition) /
+            deltaTime;
+
+        _previousTargetPosition =
+            targetPosition;
+
+        float velocityBlend =
+            1f - Mathf.Exp(
+                -velocityResponse *
+                deltaTime);
+
+        _smoothedVelocity =
+            Vector2.Lerp(
+                _smoothedVelocity,
+                frameVelocity,
+                velocityBlend);
+
+        float desiredHorizontalLead =
+            CalculateHorizontalLead(
+                _smoothedVelocity.x,
+                deltaTime);
+
+        float desiredVerticalLead =
+            CalculateVerticalLead(
+                _smoothedVelocity.y,
+                deltaTime);
+
+        _horizontalLead =
+            Mathf.SmoothDamp(
+                _horizontalLead,
+                desiredHorizontalLead,
+                ref _horizontalLeadVelocity,
+                horizontalLeadSmoothTime,
+                Mathf.Infinity,
+                deltaTime);
+
+        _verticalLead =
+            Mathf.SmoothDamp(
+                _verticalLead,
+                desiredVerticalLead,
+                ref _verticalLeadVelocity,
+                verticalLeadSmoothTime,
+                Mathf.Infinity,
+                deltaTime);
+
+        _horizontalLead =
+            Mathf.Clamp(
+                _horizontalLead,
+                -maximumHorizontalLead,
+                maximumHorizontalLead);
+
+        _verticalLead =
+            Mathf.Clamp(
+                _verticalLead,
+                -maximumFallLead,
+                0f);
+
+        _positionComposer.TargetOffset =
+            _baseTargetOffset +
+            new Vector3(
+                _horizontalLead,
+                _verticalLead,
+                0f);
+    }
+
+
+    private float CalculateHorizontalLead(
+        float horizontalVelocity,
+        float deltaTime)
+    {
+        float speed =
+            Mathf.Abs(
+                horizontalVelocity);
+
+        if (speed < horizontalStopSpeed)
+        {
+            ClearPendingDirection();
+            return 0f;
+        }
+
+        int requestedDirection =
+            horizontalVelocity > 0f
+                ? 1
+                : -1;
+
+        if (_horizontalLeadDirection == 0)
+        {
+            _horizontalLeadDirection =
+                requestedDirection;
+        }
+        else if (requestedDirection !=
+                 _horizontalLeadDirection)
+        {
+            if (speed < horizontalReverseSpeed)
+            {
+                ClearPendingDirection();
+                return 0f;
+            }
+
+            if (_pendingLeadDirection !=
+                requestedDirection)
+            {
+                _pendingLeadDirection =
+                    requestedDirection;
+
+                _directionChangeTime = 0f;
+            }
+
+            _directionChangeTime +=
+                deltaTime;
+
+            if (_directionChangeTime <
+                directionChangeDelay)
+            {
+                return 0f;
+            }
+
+            _horizontalLeadDirection =
+                requestedDirection;
+
+            ClearPendingDirection();
+        }
+        else
+        {
+            ClearPendingDirection();
+        }
+
+        float speedRatio =
+            Mathf.InverseLerp(
+                horizontalStopSpeed,
+                horizontalSpeedForMaxLead,
+                speed);
+
+        return _horizontalLeadDirection *
+               maximumHorizontalLead *
+               speedRatio;
+    }
+
+
+    private float CalculateVerticalLead(
+        float verticalVelocity,
+        float deltaTime)
+    {
+        float fallSpeed =
+            -verticalVelocity;
+
+        if (fallSpeed < fallSpeedThreshold)
+        {
+            _fallLeadTime = 0f;
+            return 0f;
+        }
+
+        _fallLeadTime +=
+            deltaTime;
+
+        if (_fallLeadTime < fallLeadDelay)
+            return 0f;
+
+        float fallRatio =
+            Mathf.InverseLerp(
+                fallSpeedThreshold,
+                fallSpeedForMaxLead,
+                fallSpeed);
+
+        return -maximumFallLead *
+               fallRatio;
+    }
+
+
+    private void ClearPendingDirection()
+    {
+        _pendingLeadDirection = 0;
+        _directionChangeTime = 0f;
+    }
+
+
+    private void ResetMovementComposition(
+        Transform target)
+    {
+        _hasPreviousTargetPosition =
+            target != null;
+
+        _previousTargetPosition =
+            target != null
+                ? target.position
+                : Vector3.zero;
+
+        _smoothedVelocity =
+            Vector2.zero;
+
+        _horizontalLead = 0f;
+        _horizontalLeadVelocity = 0f;
+        _verticalLead = 0f;
+        _verticalLeadVelocity = 0f;
+        _horizontalLeadDirection = 0;
+        _fallLeadTime = 0f;
+
+        ClearPendingDirection();
+
+        if (_positionComposer != null)
+        {
+            _positionComposer.TargetOffset =
+                _baseTargetOffset;
         }
     }
 
@@ -319,6 +719,8 @@ public sealed class BattleCameraController : MonoBehaviour
             return;
 
         _battleTarget = target;
+
+        ResetMovementComposition(target);
 
         if (battleCamera == null)
             return;
