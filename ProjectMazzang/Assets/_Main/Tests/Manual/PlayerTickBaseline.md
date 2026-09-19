@@ -147,6 +147,8 @@
   바꾸거나 캐릭터가 좌우 반전되어도 화면의 총구와 실제 발사 위치·방향이 일치한다.
   Host와 Client 모두 투사체가 이동하는 동안
   NetworkTransform과 별도 Lerp가 서로 당기는 떨림이 없다.
+- 샷건의 각 펠릿은 `Shotgun`에 설정한 속도로 이동하고 설정한 수명이 지나면 제거된다.
+  권총과 스킬 투사체는 각 투사체 프리팹의 기본 속도와 수명을 계속 사용한다.
 - 기본 패링과 방패의 로컬 쿨다운 원호는 `NetworkRigidbody`의 보간된 PresentationRoot를 따라가며,
   이동·점프·착지 중에도 캐릭터 외형을 기준으로 앞뒤 한 Tick씩 떨리지 않는다.
 - 기본 패링 원호는 `WeaponSocket`을 표시 부모로 사용하고 Animator와 IK가 끝난 `LateUpdate`에

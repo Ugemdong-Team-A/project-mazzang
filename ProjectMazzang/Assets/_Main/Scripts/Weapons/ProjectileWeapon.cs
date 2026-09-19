@@ -39,9 +39,6 @@ public class ProjectileWeapon :
 
     private int _visibleFireSequence;
 
-    protected NetworkObject ProjectilePrefab =>
-        projectilePrefab;
-
     // =========================================================
     // Network State
     // =========================================================
@@ -223,30 +220,56 @@ public class ProjectileWeapon :
     protected virtual bool TrySpawnProjectiles(
         ProjectileShotContext shot)
     {
+        return TrySpawnProjectile(
+            shot,
+            shot.FirePose.Direction);
+    }
+
+
+    protected bool TrySpawnProjectile(
+        ProjectileShotContext shot,
+        Vector2 direction,
+        ProjectileLaunchSettings? launchSettings = null)
+    {
         NetworkObject spawned =
             Runner.Spawn(
                 projectilePrefab,
                 shot.FirePose.Origin,
                 ResolveProjectileRotation(
-                    shot.FirePose.Direction),
+                    direction),
                 shot.Source.InputAuthority,
                 (runner, obj) =>
                 {
                     Projectile projectile =
                         obj.GetComponent<Projectile>();
 
-                    projectile?.Initialize(
-                        runner,
-                        shot.Source,
-                        shot.FirePose.Direction,
-                        shot.AttackDamageMultiplier);
+                    if (projectile == null)
+                        return;
+
+                    if (launchSettings.HasValue)
+                    {
+                        projectile.Initialize(
+                            runner,
+                            shot.Source,
+                            direction,
+                            launchSettings.Value,
+                            shot.AttackDamageMultiplier);
+                    }
+                    else
+                    {
+                        projectile.Initialize(
+                            runner,
+                            shot.Source,
+                            direction,
+                            shot.AttackDamageMultiplier);
+                    }
                 });
 
         return spawned != null;
     }
 
 
-    protected static Quaternion ResolveProjectileRotation(
+    private static Quaternion ResolveProjectileRotation(
         Vector2 direction)
     {
         float angle =

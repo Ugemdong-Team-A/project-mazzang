@@ -1,4 +1,3 @@
-using Fusion;
 using UnityEngine;
 
 public sealed class Shotgun :
@@ -28,6 +27,11 @@ public sealed class Shotgun :
         bool spawnedAny =
             false;
 
+        ProjectileLaunchSettings launchSettings =
+            new(
+                projectileSpeed,
+                projectileLifetime);
+
         for (int i = 0;
              i < pelletCount;
              i++)
@@ -37,31 +41,11 @@ public sealed class Shotgun :
                     shot.FirePose.Direction,
                     CalculatePelletAngle(i));
 
-            Vector2 projectileVelocity =
-                pelletDirection *
-                projectileSpeed;
-
-            NetworkObject spawned =
-                Runner.Spawn(
-                    ProjectilePrefab,
-                    shot.FirePose.Origin,
-                    ResolveProjectileRotation(
-                        pelletDirection),
-                    shot.Source.InputAuthority,
-                    (runner, obj) =>
-                    {
-                        Projectile projectile =
-                            obj.GetComponent<Projectile>();
-
-                        projectile?.Initialize(
-                            runner,
-                            shot.Source,
-                            projectileVelocity,
-                            shot.AttackDamageMultiplier);
-                    });
-
             spawnedAny |=
-                spawned != null;
+                TrySpawnProjectile(
+                    shot,
+                    pelletDirection,
+                    launchSettings);
         }
 
         return spawnedAny;

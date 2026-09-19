@@ -1,6 +1,29 @@
 using Fusion;
 using UnityEngine;
 
+public readonly struct ProjectileLaunchSettings
+{
+    public float Speed
+    {
+        get;
+    }
+
+    public float Lifetime
+    {
+        get;
+    }
+
+
+    public ProjectileLaunchSettings(
+        float speed,
+        float lifetime)
+    {
+        Speed = speed;
+        Lifetime = lifetime;
+    }
+}
+
+
 [RequireComponent(typeof(NetworkObject))]
 [RequireComponent(typeof(NetworkTransform))]
 public class Projectile :
@@ -256,6 +279,24 @@ public class Projectile :
         Vector2 direction,
         float attackDamageMultiplier = 1f)
     {
+        Initialize(
+            runner,
+            source,
+            direction,
+            new ProjectileLaunchSettings(
+                initialSpeed,
+                lifetime),
+            attackDamageMultiplier);
+    }
+
+
+    public virtual void Initialize(
+        NetworkRunner runner,
+        NetworkObject source,
+        Vector2 direction,
+        ProjectileLaunchSettings launchSettings,
+        float attackDamageMultiplier = 1f)
+    {
         if (!HasStateAuthority)
             return;
 
@@ -285,7 +326,7 @@ public class Projectile :
 
         Velocity =
             direction *
-            initialSpeed;
+            launchSettings.Speed;
 
         Damage =
             attack != null
@@ -317,10 +358,10 @@ public class Projectile :
             crowdControl.StopMovementOnApply;
 
         LifeTimer =
-            lifetime > 0f
+            launchSettings.Lifetime > 0f
                 ? TickTimer.CreateFromSeconds(
                     runner,
-                    lifetime)
+                    launchSettings.Lifetime)
                 : TickTimer.None;
 
         IsInitialized =

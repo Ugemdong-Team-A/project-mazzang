@@ -290,14 +290,78 @@ namespace ProjectMazzang.Tests
             Assert.That(spawnHook.IsFamily, Is.True);
             Assert.That(spawnHook.IsVirtual, Is.True);
 
-            MethodInfo prefabGetter =
-                projectileWeapon
-                    .GetProperty(
-                        "ProjectilePrefab",
-                        Flags)
-                    .GetMethod;
+            MethodInfo spawnOne =
+                projectileWeapon.GetMethod(
+                    "TrySpawnProjectile",
+                    Flags);
 
-            Assert.That(prefabGetter.IsFamily, Is.True);
+            Assert.That(spawnOne, Is.Not.Null);
+            Assert.That(spawnOne.IsFamily, Is.True);
+            Assert.That(spawnOne.IsVirtual, Is.False);
+
+            Assert.That(
+                projectileWeapon.GetProperty(
+                    "ProjectilePrefab",
+                    Flags),
+                Is.Null);
+
+            foreach (string fieldName in new[]
+                     {
+                         "projectileSpeed",
+                         "projectileLifetime"
+                     })
+            {
+                FieldInfo field =
+                    shotgun.GetField(
+                        fieldName,
+                        Flags);
+
+                Assert.That(field, Is.Not.Null);
+                Assert.That(field.IsPrivate, Is.True);
+            }
+        }
+
+        [Test]
+        public void ProjectileLaunchSettings_ExposeExplicitWeaponOverrides()
+        {
+            Type projectile =
+                RuntimeType("Projectile");
+            Type settingsType =
+                RuntimeType("ProjectileLaunchSettings");
+            object settings =
+                Activator.CreateInstance(
+                    settingsType,
+                    23f,
+                    1.25f);
+
+            Assert.That(
+                settingsType
+                    .GetProperty("Speed")
+                    .GetValue(settings),
+                Is.EqualTo(23f));
+
+            Assert.That(
+                settingsType
+                    .GetProperty("Lifetime")
+                    .GetValue(settings),
+                Is.EqualTo(1.25f));
+
+            MethodInfo initializeWithSettings =
+                projectile
+                    .GetMethods(Flags)
+                    .SingleOrDefault(
+                        method =>
+                            method.Name == "Initialize" &&
+                            method
+                                .GetParameters()
+                                .Any(
+                                    parameter =>
+                                        parameter.ParameterType ==
+                                        settingsType));
+
+            Assert.That(initializeWithSettings, Is.Not.Null);
+            Assert.That(initializeWithSettings.IsPublic, Is.True);
+            Assert.That(initializeWithSettings.IsVirtual, Is.True);
         }
 
         [Test]
