@@ -245,6 +245,62 @@ namespace ProjectMazzang.Tests
         }
 
         [Test]
+        public void ProjectileWeapons_UseNarrowSharedExtensionContract()
+        {
+            Type projectileWeapon =
+                RuntimeType("ProjectileWeapon");
+            Type shotgun =
+                RuntimeType("Shotgun");
+
+            Assert.That(
+                shotgun.BaseType,
+                Is.EqualTo(projectileWeapon));
+
+            foreach (string fieldName in new[]
+                     {
+                         "primaryAction",
+                         "magazineSize",
+                         "fireInterval",
+                         "projectilePrefab",
+                         "fireShakeProfile"
+                     })
+            {
+                FieldInfo field =
+                    projectileWeapon.GetField(
+                        fieldName,
+                        Flags);
+
+                Assert.That(
+                    field,
+                    Is.Not.Null,
+                    $"{fieldName} 필드를 찾지 못했습니다.");
+
+                Assert.That(
+                    field.IsPrivate,
+                    Is.True,
+                    $"{fieldName}은 부모가 소유해야 합니다.");
+            }
+
+            MethodInfo spawnHook =
+                projectileWeapon.GetMethod(
+                    "TrySpawnProjectiles",
+                    Flags);
+
+            Assert.That(spawnHook, Is.Not.Null);
+            Assert.That(spawnHook.IsFamily, Is.True);
+            Assert.That(spawnHook.IsVirtual, Is.True);
+
+            MethodInfo prefabGetter =
+                projectileWeapon
+                    .GetProperty(
+                        "ProjectilePrefab",
+                        Flags)
+                    .GetMethod;
+
+            Assert.That(prefabGetter.IsFamily, Is.True);
+        }
+
+        [Test]
         public void MuzzlePose_UsesRenderedMuzzlePositionAndVisualForward()
         {
             GameObject viewObject =
@@ -279,7 +335,7 @@ namespace ProjectMazzang.Tests
             Component gun =
                 new GameObject("Gun")
                     .AddComponent(
-                        RuntimeType("ProjectileGun"));
+                        RuntimeType("ProjectileWeapon"));
             gun.transform.SetParent(
                 _socketObject.transform);
 
@@ -351,7 +407,7 @@ namespace ProjectMazzang.Tests
             Component gun =
                 new GameObject("Gun")
                     .AddComponent(
-                        RuntimeType("ProjectileGun"));
+                        RuntimeType("ProjectileWeapon"));
             gun.transform.SetParent(
                 _socketObject.transform);
 

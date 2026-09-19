@@ -1,7 +1,7 @@
 using Fusion;
 using UnityEngine;
 
-public sealed class ProjectileGun :
+public class ProjectileWeapon :
     Weapon
 {
     [Header("Primary Action")]
@@ -38,6 +38,9 @@ public sealed class ProjectileGun :
     private AudioClip fireClip;
 
     private int _visibleFireSequence;
+
+    protected NetworkObject ProjectilePrefab =>
+        projectilePrefab;
 
     // =========================================================
     // Network State
@@ -179,49 +182,25 @@ public sealed class ProjectileGun :
         Vector2 spawnPosition =
             firePose.Origin;
 
-        float angle =
-            Mathf.Atan2(
-                direction.y,
-                direction.x) *
-            Mathf.Rad2Deg;
+        ProjectileShotContext shot =
+            new(
+                source,
+                new WeaponFirePose(
+                    spawnPosition,
+                    direction),
+                attackDamageMultiplier);
+
+        if (!TrySpawnProjectiles(
+                shot))
+        {
+            return false;
+        }
 
         LastAuthoritativeFireOrigin =
             spawnPosition;
 
         LastAuthoritativeFireDirection =
             direction;
-
-        Quaternion rotation =
-            Quaternion.Euler(
-                0f,
-                0f,
-                angle);
-
-        NetworkObject spawned =
-            Runner.Spawn(
-                projectilePrefab,
-                spawnPosition,
-                rotation,
-                source.InputAuthority,
-                (runner, obj) =>
-                {
-                    Projectile projectile =
-                        obj.GetComponent<
-                            Projectile>();
-
-                    if (projectile == null)
-                        return;
-
-                    projectile.Initialize(
-                        runner,
-                        source,
-                        direction,
-                        attackDamageMultiplier);
-                });
-
-
-        if (spawned == null)
-            return false;
 
 
         Ammo--;
@@ -238,6 +217,67 @@ public sealed class ProjectileGun :
         FireSequence++;
 
         return true;
+    }
+
+
+    protected virtual bool TrySpawnProjectiles(
+        ProjectileShotContext shot)
+    {
+        NetworkObject spawned =
+            Runner.Spawn(
+                projectilePrefab,
+                shot.FirePose.Origin,
+                ResolveProjectileRotation(
+                    shot.FirePose.Direction),
+                shot.Source.InputAuthority,
+                (runner, obj) =>
+                {
+                    Projectile projectile =
+                        obj.GetComponent<Projectile>();
+
+                    projectile?.Initialize(
+                        runner,
+                        shot.Source,
+                        shot.FirePose.Direction,
+                        shot.AttackDamageMultiplier);
+                });
+
+        return spawned != null;
+    }
+
+
+    protected static Quaternion ResolveProjectileRotation(
+        Vector2 direction)
+    {
+        float angle =
+            Mathf.Atan2(
+                direction.y,
+                direction.x) *
+            Mathf.Rad2Deg;
+
+        return Quaternion.Euler(
+            0f,
+            0f,
+            angle);
+    }
+
+
+    protected readonly struct ProjectileShotContext
+    {
+        public readonly NetworkObject Source;
+        public readonly WeaponFirePose FirePose;
+        public readonly float AttackDamageMultiplier;
+
+        public ProjectileShotContext(
+            NetworkObject source,
+            WeaponFirePose firePose,
+            float attackDamageMultiplier)
+        {
+            Source = source;
+            FirePose = firePose;
+            AttackDamageMultiplier =
+                attackDamageMultiplier;
+        }
     }
 
 

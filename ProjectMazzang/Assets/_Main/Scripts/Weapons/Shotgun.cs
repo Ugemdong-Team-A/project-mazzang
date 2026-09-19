@@ -1,22 +1,10 @@
 using Fusion;
 using UnityEngine;
 
-public sealed class Shotgun : Weapon
+public sealed class Shotgun :
+    ProjectileWeapon
 {
-    [Header("Primary Action")]
-    [SerializeField]
-    private WeaponActionData primaryAction =
-        new();
-
     [Header("Shotgun")]
-    [Min(1)]
-    [SerializeField]
-    private int magazineSize = 6;
-
-    [Min(0f)]
-    [SerializeField]
-    private float fireInterval = 0.8f;
-
     [Min(1)]
     [SerializeField]
     private int pelletCount = 4;
@@ -24,11 +12,6 @@ public sealed class Shotgun : Weapon
     [Min(0f)]
     [SerializeField]
     private float spreadAngle = 30f;
-
-
-    [Header("Projectile")]
-    [SerializeField]
-    private NetworkObject projectilePrefab;
 
     [Min(0.01f)]
     [SerializeField]
@@ -38,189 +21,50 @@ public sealed class Shotgun : Weapon
     [SerializeField]
     private float projectileLifetime = 1.5f;
 
-    [Header("Presentation")]
-    [SerializeField]
-    private CameraShakeProfile fireShakeProfile;
 
-    private int _visibleFireSequence;
-
-    [Networked]
-    public int Ammo
+    protected override bool TrySpawnProjectiles(
+        ProjectileShotContext shot)
     {
-        get;
-        private set;
-    }
+        bool spawnedAny =
+            false;
 
-    [Networked]
-    private TickTimer FireCooldown
-    {
-        get;
-        set;
-    }
-
-    [Networked]
-    private int FireSeqeunce
-    {
-        get;
-        set;
-    }
-
-    [Networked]
-    private Vector2 LastAuthoritativeFireOrigin
-    {
-        get;
-        set;
-    }
-
-
-    public override void Spawned()
-    {
-        base.Spawned();
-
-        _visibleFireSequence = FireSeqeunce;
-
-        if (!HasStateAuthority)
-            return;
-
-        Ammo = magazineSize;
-        FireCooldown = TickTimer.None;
-    }
-
-    public override void Render()
-    {
-        base.Render();
-
-        if(_visibleFireSequence == FireSeqeunce)
+        for (int i = 0;
+             i < pelletCount;
+             i++)
         {
-            return;
-        }
-
-        _visibleFireSequence = FireSeqeunce;
-
-        CameraShakeService.Play(
-            fireShakeProfile,
-            LastAuthoritativeFireOrigin
-            );
-    }
-
-    public override WeaponActionData GetAction(
-        WeaponButton button,
-        WeaponAttackSlot slot)
-    {
-        return button == WeaponButton.Primary
-            ? primaryAction
-            : null;
-    }
-
-    public override bool TryUse(
-        Vector2 origin,
-        Vector2 direction,
-        WeaponAttackSlot slot,
-        bool mirrored,
-        float attackDamageMultiplier)
-    {       
-        if (!HasStateAuthority)
-            return false;
-
-        if (!IsEquipped)
-            return false;
-
-        if (Holder == null)
-            return false;
-
-        if (Ammo <= 0)
-            return false;
-
-        if (!FireCooldown.ExpiredOrNotRunning(Runner))
-            return false;
-
-        if (projectilePrefab == null)
-            return false;
-
-
-        direction = ResolveShotDirection(direction);
-
-        WeaponFirePose firePose =
-            ResolveMuzzlePose(
-                origin,
-                direction,
-                mirrored);
-
-        direction =
-            firePose.Direction;
-
-        Vector2 spawnPosition =
-            firePose.Origin;
-
-
-        NetworkObject source = Holder;
-
-
-        for (int i = 0; i < pelletCount; i++)
-        {
-            float pelletAngle =
-                CalculatePelletAngle(i);
-
             Vector2 pelletDirection =
                 RotateVector(
-                    direction,
-                    pelletAngle);
-
-
-            Quaternion rotation =
-                Quaternion.Euler(
-                    0f,
-                    0f,
-                    Mathf.Atan2(
-                        pelletDirection.y,
-                        pelletDirection.x) *
-                    Mathf.Rad2Deg);
-
+                    shot.FirePose.Direction,
+                    CalculatePelletAngle(i));
 
             Vector2 projectileVelocity =
                 pelletDirection *
                 projectileSpeed;
 
+            NetworkObject spawned =
+                Runner.Spawn(
+                    ProjectilePrefab,
+                    shot.FirePose.Origin,
+                    ResolveProjectileRotation(
+                        pelletDirection),
+                    shot.Source.InputAuthority,
+                    (runner, obj) =>
+                    {
+                        Projectile projectile =
+                            obj.GetComponent<Projectile>();
 
+                        projectile?.Initialize(
+                            runner,
+                            shot.Source,
+                            projectileVelocity,
+                            shot.AttackDamageMultiplier);
+                    });
 
-
-            Runner.Spawn(
-                projectilePrefab,
-                spawnPosition,
-                rotation,
-                source.InputAuthority,
-                (runner, obj) =>
-                {
-                    Projectile projectile =
-                        obj.GetComponent<Projectile>();
-
-                    if (projectile == null)
-                        return;
-
-                    projectile.Initialize(
-                        runner,
-                        source,
-                        projectileVelocity,
-                        attackDamageMultiplier);
-                });
+            spawnedAny |=
+                spawned != null;
         }
 
-
-        Ammo--;
-
-        FireCooldown =
-            fireInterval > 0f
-                ? TickTimer.CreateFromSeconds(
-                    Runner,
-                    fireInterval)
-                : TickTimer.None;
-
-        LastAuthoritativeFireOrigin =
-            spawnPosition;
-
-        FireSeqeunce++;
-
-        return true;
+        return spawnedAny;
     }
 
 
@@ -238,19 +82,6 @@ public sealed class Shotgun : Weapon
             -spreadAngle * 0.5f,
              spreadAngle * 0.5f,
              t);
-    }
-
-
-    private Vector2 ResolveShotDirection(
-        Vector2 direction)
-    {
-        if (direction.sqrMagnitude <=
-            0.0001f)
-        {
-            return Vector2.right;
-        }
-
-        return direction.normalized;
     }
 
 

@@ -393,7 +393,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4388df14a7a1894458b46c6707ddc11c, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ProjectileGun
+  m_EditorClassIdentifier: Assembly-CSharp::ProjectileWeapon
   rb: {fileID: 9023140553725785208}
   worldCollider: {fileID: 0}
   pickupTrigger: {fileID: 7881194972578852804}
