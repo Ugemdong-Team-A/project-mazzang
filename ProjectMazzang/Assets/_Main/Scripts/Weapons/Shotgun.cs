@@ -26,11 +26,6 @@ public sealed class Shotgun : Weapon
     private float spreadAngle = 30f;
 
 
-    [Header("Muzzle")]
-    [SerializeField]
-    private Transform muzzle;
-
-
     [Header("Projectile")]
     [SerializeField]
     private NetworkObject projectilePrefab;
@@ -145,18 +140,17 @@ public sealed class Shotgun : Weapon
 
         direction = ResolveShotDirection(direction);
 
-        float angle =
-            Mathf.Atan2(
-                direction.y,
-                direction.x) *
-            Mathf.Rad2Deg;
+        WeaponFirePose firePose =
+            ResolveMuzzlePose(
+                origin,
+                direction,
+                mirrored);
 
+        direction =
+            firePose.Direction;
 
         Vector2 spawnPosition =
-            ResolveMuzzlePosition(
-                origin,
-                angle,
-                mirrored);
+            firePose.Origin;
 
 
         NetworkObject source = Holder;
@@ -257,37 +251,6 @@ public sealed class Shotgun : Weapon
         }
 
         return direction.normalized;
-    }
-
-
-    private Vector2 ResolveMuzzlePosition(
-        Vector2 weaponPosition,
-        float weaponAngle,
-        bool mirrored)
-    {
-        if (TryGetHeldMuzzlePosition(
-                out Vector2 heldMuzzlePosition))
-        {
-            return heldMuzzlePosition;
-        }
-
-        if (muzzle == null)
-            return weaponPosition;
-
-        Vector2 muzzleOffset =
-            muzzle.localPosition;
-
-        if (mirrored)
-        {
-            muzzleOffset.y =
-                -muzzleOffset.y;
-        }
-
-        return
-            weaponPosition +
-            RotateVector(
-                muzzleOffset,
-                weaponAngle);
     }
 
 

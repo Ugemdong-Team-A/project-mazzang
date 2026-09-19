@@ -31,6 +31,23 @@ public enum WeaponAttackSlot : byte
     Down
 }
 
+public readonly struct WeaponFirePose
+{
+    public readonly Vector2 Origin;
+    public readonly Vector2 Direction;
+
+    public WeaponFirePose(
+        Vector2 origin,
+        Vector2 direction)
+    {
+        Origin = origin;
+        Direction =
+            direction.sqrMagnitude > 0.0001f
+                ? direction.normalized
+                : Vector2.right;
+    }
+}
+
 [Serializable]
 public class WeaponActionData
 {
@@ -256,22 +273,130 @@ public abstract class Weapon :
         return facingDirection;
     }
 
-    public bool TryGetHeldMuzzlePosition(
-        out Vector2 position)
+    public WeaponFirePose ResolveMuzzlePose(
+        Vector2 fallbackOrigin,
+        Vector2 fallbackDirection,
+        bool mirrored)
     {
         if (_heldView != null &&
             _heldView.Muzzle != null)
         {
-            position =
-                _heldView.Muzzle.position;
+            Transform heldMuzzle =
+                _heldView.Muzzle;
 
-            return true;
+            return new WeaponFirePose(
+                heldMuzzle.position,
+                ResolveVisualForward(
+                    heldMuzzle));
         }
 
-        position =
-            default;
+        fallbackDirection =
+            ResolveWeaponForward(
+                fallbackDirection);
 
-        return false;
+        Transform templateMuzzle =
+            presentationTemplate != null
+                ? presentationTemplate.Muzzle
+                : null;
+
+        if (templateMuzzle == null)
+        {
+            return new WeaponFirePose(
+                fallbackOrigin,
+                fallbackDirection);
+        }
+
+        Transform templateRoot =
+            presentationTemplate.transform;
+
+        Vector2 localPosition =
+            templateRoot.InverseTransformPoint(
+                templateMuzzle.position);
+
+        Vector2 localDirection =
+            templateRoot.InverseTransformVector(
+                ResolveVisualForward(
+                    templateMuzzle));
+
+        if (mirrored)
+        {
+            localPosition.y =
+                -localPosition.y;
+            localDirection.y =
+                -localDirection.y;
+        }
+
+        float angle =
+            Mathf.Atan2(
+                fallbackDirection.y,
+                fallbackDirection.x) *
+            Mathf.Rad2Deg;
+
+        return new WeaponFirePose(
+            fallbackOrigin +
+            RotateVector(
+                localPosition,
+                angle),
+            RotateVector(
+                localDirection,
+                angle));
+    }
+
+    protected static Vector2 ResolveVisualForward(
+        Transform muzzle)
+    {
+        if (muzzle == null)
+            return Vector2.right;
+
+        Vector2 direction =
+            muzzle.TransformVector(
+                Vector3.right);
+
+        return direction.sqrMagnitude > 0.0001f
+            ? direction.normalized
+            : Vector2.right;
+    }
+
+    private Vector2 ResolveWeaponForward(
+        Vector2 fallbackDirection)
+    {
+        IWeaponHandler handler =
+            Object != null &&
+            Holder != null
+                ? Holder.GetComponent<IWeaponHandler>()
+                : null;
+
+        if (handler != null &&
+            handler.WeaponDirection.sqrMagnitude >
+                0.0001f)
+        {
+            return handler.WeaponDirection.normalized;
+        }
+
+        return fallbackDirection.sqrMagnitude > 0.0001f
+            ? fallbackDirection.normalized
+            : Vector2.right;
+    }
+
+    private static Vector2 RotateVector(
+        Vector2 value,
+        float angle)
+    {
+        float radians =
+            angle * Mathf.Deg2Rad;
+
+        float cos =
+            Mathf.Cos(radians);
+
+        float sin =
+            Mathf.Sin(radians);
+
+        return new Vector2(
+            value.x * cos -
+            value.y * sin,
+
+            value.x * sin +
+            value.y * cos);
     }
 
     public virtual bool ConsumesParryInput =>

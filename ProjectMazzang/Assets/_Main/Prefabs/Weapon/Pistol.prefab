@@ -410,7 +410,6 @@ MonoBehaviour:
     animation: {fileID: 0}
   magazineSize: 5959
   fireInterval: 1.28
-  muzzle: {fileID: 2486731633620674725}
   projectilePrefab: {fileID: 4736335658398493549, guid: a82faefdd5d0cdd429a786b3436bc112, type: 3}
   fireShakeProfile: {fileID: 11400000, guid: f739317905b94175b317689597d4f39e, type: 2}
   muzzleFlash: {fileID: 0}

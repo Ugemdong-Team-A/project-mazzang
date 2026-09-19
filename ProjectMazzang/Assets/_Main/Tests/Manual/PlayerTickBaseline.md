@@ -142,8 +142,11 @@
   최종 조준 방향과 허리 회전량이 유지된다.
 - 위치 키가 있는 상체 애니메이션 중 RAP 기반 마우스 조준이 허용하기 어려울 정도로 흔들리거나
   CCD Target과 서로 밀어내는 피드백이 생기지 않는다.
-- 총기 투사체는 장착 외형의 Muzzle 월드 위치에서 생성되고 Trail도 같은 Muzzle에서 시작한다.
-  Host와 Client 모두 투사체가 이동하는 동안 NetworkTransform과 별도 Lerp가 서로 당기는 떨림이 없다.
+- 총기 투사체는 장착 외형의 Muzzle 월드 위치에서 생성되고 Muzzle의 로컬 `+X` 방향으로 진행하며,
+  Trail도 같은 Muzzle에서 시작한다. 커서를 허리 제한 밖으로 이동하거나 Muzzle Transform의 위치·회전을
+  바꾸거나 캐릭터가 좌우 반전되어도 화면의 총구와 실제 발사 위치·방향이 일치한다.
+  Host와 Client 모두 투사체가 이동하는 동안
+  NetworkTransform과 별도 Lerp가 서로 당기는 떨림이 없다.
 - 기본 패링과 방패의 로컬 쿨다운 원호는 `NetworkRigidbody`의 보간된 PresentationRoot를 따라가며,
   이동·점프·착지 중에도 캐릭터 외형을 기준으로 앞뒤 한 Tick씩 떨리지 않는다.
 - 기본 패링 원호는 `WeaponSocket`을 표시 부모로 사용하고 Animator와 IK가 끝난 `LateUpdate`에

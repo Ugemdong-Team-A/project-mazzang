@@ -180,9 +180,12 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
   `PlayerWeaponController`는 이 값을 근접 판정·드롭과 총기 Muzzle fallback 기준으로 재사용한다.
   따라서 기준 척추 본의 위치 애니메이션은 조준 원점에도 반영되며, 회전만으로는 로컬 원점인 RAP의
   위치가 변하지 않는다.
-- 총기는 장착 외형의 `HeldWeaponView.Muzzle`이 있으면 StateAuthority의 투사체 생성 위치와
-  로컬 Trail 시작점에 같은 월드 좌표를 사용한다. 장착 외형이 없는 환경에서만 같은 Tick의
-  `AimOrigin`과 원본 Muzzle 로컬 오프셋으로 복구한다.
+- 총기는 장착 외형의 `HeldWeaponView.Muzzle`을 발사 포즈의 단일 제작 기준으로 사용한다.
+  StateAuthority는 투사체를 Muzzle의 월드 위치에서 생성하고, 캐릭터 외형 계층의 좌우 반전을 포함한
+  Muzzle 로컬 `+X`의 월드 방향으로 발사한다.
+  커서 방향은 캐릭터와 무기 자세를 결정하지만 투사체 방향을 Muzzle과 별도로 다시 계산하지 않는다.
+  장착 외형이 없는 환경에서만 같은 Tick의 `AimOrigin`, 확정된 무기 방향과 원본 Muzzle의
+  루트 상대 위치·방향으로 같은 발사 포즈를 복구한다.
 - 무기와 투사체의 장착 표현은 `IWeaponHandler` 계약으로 현재 무기, Socket, 방향, 정렬 정보를 읽으며
   `PlayerWeaponController` 구체 타입을 직접 참조하지 않는다.
 - 플레이어를 따라가는 월드 공간 LineRenderer 연출은 시뮬레이션 루트가 아니라

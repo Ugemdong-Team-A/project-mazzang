@@ -40,6 +40,46 @@ namespace ProjectMazzang.Tests
                     target,
                     arguments);
 
+        private static void SetField(
+            object target,
+            string fieldName,
+            object value)
+        {
+            Type type =
+                target.GetType();
+
+            while (type != null)
+            {
+                FieldInfo field =
+                    type.GetField(
+                        fieldName,
+                        Flags);
+
+                if (field != null)
+                {
+                    field.SetValue(
+                        target,
+                        value);
+                    return;
+                }
+
+                type = type.BaseType;
+            }
+
+            Assert.Fail(
+                $"{target.GetType().Name}.{fieldName} 필드를 찾지 못했습니다.");
+        }
+
+        private static Vector2 ReadPoseVector(
+            object pose,
+            string fieldName) =>
+            (Vector2)pose
+                .GetType()
+                .GetField(
+                    fieldName,
+                    Flags)
+                .GetValue(pose);
+
         [SetUp]
         public void SetUp()
         {
@@ -202,6 +242,158 @@ namespace ProjectMazzang.Tests
                     .GetProperty("Animation")
                     .GetValue(action),
                 Is.Null);
+        }
+
+        [Test]
+        public void MuzzlePose_UsesRenderedMuzzlePositionAndVisualForward()
+        {
+            GameObject viewObject =
+                new GameObject("HeldWeaponView");
+            viewObject.transform.SetParent(
+                _socketObject.transform);
+            viewObject.transform.SetPositionAndRotation(
+                new Vector3(3f, 4f, 0f),
+                Quaternion.Euler(0f, 0f, 25f));
+            viewObject.transform.localScale =
+                new Vector3(-1f, 1f, 1f);
+
+            Component view =
+                viewObject.AddComponent(
+                    RuntimeType("HeldWeaponView"));
+
+            Transform muzzle =
+                new GameObject("Muzzle").transform;
+            muzzle.SetParent(
+                viewObject.transform,
+                false);
+            muzzle.localPosition =
+                new Vector3(1.2f, 0.3f, 0f);
+            muzzle.localRotation =
+                Quaternion.Euler(0f, 0f, 18f);
+
+            SetField(
+                view,
+                "muzzle",
+                muzzle);
+
+            Component gun =
+                new GameObject("Gun")
+                    .AddComponent(
+                        RuntimeType("ProjectileGun"));
+            gun.transform.SetParent(
+                _socketObject.transform);
+
+            SetField(
+                gun,
+                "presentationTemplate",
+                view);
+            SetField(
+                gun,
+                "_heldView",
+                view);
+
+            object pose =
+                Invoke(
+                    gun,
+                    "ResolveMuzzlePose",
+                    Vector2.zero,
+                    Vector2.down,
+                    false);
+
+            Assert.That(
+                Vector2.Distance(
+                    ReadPoseVector(
+                        pose,
+                        "Origin"),
+                    muzzle.position),
+                Is.LessThan(0.0001f));
+
+            Assert.That(
+                Vector2.Angle(
+                    ReadPoseVector(
+                        pose,
+                        "Direction"),
+                    muzzle.TransformVector(
+                        Vector3.right)),
+                Is.LessThan(0.001f));
+        }
+
+        [Test]
+        public void MuzzlePose_FallbackUsesAuthoredLocalPoseAndMirror()
+        {
+            GameObject viewObject =
+                new GameObject("HeldWeaponView");
+            viewObject.transform.SetParent(
+                _socketObject.transform);
+            viewObject.transform.SetPositionAndRotation(
+                new Vector3(7f, -3f, 0f),
+                Quaternion.Euler(0f, 0f, 31f));
+
+            Component view =
+                viewObject.AddComponent(
+                    RuntimeType("HeldWeaponView"));
+
+            Transform muzzle =
+                new GameObject("Muzzle").transform;
+            muzzle.SetParent(
+                viewObject.transform,
+                false);
+            muzzle.localPosition =
+                new Vector3(1f, 0.25f, 0f);
+            muzzle.localRotation =
+                Quaternion.Euler(0f, 0f, 15f);
+
+            SetField(
+                view,
+                "muzzle",
+                muzzle);
+
+            Component gun =
+                new GameObject("Gun")
+                    .AddComponent(
+                        RuntimeType("ProjectileGun"));
+            gun.transform.SetParent(
+                _socketObject.transform);
+
+            SetField(
+                gun,
+                "presentationTemplate",
+                view);
+
+            Vector2 fallbackOrigin =
+                new Vector2(10f, 20f);
+
+            object pose =
+                Invoke(
+                    gun,
+                    "ResolveMuzzlePose",
+                    fallbackOrigin,
+                    Vector2.up,
+                    true);
+
+            Vector2 expectedOrigin =
+                fallbackOrigin +
+                new Vector2(0.25f, 1f);
+
+            Vector2 expectedDirection =
+                Quaternion.Euler(0f, 0f, 75f) *
+                Vector2.right;
+
+            Assert.That(
+                Vector2.Distance(
+                    ReadPoseVector(
+                        pose,
+                        "Origin"),
+                    expectedOrigin),
+                Is.LessThan(0.0001f));
+
+            Assert.That(
+                Vector2.Angle(
+                    ReadPoseVector(
+                        pose,
+                        "Direction"),
+                    expectedDirection),
+                Is.LessThan(0.001f));
         }
     }
 }

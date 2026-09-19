@@ -31,7 +31,6 @@ public sealed class WeaponEditor : Editor
                 ["fireInterval"] = "발사 간격",
                 ["pelletCount"] = "산탄 수",
                 ["spreadAngle"] = "퍼짐 각도",
-                ["muzzle"] = "발사 위치",
                 ["projectilePrefab"] = "투사체 원본",
                 ["projectileSpeed"] = "투사체 속도",
                 ["projectileLifetime"] = "투사체 수명",

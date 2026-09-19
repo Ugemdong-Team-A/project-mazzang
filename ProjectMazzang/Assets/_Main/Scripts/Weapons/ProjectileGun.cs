@@ -19,14 +19,6 @@ public sealed class ProjectileGun :
     private float fireInterval = 0.2f;
 
 
-    [Header("Muzzle")]
-    [Tooltip(
-        "WeaponRoot 기준 실제 총구 위치입니다. " +
-        "WeaponRoot의 직접 자식으로 두는 것을 권장합니다.")]
-    [SerializeField]
-    private Transform muzzle;
-
-
     [Header("Projectile")]
     [SerializeField]
     private NetworkObject projectilePrefab;
@@ -175,17 +167,23 @@ public sealed class ProjectileGun :
             ResolveShotDirection(
                 direction);
 
+        WeaponFirePose firePose =
+            ResolveMuzzlePose(
+                origin,
+                direction,
+                mirrored);
+
+        direction =
+            firePose.Direction;
+
+        Vector2 spawnPosition =
+            firePose.Origin;
+
         float angle =
             Mathf.Atan2(
                 direction.y,
                 direction.x) *
             Mathf.Rad2Deg;
-
-        Vector2 spawnPosition =
-            ResolveMuzzlePosition(
-                origin,
-                angle,
-                mirrored);
 
         LastAuthoritativeFireOrigin =
             spawnPosition;
@@ -256,66 +254,6 @@ public sealed class ProjectileGun :
     }
 
 
-    private Vector2 ResolveMuzzlePosition(
-        Vector2 weaponPosition,
-        float weaponAngle,
-        bool mirrored)
-    {
-        if (TryGetHeldMuzzlePosition(
-                out Vector2 heldMuzzlePosition))
-        {
-            return heldMuzzlePosition;
-        }
-
-        if (muzzle == null)
-        {
-            return weaponPosition;
-        }
-
-        // Held View를 만들 수 없는 실행 환경에서는
-        // 확정된 Aim 원점과 원본 Muzzle 오프셋으로 복구한다.
-        Vector2 muzzleOffset =
-            muzzle.localPosition;
-
-        if (mirrored)
-        {
-            muzzleOffset.y =
-                -muzzleOffset.y;
-        }
-
-        return
-            weaponPosition +
-            RotateVector(
-                muzzleOffset,
-                weaponAngle);
-    }
-
-
-    private static Vector2 RotateVector(
-        Vector2 value,
-        float angle)
-    {
-        float radians =
-            angle *
-            Mathf.Deg2Rad;
-
-        float cos =
-            Mathf.Cos(
-                radians);
-
-        float sin =
-            Mathf.Sin(
-                radians);
-
-        return new Vector2(
-            value.x * cos -
-            value.y * sin,
-
-            value.x * sin +
-            value.y * cos);
-    }
-
-
     // =========================================================
     // Presentation
     // =========================================================
@@ -344,6 +282,14 @@ public sealed class ProjectileGun :
 
     private void OnDrawGizmosSelected()
     {
+        Transform muzzle =
+            HeldView != null &&
+            HeldView.Muzzle != null
+                ? HeldView.Muzzle
+                : PresentationTemplate != null
+                    ? PresentationTemplate.Muzzle
+                    : null;
+
         if (muzzle == null)
             return;
 
@@ -357,7 +303,9 @@ public sealed class ProjectileGun :
         Gizmos.DrawLine(
             muzzle.position,
             muzzle.position +
-            muzzle.right * 0.4f);
+            (Vector3)(
+                ResolveVisualForward(
+                    muzzle) * 0.4f));
 
         if (!Application.isPlaying ||
             Object == null)
