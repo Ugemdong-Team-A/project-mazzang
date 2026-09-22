@@ -1,28 +1,6 @@
 using Fusion;
 using UnityEngine;
 
-public readonly struct ProjectileLaunchSettings
-{
-    public float Speed
-    {
-        get;
-    }
-
-    public float Lifetime
-    {
-        get;
-    }
-
-
-    public ProjectileLaunchSettings(
-        float speed,
-        float lifetime)
-    {
-        Speed = speed;
-        Lifetime = lifetime;
-    }
-}
-
 
 [RequireComponent(typeof(NetworkObject))]
 [RequireComponent(typeof(NetworkTransform))]
@@ -30,6 +8,8 @@ public class Projectile :
     NetworkBehaviour,
     IParryable
 {
+    [SerializeField] ProjectileMovement movement;
+
     [Header("Launch")]
     [Min(0.01f)]
     [SerializeField]
@@ -106,6 +86,8 @@ public class Projectile :
     
     private int _visibleImpactSequence;
 
+    public ProjectileLaunchSettings LaunchSettings
+        => new ProjectileLaunchSettings(initialSpeed, lifetime);
 
     public Vector2 ParryVelocity => Velocity;
 
@@ -273,7 +255,7 @@ public class Projectile :
     }
 
 
-    public virtual void Initialize(
+    /*public virtual void Initialize(
         NetworkRunner runner,
         NetworkObject source,
         Vector2 direction,
@@ -287,22 +269,22 @@ public class Projectile :
                 initialSpeed,
                 lifetime),
             attackDamageMultiplier);
-    }
-
+    }*/
 
     public virtual void Initialize(
         NetworkRunner runner,
-        NetworkObject source,
-        Vector2 direction,
+        /*NetworkObject source,
+        Vector2 direction,*/
+        ProjectileShotContext shot,
         ProjectileLaunchSettings launchSettings,
-        float attackDamageMultiplier = 1f)
+        Vector2? optionalDir = null)
     {
         if (!HasStateAuthority)
             return;
 
-        direction =
+        Vector2 direction =
             NormalizeDirection(
-                direction);
+                shot.FirePose.Direction);
 
         if (direction == Vector2.zero)
         {
@@ -319,7 +301,7 @@ public class Projectile :
                 : Vector2.zero;
 
         Source =
-            source;
+            shot.Source;
 
         PresentationOrigin =
             transform.position;
@@ -332,7 +314,7 @@ public class Projectile :
             attack != null
                 ? DamageInfo.ResolveAttackDamage(
                     attack.Damage,
-                    attackDamageMultiplier)
+                    shot.AttackDamageMultiplier)
                 : 0;
 
         LocalKnockback =
@@ -369,6 +351,10 @@ public class Projectile :
 
         ApplyRotationFromVelocity();
         TryStartTrailPresentation();
+
+        /*movement.Initialize(
+            
+            )*/
     }
 
 
@@ -913,4 +899,74 @@ public class Projectile :
     }
 
 #endif
+}
+
+// 원래 ProjectileWeapon의 protected!!
+public /*protected*/ readonly struct ProjectileShotContext
+{
+    public readonly NetworkObject Source;
+    public readonly WeaponFirePose FirePose;
+    public readonly float AttackDamageMultiplier;
+
+    public ProjectileShotContext(
+        NetworkObject source,
+        WeaponFirePose firePose,
+        float attackDamageMultiplier)
+    {
+        Source = source;
+        FirePose = firePose;
+        AttackDamageMultiplier =
+            attackDamageMultiplier;
+    }
+}
+
+public readonly struct ProjectileLaunchSettings
+{
+    public float Speed { get; }
+
+    public float Lifetime { get; }
+
+    public float GravityScale { get; }
+
+    public float GravityAcceleration { get; }
+
+    public float LinearDrag { get; }
+
+    public bool AlignRotationToVelocity { get; }
+
+    public ProjectileLaunchSettings(
+        float speed,
+        float lifetime = 2.5f,
+        float gravityScale = 1f,
+        float gravityAcceleration = 9.81f,
+        float linearDrag = 0f,
+        bool alignRotationToVelocity = true)
+    {
+        Speed = speed;
+        Lifetime = lifetime;
+        GravityScale = gravityScale;
+        GravityAcceleration = gravityAcceleration;
+        LinearDrag = linearDrag;
+        AlignRotationToVelocity = alignRotationToVelocity;
+    }
+}
+
+public readonly struct ProjectileSnopshot
+{
+    public Vector2 Position { get; }
+
+    public Vector2 Direction { get; }
+
+    public Vector2 Velocity { get; }
+
+    public ProjectileSnopshot(
+        Vector2 position,
+        Vector2 direction,
+        Vector2 velocity
+        )
+    {
+        Position = position;
+        Direction = direction;
+        Velocity = velocity;
+    }
 }

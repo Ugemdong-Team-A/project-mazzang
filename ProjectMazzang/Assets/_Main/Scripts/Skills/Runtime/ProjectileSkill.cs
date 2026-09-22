@@ -170,6 +170,14 @@ public class ProjectileSkill :
             Mathf.Atan2(direction.y, direction.x) *
             Mathf.Rad2Deg;
 
+        ProjectileShotContext shot
+            = new ProjectileShotContext(
+                Controller.Object,
+                new WeaponFirePose(origin, direction),
+                Controller.TickState
+                        .ActiveStatModifiers
+                        .AttackDamage);
+
         Controller.Runner.Spawn(
             prefab,
             origin,
@@ -182,11 +190,8 @@ public class ProjectileSkill :
 
                 projectile?.Initialize(
                     runner,
-                    Controller.Object,
-                    direction,
-                    Controller.TickState
-                        .ActiveStatModifiers
-                        .AttackDamage);
+                    shot,
+                    projectile.LaunchSettings);
             });
     }
 

@@ -933,8 +933,7 @@ public sealed class PlayerWeaponController :
         Vector2 origin,
         float attackDamageMultiplier)
     {
-        if (!HasStateAuthority)
-            return false;
+        // if (!HasStateAuthority) return false;
 
         if (!isAlive)
             return false;

@@ -84,10 +84,12 @@ public sealed class ProjectileTrail : MonoBehaviour
     }
 
     private void LateUpdate()
-    {
+    {       
         if (_completed ||
             _visualObject == null)
         {
+            Debug.Log(_completed + ", " + _visualObject);
+
             return;
         }
 
@@ -99,7 +101,7 @@ public sealed class ProjectileTrail : MonoBehaviour
 
         _visualObject.transform.SetPositionAndRotation(
             _followTarget.position,
-            _followTarget.rotation);
+            _followTarget.rotation);       
     }
 
     public void Complete()

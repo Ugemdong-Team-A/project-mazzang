@@ -21,7 +21,7 @@ public sealed class Shotgun :
     private float projectileLifetime = 1.5f;
 
 
-    protected override bool TrySpawnProjectiles(
+    protected override bool TrySpawnProjectilesAtOnce(
         ProjectileShotContext shot)
     {
         bool spawnedAny =
@@ -44,8 +44,8 @@ public sealed class Shotgun :
             spawnedAny |=
                 TrySpawnProjectile(
                     shot,
-                    pelletDirection,
-                    launchSettings);
+                    launchSettings,
+                    pelletDirection);
         }
 
         return spawnedAny;

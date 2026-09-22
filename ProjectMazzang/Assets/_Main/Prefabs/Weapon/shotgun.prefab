@@ -408,15 +408,21 @@ MonoBehaviour:
   primaryAction:
     enabled: 1
     animation: {fileID: 0}
+    weaponAnimation: {fileID: 0}
   magazineSize: 5959
   fireInterval: 1
+  projectilePrefab: {fileID: 4736335658398493549, guid: a82faefdd5d0cdd429a786b3436bc112, type: 3}
+  fireShakeProfile: {fileID: 11400000, guid: 63b629a5283864443a495536cbc44937, type: 2}
+  muzzleFlash: {fileID: 0}
+  audioSource: {fileID: 0}
+  fireClip: {fileID: 0}
+  testPredictedProjectile: 1
+  testPredictedPrefab: {fileID: 4389448760971120309, guid: c93ef652fe0f5bd4b8df66ebc7b498ff, type: 3}
+  _Ammo: 999
   pelletCount: 4
   spreadAngle: 30
-  projectilePrefab: {fileID: 4736335658398493549, guid: a82faefdd5d0cdd429a786b3436bc112, type: 3}
   projectileSpeed: 40
   projectileLifetime: 0.2
-  fireShakeProfile: {fileID: 11400000, guid: 63b629a5283864443a495536cbc44937, type: 2}
-  _Ammo: 999
 --- !u!114 &4498004678548388021
 MonoBehaviour:
   m_ObjectHideFlags: 0

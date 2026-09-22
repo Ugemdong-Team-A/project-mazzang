@@ -1,5 +1,6 @@
 using Fusion;
 using UnityEngine;
+using static UnityEngine.UI.Image;
 
 public class ProjectileWeapon :
     Weapon
@@ -36,6 +37,13 @@ public class ProjectileWeapon :
 
     [SerializeField]
     private AudioClip fireClip;
+
+    [Header("Test")]
+    [SerializeField]
+    bool testPredictedProjectile;
+
+    [SerializeField]
+    PredictedProjectile testPredictedPrefab;
 
     private int _visibleFireSequence;
 
@@ -104,7 +112,7 @@ public class ProjectileWeapon :
     public override void Render()
     {
         if (_visibleFireSequence ==
-            FireSequence)
+            FireSequence || HasInputAuthority)
         {
             return;
         }
@@ -112,7 +120,7 @@ public class ProjectileWeapon :
         _visibleFireSequence =
             FireSequence;
 
-        PlayFirePresentation();
+        PlayFireEffects();
     }
 
 
@@ -120,48 +128,41 @@ public class ProjectileWeapon :
     // Fire
     // =========================================================
 
-    public override WeaponActionData GetAction(
-        WeaponButton button,
-        WeaponAttackSlot slot)
+    protected virtual bool CanFire()
     {
-        return button == WeaponButton.Primary
-            ? primaryAction
-            : null;
+        return
+            IsEquipped &&
+            Holder != null &&
+            Ammo > 0 &&
+            FireCooldown
+                .ExpiredOrNotRunning(
+                    Runner);
     }
 
-    public override bool TryUse(
+    protected virtual void ApplyFireStates()
+    {
+        Ammo--;
+
+        FireCooldown =
+            fireInterval > 0f
+                ? TickTimer.CreateFromSeconds(
+                    Runner,
+                    fireInterval)
+                : TickTimer.None;
+
+        // Host만 바꾸고, Peer가 사용할수도
+        // FireSequence++;
+    }
+
+    // 받은 값으로 바로 Context를 만들지, Resolve 메서드들로 해석해서 만들지 고민인데 일단 후자로 ㄱㄱ
+    protected virtual ProjectileShotContext ResolveShot(
         Vector2 origin,
         Vector2 direction,
-        WeaponAttackSlot slot,
         bool mirrored,
         float attackDamageMultiplier)
     {
-        if (!HasStateAuthority)
-            return false;
-
-        if (!IsEquipped)
-            return false;
-
-        if (Holder == null)
-            return false;
-
-        if (Ammo <= 0)
-            return false;
-
-        if (!FireCooldown
-                .ExpiredOrNotRunning(
-                    Runner))
-        {
-            return false;
-        }
-
-        if (projectilePrefab == null)
-            return false;
-
-
         NetworkObject source =
             Holder;
-
 
         direction =
             ResolveShotDirection(
@@ -179,37 +180,85 @@ public class ProjectileWeapon :
         Vector2 spawnPosition =
             firePose.Origin;
 
+
+        return new ProjectileShotContext(
+            source,
+            new WeaponFirePose(
+                spawnPosition,
+                direction),
+            attackDamageMultiplier);
+    }
+
+    public override WeaponActionData GetAction(
+        WeaponButton button,
+        WeaponAttackSlot slot)
+    {
+        return button == WeaponButton.Primary
+            ? primaryAction
+            : null;
+    }
+
+    public override bool TryUse(
+        Vector2 origin,
+        Vector2 direction,
+        WeaponAttackSlot slot,
+        bool mirrored,
+        float attackDamageMultiplier)
+    {
+        if(!CanFire()) 
+            return false;
+
+        ApplyFireStates();
+
+        if (projectilePrefab == null ||
+            !projectilePrefab.TryGetComponent<Projectile>
+                (out Projectile projectile)) return false;
+
         ProjectileShotContext shot =
-            new(
-                source,
-                new WeaponFirePose(
-                    spawnPosition,
-                    direction),
+            ResolveShot(
+                origin,
+                direction,
+                mirrored,
                 attackDamageMultiplier);
 
-        if (!TrySpawnProjectiles(
-                shot))
+        /*if (testPredictedProjectile)
+        {
+            TestPredictProjectile(
+                shot,
+                projectile.LaunchSettings);
+
+            return true;
+        }*/
+
+        // 로컬 예측
+        if (!HasStateAuthority &&
+            HasInputAuthority && Runner.IsForward)
+        {
+            PlayLocalFirePresentation();
+            return true;
+        }
+
+        // 호스트 판정
+        if (!HasStateAuthority)
+            return false;
+
+        // 이친구는 예측 전에도 검사할까 고민중.. 서버에선 판정 안해도 예측 시도는 열어야할까
+        /*if (projectilePrefab == null)
+            return false; */    
+
+        if (!TrySpawnProjectilesAtOnce(
+                shot/*,
+                projectile.LaunchSettings*/))
         {
             return false;
         }
 
+
         LastAuthoritativeFireOrigin =
-            spawnPosition;
+            shot.FirePose.Origin;
 
         LastAuthoritativeFireDirection =
-            direction;
-
-
-        Ammo--;
-
-
-        FireCooldown =
-            fireInterval > 0f
-                ? TickTimer.CreateFromSeconds(
-                    Runner,
-                    fireInterval)
-                : TickTimer.None;
-
+            shot.FirePose.Direction;
 
         FireSequence++;
 
@@ -217,26 +266,38 @@ public class ProjectileWeapon :
     }
 
 
-    protected virtual bool TrySpawnProjectiles(
+    protected virtual bool TrySpawnProjectilesAtOnce(
         ProjectileShotContext shot)
     {
         return TrySpawnProjectile(
             shot,
-            shot.FirePose.Direction);
+            projectilePrefab.GetComponent<Projectile>().LaunchSettings);
     }
 
 
     protected bool TrySpawnProjectile(
         ProjectileShotContext shot,
-        Vector2 direction,
-        ProjectileLaunchSettings? launchSettings = null)
+        ProjectileLaunchSettings launchSettings,
+        Vector2? optionalDir = null)
     {
+        if (testPredictedProjectile)
+        {
+            TestPredictProjectile(
+                shot,
+                projectilePrefab.GetComponent<Projectile>().LaunchSettings,
+                optionalDir);
+
+            return true;
+        }
+
         NetworkObject spawned =
             Runner.Spawn(
                 projectilePrefab,
                 shot.FirePose.Origin,
                 ResolveProjectileRotation(
-                    direction),
+                    optionalDir.HasValue ?
+                    optionalDir.Value :
+                    shot.FirePose.Direction),
                 shot.Source.InputAuthority,
                 (runner, obj) =>
                 {
@@ -246,7 +307,12 @@ public class ProjectileWeapon :
                     if (projectile == null)
                         return;
 
-                    if (launchSettings.HasValue)
+                    projectile.Initialize(
+                            runner,
+                            shot,
+                            launchSettings);
+
+                    /*if (launchSettings.HasValue)
                     {
                         projectile.Initialize(
                             runner,
@@ -262,7 +328,7 @@ public class ProjectileWeapon :
                             shot.Source,
                             direction,
                             shot.AttackDamageMultiplier);
-                    }
+                    }*/
                 });
 
         return spawned != null;
@@ -283,27 +349,7 @@ public class ProjectileWeapon :
             0f,
             angle);
     }
-
-
-    protected readonly struct ProjectileShotContext
-    {
-        public readonly NetworkObject Source;
-        public readonly WeaponFirePose FirePose;
-        public readonly float AttackDamageMultiplier;
-
-        public ProjectileShotContext(
-            NetworkObject source,
-            WeaponFirePose firePose,
-            float attackDamageMultiplier)
-        {
-            Source = source;
-            FirePose = firePose;
-            AttackDamageMultiplier =
-                attackDamageMultiplier;
-        }
-    }
-
-
+   
     private Vector2 ResolveShotDirection(
         Vector2 direction)
     {
@@ -321,7 +367,30 @@ public class ProjectileWeapon :
     // Presentation
     // =========================================================
 
-    private void PlayFirePresentation()
+    protected virtual void PlayLocalFirePresentation()
+    {
+        PlayFireEffects();        
+    }
+
+    private void TestPredictProjectile(
+        ProjectileShotContext shot,
+        ProjectileLaunchSettings launchSettings,
+        Vector2? optionalDir = null)
+    {
+        if (!testPredictedPrefab) return;
+
+        PredictedProjectile predicted = Instantiate(testPredictedPrefab);
+
+        predicted.Initialize(
+            shot.FirePose,
+            launchSettings,
+            optionalDir);
+    }
+
+    /// <summary>
+    /// 카메라 흔들림, 총구 이펙트, SFX 재생
+    /// </summary>
+    private void PlayFireEffects()
     {
         CameraShakeService.Play(
             fireShakeProfile,
