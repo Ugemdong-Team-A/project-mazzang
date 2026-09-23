@@ -210,24 +210,6 @@ public class ProjectileWeapon :
             FireSequence);
     }
 
-    protected virtual ProjectileVisualSnapshot ResolveProjectileVisual(
-        in ProjectileStatSnapshot stats)
-    {
-        return new ProjectileVisualSnapshot(
-            0,
-            new Color32(
-                255,
-                255,
-                255,
-                255),
-            0,
-            1f,
-            1f,
-            1f,
-            stats.ScaleMultiplier,
-            0);
-    }
-
     protected static ProjectilePredictionKey BuildPredictionKey(
         in ProjectileShotContext shot,
         int projectileIndex)
@@ -250,10 +232,6 @@ public class ProjectileWeapon :
             projectileSettings.Resolve(
                 in stats);
 
-        ProjectileVisualSnapshot visual =
-            ResolveProjectileVisual(
-                in stats);
-
         ProjectilePredictionKey key =
             BuildPredictionKey(
                 in shot,
@@ -264,7 +242,7 @@ public class ProjectileWeapon :
                 key,
                 shot.LaunchPose,
                 settings,
-                visual);
+                stats);
 
         return new ProjectileLaunchPlan(
             launch);
@@ -498,10 +476,7 @@ public class ProjectileWeapon :
         PredictedProjectile predicted = Instantiate(testPredictedPrefab);
 
         predicted.Initialize(
-            new WeaponFirePose(
-                launch.Origin,
-                launch.Direction),
-            launch.Settings);
+            in launch);
     }
 
     /// <summary>

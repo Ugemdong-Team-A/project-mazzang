@@ -46,10 +46,6 @@ public sealed class Shotgun :
                 baseLaunchSettings.AlignRotationToVelocity,
                 baseLaunchSettings.CollisionRadius);
 
-        ProjectileVisualSnapshot visual =
-            ResolveProjectileVisual(
-                in stats);
-
         int count =
             Mathf.Max(
                 1,
@@ -84,7 +80,7 @@ public sealed class Shotgun :
                     key,
                     pose,
                     launchSettings,
-                    visual);
+                    stats);
         }
 
         return new ProjectileLaunchPlan(

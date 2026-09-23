@@ -1,7 +1,7 @@
 using UnityEngine;
 
 /// <summary>
-/// 투사체 하나의 생성 위치, 이동 설정, 외형을 확정한 값입니다.
+/// 투사체 하나의 생성 위치, 이동 설정, 능력치 스냅샷을 확정한 값입니다.
 /// </summary>
 public readonly struct ProjectileLaunch
 {
@@ -20,7 +20,7 @@ public readonly struct ProjectileLaunch
         get;
     }
 
-    public ProjectileVisualSnapshot Visual
+    public ProjectileStatSnapshot Stats
     {
         get;
     }
@@ -39,11 +39,11 @@ public readonly struct ProjectileLaunch
         ProjectilePredictionKey key,
         ProjectileLaunchPose pose,
         ProjectileLaunchSettings settings,
-        ProjectileVisualSnapshot visual)
+        ProjectileStatSnapshot stats)
     {
         Key = key;
         Pose = pose;
         Settings = settings;
-        Visual = visual;
+        Stats = stats;
     }
 }

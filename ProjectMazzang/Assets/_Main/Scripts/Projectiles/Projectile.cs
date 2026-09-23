@@ -66,9 +66,9 @@ public class Projectile :
 
     [Header("Presentation")]
     [SerializeField]
-    private ProjectileTrail projectileTrail;
+    private ProjectileVisual projectileVisual;
 
-    private bool _trailStarted;
+    private bool _presentationShown;
 
     [Tooltip(
         "충돌 시 카메라 진동 연출")]
@@ -99,6 +99,9 @@ public class Projectile :
     public ProjectileLaunchSettings LaunchSettings =>
         BaseSettings.Resolve(
             ProjectileStatSnapshot.Identity);
+
+    public ProjectileVisual Visual =>
+        projectileVisual;
 
     public Vector2 ParryVelocity => Velocity;
 
@@ -213,17 +216,26 @@ public class Projectile :
 
     protected virtual void Awake()
     {
-        if (projectileTrail == null)
+        if (projectileVisual == null)
         {
-            projectileTrail =
-                GetComponent<ProjectileTrail>();
+            projectileVisual =
+                GetComponent<ProjectileVisual>();
         }
+
+        if (projectileVisual == null)
+        {
+            projectileVisual =
+                gameObject.AddComponent<
+                    ProjectileVisual>();
+        }
+
+        projectileVisual.Initialize();
     }
 
 
     public override void Spawned()
     {
-        TryStartTrailPresentation();
+        TryShowPresentation();
 
         _visibleImpactSequence =
             ImpactSequence;
@@ -232,7 +244,7 @@ public class Projectile :
 
     public override void Render()
     {
-        TryStartTrailPresentation();
+        TryShowPresentation();
 
         if (_visibleImpactSequence ==
             ImpactSequence)
@@ -259,9 +271,9 @@ public class Projectile :
         NetworkRunner runner,
         bool hasState)
     {
-        if (projectileTrail != null)
+        if (projectileVisual != null)
         {
-            projectileTrail.Complete();
+            projectileVisual.Complete();
         }
     }
 
@@ -325,6 +337,12 @@ public class Projectile :
         _runtimeLaunchSettings =
             launchSettings;
 
+        ProjectileStatSnapshot stats =
+            shot.Stats;
+
+        projectileVisual.Apply(
+            in stats);
+
         Damage =
             attack != null
                 ? DamageInfo.ResolveAttackDamage(
@@ -365,22 +383,22 @@ public class Projectile :
             true;
 
         ApplyRotationFromVelocity();
-        TryStartTrailPresentation();
+        TryShowPresentation();
     }
 
 
-    private void TryStartTrailPresentation()
+    private void TryShowPresentation()
     {
-        if (_trailStarted ||
+        if (_presentationShown ||
             !IsInitialized ||
-            projectileTrail == null)
+            projectileVisual == null)
         {
             return;
         }
 
-        _trailStarted = true;
+        _presentationShown = true;
 
-        projectileTrail.Begin(
+        projectileVisual.Show(
             PresentationOrigin,
             transform);
     }
@@ -564,7 +582,8 @@ public class Projectile :
         RaycastHit2D[] hits =
             Physics2D.CircleCastAll(
                 start,
-                collisionRadius,
+                _runtimeLaunchSettings
+                    .CollisionRadius,
                 direction,
                 distance,
                 collisionMask);

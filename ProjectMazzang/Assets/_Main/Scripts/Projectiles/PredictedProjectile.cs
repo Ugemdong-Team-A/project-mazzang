@@ -14,29 +14,25 @@ public class PredictedProjectile : MonoBehaviour
     private bool _initialized;
 
     public void Initialize(
-        WeaponFirePose firePose,
-        ProjectileLaunchSettings settings,
-        Vector2? optionalDir = null
-        )
+        in ProjectileLaunch launch)
     {
         Vector2 direction =
             ProjectileTrajectory
                 .NormalizeDirection(
-                    optionalDir ??
-                    firePose.Direction);
+                    launch.Direction);
 
         if (direction == Vector2.zero)
             direction = Vector2.right;
 
         transform.position =
-            firePose.Origin;
+            launch.Origin;
 
         _settings =
-            settings;
+            launch.Settings;
 
         _velocity =
             direction *
-            settings.Speed;
+            launch.Settings.Speed;
 
         _elapsedTime =
             0f;
@@ -48,10 +44,17 @@ public class PredictedProjectile : MonoBehaviour
 
         if (visual != null)
         {
-            visual.Initialize();
-        }
+            ProjectileStatSnapshot stats =
+                launch.Stats;
 
-        if (trail != null)
+            visual.Apply(
+                in stats);
+
+            visual.Show(
+                transform.position,
+                transform);
+        }
+        else if (trail != null)
         {
             trail.Begin(
                 transform.position,
@@ -102,6 +105,11 @@ public class PredictedProjectile : MonoBehaviour
         if (trail != null)
         {
             trail.Complete();
+        }
+
+        if (visual != null)
+        {
+            visual.Complete();
         }
     }
 

@@ -218,6 +218,11 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
   로컬 예측 표시는 프레임 Update에서 움직이되, 두 경로 모두 상태나 Transform을 소유하지 않는
   `ProjectileTrajectory`의 중력·감속 공식을 사용한다. 원격 실제 투사체는 이 공식을 실행하지 않고
   `NetworkTransform` 보간 결과만 표시한다.
+- 실제체와 예측 표시는 별도의 외형 결과 구조체를 만들지 않고 같은 `ProjectileStatSnapshot`을
+  `ProjectileVisual.Apply`에 전달한다. `ProjectileVisual`은 프리팹의 원본 크기·Sprite·Trail 설정을
+  기준으로 배율을 적용하므로, 고유 외형이 다른 투사체도 같은 능력치 공식을 사용한다. 현재는
+  명시적인 `ScaleMultiplier`만 크기와 Trail 폭에 반영하며, 피해량 같은 다른 능력치를 임의로
+  색상이나 크기에 연결하지 않는다.
 - `Projectile`의 루트 표시는 `NetworkTransform` 보간만 사용한다. `Render()`에서 같은 루트 Transform에
   별도 Lerp를 다시 적용하지 않는다. Trail 원점은 생성 순간의 확정 위치를 Networked 상태로 한 번
   보관하므로 발사 후 플레이어나 장착 무기를 역으로 탐색하지 않는다.
