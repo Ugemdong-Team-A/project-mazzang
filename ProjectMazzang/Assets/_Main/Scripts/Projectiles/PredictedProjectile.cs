@@ -6,10 +6,12 @@ public class PredictedProjectile : MonoBehaviour
     private ProjectileVisual visual;
 
     [SerializeField]
-    private ProjectileMovement movement;
-
-    [SerializeField]
     private ProjectileTrail trail;
+
+    private ProjectileLaunchSettings _settings;
+    private Vector2 _velocity;
+    private float _elapsedTime;
+    private bool _initialized;
 
     public void Initialize(
         WeaponFirePose firePose,
@@ -17,35 +19,104 @@ public class PredictedProjectile : MonoBehaviour
         Vector2? optionalDir = null
         )
     {
-        transform.position = firePose.Origin;
+        Vector2 direction =
+            ProjectileTrajectory
+                .NormalizeDirection(
+                    optionalDir ??
+                    firePose.Direction);
 
-        if (optionalDir.HasValue)
-            transform.right = optionalDir.Value;
-        else transform.right = firePose.Direction;
+        if (direction == Vector2.zero)
+            direction = Vector2.right;
 
-        movement.Initialize(
-            firePose,
-            settings,
-            optionalDir);
+        transform.position =
+            firePose.Origin;
 
-        movement.OnExpired += () => Destroy(gameObject);
+        _settings =
+            settings;
 
-        visual.Initialize();
+        _velocity =
+            direction *
+            settings.Speed;
 
-        trail.Begin(
-            transform.position,
-            transform);
+        _elapsedTime =
+            0f;
+
+        _initialized =
+            true;
+
+        ApplyRotation();
+
+        if (visual != null)
+        {
+            visual.Initialize();
+        }
+
+        if (trail != null)
+        {
+            trail.Begin(
+                transform.position,
+                transform);
+        }
     }
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+
+    private void Update()
     {
-        
+        if (!_initialized)
+            return;
+
+        float deltaTime =
+            Time.deltaTime;
+
+        _elapsedTime +=
+            deltaTime;
+
+        if (_settings.Lifetime > 0f &&
+            _elapsedTime >=
+            _settings.Lifetime)
+        {
+            Destroy(
+                gameObject);
+
+            return;
+        }
+
+        Vector2 position =
+            transform.position;
+
+        ProjectileTrajectory.Step(
+            ref position,
+            ref _velocity,
+            in _settings,
+            deltaTime);
+
+        transform.position =
+            position;
+
+        ApplyRotation();
     }
 
-    // Update is called once per frame
-    /*void Update()
+
+    private void OnDestroy()
     {
-        
-    }*/
+        if (trail != null)
+        {
+            trail.Complete();
+        }
+    }
+
+
+    private void ApplyRotation()
+    {
+        if (!_settings
+                .AlignRotationToVelocity)
+        {
+            return;
+        }
+
+        transform.rotation =
+            ProjectileTrajectory
+                .ResolveRotation(
+                    _velocity);
+    }
 }

@@ -17,7 +17,7 @@ public readonly struct ProjectilePredictionKey :
         get;
     }
 
-    public int ShotOrdinal
+    public int FireSequence
     {
         get;
     }
@@ -31,19 +31,19 @@ public readonly struct ProjectilePredictionKey :
         !EmitterId.Equals(
             default(NetworkId)) &&
         FireTick >= 0 &&
-        ShotOrdinal >= 0 &&
+        FireSequence >= 0 &&
         ProjectileIndex >= 0;
 
 
     public ProjectilePredictionKey(
         NetworkId emitterId,
         int fireTick,
-        int shotOrdinal,
+        int fireSequence,
         int projectileIndex)
     {
         EmitterId = emitterId;
         FireTick = fireTick;
-        ShotOrdinal = shotOrdinal;
+        FireSequence = fireSequence;
         ProjectileIndex = projectileIndex;
     }
 
@@ -56,8 +56,8 @@ public readonly struct ProjectilePredictionKey :
                 other.EmitterId) &&
             FireTick ==
             other.FireTick &&
-            ShotOrdinal ==
-            other.ShotOrdinal &&
+            FireSequence ==
+            other.FireSequence &&
             ProjectileIndex ==
             other.ProjectileIndex;
     }
@@ -86,7 +86,7 @@ public readonly struct ProjectilePredictionKey :
 
             hash =
                 hash * 397 ^
-                ShotOrdinal;
+                FireSequence;
 
             hash =
                 hash * 397 ^
@@ -104,7 +104,7 @@ public readonly struct ProjectilePredictionKey :
             ":" +
             FireTick +
             ":" +
-            ShotOrdinal +
+            FireSequence +
             ":" +
             ProjectileIndex;
     }

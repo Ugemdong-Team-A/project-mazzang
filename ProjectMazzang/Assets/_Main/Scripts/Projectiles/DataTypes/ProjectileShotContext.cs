@@ -25,7 +25,7 @@ public readonly struct ProjectileShotContext
         get;
     }
 
-    public int ShotOrdinal
+    public int FireSequence
     {
         get;
     }
@@ -45,13 +45,13 @@ public readonly struct ProjectileShotContext
         ProjectileLaunchPose launchPose,
         ProjectileStatSnapshot stats,
         int fireTick,
-        int shotOrdinal)
+        int fireSequence)
     {
         Source = source;
         LaunchPose = launchPose;
         Stats = stats;
         FireTick = fireTick;
-        ShotOrdinal = shotOrdinal;
+        FireSequence = fireSequence;
     }
 
 

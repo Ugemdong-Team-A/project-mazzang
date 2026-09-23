@@ -8,8 +8,6 @@ public class Projectile :
     NetworkBehaviour,
     IParryable
 {
-    [SerializeField] ProjectileMovement movement;
-
     [Header("Launch")]
     [Min(0.01f)]
     [SerializeField]
@@ -86,8 +84,21 @@ public class Projectile :
     
     private int _visibleImpactSequence;
 
-    public ProjectileLaunchSettings LaunchSettings
-        => new ProjectileLaunchSettings(initialSpeed, lifetime);
+    private ProjectileLaunchSettings _runtimeLaunchSettings;
+
+    public ProjectileBaseSettings BaseSettings =>
+        new(
+            initialSpeed,
+            lifetime,
+            gravityScale,
+            gravityAcceleration,
+            linearDrag,
+            alignRotationToVelocity,
+            collisionRadius);
+
+    public ProjectileLaunchSettings LaunchSettings =>
+        BaseSettings.Resolve(
+            ProjectileStatSnapshot.Identity);
 
     public Vector2 ParryVelocity => Velocity;
 
@@ -283,8 +294,9 @@ public class Projectile :
             return;
 
         Vector2 direction =
-            NormalizeDirection(
-                shot.FirePose.Direction);
+            ProjectileTrajectory.NormalizeDirection(
+                optionalDir ??
+                shot.LaunchPose.Direction);
 
         if (direction == Vector2.zero)
         {
@@ -309,6 +321,9 @@ public class Projectile :
         Velocity =
             direction *
             launchSettings.Speed;
+
+        _runtimeLaunchSettings =
+            launchSettings;
 
         Damage =
             attack != null
@@ -351,11 +366,6 @@ public class Projectile :
 
         ApplyRotationFromVelocity();
         TryStartTrailPresentation();
-
-        movement.Initialize(
-            shot.FirePose,
-            LaunchSettings,
-            optionalDir);
     }
 
 
@@ -402,7 +412,7 @@ public class Projectile :
             return;
         }
 
-        // SimulateBallisticMovement();
+        SimulateBallisticMovement();
     }
 
 
@@ -411,14 +421,13 @@ public class Projectile :
         float tickDeltaTime =
             Runner.DeltaTime;
 
-        Vector2 gravity =
-            Vector2.down *
-            gravityAcceleration *
-            gravityScale;
-
         Vector2 estimatedEndVelocity =
             Velocity +
-            gravity *
+            Vector2.down *
+            _runtimeLaunchSettings
+                .GravityAcceleration *
+            _runtimeLaunchSettings
+                .GravityScale *
             tickDeltaTime;
 
         float estimatedMaxSpeed =
@@ -442,12 +451,24 @@ public class Projectile :
              i < stepCount;
              i++)
         {
-            ApplyBallistics(
-                gravity,
+            Vector2 position =
+                transform.position;
+
+            Vector2 velocity =
+                Velocity;
+
+            ProjectileTrajectory.Step(
+                ref position,
+                ref velocity,
+                in _runtimeLaunchSettings,
                 stepDeltaTime);
 
+            Velocity =
+                velocity;
+
             if (!SimulateMovementStep(
-                    stepDeltaTime))
+                    position -
+                    (Vector2)transform.position))
             {
                 return;
             }
@@ -457,31 +478,9 @@ public class Projectile :
     }
 
 
-    private void ApplyBallistics(
-        Vector2 gravity,
-        float deltaTime)
-    {
-        Velocity +=
-            gravity *
-            deltaTime;
-
-        if (linearDrag <= 0f)
-            return;
-
-        Velocity /=
-            1f +
-            linearDrag *
-            deltaTime;
-    }
-
-
     private bool SimulateMovementStep(
-        float deltaTime)
+        Vector2 displacement)
     {
-        Vector2 displacement =
-            Velocity *
-            deltaTime;
-
         float distance =
             displacement.magnitude;
 
@@ -807,11 +806,12 @@ public class Projectile :
 
     private void ApplyRotationFromVelocity()
     {
-        if (!alignRotationToVelocity)
+        if (!_runtimeLaunchSettings
+                .AlignRotationToVelocity)
             return;
 
         Vector2 direction =
-            NormalizeDirection(
+            ProjectileTrajectory.NormalizeDirection(
                 Velocity);
 
         if (direction ==
@@ -901,4 +901,3 @@ public class Projectile :
 
 #endif
 }
-

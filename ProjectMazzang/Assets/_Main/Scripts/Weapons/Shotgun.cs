@@ -21,46 +21,87 @@ public sealed class Shotgun :
     private float projectileLifetime = 1.5f;
 
 
-    protected override bool TrySpawnProjectilesAtOnce(
-        ProjectileShotContext shot)
+    protected override ProjectileLaunchPlan BuildLaunchPlan(
+        in ProjectileShotContext shot,
+        in ProjectileBaseSettings projectileSettings)
     {
-        bool spawnedAny =
-            false;
+        ProjectileStatSnapshot stats =
+            shot.Stats;
+
+        ProjectileLaunchSettings baseLaunchSettings =
+            projectileSettings.Resolve(
+                in stats);
 
         ProjectileLaunchSettings launchSettings =
             new(
-                projectileSpeed,
-                projectileLifetime);
+                projectileSpeed *
+                stats.SpeedMultiplier,
+
+                projectileLifetime *
+                stats.LifetimeMultiplier,
+
+                baseLaunchSettings.GravityScale,
+                baseLaunchSettings.GravityAcceleration,
+                baseLaunchSettings.LinearDrag,
+                baseLaunchSettings.AlignRotationToVelocity,
+                baseLaunchSettings.CollisionRadius);
+
+        ProjectileVisualSnapshot visual =
+            ResolveProjectileVisual(
+                in stats);
+
+        int count =
+            Mathf.Max(
+                1,
+                pelletCount);
+
+        ProjectileLaunch[] launches =
+            new ProjectileLaunch[count];
 
         for (int i = 0;
-             i < pelletCount;
+             i < count;
              i++)
         {
             Vector2 pelletDirection =
                 RotateVector(
-                    shot.FirePose.Direction,
-                    CalculatePelletAngle(i));
+                    shot.LaunchPose.Direction,
+                    CalculatePelletAngle(
+                        i,
+                        count));
 
-            spawnedAny |=
-                TrySpawnProjectile(
-                    shot,
-                    launchSettings,
+            ProjectileLaunchPose pose =
+                new(
+                    shot.LaunchPose.Origin,
                     pelletDirection);
+
+            ProjectilePredictionKey key =
+                BuildPredictionKey(
+                    in shot,
+                    i);
+
+            launches[i] =
+                new ProjectileLaunch(
+                    key,
+                    pose,
+                    launchSettings,
+                    visual);
         }
 
-        return spawnedAny;
+        return new ProjectileLaunchPlan(
+            launches);
     }
 
 
     private float CalculatePelletAngle(
-        int index)
+        int index,
+        int count)
     {
-        if (pelletCount <= 1)
+        if (count <= 1)
             return 0f;
 
         float t =
             (float)index /
-            (pelletCount - 1);
+            (count - 1);
 
         return Mathf.Lerp(
             -spreadAngle * 0.5f,

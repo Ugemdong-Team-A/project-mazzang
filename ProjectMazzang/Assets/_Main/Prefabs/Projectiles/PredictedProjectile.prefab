@@ -14,7 +14,6 @@ GameObject:
   - component: {fileID: 4389448760971120309}
   - component: {fileID: 1824929019160003911}
   - component: {fileID: 8159496444135904789}
-  - component: {fileID: 2953489221202163622}
   m_Layer: 0
   m_Name: PredictedProjectile
   m_TagString: Untagged
@@ -228,7 +227,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PredictedProjectile
   visual: {fileID: 8159496444135904789}
-  movement: {fileID: 2953489221202163622}
   trail: {fileID: 1824929019160003911}
 --- !u!114 &1824929019160003911
 MonoBehaviour:
@@ -291,16 +289,3 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9844b4621ad4d3c4a86ecc3b4799df22, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ProjectileVisual
---- !u!114 &2953489221202163622
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 825353654883216363}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f57e24cebc78eda4a9d4072c41b3fb83, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ProjectileMovement
-  _velocity: {x: 0, y: 0}

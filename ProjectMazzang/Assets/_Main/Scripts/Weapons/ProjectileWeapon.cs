@@ -1,6 +1,5 @@
 using Fusion;
 using UnityEngine;
-using static UnityEngine.UI.Image;
 
 public class ProjectileWeapon :
     Weapon
@@ -150,20 +149,14 @@ public class ProjectileWeapon :
                     fireInterval)
                 : TickTimer.None;
 
-        // Host만 바꾸고, Peer가 사용할수도
-        // FireSequence++;
+        FireSequence++;
     }
 
-    // 받은 값으로 바로 Context를 만들지, Resolve 메서드들로 해석해서 만들지 고민인데 일단 후자로 ㄱㄱ
-    protected virtual ProjectileShotContext ResolveShot(
+    private ProjectileLaunchPose ResolveLaunchPose(
         Vector2 origin,
         Vector2 direction,
-        bool mirrored,
-        float attackDamageMultiplier)
+        bool mirrored)
     {
-        NetworkObject source =
-            Holder;
-
         direction =
             ResolveShotDirection(
                 direction);
@@ -180,14 +173,103 @@ public class ProjectileWeapon :
         Vector2 spawnPosition =
             firePose.Origin;
 
+        return new ProjectileLaunchPose(
+            spawnPosition,
+            direction);
+    }
+
+    private ProjectileStatSnapshot ResolveStatSnapshot(
+        float damageMultiplier = 1f,
+        float speedMultiplier = 1f,
+        float lifetimeMultiplier = 1f,
+        float knockbackMultiplier = 1f,
+        float scaleMultiplier = 1f,
+        float gravityMultiplier = 1f)
+    {
+        return new ProjectileStatSnapshot(
+            damageMultiplier,
+            speedMultiplier,
+            lifetimeMultiplier,
+            knockbackMultiplier,
+            scaleMultiplier,
+            gravityMultiplier);
+    }
+
+    private ProjectileShotContext BuildShotContext(
+        in ProjectileLaunchPose launchPose,
+        in ProjectileStatSnapshot stats)
+    {
+        NetworkObject source =
+            Holder;
 
         return new ProjectileShotContext(
             source,
-            new WeaponFirePose(
-                spawnPosition,
-                direction),
-            attackDamageMultiplier);
+            launchPose,
+            stats,
+            Runner.Tick,
+            FireSequence);
     }
+
+    protected virtual ProjectileVisualSnapshot ResolveProjectileVisual(
+        in ProjectileStatSnapshot stats)
+    {
+        return new ProjectileVisualSnapshot(
+            0,
+            new Color32(
+                255,
+                255,
+                255,
+                255),
+            0,
+            1f,
+            1f,
+            1f,
+            stats.ScaleMultiplier,
+            0);
+    }
+
+    protected static ProjectilePredictionKey BuildPredictionKey(
+        in ProjectileShotContext shot,
+        int projectileIndex)
+    {
+        return new ProjectilePredictionKey(
+            shot.Source.Id,
+            shot.FireTick,
+            shot.FireSequence,
+            projectileIndex);
+    }
+
+    protected virtual ProjectileLaunchPlan BuildLaunchPlan(
+        in ProjectileShotContext shot,
+        in ProjectileBaseSettings projectileSettings)
+    {
+        ProjectileStatSnapshot stats =
+            shot.Stats;
+
+        ProjectileLaunchSettings settings =
+            projectileSettings.Resolve(
+                in stats);
+
+        ProjectileVisualSnapshot visual =
+            ResolveProjectileVisual(
+                in stats);
+
+        ProjectilePredictionKey key =
+            BuildPredictionKey(
+                in shot,
+                0);
+
+        ProjectileLaunch launch =
+            new(
+                key,
+                shot.LaunchPose,
+                settings,
+                visual);
+
+        return new ProjectileLaunchPlan(
+            launch);
+    }
+
 
     public override WeaponActionData GetAction(
         WeaponButton button,
@@ -208,18 +290,37 @@ public class ProjectileWeapon :
         if(!CanFire()) 
             return false;
 
-        ApplyFireStates();
-
         if (projectilePrefab == null ||
             !projectilePrefab.TryGetComponent<Projectile>
-                (out Projectile projectile)) return false;
+                (out Projectile projectile))
+        {
+            return false;
+        }
 
-        ProjectileShotContext shot =
-            ResolveShot(
+        ApplyFireStates();
+
+        ProjectileLaunchPose launchPose =
+            ResolveLaunchPose(
                 origin,
                 direction,
-                mirrored,
+                mirrored);
+
+        ProjectileStatSnapshot statSnapshot =
+            ResolveStatSnapshot(
                 attackDamageMultiplier);
+
+        ProjectileShotContext shot =
+            BuildShotContext(
+                launchPose,
+                statSnapshot);
+
+        ProjectileBaseSettings projectileSettings =
+            projectile.BaseSettings;
+
+        ProjectileLaunchPlan launchPlan =
+            BuildLaunchPlan(
+                in shot,
+                in projectileSettings);
 
         /*if (testPredictedProjectile)
         {
@@ -231,24 +332,23 @@ public class ProjectileWeapon :
         }*/
 
         // 로컬 예측
-        if (!HasStateAuthority &&
-            HasInputAuthority && Runner.IsForward)
+        if (HasInputAuthority &&
+            Runner.IsForward)
         {
             PlayLocalFirePresentation();
-            return true;
         }
 
         // 호스트 판정
         if (!HasStateAuthority)
-            return false;
+            return true;
 
         // 이친구는 예측 전에도 검사할까 고민중.. 서버에선 판정 안해도 예측 시도는 열어야할까
         /*if (projectilePrefab == null)
             return false; */    
 
         if (!TrySpawnProjectilesAtOnce(
-                shot/*,
-                projectile.LaunchSettings*/))
+                shot,
+                launchPlan))
         {
             return false;
         }
@@ -260,44 +360,61 @@ public class ProjectileWeapon :
         LastAuthoritativeFireDirection =
             shot.FirePose.Direction;
 
-        FireSequence++;
-
         return true;
     }
 
 
     protected virtual bool TrySpawnProjectilesAtOnce(
-        ProjectileShotContext shot)
+        ProjectileShotContext shot,
+        ProjectileLaunchPlan launchPlan)
     {
-        return TrySpawnProjectile(
-            shot,
-            projectilePrefab.GetComponent<Projectile>().LaunchSettings);
+        bool spawnedAny =
+            false;
+
+        for (int i = 0;
+             i < launchPlan.Count;
+             i++)
+        {
+            ProjectileLaunch launch =
+                launchPlan[i];
+
+            spawnedAny |=
+                TrySpawnProjectile(
+                    shot,
+                    in launch);
+        }
+
+        return spawnedAny;
     }
 
 
     protected bool TrySpawnProjectile(
         ProjectileShotContext shot,
-        ProjectileLaunchSettings launchSettings,
-        Vector2? optionalDir = null)
+        in ProjectileLaunch launch)
     {
         if (testPredictedProjectile)
         {
             TestPredictProjectile(
-                shot,
-                projectilePrefab.GetComponent<Projectile>().LaunchSettings,
-                optionalDir);
+                in launch);
 
             return true;
         }
 
+        Vector2 launchOrigin =
+            launch.Origin;
+
+        Vector2 launchDirection =
+            launch.Direction;
+
+        ProjectileLaunchSettings launchSettings =
+            launch.Settings;
+
         NetworkObject spawned =
             Runner.Spawn(
                 projectilePrefab,
-                shot.FirePose.Origin,
+                launchOrigin,
                 ResolveProjectileRotation(
-                    optionalDir.HasValue ?
-                    optionalDir.Value :
-                    shot.FirePose.Direction),
+                    launchDirection),
                 shot.Source.InputAuthority,
                 (runner, obj) =>
                 {
@@ -310,7 +427,8 @@ public class ProjectileWeapon :
                     projectile.Initialize(
                             runner,
                             shot,
-                            launchSettings);
+                            launchSettings,
+                            launchDirection);
 
                     /*if (launchSettings.HasValue)
                     {
@@ -373,18 +491,17 @@ public class ProjectileWeapon :
     }
 
     private void TestPredictProjectile(
-        ProjectileShotContext shot,
-        ProjectileLaunchSettings launchSettings,
-        Vector2? optionalDir = null)
+        in ProjectileLaunch launch)
     {
         if (!testPredictedPrefab) return;
 
         PredictedProjectile predicted = Instantiate(testPredictedPrefab);
 
         predicted.Initialize(
-            shot.FirePose,
-            launchSettings,
-            optionalDir);
+            new WeaponFirePose(
+                launch.Origin,
+                launch.Direction),
+            launch.Settings);
     }
 
     /// <summary>

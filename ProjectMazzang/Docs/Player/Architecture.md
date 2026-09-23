@@ -208,13 +208,16 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
   연속 입력을 한 번의 예약으로 취급하며, 런타임 콤보 깊이는 1단계로 제한한다.
 - 같은 `AttackData`를 사용하더라도 실행 주체에 따라 타이밍과 사용 규칙은 달라질 수 있으므로,
   플레이어 전용 실행 정보는 `AttackData`에 두지 않는다.
-- `Projectile` 프리팹은 기본 초기 속도, 기본 수명, `AttackData`와 탄도·충돌 행동을 보관하고
-  충돌 시 공격 결과를 전달한다. 무기 자체가 발사 속도와 사거리를 정의해야 하는 경우에만
-  `ProjectileLaunchSettings`로 속도와 수명을 명시하며, 설정을 넘기지 않은 권총과 스킬은
-  프리팹 기본값을 그대로 사용한다.
-- `ProjectileWeapon`은 탄약·쿨다운·발사 연출과 단일 투사체 생성 절차를 소유한다. 샷건처럼
-  발사 패턴이 다른 무기는 `TrySpawnProjectiles`만 재정의하고, 보호된 단일 생성 도우미에 방향과
-  선택적 발사 설정을 전달한다. 공통 직렬화 상태나 프리팹 참조는 파생 클래스에 노출하지 않는다.
+- `Projectile` 프리팹은 `ProjectileBaseSettings`로 기본 초기 속도, 수명, 탄도와 충돌 반경을
+  제공하고 `AttackData`와 충돌 행동을 보관한다. `ProjectileWeapon`은 이 설정을 다시 직렬화하지 않고,
+  발사 순간의 `ProjectileStatSnapshot`을 적용해 최종 `ProjectileLaunchSettings`를 만든다.
+- `ProjectileWeapon`은 탄약·쿨다운·발사 연출과 `ProjectileLaunchPlan`에 따른 공통 생성 절차를
+  소유한다. 샷건처럼 발사 패턴이 다른 무기는 `BuildLaunchPlan`만 재정의해 펠릿별 위치·방향·설정을
+  만들며, 실제 `Runner.Spawn` 절차와 투사체 프리팹 참조는 기반 클래스가 유지한다.
+- 실제 `Projectile` 이동과 충돌은 State Authority의 `FixedUpdateNetwork`만 실행한다.
+  로컬 예측 표시는 프레임 Update에서 움직이되, 두 경로 모두 상태나 Transform을 소유하지 않는
+  `ProjectileTrajectory`의 중력·감속 공식을 사용한다. 원격 실제 투사체는 이 공식을 실행하지 않고
+  `NetworkTransform` 보간 결과만 표시한다.
 - `Projectile`의 루트 표시는 `NetworkTransform` 보간만 사용한다. `Render()`에서 같은 루트 Transform에
   별도 Lerp를 다시 적용하지 않는다. Trail 원점은 생성 순간의 확정 위치를 Networked 상태로 한 번
   보관하므로 발사 후 플레이어나 장착 무기를 역으로 탐색하지 않는다.
