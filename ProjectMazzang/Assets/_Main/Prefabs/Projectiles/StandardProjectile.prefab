@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 7299139703883796452}
   - component: {fileID: 1124852924467508756}
   - component: {fileID: 219069381915196619}
+  - component: {fileID: -3272432230396445672}
   m_Layer: 0
   m_Name: StandardProjectile
   m_TagString: Untagged
@@ -169,7 +170,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c0c8849eaf121df418ee825c5987a662, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BulletProjectile
-  movement: {fileID: 0}
+  movement: {fileID: -3272432230396445672}
   initialSpeed: 30
   lifetime: 4
   attack: {fileID: 11400000, guid: 78221498c5a74492bca7d0d8d8e70003, type: 2}
@@ -357,3 +358,16 @@ MonoBehaviour:
   trailMaterial: {fileID: 2100000, guid: 921360a4f610d3b448c9606edc87f867, type: 2}
   sortingLayerName: Default
   sortingOrder: 0
+--- !u!114 &-3272432230396445672
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6337874308675872314}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f57e24cebc78eda4a9d4072c41b3fb83, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ProjectileMovement
+  _velocity: {x: 0, y: 0}

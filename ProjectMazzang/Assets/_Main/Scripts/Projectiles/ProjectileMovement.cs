@@ -57,8 +57,6 @@ public class ProjectileMovement : MonoBehaviour
             direction = transform.right;
         transform.right = direction;*/
 
-        Debug.Log(optionalDir);
-
         _velocity = (optionalDir.HasValue ?
             optionalDir.Value :
             firePose.Direction) * settings.Speed;

@@ -352,9 +352,10 @@ public class Projectile :
         ApplyRotationFromVelocity();
         TryStartTrailPresentation();
 
-        /*movement.Initialize(
-            
-            )*/
+        movement.Initialize(
+            shot.FirePose,
+            LaunchSettings,
+            optionalDir);
     }
 
 
@@ -401,7 +402,7 @@ public class Projectile :
             return;
         }
 
-        SimulateBallisticMovement();
+        // SimulateBallisticMovement();
     }
 
 
@@ -901,72 +902,3 @@ public class Projectile :
 #endif
 }
 
-// 원래 ProjectileWeapon의 protected!!
-public /*protected*/ readonly struct ProjectileShotContext
-{
-    public readonly NetworkObject Source;
-    public readonly WeaponFirePose FirePose;
-    public readonly float AttackDamageMultiplier;
-
-    public ProjectileShotContext(
-        NetworkObject source,
-        WeaponFirePose firePose,
-        float attackDamageMultiplier)
-    {
-        Source = source;
-        FirePose = firePose;
-        AttackDamageMultiplier =
-            attackDamageMultiplier;
-    }
-}
-
-public readonly struct ProjectileLaunchSettings
-{
-    public float Speed { get; }
-
-    public float Lifetime { get; }
-
-    public float GravityScale { get; }
-
-    public float GravityAcceleration { get; }
-
-    public float LinearDrag { get; }
-
-    public bool AlignRotationToVelocity { get; }
-
-    public ProjectileLaunchSettings(
-        float speed,
-        float lifetime = 2.5f,
-        float gravityScale = 1f,
-        float gravityAcceleration = 9.81f,
-        float linearDrag = 0f,
-        bool alignRotationToVelocity = true)
-    {
-        Speed = speed;
-        Lifetime = lifetime;
-        GravityScale = gravityScale;
-        GravityAcceleration = gravityAcceleration;
-        LinearDrag = linearDrag;
-        AlignRotationToVelocity = alignRotationToVelocity;
-    }
-}
-
-public readonly struct ProjectileSnopshot
-{
-    public Vector2 Position { get; }
-
-    public Vector2 Direction { get; }
-
-    public Vector2 Velocity { get; }
-
-    public ProjectileSnopshot(
-        Vector2 position,
-        Vector2 direction,
-        Vector2 velocity
-        )
-    {
-        Position = position;
-        Direction = direction;
-        Velocity = velocity;
-    }
-}

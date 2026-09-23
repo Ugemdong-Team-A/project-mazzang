@@ -416,7 +416,7 @@ MonoBehaviour:
   muzzleFlash: {fileID: 0}
   audioSource: {fileID: 0}
   fireClip: {fileID: 0}
-  testPredictedProjectile: 1
+  testPredictedProjectile: 0
   testPredictedPrefab: {fileID: 4389448760971120309, guid: c93ef652fe0f5bd4b8df66ebc7b498ff, type: 3}
   _Ammo: 999
   pelletCount: 4
