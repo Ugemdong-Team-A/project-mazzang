@@ -223,6 +223,12 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
   기준으로 배율을 적용하므로, 고유 외형이 다른 투사체도 같은 능력치 공식을 사용한다. 현재는
   명시적인 `ScaleMultiplier`만 크기와 Trail 폭에 반영하며, 피해량 같은 다른 능력치를 임의로
   색상이나 크기에 연결하지 않는다.
+- 비-Host Input Authority만 Forward 실행에서 판정 없는 `PredictedProjectile`을 즉시 표시한다.
+  Host는 같은 Tick에 실제 투사체를 생성하므로 별도 예측 표시를 만들지 않는다.
+- `ProjectileWeapon`은 별도 예측 프리팹이나 전역 매니저 없이 자신의 `GameObjectPool`을 지연 생성한다.
+  예측체의 Sprite 계층과 Trail 설정은 실제 투사체 프리팹에서 복제한다. 복합 Animator·Particle 외형은
+  실제 투사체의 `ProjectileVisual.visualRoot` 아래에 시각 요소만 모으면 그 계층 전체를 예측체가 사용한다.
+  무기가 제거되면 활성 예측체와 풀을 함께 정리한다.
 - `Projectile`의 루트 표시는 `NetworkTransform` 보간만 사용한다. `Render()`에서 같은 루트 Transform에
   별도 Lerp를 다시 적용하지 않는다. Trail 원점은 생성 순간의 확정 위치를 Networked 상태로 한 번
   보관하므로 발사 후 플레이어나 장착 무기를 역으로 탐색하지 않는다.

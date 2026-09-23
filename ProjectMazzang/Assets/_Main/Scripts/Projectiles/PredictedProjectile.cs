@@ -1,21 +1,73 @@
 using UnityEngine;
 
-public class PredictedProjectile : MonoBehaviour
+[DisallowMultipleComponent]
+public sealed class PredictedProjectile : MonoBehaviour
 {
-    [SerializeField]
     private ProjectileVisual visual;
 
-    [SerializeField]
-    private ProjectileTrail trail;
-
     private ProjectileLaunchSettings _settings;
+    private ProjectilePredictionKey _key;
+    private ProjectileWeapon _owner;
     private Vector2 _velocity;
     private float _elapsedTime;
     private bool _initialized;
 
-    public void Initialize(
+    public ProjectilePredictionKey Key =>
+        _key;
+
+
+    public static PredictedProjectile Create(
+        Projectile projectileTemplate,
+        Transform poolRoot)
+    {
+        if (projectileTemplate == null)
+        {
+            throw new System.ArgumentNullException(
+                nameof(projectileTemplate));
+        }
+
+        GameObject instance =
+            new GameObject(
+                "[Local] " +
+                projectileTemplate.name +
+                " Prediction");
+
+        instance.SetActive(
+            false);
+
+        if (poolRoot != null)
+        {
+            instance.transform.SetParent(
+                poolRoot,
+                false);
+        }
+
+        ProjectileVisual instanceVisual =
+            ProjectileVisual.CreatePredictionCopy(
+                projectileTemplate.gameObject,
+                instance);
+
+        PredictedProjectile predicted =
+            instance.AddComponent<
+                PredictedProjectile>();
+
+        predicted.visual =
+            instanceVisual;
+
+        return predicted;
+    }
+
+
+    public void Play(
+        ProjectileWeapon owner,
         in ProjectileLaunch launch)
     {
+        _owner =
+            owner;
+
+        _key =
+            launch.Key;
+
         Vector2 direction =
             ProjectileTrajectory
                 .NormalizeDirection(
@@ -54,12 +106,6 @@ public class PredictedProjectile : MonoBehaviour
                 transform.position,
                 transform);
         }
-        else if (trail != null)
-        {
-            trail.Begin(
-                transform.position,
-                transform);
-        }
     }
 
 
@@ -78,8 +124,7 @@ public class PredictedProjectile : MonoBehaviour
             _elapsedTime >=
             _settings.Lifetime)
         {
-            Destroy(
-                gameObject);
+            ReturnToOwner();
 
             return;
         }
@@ -100,17 +145,52 @@ public class PredictedProjectile : MonoBehaviour
     }
 
 
+    public void PrepareForPool()
+    {
+        _initialized =
+            false;
+
+        _owner =
+            null;
+
+        _key =
+            default;
+
+        _elapsedTime =
+            0f;
+
+        if (visual != null)
+        {
+            visual.Hide();
+            visual.ResetVisual();
+        }
+    }
+
+
     private void OnDestroy()
     {
-        if (trail != null)
-        {
-            trail.Complete();
-        }
-
         if (visual != null)
         {
             visual.Complete();
         }
+    }
+
+
+    private void ReturnToOwner()
+    {
+        ProjectileWeapon owner =
+            _owner;
+
+        if (owner != null)
+        {
+            owner.ReleasePredictedProjectile(
+                this);
+
+            return;
+        }
+
+        Destroy(
+            gameObject);
     }
 
 

@@ -1,4 +1,5 @@
 using Fusion;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class ProjectileWeapon :
@@ -37,14 +38,15 @@ public class ProjectileWeapon :
     [SerializeField]
     private AudioClip fireClip;
 
-    [Header("Test")]
-    [SerializeField]
-    bool testPredictedProjectile;
-
-    [SerializeField]
-    PredictedProjectile testPredictedPrefab;
-
     private int _visibleFireSequence;
+
+    private GameObjectPool<PredictedProjectile>
+        _predictionPool;
+
+    private readonly Dictionary<
+        ProjectilePredictionKey,
+        PredictedProjectile> _activePredictions =
+            new();
 
     // =========================================================
     // Network State
@@ -120,6 +122,18 @@ public class ProjectileWeapon :
             FireSequence;
 
         PlayFireEffects();
+    }
+
+
+    public override void Despawned(
+        NetworkRunner runner,
+        bool hasState)
+    {
+        ClearPredictedProjectiles();
+
+        base.Despawned(
+            runner,
+            hasState);
     }
 
 
@@ -210,12 +224,17 @@ public class ProjectileWeapon :
             FireSequence);
     }
 
-    protected static ProjectilePredictionKey BuildPredictionKey(
+    protected ProjectilePredictionKey BuildPredictionKey(
         in ProjectileShotContext shot,
         int projectileIndex)
     {
+        NetworkId emitterId =
+            Object != null
+                ? Object.Id
+                : shot.Source.Id;
+
         return new ProjectilePredictionKey(
-            shot.Source.Id,
+            emitterId,
             shot.FireTick,
             shot.FireSequence,
             projectileIndex);
@@ -300,20 +319,20 @@ public class ProjectileWeapon :
                 in shot,
                 in projectileSettings);
 
-        /*if (testPredictedProjectile)
-        {
-            TestPredictProjectile(
-                shot,
-                projectile.LaunchSettings);
-
-            return true;
-        }*/
-
         // 로컬 예측
         if (HasInputAuthority &&
             Runner.IsForward)
         {
             PlayLocalFirePresentation();
+        }
+
+        if (HasInputAuthority &&
+            !HasStateAuthority &&
+            Runner.IsForward)
+        {
+            SpawnPredictedProjectiles(
+                projectile,
+                in launchPlan);
         }
 
         // 호스트 판정
@@ -370,14 +389,6 @@ public class ProjectileWeapon :
         ProjectileShotContext shot,
         in ProjectileLaunch launch)
     {
-        if (testPredictedProjectile)
-        {
-            TestPredictProjectile(
-                in launch);
-
-            return true;
-        }
-
         Vector2 launchOrigin =
             launch.Origin;
 
@@ -468,17 +479,6 @@ public class ProjectileWeapon :
         PlayFireEffects();        
     }
 
-    private void TestPredictProjectile(
-        in ProjectileLaunch launch)
-    {
-        if (!testPredictedPrefab) return;
-
-        PredictedProjectile predicted = Instantiate(testPredictedPrefab);
-
-        predicted.Initialize(
-            in launch);
-    }
-
     /// <summary>
     /// 카메라 흔들림, 총구 이펙트, SFX 재생
     /// </summary>
@@ -499,6 +499,163 @@ public class ProjectileWeapon :
             audioSource.PlayOneShot(
                 fireClip);
         }
+    }
+
+
+    private void SpawnPredictedProjectiles(
+        Projectile projectileTemplate,
+        in ProjectileLaunchPlan launchPlan)
+    {
+        EnsurePredictionPool(
+            projectileTemplate);
+
+        for (int i = 0;
+             i < launchPlan.Count;
+             i++)
+        {
+            ProjectileLaunch launch =
+                launchPlan[i];
+
+            if (!launch.Key.IsValid ||
+                _activePredictions.ContainsKey(
+                    launch.Key))
+            {
+                continue;
+            }
+
+            PredictedProjectile predicted =
+                _predictionPool.Get();
+
+            _activePredictions.Add(
+                launch.Key,
+                predicted);
+
+            predicted.Play(
+                this,
+                in launch);
+        }
+    }
+
+
+    private void EnsurePredictionPool(
+        Projectile projectileTemplate)
+    {
+        if (_predictionPool != null)
+            return;
+
+        _predictionPool =
+            new GameObjectPool<
+                PredictedProjectile>(
+                    0,
+                    () =>
+                        PredictedProjectile.Create(
+                            projectileTemplate,
+                            transform),
+                    OnTakePredictedProjectile,
+                    OnReturnPredictedProjectile,
+                    OnDestroyPredictedProjectile);
+    }
+
+
+    private void OnTakePredictedProjectile(
+        PredictedProjectile predicted)
+    {
+        predicted.transform.SetParent(
+            null,
+            false);
+
+        predicted.gameObject.SetActive(
+            true);
+    }
+
+
+    private void OnReturnPredictedProjectile(
+        PredictedProjectile predicted)
+    {
+        predicted.PrepareForPool();
+
+        predicted.transform.SetParent(
+            transform,
+            false);
+
+        predicted.transform.localPosition =
+            Vector3.zero;
+
+        predicted.transform.localRotation =
+            Quaternion.identity;
+
+        predicted.gameObject.SetActive(
+            false);
+    }
+
+
+    private static void OnDestroyPredictedProjectile(
+        PredictedProjectile predicted)
+    {
+        if (predicted != null)
+        {
+            Destroy(
+                predicted.gameObject);
+        }
+    }
+
+
+    internal void ReleasePredictedProjectile(
+        PredictedProjectile predicted)
+    {
+        if (predicted == null ||
+            _predictionPool == null)
+        {
+            return;
+        }
+
+        ProjectilePredictionKey key =
+            predicted.Key;
+
+        if (!_activePredictions.TryGetValue(
+                key,
+                out PredictedProjectile active) ||
+            active != predicted)
+        {
+            return;
+        }
+
+        _activePredictions.Remove(
+            key);
+
+        _predictionPool.Release(
+            predicted);
+    }
+
+
+    private void ClearPredictedProjectiles()
+    {
+        foreach (PredictedProjectile predicted
+                 in _activePredictions.Values)
+        {
+            if (predicted == null)
+                continue;
+
+            predicted.PrepareForPool();
+
+            Destroy(
+                predicted.gameObject);
+        }
+
+        _activePredictions.Clear();
+
+        if (_predictionPool == null)
+            return;
+
+        _predictionPool.Clear();
+        _predictionPool =
+            null;
+    }
+
+
+    private void OnDestroy()
+    {
+        ClearPredictedProjectiles();
     }
 
 

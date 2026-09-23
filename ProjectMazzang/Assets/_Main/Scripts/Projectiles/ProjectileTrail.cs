@@ -152,6 +152,42 @@ public sealed class ProjectileTrail : MonoBehaviour
         }
     }
 
+
+    public void CopySettingsFrom(
+        ProjectileTrail source)
+    {
+        if (source == null)
+            return;
+
+        lifetime =
+            source.lifetime;
+
+        minVertexDistance =
+            source.minVertexDistance;
+
+        startWidth =
+            source.startWidth;
+
+        endWidth =
+            source.endWidth;
+
+        colorOverTrail =
+            source.colorOverTrail;
+
+        trailMaterial =
+            source.trailMaterial;
+
+        sortingLayerName =
+            source.sortingLayerName;
+
+        sortingOrder =
+            source.sortingOrder;
+
+        ResolveSourceTrail();
+        ApplySettings(
+            _sourceTrail);
+    }
+
     private void OnDestroy()
     {
         Complete();
