@@ -86,6 +86,8 @@ public class Projectile :
 
     private ProjectileLaunchSettings _runtimeLaunchSettings;
 
+    private bool _localPredictionConfirmed;
+
     public ProjectileBaseSettings BaseSettings =>
         new(
             initialSpeed,
@@ -213,6 +215,34 @@ public class Projectile :
         set;
     }
 
+    [Networked]
+    private NetworkId PredictionEmitterId
+    {
+        get;
+        set;
+    }
+
+    [Networked]
+    private int PredictionFireTick
+    {
+        get;
+        set;
+    }
+
+    [Networked]
+    private int PredictionFireSequence
+    {
+        get;
+        set;
+    }
+
+    [Networked]
+    private int PredictionProjectileIndex
+    {
+        get;
+        set;
+    }
+
 
     protected virtual void Awake()
     {
@@ -235,6 +265,10 @@ public class Projectile :
 
     public override void Spawned()
     {
+        _localPredictionConfirmed =
+            false;
+
+        TryConfirmLocalPrediction();
         TryShowPresentation();
 
         _visibleImpactSequence =
@@ -244,6 +278,7 @@ public class Projectile :
 
     public override void Render()
     {
+        TryConfirmLocalPrediction();
         TryShowPresentation();
 
         if (_visibleImpactSequence ==
@@ -300,7 +335,8 @@ public class Projectile :
         Vector2 direction,*/
         ProjectileShotContext shot,
         ProjectileLaunchSettings launchSettings,
-        Vector2? optionalDir = null)
+        Vector2? optionalDir = null,
+        ProjectilePredictionKey predictionKey = default)
     {
         if (!HasStateAuthority)
             return;
@@ -336,6 +372,18 @@ public class Projectile :
 
         _runtimeLaunchSettings =
             launchSettings;
+
+        PredictionEmitterId =
+            predictionKey.EmitterId;
+
+        PredictionFireTick =
+            predictionKey.FireTick;
+
+        PredictionFireSequence =
+            predictionKey.FireSequence;
+
+        PredictionProjectileIndex =
+            predictionKey.ProjectileIndex;
 
         ProjectileStatSnapshot stats =
             shot.Stats;
@@ -384,6 +432,39 @@ public class Projectile :
 
         ApplyRotationFromVelocity();
         TryShowPresentation();
+    }
+
+
+    private void TryConfirmLocalPrediction()
+    {
+        if (_localPredictionConfirmed ||
+            HasStateAuthority ||
+            !HasInputAuthority ||
+            Runner == null)
+        {
+            return;
+        }
+
+        ProjectilePredictionKey key =
+            new(
+                PredictionEmitterId,
+                PredictionFireTick,
+                PredictionFireSequence,
+                PredictionProjectileIndex);
+
+        if (!key.IsValid ||
+            !Runner.TryFindObject(
+                key.EmitterId,
+                out NetworkObject emitter) ||
+            !emitter.TryGetComponent(
+                out ProjectileWeapon weapon))
+        {
+            return;
+        }
+
+        _localPredictionConfirmed =
+            weapon.ConfirmPredictedProjectile(
+                in key);
     }
 
 

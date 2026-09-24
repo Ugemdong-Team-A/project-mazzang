@@ -112,8 +112,16 @@ public class ProjectileWeapon :
 
     public override void Render()
     {
+        if (HasInputAuthority)
+        {
+            _visibleFireSequence =
+                FireSequence;
+
+            return;
+        }
+
         if (_visibleFireSequence ==
-            FireSequence || HasInputAuthority)
+            FireSequence)
         {
             return;
         }
@@ -323,7 +331,8 @@ public class ProjectileWeapon :
         if (HasInputAuthority &&
             Runner.IsForward)
         {
-            PlayLocalFirePresentation();
+            PlayLocalFirePresentation(
+                in launchPose);
         }
 
         if (HasInputAuthority &&
@@ -398,6 +407,9 @@ public class ProjectileWeapon :
         ProjectileLaunchSettings launchSettings =
             launch.Settings;
 
+        ProjectilePredictionKey predictionKey =
+            launch.Key;
+
         NetworkObject spawned =
             Runner.Spawn(
                 projectilePrefab,
@@ -417,7 +429,8 @@ public class ProjectileWeapon :
                             runner,
                             shot,
                             launchSettings,
-                            launchDirection);
+                            launchDirection,
+                            predictionKey);
 
                     /*if (launchSettings.HasValue)
                     {
@@ -474,9 +487,11 @@ public class ProjectileWeapon :
     // Presentation
     // =========================================================
 
-    protected virtual void PlayLocalFirePresentation()
+    protected virtual void PlayLocalFirePresentation(
+        in ProjectileLaunchPose launchPose)
     {
-        PlayFireEffects();        
+        PlayFireEffects(
+            launchPose.Origin);
     }
 
     /// <summary>
@@ -484,9 +499,17 @@ public class ProjectileWeapon :
     /// </summary>
     private void PlayFireEffects()
     {
+        PlayFireEffects(
+            LastAuthoritativeFireOrigin);
+    }
+
+
+    private void PlayFireEffects(
+        Vector2 origin)
+    {
         CameraShakeService.Play(
             fireShakeProfile,
-            LastAuthoritativeFireOrigin);
+            origin);
 
         if (muzzleFlash != null)
         {
@@ -625,6 +648,28 @@ public class ProjectileWeapon :
 
         _predictionPool.Release(
             predicted);
+    }
+
+
+    internal bool ConfirmPredictedProjectile(
+        in ProjectilePredictionKey key)
+    {
+        if (!key.IsValid ||
+            _predictionPool == null ||
+            !_activePredictions.TryGetValue(
+                key,
+                out PredictedProjectile predicted))
+        {
+            return false;
+        }
+
+        _activePredictions.Remove(
+            key);
+
+        _predictionPool.Release(
+            predicted);
+
+        return true;
     }
 
 

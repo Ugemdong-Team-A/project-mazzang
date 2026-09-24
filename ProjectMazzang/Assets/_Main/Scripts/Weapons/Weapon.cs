@@ -567,6 +567,9 @@ public abstract class Weapon :
         Holder =
             holder;
 
+        Object.AssignInputAuthority(
+            holderPlayer);
+
         ApplyLocalHolderState();
 
         PickupBlockedPlayer =
@@ -591,6 +594,8 @@ public abstract class Weapon :
     {
         if (!HasStateAuthority)
             return;
+
+        Object.RemoveInputAuthority();
 
         Holder =
             null;
