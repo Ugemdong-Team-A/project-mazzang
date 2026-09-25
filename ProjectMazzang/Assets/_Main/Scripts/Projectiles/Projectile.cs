@@ -86,6 +86,8 @@ public class Projectile :
 
     private ProjectileLaunchSettings _runtimeLaunchSettings;
 
+    private ProjectileCollision _projectileCollision;
+
     private ProjectileWeapon _predictionWeapon;
     private PredictedProjectile _localPrediction;
 
@@ -105,6 +107,15 @@ public class Projectile :
 
     public ProjectileVisual Visual =>
         projectileVisual;
+
+    internal LayerMask CollisionMask =>
+        collisionMask;
+
+    internal float MaxSimulationStepDistance =>
+        maxSimulationStepDistance;
+
+    internal int MaxSimulationStepsPerTick =>
+        maxSimulationStepsPerTick;
 
     public Vector2 ParryVelocity => Velocity;
 
@@ -254,6 +265,16 @@ public class Projectile :
 
     protected virtual void Awake()
     {
+        _projectileCollision =
+            GetComponent<ProjectileCollision>();
+
+        if (_projectileCollision == null)
+        {
+            _projectileCollision =
+                gameObject.AddComponent<
+                    ProjectileCollision>();
+        }
+
         if (projectileVisual == null)
         {
             projectileVisual =
@@ -409,6 +430,13 @@ public class Projectile :
 
         _runtimeLaunchSettings =
             launchSettings;
+
+        _projectileCollision.Initialize(
+            transform,
+            Object,
+            Source,
+            collisionMask,
+            launchSettings.CollisionRadius);
 
         PredictionEmitterId =
             predictionKey.EmitterId;
@@ -605,27 +633,14 @@ public class Projectile :
         float tickDeltaTime =
             Runner.DeltaTime;
 
-        Vector2 estimatedEndVelocity =
-            Velocity +
-            Vector2.down *
-            _runtimeLaunchSettings
-                .GravityAcceleration *
-            _runtimeLaunchSettings
-                .GravityScale *
-            tickDeltaTime;
-
-        float estimatedMaxSpeed =
-            Mathf.Max(
-                Velocity.magnitude,
-                estimatedEndVelocity.magnitude);
-
-        float estimatedDistance =
-            estimatedMaxSpeed *
-            tickDeltaTime;
-
         int stepCount =
-            CalculateStepCount(
-                estimatedDistance);
+            ProjectileTrajectory
+                .CalculateStepCount(
+                    Velocity,
+                    in _runtimeLaunchSettings,
+                    tickDeltaTime,
+                    maxSimulationStepDistance,
+                    maxSimulationStepsPerTick);
 
         float stepDeltaTime =
             tickDeltaTime /
@@ -665,18 +680,11 @@ public class Projectile :
     private bool SimulateMovementStep(
         Vector2 displacement)
     {
-        float distance =
-            displacement.magnitude;
-
-        if (distance <=
-            0.0001f)
+        if (displacement.sqrMagnitude <=
+            0.00000001f)
         {
             return true;
         }
-
-        Vector2 direction =
-            displacement /
-            distance;
 
         Vector2 start =
             transform.position;
@@ -690,12 +698,14 @@ public class Projectile :
             return true;
         }
 
-        if (TryFindCollision(
+        if (_projectileCollision.TrySweep(
                 start,
-                direction,
-                distance,
+                displacement,
                 out RaycastHit2D hit))
         {
+            Vector2 direction =
+                displacement.normalized;
+
             transform.position =
                 start +
                 direction *
@@ -714,129 +724,6 @@ public class Projectile :
             displacement;
 
         return true;
-    }
-
-
-    private int CalculateStepCount(
-        float estimatedDistance)
-    {
-        float stepDistance =
-            Mathf.Max(
-                0.005f,
-                maxSimulationStepDistance);
-
-        int stepCount =
-            Mathf.CeilToInt(
-                estimatedDistance /
-                stepDistance);
-
-        return Mathf.Clamp(
-            stepCount,
-            1,
-            Mathf.Max(
-                1,
-                maxSimulationStepsPerTick));
-    }
-
-
-    private bool TryFindCollision(
-        Vector2 start,
-        Vector2 direction,
-        float distance,
-        out RaycastHit2D nearestHit)
-    {
-        RaycastHit2D[] hits =
-            Physics2D.CircleCastAll(
-                start,
-                _runtimeLaunchSettings
-                    .CollisionRadius,
-                direction,
-                distance,
-                collisionMask);
-
-        bool found =
-            false;
-
-        nearestHit =
-            default;
-
-        float nearestDistance =
-            float.MaxValue;
-
-        for (int i = 0;
-             i < hits.Length;
-             i++)
-        {
-            RaycastHit2D hit =
-                hits[i];
-
-            Collider2D candidate =
-                hit.collider;
-
-            if (candidate == null)
-                continue;
-
-            if (ShouldIgnoreCollider(
-                    candidate))
-            {
-                continue;
-            }
-
-            if (hit.distance >=
-                nearestDistance)
-            {
-                continue;
-            }
-
-            nearestDistance =
-                hit.distance;
-
-            nearestHit =
-                hit;
-
-            found =
-                true;
-        }
-
-        return found;
-    }
-
-
-    protected virtual bool ShouldIgnoreCollider(
-        Collider2D candidate)
-    {
-        if (candidate.transform ==
-            transform)
-        {
-            return true;
-        }
-
-        if (candidate.transform.IsChildOf(
-                transform))
-        {
-            return true;
-        }
-
-        NetworkObject targetObject =
-            candidate.GetComponentInParent<
-                NetworkObject>();
-
-        if (targetObject == null)
-            return false;
-
-        if (targetObject ==
-            Object)
-        {
-            return true;
-        }
-
-        if (Source != null &&
-    targetObject == Source)
-        {
-            return true;
-        }
-
-        return false;
     }
 
 

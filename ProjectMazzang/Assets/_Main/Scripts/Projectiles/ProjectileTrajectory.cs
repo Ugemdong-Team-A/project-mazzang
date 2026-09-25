@@ -6,6 +6,81 @@ using UnityEngine;
 /// </summary>
 public static class ProjectileTrajectory
 {
+    public static int CalculateStepCount(
+        Vector2 velocity,
+        in ProjectileLaunchSettings settings,
+        float deltaTime,
+        float maxStepDistance,
+        int maxSteps)
+    {
+        if (deltaTime <= 0f)
+            return 1;
+
+        Vector2 estimatedEndVelocity =
+            velocity +
+            Vector2.down *
+            settings.GravityAcceleration *
+            settings.GravityScale *
+            deltaTime;
+
+        float estimatedMaxSpeed =
+            Mathf.Max(
+                velocity.magnitude,
+                estimatedEndVelocity.magnitude);
+
+        float estimatedDistance =
+            estimatedMaxSpeed *
+            deltaTime;
+
+        int stepCount =
+            Mathf.CeilToInt(
+                estimatedDistance /
+                Mathf.Max(
+                    0.005f,
+                    maxStepDistance));
+
+        return Mathf.Clamp(
+            stepCount,
+            1,
+            Mathf.Max(
+                1,
+                maxSteps));
+    }
+
+
+    public static void Advance(
+        ref Vector2 position,
+        ref Vector2 velocity,
+        in ProjectileLaunchSettings settings,
+        float deltaTime,
+        float maxStepDistance,
+        int maxSteps)
+    {
+        int stepCount =
+            CalculateStepCount(
+                velocity,
+                in settings,
+                deltaTime,
+                maxStepDistance,
+                maxSteps);
+
+        float stepDeltaTime =
+            deltaTime /
+            stepCount;
+
+        for (int i = 0;
+             i < stepCount;
+             i++)
+        {
+            Step(
+                ref position,
+                ref velocity,
+                in settings,
+                stepDeltaTime);
+        }
+    }
+
+
     public static void Step(
         ref Vector2 position,
         ref Vector2 velocity,

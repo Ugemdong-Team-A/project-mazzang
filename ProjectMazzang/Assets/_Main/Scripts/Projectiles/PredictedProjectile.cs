@@ -5,11 +5,18 @@ using UnityEngine;
 public sealed class PredictedProjectile : MonoBehaviour
 {
     private ProjectileVisual visual;
+    private ProjectileCollision collision;
 
     private ProjectileLaunchSettings _settings;
     private ProjectilePredictionKey _key;
     private ProjectileWeapon _owner;
     private Projectile _authoritativeProjectile;
+    private LayerMask _collisionMask;
+    private float _maxSimulationStepDistance;
+    private int _maxSimulationStepsPerTick;
+    private float _simulationDeltaTime;
+    private float _simulationAccumulator;
+    private Vector2 _simulationPosition;
     private Vector2 _velocity;
     private float _elapsedTime;
     private bool _initialized;
@@ -73,6 +80,28 @@ public sealed class PredictedProjectile : MonoBehaviour
         predicted.visual =
             instanceVisual;
 
+        predicted.collision =
+            instance.GetComponent<
+                ProjectileCollision>();
+
+        if (predicted.collision == null)
+        {
+            predicted.collision =
+                instance.AddComponent<
+                    ProjectileCollision>();
+        }
+
+        predicted._collisionMask =
+            projectileTemplate.CollisionMask;
+
+        predicted._maxSimulationStepDistance =
+            projectileTemplate
+                .MaxSimulationStepDistance;
+
+        predicted._maxSimulationStepsPerTick =
+            projectileTemplate
+                .MaxSimulationStepsPerTick;
+
         return predicted;
     }
 
@@ -98,8 +127,11 @@ public sealed class PredictedProjectile : MonoBehaviour
         if (direction == Vector2.zero)
             direction = Vector2.right;
 
-        transform.position =
+        _simulationPosition =
             launch.Origin;
+
+        transform.position =
+            _simulationPosition;
 
         _settings =
             launch.Settings;
@@ -107,6 +139,28 @@ public sealed class PredictedProjectile : MonoBehaviour
         _velocity =
             direction *
             launch.Settings.Speed;
+
+        _simulationDeltaTime =
+            ResolveSimulationDeltaTime(
+                owner);
+
+        _simulationAccumulator =
+            0f;
+
+        NetworkObject ownerObject =
+            GetComponent<NetworkObject>();
+
+        NetworkObject source =
+            owner != null
+                ? owner.Holder
+                : null;
+
+        collision.Initialize(
+            transform,
+            ownerObject,
+            source,
+            _collisionMask,
+            launch.Settings.CollisionRadius);
 
         _elapsedTime =
             0f;
@@ -155,19 +209,25 @@ public sealed class PredictedProjectile : MonoBehaviour
             return;
         }
 
-        Vector2 position =
-            transform.position;
+        _simulationAccumulator +=
+            deltaTime;
 
-        ProjectileTrajectory.Step(
-            ref position,
-            ref _velocity,
-            in _settings,
-            deltaTime);
+        while (_simulationAccumulator >=
+               _simulationDeltaTime)
+        {
+            ProjectileTrajectory.Advance(
+                ref _simulationPosition,
+                ref _velocity,
+                in _settings,
+                _simulationDeltaTime,
+                _maxSimulationStepDistance,
+                _maxSimulationStepsPerTick);
 
-        transform.position =
-            position;
+            _simulationAccumulator -=
+                _simulationDeltaTime;
+        }
 
-        ApplyRotation();
+        ApplyRenderInterpolation();
     }
 
 
@@ -210,6 +270,15 @@ public sealed class PredictedProjectile : MonoBehaviour
 
         _elapsedTime =
             0f;
+
+        _simulationAccumulator =
+            0f;
+
+        _simulationPosition =
+            default;
+
+        _velocity =
+            default;
 
         if (visual != null)
         {
@@ -258,6 +327,65 @@ public sealed class PredictedProjectile : MonoBehaviour
             ProjectileTrajectory
                 .ResolveRotation(
                     _velocity);
+    }
+
+
+    private void ApplyRenderInterpolation()
+    {
+        Vector2 nextPosition =
+            _simulationPosition;
+
+        Vector2 nextVelocity =
+            _velocity;
+
+        ProjectileTrajectory.Advance(
+            ref nextPosition,
+            ref nextVelocity,
+            in _settings,
+            _simulationDeltaTime,
+            _maxSimulationStepDistance,
+            _maxSimulationStepsPerTick);
+
+        float alpha =
+            Mathf.Clamp01(
+                _simulationAccumulator /
+                _simulationDeltaTime);
+
+        transform.position =
+            Vector2.Lerp(
+                _simulationPosition,
+                nextPosition,
+                alpha);
+
+        if (!_settings
+                .AlignRotationToVelocity)
+        {
+            return;
+        }
+
+        transform.rotation =
+            ProjectileTrajectory
+                .ResolveRotation(
+                    Vector2.Lerp(
+                        _velocity,
+                        nextVelocity,
+                        alpha));
+    }
+
+
+    private static float ResolveSimulationDeltaTime(
+        ProjectileWeapon owner)
+    {
+        if (owner != null &&
+            owner.Runner != null &&
+            owner.Runner.DeltaTime > 0f)
+        {
+            return owner.Runner.DeltaTime;
+        }
+
+        return Mathf.Max(
+            0.001f,
+            Time.fixedDeltaTime);
     }
 
 

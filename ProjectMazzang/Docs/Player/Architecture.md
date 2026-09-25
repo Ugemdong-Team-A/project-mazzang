@@ -215,9 +215,14 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
   소유한다. 샷건처럼 발사 패턴이 다른 무기는 `BuildLaunchPlan`만 재정의해 펠릿별 위치·방향·설정을
   만들며, 실제 `Runner.Spawn` 절차와 투사체 프리팹 참조는 기반 클래스가 유지한다.
 - 실제 `Projectile` 이동과 충돌은 State Authority의 `FixedUpdateNetwork`만 실행한다.
-  로컬 예측 표시는 프레임 Update에서 움직이되, 두 경로 모두 상태나 Transform을 소유하지 않는
-  `ProjectileTrajectory`의 중력·감속 공식을 사용한다. 원격 실제 투사체는 이 공식을 실행하지 않고
+  실제체와 로컬 예측 표시는 모두 `ProjectileTrajectory`로 Fusion Tick 간격과 같은 고정 시간 단계를
+  누적 계산하고, 한 Tick의 이동량이 크면 같은 기준으로 Substep을 나눈다. 예측 표시는 현재·다음 로컬
+  시뮬레이션 위치 사이만 프레임마다 보간한다. 원격 실제 투사체는 이 공식을 실행하지 않고
   `NetworkTransform` 보간 결과만 표시한다.
+- `ProjectileCollision`은 이동 구간의 CircleCast와 자신·발사자 제외 규칙만 담당하는 수동 컴포넌트다.
+  이동이나 피해를 직접 실행하지 않으며, 현재는 State Authority의 실제 `Projectile`만 조회 결과를
+  판정에 사용한다. 예측 복제본도 같은 충돌 마스크·반경·발사자를 초기화하지만 로컬 충돌 연출 단계가
+  구현되기 전까지 조회 결과를 소비하지 않는다.
 - 실제체와 예측 표시는 별도의 외형 결과 구조체를 만들지 않고 같은 `ProjectileStatSnapshot`을
   `ProjectileVisual.Apply`에 전달한다. `ProjectileVisual`은 프리팹의 원본 크기·Sprite·Trail 설정을
   기준으로 배율을 적용하므로, 고유 외형이 다른 투사체도 같은 능력치 공식을 사용한다. 현재는
