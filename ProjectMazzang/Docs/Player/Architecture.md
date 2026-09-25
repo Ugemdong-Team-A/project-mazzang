@@ -228,15 +228,19 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
 - 무기 `NetworkObject`의 Input Authority는 장착할 때 장착 플레이어에게 전달하고 드롭할 때 제거한다.
   따라서 비-Host 장착자도 `Ammo`, `FireCooldown`과 발사 표시를 자신의 예측 Tick에서 먼저 처리한다.
 - `ProjectileWeapon`은 별도 예측 프리팹이나 전역 매니저 없이 자신의 `GameObjectPool`을 지연 생성한다.
-  예측체의 Sprite 계층과 Trail 설정은 실제 투사체 프리팹에서 복제한다. 복합 Animator·Particle 외형은
-  실제 투사체의 `ProjectileVisual.visualRoot` 아래에 시각 요소만 모으면 그 계층 전체를 예측체가 사용한다.
-  무기가 제거되면 활성 예측체와 풀을 함께 정리한다.
+  풀 인스턴스는 실제 투사체 프리팹 전체를 복제한 뒤 `NetworkObject`, `NetworkBehaviour`, Collider와
+  Rigidbody 시뮬레이션을 끄고 `PredictedProjectile`만 로컬 이동에 사용한다. 따라서 Sprite, Trail,
+  Animator, Particle과 프리팹별 고유 외형 설정을 별도 복사 코드 없이 그대로 공유한다. 무기가 제거되면
+  활성 예측체와 비활성 풀 루트를 함께 정리한다.
 - Host가 생성한 실제 투사체는 발사 무기 ID, 발사 Tick, 발사 Sequence, 투사체 순번으로 이루어진
-  `ProjectilePredictionKey`를 Networked 상태로 전달한다. 발사 Client는 실제체가 Spawn되면 같은 키의
-  예측체를 풀에 반환한 뒤 실제체 표시로 전환하므로 두 외형을 동시에 표시하지 않는다.
-- `Projectile`의 루트 표시는 `NetworkTransform` 보간만 사용한다. `Render()`에서 같은 루트 Transform에
-  별도 Lerp를 다시 적용하지 않는다. Trail 원점은 생성 순간의 확정 위치를 Networked 상태로 한 번
-  보관하므로 발사 후 플레이어나 장착 무기를 역으로 탐색하지 않는다.
+  `ProjectilePredictionKey`를 Networked 상태로 전달한다. 실제 투사체 자체에는 Input Authority를 주지 않고,
+  발사 무기의 Input Authority로 로컬 발사자를 식별한다. 발사 Client는 실제체의 보간 스냅샷이 준비되면
+  같은 키의 예측체를 실제체 Transform 추적으로 전환하고 짧은 시간 동안 위치 오차를 줄인다. 이때 실제체의
+  외형은 숨겨 두므로 두 외형을 동시에 표시하지 않으며, 실제체가 Despawn될 때 예측체를 풀에 반환한다.
+- 다른 Client는 실제 투사체의 보간 스냅샷이 준비된 뒤 실제체 외형을 표시하고, Host는 생성한 실제체를
+  즉시 표시한다. `Projectile`의 원격 루트 표시는 `NetworkTransform` 보간만 사용하며 `Render()`에서 같은
+  루트 Transform에 별도 Lerp나 궤도 계산을 다시 적용하지 않는다. Trail은 각 Peer가 표시를 시작하는 현재
+  보간 위치에서 시작한다.
 - `ProjectileSkillData`는 생성 위치와 생성할 투사체 프리팹처럼 투사체 행동에만 필요한 값을
   보관한다. 시전과 회복 시간은 공통 Pattern에서만 설정한다.
 - 스킬은 투사체의 방향과 소유자만 초기화하며, 투사체의 밸런스 값을 중복해서 보관하지 않는다.

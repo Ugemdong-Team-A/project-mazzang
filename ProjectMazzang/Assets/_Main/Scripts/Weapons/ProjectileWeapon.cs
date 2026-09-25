@@ -43,6 +43,8 @@ public class ProjectileWeapon :
     private GameObjectPool<PredictedProjectile>
         _predictionPool;
 
+    private Transform _predictionPoolRoot;
+
     private readonly Dictionary<
         ProjectilePredictionKey,
         PredictedProjectile> _activePredictions =
@@ -416,7 +418,7 @@ public class ProjectileWeapon :
                 launchOrigin,
                 ResolveProjectileRotation(
                     launchDirection),
-                shot.Source.InputAuthority,
+                PlayerRef.None,
                 (runner, obj) =>
                 {
                     Projectile projectile =
@@ -566,6 +568,20 @@ public class ProjectileWeapon :
         if (_predictionPool != null)
             return;
 
+        GameObject poolRoot =
+            new GameObject(
+                "[Local] Projectile Prediction Pool");
+
+        _predictionPoolRoot =
+            poolRoot.transform;
+
+        _predictionPoolRoot.SetParent(
+            transform,
+            false);
+
+        poolRoot.SetActive(
+            false);
+
         _predictionPool =
             new GameObjectPool<
                 PredictedProjectile>(
@@ -573,7 +589,7 @@ public class ProjectileWeapon :
                     () =>
                         PredictedProjectile.Create(
                             projectileTemplate,
-                            transform),
+                            _predictionPoolRoot),
                     OnTakePredictedProjectile,
                     OnReturnPredictedProjectile,
                     OnDestroyPredictedProjectile);
@@ -586,9 +602,6 @@ public class ProjectileWeapon :
         predicted.transform.SetParent(
             null,
             false);
-
-        predicted.gameObject.SetActive(
-            true);
     }
 
 
@@ -597,8 +610,13 @@ public class ProjectileWeapon :
     {
         predicted.PrepareForPool();
 
+        predicted.gameObject.SetActive(
+            false);
+
         predicted.transform.SetParent(
-            transform,
+            _predictionPoolRoot != null
+                ? _predictionPoolRoot
+                : transform,
             false);
 
         predicted.transform.localPosition =
@@ -607,8 +625,6 @@ public class ProjectileWeapon :
         predicted.transform.localRotation =
             Quaternion.identity;
 
-        predicted.gameObject.SetActive(
-            false);
     }
 
 
@@ -651,25 +667,26 @@ public class ProjectileWeapon :
     }
 
 
-    internal bool ConfirmPredictedProjectile(
-        in ProjectilePredictionKey key)
+    internal bool TryBindPredictedProjectile(
+        in ProjectilePredictionKey key,
+        Projectile authoritativeProjectile,
+        out PredictedProjectile predicted)
     {
+        predicted =
+            null;
+
         if (!key.IsValid ||
+            authoritativeProjectile == null ||
             _predictionPool == null ||
             !_activePredictions.TryGetValue(
                 key,
-                out PredictedProjectile predicted))
+                out predicted))
         {
             return false;
         }
 
-        _activePredictions.Remove(
-            key);
-
-        _predictionPool.Release(
-            predicted);
-
-        return true;
+        return predicted.Follow(
+            authoritativeProjectile);
     }
 
 
@@ -689,12 +706,21 @@ public class ProjectileWeapon :
 
         _activePredictions.Clear();
 
-        if (_predictionPool == null)
-            return;
+        if (_predictionPool != null)
+        {
+            _predictionPool.Clear();
+            _predictionPool =
+                null;
+        }
 
-        _predictionPool.Clear();
-        _predictionPool =
-            null;
+        if (_predictionPoolRoot != null)
+        {
+            Destroy(
+                _predictionPoolRoot.gameObject);
+
+            _predictionPoolRoot =
+                null;
+        }
     }
 
 

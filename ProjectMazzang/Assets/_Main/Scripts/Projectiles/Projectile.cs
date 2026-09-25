@@ -86,7 +86,8 @@ public class Projectile :
 
     private ProjectileLaunchSettings _runtimeLaunchSettings;
 
-    private bool _localPredictionConfirmed;
+    private ProjectileWeapon _predictionWeapon;
+    private PredictedProjectile _localPrediction;
 
     public ProjectileBaseSettings BaseSettings =>
         new(
@@ -188,6 +189,13 @@ public class Projectile :
     }
 
     [Networked]
+    private float PresentationScaleMultiplier
+    {
+        get;
+        set;
+    }
+
+    [Networked]
     private NetworkBool HasImpacted
     {
         get;
@@ -260,16 +268,28 @@ public class Projectile :
         }
 
         projectileVisual.Initialize();
+
+        if (Application.isPlaying)
+        {
+            projectileVisual.Hide();
+        }
     }
 
 
     public override void Spawned()
     {
-        _localPredictionConfirmed =
+        _presentationShown =
             false;
 
-        TryConfirmLocalPrediction();
-        TryShowPresentation();
+        _predictionWeapon =
+            null;
+
+        _localPrediction =
+            null;
+
+        projectileVisual.Hide();
+
+        TryResolvePresentation();
 
         _visibleImpactSequence =
             ImpactSequence;
@@ -278,8 +298,7 @@ public class Projectile :
 
     public override void Render()
     {
-        TryConfirmLocalPrediction();
-        TryShowPresentation();
+        TryResolvePresentation();
 
         if (_visibleImpactSequence ==
             ImpactSequence)
@@ -306,8 +325,23 @@ public class Projectile :
         NetworkRunner runner,
         bool hasState)
     {
+        if (_predictionWeapon != null &&
+            _localPrediction != null)
+        {
+            _predictionWeapon
+                .ReleasePredictedProjectile(
+                    _localPrediction);
+        }
+
+        _predictionWeapon =
+            null;
+
+        _localPrediction =
+            null;
+
         if (projectileVisual != null)
         {
+            projectileVisual.Hide();
             projectileVisual.Complete();
         }
     }
@@ -366,6 +400,9 @@ public class Projectile :
         PresentationOrigin =
             transform.position;
 
+        PresentationScaleMultiplier =
+            shot.Stats.ScaleMultiplier;
+
         Velocity =
             direction *
             launchSettings.Speed;
@@ -384,12 +421,6 @@ public class Projectile :
 
         PredictionProjectileIndex =
             predictionKey.ProjectileIndex;
-
-        ProjectileStatSnapshot stats =
-            shot.Stats;
-
-        projectileVisual.Apply(
-            in stats);
 
         Damage =
             attack != null
@@ -431,18 +462,64 @@ public class Projectile :
             true;
 
         ApplyRotationFromVelocity();
-        TryShowPresentation();
     }
 
 
-    private void TryConfirmLocalPrediction()
+    private void TryResolvePresentation()
     {
-        if (_localPredictionConfirmed ||
-            HasStateAuthority ||
-            !HasInputAuthority ||
-            Runner == null)
+        if (_presentationShown ||
+            !IsInitialized ||
+            projectileVisual == null ||
+            !IsRenderInterpolationReady())
         {
             return;
+        }
+
+        if (TryBindLocalPrediction())
+        {
+            _presentationShown =
+                true;
+
+            return;
+        }
+
+        float scaleMultiplier =
+            PresentationScaleMultiplier > 0f
+                ? PresentationScaleMultiplier
+                : 1f;
+
+        ProjectileStatSnapshot stats =
+            new(
+                1f,
+                1f,
+                1f,
+                1f,
+                scaleMultiplier,
+                1f);
+
+        projectileVisual.Apply(
+            in stats);
+
+        _presentationShown =
+            true;
+
+        Vector3 trailOrigin =
+            HasStateAuthority
+                ? PresentationOrigin
+                : transform.position;
+
+        projectileVisual.Show(
+            trailOrigin,
+            transform);
+    }
+
+
+    private bool TryBindLocalPrediction()
+    {
+        if (HasStateAuthority ||
+            Runner == null)
+        {
+            return false;
         }
 
         ProjectilePredictionKey key =
@@ -457,31 +534,39 @@ public class Projectile :
                 key.EmitterId,
                 out NetworkObject emitter) ||
             !emitter.TryGetComponent(
-                out ProjectileWeapon weapon))
+                out ProjectileWeapon weapon) ||
+            !weapon.HasInputAuthority)
         {
-            return;
+            return false;
         }
 
-        _localPredictionConfirmed =
-            weapon.ConfirmPredictedProjectile(
-                in key);
+        if (!weapon.TryBindPredictedProjectile(
+                in key,
+                this,
+                out PredictedProjectile predicted))
+        {
+            return false;
+        }
+
+        _predictionWeapon =
+            weapon;
+
+        _localPrediction =
+            predicted;
+
+        return true;
     }
 
 
-    private void TryShowPresentation()
+    private bool IsRenderInterpolationReady()
     {
-        if (_presentationShown ||
-            !IsInitialized ||
-            projectileVisual == null)
-        {
-            return;
-        }
+        if (HasStateAuthority)
+            return true;
 
-        _presentationShown = true;
-
-        projectileVisual.Show(
-            PresentationOrigin,
-            transform);
+        return TryGetSnapshotsBuffers(
+            out _,
+            out _,
+            out _);
     }
 
 
