@@ -685,7 +685,7 @@ public class ProjectileWeapon :
             return false;
         }
 
-        return predicted.Follow(
+        return predicted.BindAuthority(
             authoritativeProjectile);
     }
 

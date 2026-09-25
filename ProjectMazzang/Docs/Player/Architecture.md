@@ -235,8 +235,9 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
 - Host가 생성한 실제 투사체는 발사 무기 ID, 발사 Tick, 발사 Sequence, 투사체 순번으로 이루어진
   `ProjectilePredictionKey`를 Networked 상태로 전달한다. 실제 투사체 자체에는 Input Authority를 주지 않고,
   발사 무기의 Input Authority로 로컬 발사자를 식별한다. 발사 Client는 실제체의 보간 스냅샷이 준비되면
-  같은 키의 예측체를 실제체 Transform 추적으로 전환하고 짧은 시간 동안 위치 오차를 줄인다. 이때 실제체의
-  외형은 숨겨 두므로 두 외형을 동시에 표시하지 않으며, 실제체가 Despawn될 때 예측체를 풀에 반환한다.
+  같은 키의 예측체에 권위 발사가 존재함을 연결하되 실제체 Transform을 추적하지 않는다. 예측체는 자신의
+  로컬 궤도를 계속 표시하고 실제체의 외형은 숨겨 두므로 두 외형을 동시에 표시하거나 보간 지연 위치로
+  되돌아가지 않는다. 연결된 실제체가 Despawn될 때 예측체를 풀에 반환한다.
 - 다른 Client는 실제 투사체의 보간 스냅샷이 준비된 뒤 실제체 외형을 표시하고, Host는 생성한 실제체를
   즉시 표시한다. `Projectile`의 원격 루트 표시는 `NetworkTransform` 보간만 사용하며 `Render()`에서 같은
   루트 Transform에 별도 Lerp나 궤도 계산을 다시 적용하지 않는다. Trail은 각 Peer가 표시를 시작하는 현재

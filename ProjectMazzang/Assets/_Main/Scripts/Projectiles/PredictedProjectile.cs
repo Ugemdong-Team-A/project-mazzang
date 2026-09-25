@@ -4,9 +4,6 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public sealed class PredictedProjectile : MonoBehaviour
 {
-    private const float HandoffCorrectionDuration =
-        0.1f;
-
     private ProjectileVisual visual;
 
     private ProjectileLaunchSettings _settings;
@@ -14,9 +11,7 @@ public sealed class PredictedProjectile : MonoBehaviour
     private ProjectileWeapon _owner;
     private Projectile _authoritativeProjectile;
     private Vector2 _velocity;
-    private Vector2 _handoffOffset;
     private float _elapsedTime;
-    private float _handoffElapsedTime;
     private bool _initialized;
 
     public ProjectilePredictionKey Key =>
@@ -95,12 +90,6 @@ public sealed class PredictedProjectile : MonoBehaviour
         _authoritativeProjectile =
             null;
 
-        _handoffOffset =
-            Vector2.zero;
-
-        _handoffElapsedTime =
-            0f;
-
         Vector2 direction =
             ProjectileTrajectory
                 .NormalizeDirection(
@@ -153,18 +142,11 @@ public sealed class PredictedProjectile : MonoBehaviour
         float deltaTime =
             Time.deltaTime;
 
-        if (_authoritativeProjectile != null)
-        {
-            FollowAuthoritativeProjectile(
-                deltaTime);
-
-            return;
-        }
-
         _elapsedTime +=
             deltaTime;
 
-        if (_settings.Lifetime > 0f &&
+        if (_authoritativeProjectile == null &&
+            _settings.Lifetime > 0f &&
             _elapsedTime >=
             _settings.Lifetime)
         {
@@ -189,7 +171,7 @@ public sealed class PredictedProjectile : MonoBehaviour
     }
 
 
-    public bool Follow(
+    public bool BindAuthority(
         Projectile authoritativeProjectile)
     {
         if (!_initialized ||
@@ -198,16 +180,15 @@ public sealed class PredictedProjectile : MonoBehaviour
             return false;
         }
 
+        if (_authoritativeProjectile != null &&
+            _authoritativeProjectile !=
+            authoritativeProjectile)
+        {
+            return false;
+        }
+
         _authoritativeProjectile =
             authoritativeProjectile;
-
-        _handoffOffset =
-            (Vector2)transform.position -
-            (Vector2)authoritativeProjectile
-                .transform.position;
-
-        _handoffElapsedTime =
-            0f;
 
         return true;
     }
@@ -229,12 +210,6 @@ public sealed class PredictedProjectile : MonoBehaviour
 
         _elapsedTime =
             0f;
-
-        _handoffElapsedTime =
-            0f;
-
-        _handoffOffset =
-            Vector2.zero;
 
         if (visual != null)
         {
@@ -283,47 +258,6 @@ public sealed class PredictedProjectile : MonoBehaviour
             ProjectileTrajectory
                 .ResolveRotation(
                     _velocity);
-    }
-
-
-    private void FollowAuthoritativeProjectile(
-        float deltaTime)
-    {
-        if (_authoritativeProjectile == null)
-        {
-            ReturnToOwner();
-            return;
-        }
-
-        _handoffElapsedTime +=
-            deltaTime;
-
-        float progress =
-            HandoffCorrectionDuration > 0f
-                ? Mathf.Clamp01(
-                    _handoffElapsedTime /
-                    HandoffCorrectionDuration)
-                : 1f;
-
-        float easedProgress =
-            progress *
-            progress *
-            (3f - 2f * progress);
-
-        Vector2 remainingOffset =
-            Vector2.Lerp(
-                _handoffOffset,
-                Vector2.zero,
-                easedProgress);
-
-        transform.position =
-            (Vector2)_authoritativeProjectile
-                .transform.position +
-            remainingOffset;
-
-        transform.rotation =
-            _authoritativeProjectile
-                .transform.rotation;
     }
 
 
