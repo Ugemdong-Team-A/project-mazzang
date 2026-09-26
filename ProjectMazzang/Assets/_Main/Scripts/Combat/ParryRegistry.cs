@@ -69,11 +69,14 @@ public static class ParryRegistry
                 facing,
                 Mathf.Clamp01(volume.ParryAimInfluence)).normalized;
 
+            ParryProjectileModifiers projectileModifiers =
+                volume.ProjectileModifiers;
+
             ParryHit hit = new(
                 volume.ParryOwner,
                 closest,
                 outgoing,
-                volume.ParrySpeedMultiplier);
+                in projectileModifiers);
 
             if (!target.TryParry(in hit))
                 continue;

@@ -424,7 +424,10 @@ MonoBehaviour:
   parryRadius: 1.15
   parryArcAngle: 92
   parryAimInfluence: 0.95
+  parryDamageMultiplier: 1
   parrySpeedMultiplier: 1.25
+  parryKnockbackMultiplier: 1
+  parryScaleMultiplier: 1
   parryForwardOffset: 0.52
   bashEffectForwardOffset: 0.68
   bashShakeProfile: {fileID: 11400000, guid: 020205b612304d22b1e00dd1c7382ffb, type: 2}

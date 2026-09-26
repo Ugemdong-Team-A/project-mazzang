@@ -1053,9 +1053,26 @@ public class Projectile :
         _projectileCollision.SetSource(
             Source);
 
+        ParryProjectileModifiers modifiers =
+            hit.ProjectileModifiers;
+
+        Damage =
+            Mathf.Max(
+                0,
+                Mathf.RoundToInt(
+                    Damage *
+                    modifiers.DamageMultiplier));
+
+        LocalKnockback *=
+            modifiers.KnockbackMultiplier;
+
+        ScaleMultiplier =
+            ResolveScaleMultiplier() *
+            modifiers.ScaleMultiplier;
+
         Velocity = hit.Direction.normalized *
                    Velocity.magnitude *
-                   Mathf.Max(0f, hit.SpeedMultiplier);
+                   modifiers.SpeedMultiplier;
 
         transform.position = hit.Point;
         TrajectoryRevision++;

@@ -7,18 +7,18 @@ public readonly struct ParryHit
         NetworkObject owner,
         Vector2 point,
         Vector2 direction,
-        float speedMultiplier)
+        in ParryProjectileModifiers projectileModifiers)
     {
         Owner = owner;
         Point = point;
         Direction = direction;
-        SpeedMultiplier = speedMultiplier;
+        ProjectileModifiers = projectileModifiers;
     }
 
     public NetworkObject Owner { get; }
     public Vector2 Point { get; }
     public Vector2 Direction { get; }
-    public float SpeedMultiplier { get; }
+    public ParryProjectileModifiers ProjectileModifiers { get; }
 }
 
 public interface IParryable
@@ -46,7 +46,7 @@ public interface IParryVolume
 
     float ParryAimInfluence { get; }
 
-    float ParrySpeedMultiplier { get; }
+    ParryProjectileModifiers ProjectileModifiers { get; }
 
     void OnParrySuccess(Vector2 point);
 }

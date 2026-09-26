@@ -62,7 +62,19 @@ public sealed class ShieldWeapon :
 
     [Min(0f)]
     [SerializeField]
+    private float parryDamageMultiplier = 1f;
+
+    [Min(0f)]
+    [SerializeField]
     private float parrySpeedMultiplier = 1.25f;
+
+    [Min(0f)]
+    [SerializeField]
+    private float parryKnockbackMultiplier = 1f;
+
+    [Min(0.01f)]
+    [SerializeField]
+    private float parryScaleMultiplier = 1f;
 
     [SerializeField]
     private float parryForwardOffset = 0.52f;
@@ -144,7 +156,12 @@ public sealed class ShieldWeapon :
     public float ParryRadius => parryRadius;
     public float ParryHalfAngle => parryArcAngle * 0.5f;
     public float ParryAimInfluence => parryAimInfluence;
-    public float ParrySpeedMultiplier => parrySpeedMultiplier;
+    public ParryProjectileModifiers ProjectileModifiers =>
+        new(
+            parryDamageMultiplier,
+            parrySpeedMultiplier,
+            parryKnockbackMultiplier,
+            parryScaleMultiplier);
 
     public override void Spawned()
     {

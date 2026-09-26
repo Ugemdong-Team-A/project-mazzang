@@ -226,7 +226,9 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
   `NetworkTransform` 보간 결과만 표시한다.
 - `ProjectileCollision`은 이동 구간의 CircleCast와 자신·발사자 제외 규칙만 담당하는 수동 컴포넌트다.
   재사용하는 결과 목록으로 조회하므로 실제체·예측체의 Substep마다 새 배열을 만들지 않으며, 이동이나
-  피해를 직접 실행하지 않는다. State Authority의 실제 `Projectile`은 조회 결과로 피해와
+  피해를 직접 실행하지 않는다. 판정 반경은 프리팹 Transform Scale이 아니라 발사 설정의 기본 반경과
+  투사체의 논리 `ScaleMultiplier`를 합성해 매 조회에 전달한다. State Authority의 실제 `Projectile`은
+  조회 결과로 피해와
   Networked 충돌 상태를 확정하고, 발사 Client의 예측 복제본은 같은 충돌 마스크·반경·발사자로 조회해
   로컬 투사체를 접촉 위치에 멈추고 Trail을 끝내는 데만 사용한다. 예측 충돌은 피해·넉백·패링·카메라
   반응을 실행하지 않으며 Host의 확정 결과를 바꾸지 않는다. 실제 투사체가 패링되면 충돌 조회의 제외
@@ -242,6 +244,10 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
   명시적인 `ScaleMultiplier`만 크기와 Trail 폭에 반영하며, 피해량 같은 다른 능력치를 임의로
   색상이나 크기에 연결하지 않는다. 실제체 초기화에서는 `DamageMultiplier`와
   `KnockbackMultiplier`를 각각 확정 피해와 넉백 크기에 적용한다.
+- 패링 영역은 `IParryVolume`으로 최종 `ParryProjectileModifiers`를 제공한다. `ParryRegistry`는 패링
+  성공 순간 이 값을 `ParryHit`에 복사하고, State Authority의 `Projectile`이 현재 피해·속도·넉백·논리
+  크기에 적용한다. `Projectile`은 `PlayerParry`, `ShieldWeapon`, `ParryData` 같은 구체 제공자를
+  참조하지 않는다.
 - 비-Host Input Authority만 Forward 실행에서 판정 없는 `PredictedProjectile`을 즉시 표시한다.
   Host는 같은 Tick에 실제 투사체를 생성하므로 별도 예측 표시를 만들지 않는다.
 - 무기 `NetworkObject`의 Input Authority는 장착할 때 장착 플레이어에게 전달하고 드롭할 때 제거한다.

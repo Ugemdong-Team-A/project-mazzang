@@ -54,7 +54,10 @@ public sealed class PlayerParry :
     public float ParryRadius => data != null ? data.Radius : 0f;
     public float ParryHalfAngle => data != null ? data.HalfAngle : 0f;
     public float ParryAimInfluence => data != null ? data.AimInfluence : 0f;
-    public float ParrySpeedMultiplier => data != null ? data.SpeedMultiplier : 1f;
+    public ParryProjectileModifiers ProjectileModifiers =>
+        data != null
+            ? data.ProjectileModifiers
+            : ParryProjectileModifiers.Identity;
 
     public override PlayerTickStage Stage => PlayerTickStage.DefenseIntent;
 
