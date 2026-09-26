@@ -17,7 +17,9 @@ public sealed class PredictedProjectile : MonoBehaviour
     private bool _despawnOnImpact;
     private float _impactPresentationDuration;
     private float _simulationDeltaTime;
-    private float _simulationAccumulator;
+    private float _fallbackSimulationAccumulator;
+    private int _lastSimulationTick;
+    private int _simulationExpirationTick;
     private Vector2 _simulationPosition;
     private Vector2 _velocity;
     private float _elapsedTime;
@@ -157,7 +159,22 @@ public sealed class PredictedProjectile : MonoBehaviour
             ResolveSimulationDeltaTime(
                 owner);
 
-        _simulationAccumulator =
+        NetworkRunner runner =
+            owner != null
+                ? owner.Runner
+                : null;
+
+        _lastSimulationTick =
+            runner != null
+                ? runner.Tick.Raw
+                : launch.Key.FireTick;
+
+        _simulationExpirationTick =
+            ResolveSimulationExpirationTick(
+                runner,
+                launch.Settings.Lifetime);
+
+        _fallbackSimulationAccumulator =
             0f;
 
         _impactHideTime =
@@ -221,6 +238,63 @@ public sealed class PredictedProjectile : MonoBehaviour
         _elapsedTime +=
             deltaTime;
 
+        if (_hasPredictedImpact)
+        {
+            if (ShouldExpirePrediction())
+            {
+                ReturnToOwner();
+                return;
+            }
+
+            TryHideImpactVisual();
+            return;
+        }
+
+        NetworkRunner runner =
+            _owner != null
+                ? _owner.Runner
+                : null;
+
+        if (runner != null &&
+            runner.DeltaTime > 0f)
+        {
+            int currentTick =
+                runner.Tick.Raw;
+
+            if (!AdvanceSimulationToTick(
+                    currentTick))
+            {
+                return;
+            }
+
+            if (IsSimulationExpired(
+                    currentTick))
+            {
+                if (_authoritativeProjectile == null)
+                {
+                    ReturnToOwner();
+                }
+
+                return;
+            }
+
+            float alpha =
+                Mathf.Clamp01(
+                    runner.LocalAlpha);
+
+            if (_simulationExpirationTick >= 0 &&
+                currentTick + 1 >=
+                _simulationExpirationTick)
+            {
+                alpha = 0f;
+            }
+
+            ApplyRenderInterpolation(
+                alpha);
+
+            return;
+        }
+
         if (_authoritativeProjectile == null &&
             _settings.Lifetime > 0f &&
             _elapsedTime >=
@@ -231,31 +305,28 @@ public sealed class PredictedProjectile : MonoBehaviour
             return;
         }
 
-        if (_hasPredictedImpact)
-        {
-            TryHideImpactVisual();
-            return;
-        }
-
-        _simulationAccumulator +=
+        _fallbackSimulationAccumulator +=
             deltaTime;
 
-        while (_simulationAccumulator >=
+        while (_fallbackSimulationAccumulator >=
                _simulationDeltaTime)
         {
-            _simulationAccumulator -=
+            _fallbackSimulationAccumulator -=
                 _simulationDeltaTime;
 
             if (!SimulateTick())
             {
-                _simulationAccumulator =
+                _fallbackSimulationAccumulator =
                     0f;
 
                 return;
             }
         }
 
-        ApplyRenderInterpolation();
+        ApplyRenderInterpolation(
+            Mathf.Clamp01(
+                _fallbackSimulationAccumulator /
+                _simulationDeltaTime));
     }
 
 
@@ -299,8 +370,14 @@ public sealed class PredictedProjectile : MonoBehaviour
         _elapsedTime =
             0f;
 
-        _simulationAccumulator =
+        _fallbackSimulationAccumulator =
             0f;
+
+        _lastSimulationTick =
+            0;
+
+        _simulationExpirationTick =
+            -1;
 
         _simulationPosition =
             default;
@@ -367,7 +444,78 @@ public sealed class PredictedProjectile : MonoBehaviour
     }
 
 
-    private void ApplyRenderInterpolation()
+    private bool AdvanceSimulationToTick(
+        int currentTick)
+    {
+        if (currentTick <
+            _lastSimulationTick)
+        {
+            _lastSimulationTick =
+                currentTick;
+
+            return true;
+        }
+
+        int lastTickToSimulate =
+            currentTick;
+
+        if (_simulationExpirationTick >= 0)
+        {
+            lastTickToSimulate =
+                Mathf.Min(
+                    lastTickToSimulate,
+                    _simulationExpirationTick - 1);
+        }
+
+        while (_lastSimulationTick <
+               lastTickToSimulate)
+        {
+            _lastSimulationTick++;
+
+            if (!SimulateTick())
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+
+    private bool ShouldExpirePrediction()
+    {
+        if (_authoritativeProjectile != null)
+            return false;
+
+        NetworkRunner runner =
+            _owner != null
+                ? _owner.Runner
+                : null;
+
+        if (runner != null &&
+            _simulationExpirationTick >= 0)
+        {
+            return IsSimulationExpired(
+                runner.Tick.Raw);
+        }
+
+        return _settings.Lifetime > 0f &&
+               _elapsedTime >=
+               _settings.Lifetime;
+    }
+
+
+    private bool IsSimulationExpired(
+        int currentTick)
+    {
+        return _simulationExpirationTick >= 0 &&
+               currentTick >=
+               _simulationExpirationTick;
+    }
+
+
+    private void ApplyRenderInterpolation(
+        float alpha)
     {
         Vector2 nextPosition =
             _simulationPosition;
@@ -382,11 +530,6 @@ public sealed class PredictedProjectile : MonoBehaviour
             _simulationDeltaTime,
             _maxSimulationStepDistance,
             _maxSimulationStepsPerTick);
-
-        float alpha =
-            Mathf.Clamp01(
-                _simulationAccumulator /
-                _simulationDeltaTime);
 
         Vector2 renderPosition =
             Vector2.Lerp(
@@ -567,6 +710,30 @@ public sealed class PredictedProjectile : MonoBehaviour
         return Mathf.Max(
             0.001f,
             Time.fixedDeltaTime);
+    }
+
+
+    private static int ResolveSimulationExpirationTick(
+        NetworkRunner runner,
+        float lifetime)
+    {
+        if (runner == null ||
+            lifetime <= 0f)
+        {
+            return -1;
+        }
+
+        TickTimer timer =
+            TickTimer.CreateFromSeconds(
+                runner,
+                lifetime);
+
+        Tick? targetTick =
+            timer.TargetTick;
+
+        return targetTick.HasValue
+            ? targetTick.Value.Raw
+            : -1;
     }
 
 

@@ -216,8 +216,10 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
   만들며, 실제 `Runner.Spawn` 절차와 투사체 프리팹 참조는 기반 클래스가 유지한다.
 - 실제 `Projectile` 이동과 충돌은 State Authority의 `FixedUpdateNetwork`만 실행한다.
   실제체와 로컬 예측 표시는 모두 `ProjectileTrajectory`로 Fusion Tick 간격과 같은 고정 시간 단계를
-  누적 계산하고, 한 Tick의 이동량이 크면 같은 기준으로 Substep을 나눈다. 예측 표시는 현재·다음 로컬
-  시뮬레이션 위치 사이만 프레임마다 보간한다. 원격 실제 투사체는 이 공식을 실행하지 않고
+  누적 계산하고, 한 Tick의 이동량이 크면 같은 기준으로 Substep을 나눈다. 예측 표시는 `Runner.Tick`이
+  전진한 횟수만큼만 시뮬레이션하고 `Runner.LocalAlpha`로 현재·다음 로컬 위치 사이를 보간한다. 수명도
+  실제체와 같은 `TickTimer` 만료 Tick으로 환산하므로 렌더 FPS나 한 프레임에 처리한 Tick 수가 궤적과
+  사거리를 바꾸지 않는다. 원격 실제 투사체는 이 공식을 실행하지 않고
   `NetworkTransform` 보간 결과만 표시한다.
 - `ProjectileCollision`은 이동 구간의 CircleCast와 자신·발사자 제외 규칙만 담당하는 수동 컴포넌트다.
   이동이나 피해를 직접 실행하지 않는다. State Authority의 실제 `Projectile`은 조회 결과로 피해와
@@ -243,7 +245,9 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
   발사 무기의 Input Authority로 로컬 발사자를 식별한다. 발사 Client는 실제체의 보간 스냅샷이 준비되면
   같은 키의 예측체에 권위 발사가 존재함을 연결하되 실제체 Transform을 추적하지 않는다. 예측체는 자신의
   로컬 궤도를 계속 표시하고 실제체의 외형은 숨겨 두므로 두 외형을 동시에 표시하거나 보간 지연 위치로
-  되돌아가지 않는다. 연결된 실제체가 Despawn될 때 예측체를 풀에 반환한다.
+  되돌아가지 않는다. 로컬 예측체 매칭 여부가 아직 확정되지 않은 실제체도 숨긴 채 다음 Render에서
+  재시도하며, 매칭 실패를 원격 투사체로 오판해 한 프레임 노출하지 않는다. 연결된 실제체가 Despawn될 때
+  예측체를 풀에 반환한다.
 - 다른 Client는 실제 투사체의 보간 스냅샷이 준비된 뒤 실제체 외형을 표시하고, Host는 생성한 실제체를
   즉시 표시한다. `Projectile`의 원격 루트 표시는 `NetworkTransform` 보간만 사용하며 `Render()`에서 같은
   루트 Transform에 별도 Lerp나 궤도 계산을 다시 적용하지 않는다. Trail은 각 Peer가 표시를 시작하는 현재

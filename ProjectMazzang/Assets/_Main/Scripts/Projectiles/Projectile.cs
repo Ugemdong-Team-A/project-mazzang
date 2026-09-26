@@ -8,6 +8,13 @@ public class Projectile :
     NetworkBehaviour,
     IParryable
 {
+    private enum PredictionBindingResult
+    {
+        NotLocal,
+        Pending,
+        Bound
+    }
+
     [Header("Launch")]
     [Min(0.01f)]
     [SerializeField]
@@ -509,11 +516,21 @@ public class Projectile :
             return;
         }
 
-        if (TryBindLocalPrediction())
+        PredictionBindingResult bindingResult =
+            TryBindLocalPrediction();
+
+        if (bindingResult ==
+            PredictionBindingResult.Bound)
         {
             _presentationShown =
                 true;
 
+            return;
+        }
+
+        if (bindingResult ==
+            PredictionBindingResult.Pending)
+        {
             return;
         }
 
@@ -548,12 +565,13 @@ public class Projectile :
     }
 
 
-    private bool TryBindLocalPrediction()
+    private PredictionBindingResult
+        TryBindLocalPrediction()
     {
         if (HasStateAuthority ||
             Runner == null)
         {
-            return false;
+            return PredictionBindingResult.NotLocal;
         }
 
         ProjectilePredictionKey key =
@@ -563,32 +581,37 @@ public class Projectile :
                 PredictionFireSequence,
                 PredictionProjectileIndex);
 
-        if (!key.IsValid ||
-            !Runner.TryFindObject(
+        if (!key.IsValid)
+        {
+            return PredictionBindingResult.NotLocal;
+        }
+
+        if (!Runner.TryFindObject(
                 key.EmitterId,
                 out NetworkObject emitter) ||
             !emitter.TryGetComponent(
-                out ProjectileWeapon weapon) ||
-            !weapon.HasInputAuthority)
+                out ProjectileWeapon weapon))
         {
-            return false;
+            return PredictionBindingResult.Pending;
         }
 
-        if (!weapon.TryBindPredictedProjectile(
+        if (weapon.TryBindPredictedProjectile(
                 in key,
                 this,
                 out PredictedProjectile predicted))
         {
-            return false;
+            _predictionWeapon =
+                weapon;
+
+            _localPrediction =
+                predicted;
+
+            return PredictionBindingResult.Bound;
         }
 
-        _predictionWeapon =
-            weapon;
-
-        _localPrediction =
-            predicted;
-
-        return true;
+        return weapon.HasInputAuthority
+            ? PredictionBindingResult.Pending
+            : PredictionBindingResult.NotLocal;
     }
 
 

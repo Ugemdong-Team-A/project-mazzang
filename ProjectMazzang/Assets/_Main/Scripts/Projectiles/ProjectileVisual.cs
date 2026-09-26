@@ -28,6 +28,11 @@ public class ProjectileVisual : MonoBehaviour
     private void Awake()
     {
         Initialize();
+
+        if (Application.isPlaying)
+        {
+            Hide();
+        }
     }
 
 
