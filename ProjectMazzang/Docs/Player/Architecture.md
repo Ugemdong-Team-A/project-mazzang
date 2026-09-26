@@ -192,8 +192,10 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
   `IWeaponHandler.PresentationRoot`를 사용한다. `PlayerWeaponController`는 이 값을
   `NetworkRigidbody.InterpolationTarget`으로 제공하므로 방패와 패링 쿨다운 표시가 렌더 보간된
   캐릭터 외형과 같은 프레임 위치를 사용한다. 기본 패링의 표시 오브젝트는 `WeaponSocket` 자식으로
-  만들고, 원호 좌표는 Animator와 IK가 Socket을 갱신한 뒤 `LateUpdate`에서 계산한다. 판정과
-  Networked 상태를 소유하는 `PlayerParry` 자체는 계속 플레이어 루트에 둔다.
+  만들고, 원호 좌표는 Animator와 IK가 Socket을 갱신한 뒤 `LateUpdate`에서 계산한다. 기본 패링은
+  중심을 기준으로 굵기와 투명도가 대칭인 외곽광·코어 원호를 사용하고, 현재 패링 각도에 비례해
+  LineRenderer 점 수를 정한다. 판정과 Networked 상태를 소유하는 `PlayerParry` 자체는 계속 플레이어
+  루트에 둔다.
 - Sword는 선택적인 `DashData`를 참조한다. 공격 준비 시간이 끝나는 Tick에
   `IPlayerTickCommandDispatcher`로 이동 속도와 Control Lock을 요청한 뒤 타격을 판정한다.
   방향 정책은 직렬화 설정에 따라 공격 입력 순간의 방향 또는 돌진 시작 Tick의 최신 Aim 방향을 사용한다.

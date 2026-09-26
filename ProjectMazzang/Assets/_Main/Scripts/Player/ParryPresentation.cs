@@ -2,8 +2,9 @@ using UnityEngine;
 
 public sealed class ParryPresentation : MonoBehaviour
 {
-    private const int ArcSegments = 18;
-    private LineRenderer _shield;
+    private const float ArcDegreesPerSegment = 6f;
+    private LineRenderer _shieldGlow;
+    private LineRenderer _shieldCore;
     private LineRenderer _cooldownBack;
     private LineRenderer _cooldownFill;
     private LineRenderer _success;
@@ -57,7 +58,7 @@ public sealed class ParryPresentation : MonoBehaviour
 
     private void LateUpdate()
     {
-        if (_shield == null)
+        if (_shieldGlow == null)
             return;
 
         UpdateParryArc();
@@ -67,7 +68,8 @@ public sealed class ParryPresentation : MonoBehaviour
 
     private void UpdateParryArc()
     {
-        _shield.enabled = _active;
+        _shieldGlow.enabled = _active;
+        _shieldCore.enabled = _active;
 
         if (!_active)
             return;
@@ -82,18 +84,25 @@ public sealed class ParryPresentation : MonoBehaviour
             _direction * _forwardOffset;
 
         float pulse =
-            0.9f +
-            Mathf.Sin(Time.time * 38f) * 0.1f;
+            0.92f +
+            Mathf.Sin(Time.time * 38f) * 0.08f;
 
-        _shield.startWidth = 0.09f * pulse;
-        _shield.endWidth = 0.035f;
-        _shield.startColor =
-            new Color(0.85f, 1f, 1f, 0.98f);
-        _shield.endColor =
-            new Color(0.1f, 0.75f, 1f, 0.32f);
+        _shieldGlow.widthMultiplier =
+            0.16f * pulse;
+
+        _shieldCore.widthMultiplier =
+            0.06f * pulse;
 
         SetArc(
-            _shield,
+            _shieldGlow,
+            origin,
+            _direction,
+            _radius,
+            _halfAngle,
+            1f);
+
+        SetArc(
+            _shieldCore,
             origin,
             _direction,
             _radius,
@@ -160,15 +169,30 @@ public sealed class ParryPresentation : MonoBehaviour
 
     private void EnsureCreated()
     {
-        if (_shield != null)
+        if (_shieldGlow != null)
             return;
 
         Shader shader = Shader.Find("Sprites/Default");
         _material = new Material(shader);
-        _shield = CreateLine("Parry Shield", 32);
+        _shieldGlow = CreateLine("Parry Shield Glow", 32);
+        _shieldCore = CreateLine("Parry Shield Core", 33);
         _cooldownBack = CreateLine("Parry Cooldown Back", 30);
         _cooldownFill = CreateLine("Parry Cooldown Fill", 31);
-        _success = CreateLine("Parry Success", 33);
+        _success = CreateLine("Parry Success", 34);
+
+        ConfigureSymmetricArc(
+            _shieldGlow,
+            new Color(0.05f, 0.55f, 1f),
+            new Color(0.35f, 0.95f, 1f),
+            0.04f,
+            0.48f);
+
+        ConfigureSymmetricArc(
+            _shieldCore,
+            new Color(0.08f, 0.72f, 1f),
+            new Color(0.9f, 1f, 1f),
+            0.2f,
+            1f);
 
         _cooldownBack.startWidth = _cooldownBack.endWidth = 0.045f;
         _cooldownBack.startColor = _cooldownBack.endColor =
@@ -193,6 +217,41 @@ public sealed class ParryPresentation : MonoBehaviour
         return line;
     }
 
+
+    private static void ConfigureSymmetricArc(
+        LineRenderer line,
+        Color edgeColor,
+        Color centerColor,
+        float edgeAlpha,
+        float centerAlpha)
+    {
+        line.widthCurve =
+            new AnimationCurve(
+                new Keyframe(0f, 0.25f),
+                new Keyframe(0.5f, 1f),
+                new Keyframe(1f, 0.25f));
+
+        Gradient gradient =
+            new();
+
+        gradient.SetKeys(
+            new[]
+            {
+                new GradientColorKey(edgeColor, 0f),
+                new GradientColorKey(centerColor, 0.5f),
+                new GradientColorKey(edgeColor, 1f)
+            },
+            new[]
+            {
+                new GradientAlphaKey(edgeAlpha, 0f),
+                new GradientAlphaKey(centerAlpha, 0.5f),
+                new GradientAlphaKey(edgeAlpha, 1f)
+            });
+
+        line.colorGradient =
+            gradient;
+    }
+
     private static void SetArc(
         LineRenderer line,
         Vector2 origin,
@@ -201,11 +260,30 @@ public sealed class ParryPresentation : MonoBehaviour
         float halfAngle,
         float progress)
     {
-        int count = Mathf.Max(2, Mathf.CeilToInt(ArcSegments * progress) + 1);
+        progress =
+            Mathf.Clamp01(progress);
+
+        float resolvedHalfAngle =
+            Mathf.Max(
+                0f,
+                halfAngle);
+
+        float span =
+            resolvedHalfAngle *
+            2f *
+            progress;
+
+        int count =
+            Mathf.Max(
+                2,
+                Mathf.CeilToInt(
+                    span /
+                    ArcDegreesPerSegment) +
+                1);
+
         line.positionCount = count;
         float center = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
-        float span = halfAngle * 2f * progress;
-        float start = center - halfAngle;
+        float start = center - resolvedHalfAngle;
 
         for (int i = 0; i < count; i++)
         {
