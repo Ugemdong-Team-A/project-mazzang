@@ -15,9 +15,8 @@ public enum BuildVersionState
 public sealed class BuildVersionChecker :
     MonoBehaviour
 {
-    [Header("Version Source")]
-    [SerializeField]
-    private string versionUrl;
+    private const string VersionUrl =
+        "https://raw.githubusercontent.com/Ugemdong-Team-A/project-mazzang-version/main/version.txt";
 
     [Min(1)]
     [SerializeField]
@@ -59,7 +58,7 @@ public sealed class BuildVersionChecker :
             BuildVersionState.Checking);
 
         if (string.IsNullOrWhiteSpace(
-                versionUrl))
+                VersionUrl))
         {
             SetState(
                 BuildVersionState.Failed);
@@ -69,7 +68,7 @@ public sealed class BuildVersionChecker :
 
         using (UnityWebRequest request =
                UnityWebRequest.Get(
-                   versionUrl))
+                   VersionUrl))
         {
             request.timeout =
                 timeoutSeconds;

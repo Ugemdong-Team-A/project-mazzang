@@ -2606,7 +2606,7 @@ MonoBehaviour:
   groundDeceleration: 60
   airAcceleration: 30
   airDeceleration: 40
-  jumpSpeed: 6
+  jumpSpeed: 8
   maxAirJumps: 1
   groundCheckRadius: 0.15
   fastFallSpeed: 17

@@ -1192,7 +1192,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 031a3d6f78cf4252a60ca4ad2b38d855, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerStatsInstaller
-  statsData: {fileID: 11400000, guid: cf04f7ebeffc439c925532c8564daa0a, type: 2}
+  statsData: {fileID: 11400000, guid: c740c14e2c6345aeb6eeda585ecb14b6, type: 2}
 --- !u!114 &8816412148498283450
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1229,7 +1229,7 @@ MonoBehaviour:
   groundDeceleration: 60
   airAcceleration: 30
   airDeceleration: 40
-  jumpSpeed: 6
+  jumpSpeed: 8
   maxAirJumps: 1
   groundCheckRadius: 0.15
   fastFallSpeed: 17
