@@ -117,6 +117,12 @@ public class Projectile :
     internal int MaxSimulationStepsPerTick =>
         maxSimulationStepsPerTick;
 
+    internal bool DespawnOnImpact =>
+        despawnOnImpact;
+
+    internal float ImpactPresentationDuration =>
+        impactPresentationDuration;
+
     public Vector2 ParryVelocity => Velocity;
 
     public NetworkObject ParrySource => Source;

@@ -14,11 +14,16 @@ public sealed class PredictedProjectile : MonoBehaviour
     private LayerMask _collisionMask;
     private float _maxSimulationStepDistance;
     private int _maxSimulationStepsPerTick;
+    private bool _despawnOnImpact;
+    private float _impactPresentationDuration;
     private float _simulationDeltaTime;
     private float _simulationAccumulator;
     private Vector2 _simulationPosition;
     private Vector2 _velocity;
     private float _elapsedTime;
+    private float _impactHideTime;
+    private bool _hasPredictedImpact;
+    private bool _impactVisualHidden;
     private bool _initialized;
 
     public ProjectilePredictionKey Key =>
@@ -102,6 +107,14 @@ public sealed class PredictedProjectile : MonoBehaviour
             projectileTemplate
                 .MaxSimulationStepsPerTick;
 
+        predicted._despawnOnImpact =
+            projectileTemplate
+                .DespawnOnImpact;
+
+        predicted._impactPresentationDuration =
+            projectileTemplate
+                .ImpactPresentationDuration;
+
         return predicted;
     }
 
@@ -146,6 +159,15 @@ public sealed class PredictedProjectile : MonoBehaviour
 
         _simulationAccumulator =
             0f;
+
+        _impactHideTime =
+            0f;
+
+        _hasPredictedImpact =
+            false;
+
+        _impactVisualHidden =
+            false;
 
         NetworkObject ownerObject =
             GetComponent<NetworkObject>();
@@ -209,22 +231,28 @@ public sealed class PredictedProjectile : MonoBehaviour
             return;
         }
 
+        if (_hasPredictedImpact)
+        {
+            TryHideImpactVisual();
+            return;
+        }
+
         _simulationAccumulator +=
             deltaTime;
 
         while (_simulationAccumulator >=
                _simulationDeltaTime)
         {
-            ProjectileTrajectory.Advance(
-                ref _simulationPosition,
-                ref _velocity,
-                in _settings,
-                _simulationDeltaTime,
-                _maxSimulationStepDistance,
-                _maxSimulationStepsPerTick);
-
             _simulationAccumulator -=
                 _simulationDeltaTime;
+
+            if (!SimulateTick())
+            {
+                _simulationAccumulator =
+                    0f;
+
+                return;
+            }
         }
 
         ApplyRenderInterpolation();
@@ -279,6 +307,15 @@ public sealed class PredictedProjectile : MonoBehaviour
 
         _velocity =
             default;
+
+        _impactHideTime =
+            0f;
+
+        _hasPredictedImpact =
+            false;
+
+        _impactVisualHidden =
+            false;
 
         if (visual != null)
         {
@@ -351,11 +388,22 @@ public sealed class PredictedProjectile : MonoBehaviour
                 _simulationAccumulator /
                 _simulationDeltaTime);
 
-        transform.position =
+        Vector2 renderPosition =
             Vector2.Lerp(
                 _simulationPosition,
                 nextPosition,
                 alpha);
+
+        if (TryResolvePredictedImpact(
+                _simulationPosition,
+                renderPosition -
+                _simulationPosition))
+        {
+            return;
+        }
+
+        transform.position =
+            renderPosition;
 
         if (!_settings
                 .AlignRotationToVelocity)
@@ -370,6 +418,139 @@ public sealed class PredictedProjectile : MonoBehaviour
                         _velocity,
                         nextVelocity,
                         alpha));
+    }
+
+
+    private bool SimulateTick()
+    {
+        int stepCount =
+            ProjectileTrajectory
+                .CalculateStepCount(
+                    _velocity,
+                    in _settings,
+                    _simulationDeltaTime,
+                    _maxSimulationStepDistance,
+                    _maxSimulationStepsPerTick);
+
+        float stepDeltaTime =
+            _simulationDeltaTime /
+            stepCount;
+
+        for (int i = 0;
+             i < stepCount;
+             i++)
+        {
+            Vector2 start =
+                _simulationPosition;
+
+            Vector2 nextPosition =
+                start;
+
+            Vector2 nextVelocity =
+                _velocity;
+
+            ProjectileTrajectory.Step(
+                ref nextPosition,
+                ref nextVelocity,
+                in _settings,
+                stepDeltaTime);
+
+            _velocity =
+                nextVelocity;
+
+            Vector2 displacement =
+                nextPosition -
+                start;
+
+            if (TryResolvePredictedImpact(
+                    start,
+                    displacement))
+            {
+                return false;
+            }
+
+            _simulationPosition =
+                nextPosition;
+        }
+
+        return true;
+    }
+
+
+    private bool TryResolvePredictedImpact(
+        Vector2 start,
+        Vector2 displacement)
+    {
+        if (_hasPredictedImpact ||
+            !collision.TrySweep(
+                start,
+                displacement,
+                out RaycastHit2D hit))
+        {
+            return false;
+        }
+
+        Vector2 direction =
+            displacement.normalized;
+
+        _simulationPosition =
+            start +
+            direction *
+            hit.distance;
+
+        transform.position =
+            _simulationPosition;
+
+        if (_settings
+                .AlignRotationToVelocity)
+        {
+            transform.rotation =
+                ProjectileTrajectory
+                    .ResolveRotation(
+                        direction);
+        }
+
+        _velocity =
+            Vector2.zero;
+
+        _hasPredictedImpact =
+            true;
+
+        _impactHideTime =
+            _elapsedTime +
+            (_despawnOnImpact
+                ? 0f
+                : Mathf.Max(
+                    0f,
+                    _impactPresentationDuration));
+
+        if (visual != null)
+        {
+            visual.Complete();
+        }
+
+        TryHideImpactVisual();
+
+        return true;
+    }
+
+
+    private void TryHideImpactVisual()
+    {
+        if (_impactVisualHidden ||
+            _elapsedTime <
+            _impactHideTime)
+        {
+            return;
+        }
+
+        _impactVisualHidden =
+            true;
+
+        if (visual != null)
+        {
+            visual.Hide();
+        }
     }
 
 
