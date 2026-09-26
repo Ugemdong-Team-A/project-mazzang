@@ -1,7 +1,7 @@
 using UnityEngine;
 
 /// <summary>
-/// 발사 시점의 능력치가 모두 적용된 최종 이동·판정 크기 설정입니다.
+/// 발사 시점의 이동 설정과 논리적 스케일 적용 전 기본 판정 반경입니다.
 /// </summary>
 public readonly struct ProjectileLaunchSettings
 {
@@ -35,7 +35,7 @@ public readonly struct ProjectileLaunchSettings
         get;
     }
 
-    public float CollisionRadius
+    public float BaseCollisionRadius
     {
         get;
     }
@@ -47,7 +47,7 @@ public readonly struct ProjectileLaunchSettings
         float gravityAcceleration = 9.81f,
         float linearDrag = 0f,
         bool alignRotationToVelocity = true,
-        float collisionRadius = 0.05f)
+        float baseCollisionRadius = 0.05f)
     {
         Speed =
             Mathf.Max(
@@ -77,9 +77,22 @@ public readonly struct ProjectileLaunchSettings
         AlignRotationToVelocity =
             alignRotationToVelocity;
 
-        CollisionRadius =
+        BaseCollisionRadius =
             Mathf.Max(
                 0.001f,
-                collisionRadius);
+                baseCollisionRadius);
+    }
+
+
+    public float ResolveCollisionRadius(
+        float scaleMultiplier)
+    {
+        float resolvedScale =
+            scaleMultiplier > 0f
+                ? scaleMultiplier
+                : 1f;
+
+        return BaseCollisionRadius *
+               resolvedScale;
     }
 }

@@ -19,7 +19,6 @@ public sealed class ProjectileCollision : MonoBehaviour
     private NetworkObject _ownerObject;
     private NetworkObject _source;
     private ContactFilter2D _contactFilter;
-    private float _collisionRadius;
     private bool _initialized;
 
 
@@ -27,8 +26,7 @@ public sealed class ProjectileCollision : MonoBehaviour
         Transform ownerRoot,
         NetworkObject ownerObject,
         NetworkObject source,
-        LayerMask collisionMask,
-        float collisionRadius)
+        LayerMask collisionMask)
     {
         _ownerRoot =
             ownerRoot;
@@ -49,11 +47,6 @@ public sealed class ProjectileCollision : MonoBehaviour
         _contactFilter.SetLayerMask(
             collisionMask);
 
-        _collisionRadius =
-            Mathf.Max(
-                0.001f,
-                collisionRadius);
-
         _initialized =
             true;
     }
@@ -62,6 +55,7 @@ public sealed class ProjectileCollision : MonoBehaviour
     public bool TrySweep(
         Vector2 start,
         Vector2 displacement,
+        float collisionRadius,
         out RaycastHit2D nearestHit)
     {
         nearestHit =
@@ -80,10 +74,15 @@ public sealed class ProjectileCollision : MonoBehaviour
             displacement /
             distance;
 
+        float resolvedRadius =
+            Mathf.Max(
+                0.001f,
+                collisionRadius);
+
         int hitCount =
             Physics2D.CircleCast(
                 start,
-                _collisionRadius,
+                resolvedRadius,
                 direction,
                 _contactFilter,
                 _hitBuffer,

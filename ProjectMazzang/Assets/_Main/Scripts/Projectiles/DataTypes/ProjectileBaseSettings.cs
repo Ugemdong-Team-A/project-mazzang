@@ -125,7 +125,6 @@ public struct ProjectileBaseSettings
             linearDrag,
             alignRotationToVelocity,
 
-            collisionRadius *
-            stats.ScaleMultiplier);
+            collisionRadius);
     }
 }

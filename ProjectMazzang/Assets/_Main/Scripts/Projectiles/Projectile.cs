@@ -228,7 +228,7 @@ public class Projectile :
     }
 
     [Networked]
-    private float PresentationScaleMultiplier
+    private float ScaleMultiplier
     {
         get;
         set;
@@ -455,7 +455,7 @@ public class Projectile :
         PresentationOrigin =
             transform.position;
 
-        PresentationScaleMultiplier =
+        ScaleMultiplier =
             shot.Stats.ScaleMultiplier;
 
         Velocity =
@@ -472,8 +472,7 @@ public class Projectile :
             transform,
             Object,
             Source,
-            collisionMask,
-            launchSettings.CollisionRadius);
+            collisionMask);
 
         PredictionEmitterId =
             predictionKey.EmitterId;
@@ -576,9 +575,7 @@ public class Projectile :
         }
 
         float scaleMultiplier =
-            PresentationScaleMultiplier > 0f
-                ? PresentationScaleMultiplier
-                : 1f;
+            ResolveScaleMultiplier();
 
         ProjectileStatSnapshot stats =
             new(
@@ -936,6 +933,9 @@ public class Projectile :
         if (_projectileCollision.TrySweep(
                 start,
                 displacement,
+                _runtimeLaunchSettings
+                    .ResolveCollisionRadius(
+                        ResolveScaleMultiplier()),
                 out RaycastHit2D hit))
         {
             Vector2 direction =
@@ -959,6 +959,14 @@ public class Projectile :
             displacement;
 
         return true;
+    }
+
+
+    private float ResolveScaleMultiplier()
+    {
+        return ScaleMultiplier > 0f
+            ? ScaleMultiplier
+            : 1f;
     }
 
 

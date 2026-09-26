@@ -20,6 +20,7 @@ public sealed class PredictedProjectile : MonoBehaviour
     private bool _despawnOnImpact;
     private float _impactPresentationDuration;
     private float _simulationDeltaTime;
+    private float _scaleMultiplier;
     private float _fallbackSimulationAccumulator;
     private int _lastSimulationTick;
     private int _simulationExpirationTick;
@@ -155,6 +156,9 @@ public sealed class PredictedProjectile : MonoBehaviour
         _settings =
             launch.Settings;
 
+        _scaleMultiplier =
+            launch.Stats.ScaleMultiplier;
+
         _velocity =
             direction *
             launch.Settings.Speed;
@@ -205,8 +209,7 @@ public sealed class PredictedProjectile : MonoBehaviour
             transform,
             ownerObject,
             source,
-            _collisionMask,
-            launch.Settings.CollisionRadius);
+            _collisionMask);
 
         _elapsedTime =
             0f;
@@ -379,6 +382,9 @@ public sealed class PredictedProjectile : MonoBehaviour
 
         _key =
             default;
+
+        _scaleMultiplier =
+            1f;
 
         _elapsedTime =
             0f;
@@ -790,6 +796,8 @@ public sealed class PredictedProjectile : MonoBehaviour
             !collision.TrySweep(
                 start,
                 displacement,
+                _settings.ResolveCollisionRadius(
+                    _scaleMultiplier),
                 out RaycastHit2D hit))
         {
             return false;

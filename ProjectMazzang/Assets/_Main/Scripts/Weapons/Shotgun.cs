@@ -49,7 +49,7 @@ public sealed class Shotgun :
                 baseLaunchSettings.GravityAcceleration,
                 baseLaunchSettings.LinearDrag,
                 baseLaunchSettings.AlignRotationToVelocity,
-                baseLaunchSettings.CollisionRadius);
+                baseLaunchSettings.BaseCollisionRadius);
 
         int count =
             Mathf.Max(
