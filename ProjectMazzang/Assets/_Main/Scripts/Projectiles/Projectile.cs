@@ -76,6 +76,8 @@ public class Projectile :
     private ProjectileVisual projectileVisual;
 
     private bool _presentationShown;
+    private bool _useAuthoritativePresentation;
+    private bool _pendingPredictionRelease;
 
     [Tooltip(
         "충돌 시 카메라 진동 연출")]
@@ -90,6 +92,7 @@ public class Projectile :
     private float impactPresentationDuration = 0.15f;
     
     private int _visibleImpactSequence;
+    private int _visibleTrajectoryRevision;
 
     private ProjectileLaunchSettings _runtimeLaunchSettings;
 
@@ -241,6 +244,13 @@ public class Projectile :
     }
 
     [Networked]
+    private int TrajectoryRevision
+    {
+        get;
+        set;
+    }
+
+    [Networked]
     private TickTimer ImpactDespawnTimer
     {
         get;
@@ -315,6 +325,12 @@ public class Projectile :
         _presentationShown =
             false;
 
+        _useAuthoritativePresentation =
+            false;
+
+        _pendingPredictionRelease =
+            false;
+
         _predictionWeapon =
             null;
 
@@ -323,6 +339,10 @@ public class Projectile :
 
         projectileVisual.Hide();
 
+        _visibleTrajectoryRevision =
+            0;
+
+        TryResolveTrajectoryChange();
         TryResolvePresentation();
 
         _visibleImpactSequence =
@@ -332,6 +352,8 @@ public class Projectile :
 
     public override void Render()
     {
+        TryResolveTrajectoryChange();
+        TryReleasePredictionAfterTrajectoryChange();
         TryResolvePresentation();
 
         if (_visibleImpactSequence ==
@@ -359,19 +381,10 @@ public class Projectile :
         NetworkRunner runner,
         bool hasState)
     {
-        if (_predictionWeapon != null &&
-            _localPrediction != null)
-        {
-            _predictionWeapon
-                .ReleasePredictedProjectile(
-                    _localPrediction);
-        }
+        ReleaseBoundLocalPrediction();
 
-        _predictionWeapon =
-            null;
-
-        _localPrediction =
-            null;
+        _pendingPredictionRelease =
+            false;
 
         if (projectileVisual != null)
         {
@@ -463,6 +476,9 @@ public class Projectile :
         PredictionProjectileIndex =
             predictionKey.ProjectileIndex;
 
+        TrajectoryRevision =
+            0;
+
         Damage =
             attack != null
                 ? DamageInfo.ResolveAttackDamage(
@@ -516,22 +532,25 @@ public class Projectile :
             return;
         }
 
-        PredictionBindingResult bindingResult =
-            TryBindLocalPrediction();
-
-        if (bindingResult ==
-            PredictionBindingResult.Bound)
+        if (!_useAuthoritativePresentation)
         {
-            _presentationShown =
-                true;
+            PredictionBindingResult bindingResult =
+                TryBindLocalPrediction();
 
-            return;
-        }
+            if (bindingResult ==
+                PredictionBindingResult.Bound)
+            {
+                _presentationShown =
+                    true;
 
-        if (bindingResult ==
-            PredictionBindingResult.Pending)
-        {
-            return;
+                return;
+            }
+
+            if (bindingResult ==
+                PredictionBindingResult.Pending)
+            {
+                return;
+            }
         }
 
         float scaleMultiplier =
@@ -555,13 +574,99 @@ public class Projectile :
             true;
 
         Vector3 trailOrigin =
-            HasStateAuthority
+            HasStateAuthority &&
+            !_useAuthoritativePresentation
                 ? PresentationOrigin
                 : transform.position;
 
         projectileVisual.Show(
             trailOrigin,
             transform);
+    }
+
+
+    private void TryResolveTrajectoryChange()
+    {
+        if (_visibleTrajectoryRevision ==
+            TrajectoryRevision)
+        {
+            return;
+        }
+
+        _visibleTrajectoryRevision =
+            TrajectoryRevision;
+
+        _useAuthoritativePresentation =
+            true;
+
+        _pendingPredictionRelease =
+            true;
+
+        ReleaseBoundLocalPrediction();
+
+        _presentationShown =
+            false;
+
+        if (projectileVisual != null)
+        {
+            projectileVisual.Hide();
+        }
+
+        TryReleasePredictionAfterTrajectoryChange();
+    }
+
+
+    private void TryReleasePredictionAfterTrajectoryChange()
+    {
+        if (!_pendingPredictionRelease ||
+            Runner == null)
+        {
+            return;
+        }
+
+        ProjectilePredictionKey key =
+            ResolvePredictionKey();
+
+        if (!key.IsValid)
+        {
+            _pendingPredictionRelease =
+                false;
+
+            return;
+        }
+
+        if (!Runner.TryFindObject(
+                key.EmitterId,
+                out NetworkObject emitter) ||
+            !emitter.TryGetComponent(
+                out ProjectileWeapon weapon))
+        {
+            return;
+        }
+
+        weapon.TryReleasePredictedProjectile(
+            in key);
+
+        _pendingPredictionRelease =
+            false;
+    }
+
+
+    private void ReleaseBoundLocalPrediction()
+    {
+        if (_predictionWeapon != null &&
+            _localPrediction != null)
+        {
+            _predictionWeapon
+                .ReleasePredictedProjectile(
+                    _localPrediction);
+        }
+
+        _predictionWeapon =
+            null;
+
+        _localPrediction =
+            null;
     }
 
 
@@ -575,11 +680,7 @@ public class Projectile :
         }
 
         ProjectilePredictionKey key =
-            new(
-                PredictionEmitterId,
-                PredictionFireTick,
-                PredictionFireSequence,
-                PredictionProjectileIndex);
+            ResolvePredictionKey();
 
         if (!key.IsValid)
         {
@@ -612,6 +713,16 @@ public class Projectile :
         return weapon.HasInputAuthority
             ? PredictionBindingResult.Pending
             : PredictionBindingResult.NotLocal;
+    }
+
+
+    private ProjectilePredictionKey ResolvePredictionKey()
+    {
+        return new ProjectilePredictionKey(
+            PredictionEmitterId,
+            PredictionFireTick,
+            PredictionFireSequence,
+            PredictionProjectileIndex);
     }
 
 
@@ -835,11 +946,16 @@ public class Projectile :
         }
 
         Source = hit.Owner;
+
+        _projectileCollision.SetSource(
+            Source);
+
         Velocity = hit.Direction.normalized *
                    Velocity.magnitude *
                    Mathf.Max(0f, hit.SpeedMultiplier);
 
         transform.position = hit.Point;
+        TrajectoryRevision++;
         ApplyRotationFromVelocity();
         return true;
     }
@@ -879,6 +995,7 @@ public class Projectile :
             newDirection *
             speed;
 
+        TrajectoryRevision++;
         ApplyRotationFromVelocity();
 
         return true;

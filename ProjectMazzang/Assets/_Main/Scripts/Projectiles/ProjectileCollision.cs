@@ -112,6 +112,14 @@ public sealed class ProjectileCollision : MonoBehaviour
     }
 
 
+    public void SetSource(
+        NetworkObject source)
+    {
+        _source =
+            source;
+    }
+
+
     private bool ShouldIgnore(
         Collider2D candidate)
     {

@@ -690,6 +690,24 @@ public class ProjectileWeapon :
     }
 
 
+    internal bool TryReleasePredictedProjectile(
+        in ProjectilePredictionKey key)
+    {
+        if (!key.IsValid ||
+            !_activePredictions.TryGetValue(
+                key,
+                out PredictedProjectile predicted))
+        {
+            return false;
+        }
+
+        ReleasePredictedProjectile(
+            predicted);
+
+        return true;
+    }
+
+
     private void ClearPredictedProjectiles()
     {
         foreach (PredictedProjectile predicted
