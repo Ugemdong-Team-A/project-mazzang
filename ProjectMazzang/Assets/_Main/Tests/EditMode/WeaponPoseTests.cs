@@ -381,7 +381,12 @@ namespace ProjectMazzang.Tests
                 Activator.CreateInstance(
                     settingsType,
                     23f,
-                    1.25f);
+                    1.25f,
+                    0f,
+                    9.81f,
+                    0f,
+                    true,
+                    0.05f);
 
             Assert.That(
                 settingsType

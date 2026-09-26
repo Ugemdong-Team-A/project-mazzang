@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
 using UnityEngine;
@@ -6,8 +8,22 @@ namespace ProjectMazzang.Tests
 {
     public sealed class ParryPresentationTests
     {
+        private static Assembly RuntimeAssembly =>
+            AppDomain.CurrentDomain
+                .GetAssemblies()
+                .Single(
+                    assembly =>
+                        assembly.GetName().Name ==
+                        "Assembly-CSharp");
+
         private static MethodInfo SetArcMethod =>
-            typeof(ParryPresentation).GetMethod(
+            RuntimeAssembly
+                .GetTypes()
+                .Single(
+                    type =>
+                        type.Name ==
+                        "ParryPresentation")
+                .GetMethod(
                 "SetArc",
                 BindingFlags.Static |
                 BindingFlags.NonPublic);
@@ -45,7 +61,7 @@ namespace ProjectMazzang.Tests
             }
             finally
             {
-                Object.DestroyImmediate(
+                UnityEngine.Object.DestroyImmediate(
                     lineObject);
             }
         }
@@ -79,7 +95,7 @@ namespace ProjectMazzang.Tests
             }
             finally
             {
-                Object.DestroyImmediate(
+                UnityEngine.Object.DestroyImmediate(
                     lineObject);
             }
         }

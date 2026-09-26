@@ -1,14 +1,28 @@
+using System;
+using System.Linq;
+using System.Reflection;
 using NUnit.Framework;
 
 namespace ProjectMazzang.Tests
 {
     public sealed class ProjectileScaleContractTests
     {
+        private static Assembly RuntimeAssembly =>
+            AppDomain.CurrentDomain
+                .GetAssemblies()
+                .Single(
+                    assembly =>
+                        assembly.GetName().Name ==
+                        "Assembly-CSharp");
+
+
         [Test]
         public void LaunchSettings_KeepBaseRadiusSeparateFromScale()
         {
-            ProjectileBaseSettings baseSettings =
-                new(
+            object baseSettings =
+                Activator.CreateInstance(
+                    GetRuntimeType(
+                        "ProjectileBaseSettings"),
                     16f,
                     2.5f,
                     0f,
@@ -17,8 +31,10 @@ namespace ProjectMazzang.Tests
                     true,
                     0.2f);
 
-            ProjectileStatSnapshot stats =
-                new(
+            object stats =
+                Activator.CreateInstance(
+                    GetRuntimeType(
+                        "ProjectileStatSnapshot"),
                     1f,
                     1f,
                     1f,
@@ -26,17 +42,23 @@ namespace ProjectMazzang.Tests
                     1.5f,
                     1f);
 
-            ProjectileLaunchSettings launchSettings =
-                baseSettings.Resolve(
-                    in stats);
+            object launchSettings =
+                baseSettings.GetType()
+                    .GetMethod(
+                        "Resolve")
+                    ?.Invoke(
+                        baseSettings,
+                        new[] { stats });
+
+            AssertProperty(
+                launchSettings,
+                "BaseCollisionRadius",
+                0.2f);
 
             Assert.That(
-                launchSettings.BaseCollisionRadius,
-                Is.EqualTo(0.2f));
-
-            Assert.That(
-                launchSettings.ResolveCollisionRadius(
-                    stats.ScaleMultiplier),
+                InvokeResolveCollisionRadius(
+                    launchSettings,
+                    1.5f),
                 Is.EqualTo(0.3f).Within(0.0001f));
         }
 
@@ -44,14 +66,86 @@ namespace ProjectMazzang.Tests
         [Test]
         public void CollisionRadius_UsesIdentityForInvalidScale()
         {
-            ProjectileLaunchSettings launchSettings =
-                new(
+            object launchSettings =
+                Activator.CreateInstance(
+                    GetRuntimeType(
+                        "ProjectileLaunchSettings"),
                     16f,
-                    baseCollisionRadius: 0.2f);
+                    2.5f,
+                    0f,
+                    9.81f,
+                    0f,
+                    true,
+                    0.2f);
 
             Assert.That(
-                launchSettings.ResolveCollisionRadius(0f),
+                InvokeResolveCollisionRadius(
+                    launchSettings,
+                    0f),
                 Is.EqualTo(0.2f));
+        }
+
+
+        private static Type GetRuntimeType(
+            string typeName)
+        {
+            return RuntimeAssembly
+                .GetTypes()
+                .Single(
+                    type =>
+                        type.Name ==
+                        typeName);
+        }
+
+
+        private static float InvokeResolveCollisionRadius(
+            object launchSettings,
+            float scaleMultiplier)
+        {
+            Assert.That(
+                launchSettings,
+                Is.Not.Null);
+
+            object result =
+                launchSettings.GetType()
+                    .GetMethod(
+                        "ResolveCollisionRadius")
+                    ?.Invoke(
+                        launchSettings,
+                        new object[]
+                        {
+                            scaleMultiplier
+                        });
+
+            Assert.That(
+                result,
+                Is.Not.Null);
+
+            return (float)result;
+        }
+
+
+        private static void AssertProperty(
+            object instance,
+            string propertyName,
+            float expected)
+        {
+            Assert.That(
+                instance,
+                Is.Not.Null);
+
+            PropertyInfo property =
+                instance.GetType()
+                    .GetProperty(
+                        propertyName);
+
+            Assert.That(
+                property,
+                Is.Not.Null);
+
+            Assert.That(
+                property.GetValue(instance),
+                Is.EqualTo(expected));
         }
     }
 }
