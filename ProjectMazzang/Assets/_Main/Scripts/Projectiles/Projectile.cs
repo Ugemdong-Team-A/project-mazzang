@@ -419,26 +419,8 @@ public class Projectile :
     }
 
 
-    /*public virtual void Initialize(
-        NetworkRunner runner,
-        NetworkObject source,
-        Vector2 direction,
-        float attackDamageMultiplier = 1f)
-    {
-        Initialize(
-            runner,
-            source,
-            direction,
-            new ProjectileLaunchSettings(
-                initialSpeed,
-                lifetime),
-            attackDamageMultiplier);
-    }*/
-
     public virtual void Initialize(
         NetworkRunner runner,
-        /*NetworkObject source,
-        Vector2 direction,*/
         ProjectileShotContext shot,
         ProjectileLaunchSettings launchSettings,
         Vector2? optionalDir = null,
@@ -460,10 +442,11 @@ public class Projectile :
 
         Vector2 knockback =
             attack != null
-                ? direction *
-                  attack.KnockbackForward +
-                  Vector2.up *
-                  attack.KnockbackUp
+                ? (direction *
+                   attack.KnockbackForward +
+                   Vector2.up *
+                   attack.KnockbackUp) *
+                  shot.Stats.KnockbackMultiplier
                 : Vector2.zero;
 
         Source =
@@ -1069,47 +1052,6 @@ public class Projectile :
         transform.position = hit.Point;
         TrajectoryRevision++;
         ApplyRotationFromVelocity();
-        return true;
-    }
-
-
-    public virtual bool Reflect(
-        PlayerRef newOwner,
-        Vector2 newDirection,
-        float speedMultiplier = 1f)
-    {
-        if (!HasStateAuthority ||
-            !IsInitialized)
-        {
-            return false;
-        }
-
-        newDirection =
-            NormalizeDirection(
-                newDirection);
-
-        if (newDirection ==
-            Vector2.zero)
-        {
-            return false;
-        }
-
-        float speed =
-            Velocity.magnitude *
-            Mathf.Max(
-                0f,
-                speedMultiplier);
-
-        /*Source =
-            newOwner;*/
-
-        Velocity =
-            newDirection *
-            speed;
-
-        TrajectoryRevision++;
-        ApplyRotationFromVelocity();
-
         return true;
     }
 

@@ -20,6 +20,11 @@ public sealed class Shotgun :
     [SerializeField]
     private float projectileLifetime = 1.5f;
 
+    protected override int PredictionPrewarmCount =>
+        Mathf.Max(
+            1,
+            pelletCount);
+
 
     protected override ProjectileLaunchPlan BuildLaunchPlan(
         in ProjectileShotContext shot,

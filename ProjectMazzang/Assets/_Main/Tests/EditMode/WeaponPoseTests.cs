@@ -281,14 +281,14 @@ namespace ProjectMazzang.Tests
                     $"{fieldName}은 부모가 소유해야 합니다.");
             }
 
-            MethodInfo spawnHook =
+            MethodInfo launchPlanHook =
                 projectileWeapon.GetMethod(
-                    "TrySpawnProjectiles",
+                    "BuildLaunchPlan",
                     Flags);
 
-            Assert.That(spawnHook, Is.Not.Null);
-            Assert.That(spawnHook.IsFamily, Is.True);
-            Assert.That(spawnHook.IsVirtual, Is.True);
+            Assert.That(launchPlanHook, Is.Not.Null);
+            Assert.That(launchPlanHook.IsFamily, Is.True);
+            Assert.That(launchPlanHook.IsVirtual, Is.True);
 
             MethodInfo spawnOne =
                 projectileWeapon.GetMethod(
@@ -319,6 +319,55 @@ namespace ProjectMazzang.Tests
                 Assert.That(field, Is.Not.Null);
                 Assert.That(field.IsPrivate, Is.True);
             }
+
+            PropertyInfo prewarmCount =
+                projectileWeapon.GetProperty(
+                    "PredictionPrewarmCount",
+                    Flags);
+
+            Assert.That(prewarmCount, Is.Not.Null);
+            Assert.That(
+                prewarmCount.GetMethod.IsFamily,
+                Is.True);
+            Assert.That(
+                prewarmCount.GetMethod.IsVirtual,
+                Is.True);
+
+            Component shotgunComponent =
+                new GameObject("Shotgun")
+                    .AddComponent(shotgun);
+
+            shotgunComponent.transform.SetParent(
+                _socketObject.transform);
+
+            SetField(
+                shotgunComponent,
+                "pelletCount",
+                7);
+
+            Assert.That(
+                prewarmCount.GetValue(
+                    shotgunComponent),
+                Is.EqualTo(7));
+        }
+
+
+        [Test]
+        public void ProjectileCollision_ReusesAHitBuffer()
+        {
+            Type collision =
+                RuntimeType("ProjectileCollision");
+
+            FieldInfo hitBuffer =
+                collision.GetField(
+                    "_hitBuffer",
+                    Flags);
+
+            Assert.That(hitBuffer, Is.Not.Null);
+            Assert.That(
+                hitBuffer.FieldType.FullName,
+                Does.StartWith(
+                    "System.Collections.Generic.List`1"));
         }
 
         [Test]

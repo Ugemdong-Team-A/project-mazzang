@@ -225,7 +225,8 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
   사거리를 바꾸지 않는다. 원격 실제 투사체는 이 공식을 실행하지 않고
   `NetworkTransform` 보간 결과만 표시한다.
 - `ProjectileCollision`은 이동 구간의 CircleCast와 자신·발사자 제외 규칙만 담당하는 수동 컴포넌트다.
-  이동이나 피해를 직접 실행하지 않는다. State Authority의 실제 `Projectile`은 조회 결과로 피해와
+  재사용하는 결과 목록으로 조회하므로 실제체·예측체의 Substep마다 새 배열을 만들지 않으며, 이동이나
+  피해를 직접 실행하지 않는다. State Authority의 실제 `Projectile`은 조회 결과로 피해와
   Networked 충돌 상태를 확정하고, 발사 Client의 예측 복제본은 같은 충돌 마스크·반경·발사자로 조회해
   로컬 투사체를 접촉 위치에 멈추고 Trail을 끝내는 데만 사용한다. 예측 충돌은 피해·넉백·패링·카메라
   반응을 실행하지 않으며 Host의 확정 결과를 바꾸지 않는다. 실제 투사체가 패링되면 충돌 조회의 제외
@@ -239,13 +240,16 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
   `ProjectileVisual.Apply`에 전달한다. `ProjectileVisual`은 프리팹의 원본 크기·Sprite·Trail 설정을
   기준으로 배율을 적용하므로, 고유 외형이 다른 투사체도 같은 능력치 공식을 사용한다. 현재는
   명시적인 `ScaleMultiplier`만 크기와 Trail 폭에 반영하며, 피해량 같은 다른 능력치를 임의로
-  색상이나 크기에 연결하지 않는다.
+  색상이나 크기에 연결하지 않는다. 실제체 초기화에서는 `DamageMultiplier`와
+  `KnockbackMultiplier`를 각각 확정 피해와 넉백 크기에 적용한다.
 - 비-Host Input Authority만 Forward 실행에서 판정 없는 `PredictedProjectile`을 즉시 표시한다.
   Host는 같은 Tick에 실제 투사체를 생성하므로 별도 예측 표시를 만들지 않는다.
 - 무기 `NetworkObject`의 Input Authority는 장착할 때 장착 플레이어에게 전달하고 드롭할 때 제거한다.
   따라서 비-Host 장착자도 `Ammo`, `FireCooldown`과 발사 표시를 자신의 예측 Tick에서 먼저 처리한다.
-- `ProjectileWeapon`은 별도 예측 프리팹이나 전역 매니저 없이 자신의 `GameObjectPool`을 지연 생성한다.
-  풀 인스턴스는 실제 투사체 프리팹 전체를 복제한 뒤 `NetworkObject`, `NetworkBehaviour`, Collider와
+- `ProjectileWeapon`은 별도 예측 프리팹이나 전역 매니저 없이 자신의 `GameObjectPool`을 소유한다.
+  비-Host Client가 무기의 Input Authority를 얻으면 첫 발사 전에 풀을 준비하며, 기본 총기는 1개,
+  샷건은 한 발의 펠릿 수만큼 미리 생성한다. 풀 인스턴스는 실제 투사체 프리팹 전체를 복제한 뒤
+  `NetworkObject`, `NetworkBehaviour`, Collider와
   Rigidbody 시뮬레이션을 끄고 `PredictedProjectile`만 로컬 이동에 사용한다. 따라서 Sprite, Trail,
   Animator, Particle과 프리팹별 고유 외형 설정을 별도 복사 코드 없이 그대로 공유한다. 무기가 제거되면
   활성 예측체와 비활성 풀 루트를 함께 정리한다.
@@ -265,7 +269,7 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
   유지한 뒤 차이를 표시 오프셋으로 보관하고, 투사체 속도의 35% 이하로 오프셋만 줄여 뒤로 순간이동하지
   않는다. 이후 실제체 Transform을 계속 추적하지 않으며, 패링·반사 같은 불연속 변경은
   `TrajectoryRevision`에 따른 실제체 전환으로 처리한다.
-- 패링이나 명시적 반사처럼 권위 궤도가 불연속적으로 바뀌면 State Authority가 `TrajectoryRevision`을
+- 패링처럼 권위 궤도가 불연속적으로 바뀌면 State Authority가 `TrajectoryRevision`을
   증가시킨다. 이 변경을 받은 발사 Client는 기존 예측체를 풀에 반환하고, 숨겨 두었던 실제체를 현재
   `NetworkTransform` 보간 위치에서 표시한다. 모든 Peer는 그 위치에서 Trail을 다시 시작하므로 최초
   발사 위치로 되감거나 패링 전·후 위치 사이에 긴 Trail 선을 만들지 않는다. 패링 여부와 반사 궤도는

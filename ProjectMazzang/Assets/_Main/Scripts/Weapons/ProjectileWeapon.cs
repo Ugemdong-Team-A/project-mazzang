@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class ProjectileWeapon :
-    Weapon
+    Weapon,
+    IInputAuthorityGained
 {
     [Header("Primary Action")]
     [SerializeField]
@@ -49,6 +50,9 @@ public class ProjectileWeapon :
         ProjectilePredictionKey,
         PredictedProjectile> _activePredictions =
             new();
+
+    protected virtual int PredictionPrewarmCount =>
+        1;
 
     // =========================================================
     // Network State
@@ -101,6 +105,8 @@ public class ProjectileWeapon :
         _visibleFireSequence =
             FireSequence;
 
+        TryPrewarmPredictionPool();
+
         if (!HasStateAuthority)
             return;
 
@@ -116,6 +122,8 @@ public class ProjectileWeapon :
     {
         if (HasInputAuthority)
         {
+            TryPrewarmPredictionPool();
+
             _visibleFireSequence =
                 FireSequence;
 
@@ -132,6 +140,12 @@ public class ProjectileWeapon :
             FireSequence;
 
         PlayFireEffects();
+    }
+
+
+    public void InputAuthorityGained()
+    {
+        TryPrewarmPredictionPool();
     }
 
 
@@ -458,29 +472,11 @@ public class ProjectileWeapon :
                         return;
 
                     projectile.Initialize(
-                            runner,
-                            shot,
-                            launchSettings,
-                            launchDirection,
-                            predictionKey);
-
-                    /*if (launchSettings.HasValue)
-                    {
-                        projectile.Initialize(
-                            runner,
-                            shot.Source,
-                            direction,
-                            launchSettings.Value,
-                            shot.AttackDamageMultiplier);
-                    }
-                    else
-                    {
-                        projectile.Initialize(
-                            runner,
-                            shot.Source,
-                            direction,
-                            shot.AttackDamageMultiplier);
-                    }*/
+                        runner,
+                        shot,
+                        launchSettings,
+                        launchDirection,
+                        predictionKey);
                 });
 
         return spawned != null;
@@ -615,7 +611,7 @@ public class ProjectileWeapon :
         _predictionPool =
             new GameObjectPool<
                 PredictedProjectile>(
-                    0,
+                    PredictionPrewarmCount,
                     () =>
                         PredictedProjectile.Create(
                             projectileTemplate,
@@ -623,6 +619,23 @@ public class ProjectileWeapon :
                     OnTakePredictedProjectile,
                     OnReturnPredictedProjectile,
                     OnDestroyPredictedProjectile);
+    }
+
+
+    private void TryPrewarmPredictionPool()
+    {
+        if (!HasInputAuthority ||
+            HasStateAuthority ||
+            _predictionPool != null ||
+            projectilePrefab == null ||
+            !projectilePrefab.TryGetComponent(
+                out Projectile projectileTemplate))
+        {
+            return;
+        }
+
+        EnsurePredictionPool(
+            projectileTemplate);
     }
 
 

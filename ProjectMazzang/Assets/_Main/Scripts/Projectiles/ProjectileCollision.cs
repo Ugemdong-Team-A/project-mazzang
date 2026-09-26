@@ -1,4 +1,5 @@
 using Fusion;
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -8,10 +9,16 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public sealed class ProjectileCollision : MonoBehaviour
 {
+    private const int InitialHitCapacity =
+        16;
+
+    private readonly List<RaycastHit2D> _hitBuffer =
+        new(InitialHitCapacity);
+
     private Transform _ownerRoot;
     private NetworkObject _ownerObject;
     private NetworkObject _source;
-    private LayerMask _collisionMask;
+    private ContactFilter2D _contactFilter;
     private float _collisionRadius;
     private bool _initialized;
 
@@ -32,8 +39,15 @@ public sealed class ProjectileCollision : MonoBehaviour
         _source =
             source;
 
-        _collisionMask =
-            collisionMask;
+        _contactFilter =
+            new ContactFilter2D
+            {
+                useTriggers =
+                    Physics2D.queriesHitTriggers
+            };
+
+        _contactFilter.SetLayerMask(
+            collisionMask);
 
         _collisionRadius =
             Mathf.Max(
@@ -66,13 +80,14 @@ public sealed class ProjectileCollision : MonoBehaviour
             displacement /
             distance;
 
-        RaycastHit2D[] hits =
-            Physics2D.CircleCastAll(
+        int hitCount =
+            Physics2D.CircleCast(
                 start,
                 _collisionRadius,
                 direction,
-                distance,
-                _collisionMask);
+                _contactFilter,
+                _hitBuffer,
+                distance);
 
         bool found =
             false;
@@ -81,11 +96,11 @@ public sealed class ProjectileCollision : MonoBehaviour
             float.MaxValue;
 
         for (int i = 0;
-             i < hits.Length;
+             i < hitCount;
              i++)
         {
             RaycastHit2D hit =
-                hits[i];
+                _hitBuffer[i];
 
             Collider2D candidate =
                 hit.collider;
