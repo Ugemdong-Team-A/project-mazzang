@@ -4,6 +4,9 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public sealed class PredictedProjectile : MonoBehaviour
 {
+    private const float PresentationCorrectionSpeedRatio =
+        0.35f;
+
     private ProjectileVisual visual;
     private ProjectileCollision collision;
 
@@ -22,6 +25,7 @@ public sealed class PredictedProjectile : MonoBehaviour
     private int _simulationExpirationTick;
     private Vector2 _simulationPosition;
     private Vector2 _velocity;
+    private Vector2 _presentationOffset;
     private float _elapsedTime;
     private float _impactHideTime;
     private bool _hasPredictedImpact;
@@ -154,6 +158,9 @@ public sealed class PredictedProjectile : MonoBehaviour
         _velocity =
             direction *
             launch.Settings.Speed;
+
+        _presentationOffset =
+            Vector2.zero;
 
         _simulationDeltaTime =
             ResolveSimulationDeltaTime(
@@ -346,8 +353,14 @@ public sealed class PredictedProjectile : MonoBehaviour
             return false;
         }
 
-        _authoritativeProjectile =
-            authoritativeProjectile;
+        if (_authoritativeProjectile == null)
+        {
+            _authoritativeProjectile =
+                authoritativeProjectile;
+
+            ReconcileAuthoritativeLaunch(
+                authoritativeProjectile);
+        }
 
         return true;
     }
@@ -383,6 +396,9 @@ public sealed class PredictedProjectile : MonoBehaviour
             default;
 
         _velocity =
+            default;
+
+        _presentationOffset =
             default;
 
         _impactHideTime =
@@ -545,8 +561,14 @@ public sealed class PredictedProjectile : MonoBehaviour
             return;
         }
 
+        renderPosition +=
+            _presentationOffset;
+
         transform.position =
             renderPosition;
+
+        ReducePresentationOffset(
+            Time.deltaTime);
 
         if (!_settings
                 .AlignRotationToVelocity)
@@ -561,6 +583,146 @@ public sealed class PredictedProjectile : MonoBehaviour
                         _velocity,
                         nextVelocity,
                         alpha));
+    }
+
+
+    private void ReconcileAuthoritativeLaunch(
+        Projectile authoritativeProjectile)
+    {
+        if (_hasPredictedImpact ||
+            !authoritativeProjectile
+                .TryGetAuthoritativeLaunch(
+                    out Vector2 launchOrigin,
+                    out Vector2 initialVelocity))
+        {
+            return;
+        }
+
+        Vector2 previousPresentationPosition =
+            transform.position;
+
+        Vector2 authoritativePosition =
+            launchOrigin;
+
+        Vector2 authoritativeVelocity =
+            initialVelocity;
+
+        int simulatedTickCount =
+            Mathf.Max(
+                0,
+                _lastSimulationTick -
+                _key.FireTick);
+
+        for (int i = 0;
+             i < simulatedTickCount;
+             i++)
+        {
+            ProjectileTrajectory.Advance(
+                ref authoritativePosition,
+                ref authoritativeVelocity,
+                in _settings,
+                _simulationDeltaTime,
+                _maxSimulationStepDistance,
+                _maxSimulationStepsPerTick);
+        }
+
+        _simulationPosition =
+            authoritativePosition;
+
+        _velocity =
+            authoritativeVelocity;
+
+        float alpha =
+            ResolveRenderAlpha();
+
+        Vector2 authoritativeRenderPosition =
+            EvaluateRenderPosition(
+                alpha);
+
+        _presentationOffset =
+            previousPresentationPosition -
+            authoritativeRenderPosition;
+    }
+
+
+    private Vector2 EvaluateRenderPosition(
+        float alpha)
+    {
+        Vector2 nextPosition =
+            _simulationPosition;
+
+        Vector2 nextVelocity =
+            _velocity;
+
+        ProjectileTrajectory.Advance(
+            ref nextPosition,
+            ref nextVelocity,
+            in _settings,
+            _simulationDeltaTime,
+            _maxSimulationStepDistance,
+            _maxSimulationStepsPerTick);
+
+        return Vector2.Lerp(
+            _simulationPosition,
+            nextPosition,
+            Mathf.Clamp01(
+                alpha));
+    }
+
+
+    private float ResolveRenderAlpha()
+    {
+        NetworkRunner runner =
+            _owner != null
+                ? _owner.Runner
+                : null;
+
+        if (runner != null &&
+            runner.DeltaTime > 0f)
+        {
+            if (_simulationExpirationTick >= 0 &&
+                runner.Tick.Raw + 1 >=
+                _simulationExpirationTick)
+            {
+                return 0f;
+            }
+
+            return Mathf.Clamp01(
+                runner.LocalAlpha);
+        }
+
+        return Mathf.Clamp01(
+            _fallbackSimulationAccumulator /
+            _simulationDeltaTime);
+    }
+
+
+    private void ReducePresentationOffset(
+        float deltaTime)
+    {
+        if (_presentationOffset.sqrMagnitude <=
+            0.00000001f)
+        {
+            _presentationOffset =
+                Vector2.zero;
+
+            return;
+        }
+
+        float correctionSpeed =
+            Mathf.Max(
+                0.5f,
+                _settings.Speed *
+                PresentationCorrectionSpeedRatio);
+
+        _presentationOffset =
+            Vector2.MoveTowards(
+                _presentationOffset,
+                Vector2.zero,
+                correctionSpeed *
+                Mathf.Max(
+                    0f,
+                    deltaTime));
     }
 
 

@@ -214,6 +214,9 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
 - `ProjectileWeapon`은 탄약·쿨다운·발사 연출과 `ProjectileLaunchPlan`에 따른 공통 생성 절차를
   소유한다. 샷건처럼 발사 패턴이 다른 무기는 `BuildLaunchPlan`만 재정의해 펠릿별 위치·방향·설정을
   만들며, 실제 `Runner.Spawn` 절차와 투사체 프리팹 참조는 기반 클래스가 유지한다.
+- `ProjectilePredictionKey.ProjectileIndex`는 샷건 전용 값이 아니라 한 번의 발사 계획에서 파생된
+  투사체 순번이다. 다연장, 분열탄과 동시 발사 스킬도 같은 발사 Tick·Sequence 안에서 이 순번으로
+  각각의 예측체와 실제체를 구분한다.
 - 실제 `Projectile` 이동과 충돌은 State Authority의 `FixedUpdateNetwork`만 실행한다.
   실제체와 로컬 예측 표시는 모두 `ProjectileTrajectory`로 Fusion Tick 간격과 같은 고정 시간 단계를
   누적 계산하고, 한 Tick의 이동량이 크면 같은 기준으로 Substep을 나눈다. 예측 표시는 `Runner.Tick`이
@@ -228,6 +231,10 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
   반응을 실행하지 않으며 Host의 확정 결과를 바꾸지 않는다. 실제 투사체가 패링되면 충돌 조회의 제외
   대상도 새 `Source`인 패링 소유자로 갱신해 패링 소유자를 즉시 다시 맞히지 않고 원래 발사자는 다시
   맞힐 수 있게 한다.
+- `ProjectileVisual`, `ProjectileCollision`, `ProjectileTrajectory`는 서로와 오케스트레이터를 참조하지
+  않는 수동 표현·조회·계산 계층이다. 실제 판정 오케스트레이터인 `Projectile`과 로컬 표시
+  오케스트레이터인 `PredictedProjectile`만 이들을 호출하고, 수동 계층에서 역으로 상태를 변경하거나
+  다른 형제 컴포넌트를 호출하지 않는다.
 - 실제체와 예측 표시는 별도의 외형 결과 구조체를 만들지 않고 같은 `ProjectileStatSnapshot`을
   `ProjectileVisual.Apply`에 전달한다. `ProjectileVisual`은 프리팹의 원본 크기·Sprite·Trail 설정을
   기준으로 배율을 적용하므로, 고유 외형이 다른 투사체도 같은 능력치 공식을 사용한다. 현재는
@@ -250,6 +257,11 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
   되돌아가지 않는다. 로컬 예측체 매칭 여부가 아직 확정되지 않은 실제체도 숨긴 채 다음 Render에서
   재시도하며, 매칭 실패를 원격 투사체로 오판해 한 프레임 노출하지 않는다. 연결된 실제체가 Despawn될 때
   예측체를 풀에 반환한다.
+- 실제체와 처음 연결될 때 예측체는 실제 발사 원점과 초기 속도를 한 번 읽고, 같은 경과 Tick만큼
+  `ProjectileTrajectory`를 재생해 로컬 시뮬레이션 기준을 권위 발사 궤도로 바꾼다. 화면 위치는 그 순간
+  유지한 뒤 차이를 표시 오프셋으로 보관하고, 투사체 속도의 35% 이하로 오프셋만 줄여 뒤로 순간이동하지
+  않는다. 이후 실제체 Transform을 계속 추적하지 않으며, 패링·반사 같은 불연속 변경은
+  `TrajectoryRevision`에 따른 실제체 전환으로 처리한다.
 - 패링이나 명시적 반사처럼 권위 궤도가 불연속적으로 바뀌면 State Authority가 `TrajectoryRevision`을
   증가시킨다. 이 변경을 받은 발사 Client는 기존 예측체를 풀에 반환하고, 숨겨 두었던 실제체를 현재
   `NetworkTransform` 보간 위치에서 표시한다. 모든 Peer는 그 위치에서 Trail을 다시 시작하므로 최초

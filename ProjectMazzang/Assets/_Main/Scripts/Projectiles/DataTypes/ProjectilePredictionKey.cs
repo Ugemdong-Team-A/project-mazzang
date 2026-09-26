@@ -22,6 +22,10 @@ public readonly struct ProjectilePredictionKey :
         get;
     }
 
+    /// <summary>
+    /// 한 번의 발사에서 파생된 투사체들의 순번입니다.
+    /// 샷건뿐 아니라 다연장, 분열탄과 동시 발사 스킬에도 사용합니다.
+    /// </summary>
     public int ProjectileIndex
     {
         get;

@@ -216,6 +216,13 @@ public class Projectile :
     }
 
     [Networked]
+    private Vector2 PresentationInitialVelocity
+    {
+        get;
+        set;
+    }
+
+    [Networked]
     private float PresentationScaleMultiplier
     {
         get;
@@ -453,6 +460,9 @@ public class Projectile :
         Velocity =
             direction *
             launchSettings.Speed;
+
+        PresentationInitialVelocity =
+            Velocity;
 
         _runtimeLaunchSettings =
             launchSettings;
@@ -723,6 +733,20 @@ public class Projectile :
             PredictionFireTick,
             PredictionFireSequence,
             PredictionProjectileIndex);
+    }
+
+
+    internal bool TryGetAuthoritativeLaunch(
+        out Vector2 origin,
+        out Vector2 initialVelocity)
+    {
+        origin =
+            PresentationOrigin;
+
+        initialVelocity =
+            PresentationInitialVelocity;
+
+        return IsInitialized;
     }
 
 
