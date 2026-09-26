@@ -364,6 +364,48 @@ namespace ProjectMazzang.Tests
             Assert.That(initializeWithSettings.IsVirtual, Is.True);
         }
 
+
+        [Test]
+        public void ProjectilePrediction_PersistsOwnerAndBoundsBindingWait()
+        {
+            Type projectile =
+                RuntimeType("Projectile");
+
+            PropertyInfo predictionOwner =
+                projectile.GetProperty(
+                    "PredictionOwner",
+                    Flags);
+
+            Assert.That(
+                predictionOwner,
+                Is.Not.Null);
+            Assert.That(
+                predictionOwner.PropertyType.FullName,
+                Is.EqualTo("Fusion.PlayerRef"));
+            Assert.That(
+                predictionOwner.CustomAttributes.Any(
+                    attribute =>
+                        attribute.AttributeType.FullName ==
+                        "Fusion.NetworkedAttribute"),
+                Is.True);
+
+            FieldInfo graceTicks =
+                projectile.GetField(
+                    "PredictionBindingGraceTicks",
+                    Flags |
+                    BindingFlags.Static);
+
+            Assert.That(
+                graceTicks,
+                Is.Not.Null);
+            Assert.That(
+                graceTicks.IsLiteral,
+                Is.True);
+            Assert.That(
+                graceTicks.GetRawConstantValue(),
+                Is.EqualTo(3));
+        }
+
         [Test]
         public void MuzzlePose_UsesRenderedMuzzlePositionAndVisualForward()
         {

@@ -8,6 +8,9 @@ public class Projectile :
     NetworkBehaviour,
     IParryable
 {
+    private const int PredictionBindingGraceTicks =
+        3;
+
     private enum PredictionBindingResult
     {
         NotLocal,
@@ -78,6 +81,8 @@ public class Projectile :
     private bool _presentationShown;
     private bool _useAuthoritativePresentation;
     private bool _pendingPredictionRelease;
+    private bool _predictionBindingWaitStarted;
+    private int _predictionBindingDeadlineTick;
 
     [Tooltip(
         "충돌 시 카메라 진동 연출")]
@@ -272,6 +277,13 @@ public class Projectile :
     }
 
     [Networked]
+    private PlayerRef PredictionOwner
+    {
+        get;
+        set;
+    }
+
+    [Networked]
     private int PredictionFireTick
     {
         get;
@@ -337,6 +349,12 @@ public class Projectile :
 
         _pendingPredictionRelease =
             false;
+
+        _predictionBindingWaitStarted =
+            false;
+
+        _predictionBindingDeadlineTick =
+            0;
 
         _predictionWeapon =
             null;
@@ -477,6 +495,11 @@ public class Projectile :
         PredictionEmitterId =
             predictionKey.EmitterId;
 
+        PredictionOwner =
+            shot.Source != null
+                ? shot.Source.InputAuthority
+                : PlayerRef.None;
+
         PredictionFireTick =
             predictionKey.FireTick;
 
@@ -559,7 +582,13 @@ public class Projectile :
             if (bindingResult ==
                 PredictionBindingResult.Pending)
             {
-                return;
+                if (ShouldWaitForPredictionBinding())
+                    return;
+
+                ReleaseUnboundLocalPrediction();
+
+                _useAuthoritativePresentation =
+                    true;
             }
         }
 
@@ -634,6 +663,15 @@ public class Projectile :
             return;
         }
 
+        if (PredictionOwner !=
+            Runner.LocalPlayer)
+        {
+            _pendingPredictionRelease =
+                false;
+
+            return;
+        }
+
         ProjectilePredictionKey key =
             ResolvePredictionKey();
 
@@ -697,6 +735,12 @@ public class Projectile :
             return PredictionBindingResult.NotLocal;
         }
 
+        if (PredictionOwner !=
+            Runner.LocalPlayer)
+        {
+            return PredictionBindingResult.NotLocal;
+        }
+
         if (!Runner.TryFindObject(
                 key.EmitterId,
                 out NetworkObject emitter) ||
@@ -720,9 +764,53 @@ public class Projectile :
             return PredictionBindingResult.Bound;
         }
 
-        return weapon.HasInputAuthority
-            ? PredictionBindingResult.Pending
-            : PredictionBindingResult.NotLocal;
+        return PredictionBindingResult.Pending;
+    }
+
+
+    private bool ShouldWaitForPredictionBinding()
+    {
+        if (Runner == null)
+            return false;
+
+        int currentTick =
+            Runner.Tick.Raw;
+
+        if (!_predictionBindingWaitStarted)
+        {
+            _predictionBindingWaitStarted =
+                true;
+
+            _predictionBindingDeadlineTick =
+                currentTick +
+                PredictionBindingGraceTicks;
+        }
+
+        return currentTick <
+               _predictionBindingDeadlineTick;
+    }
+
+
+    private void ReleaseUnboundLocalPrediction()
+    {
+        if (Runner == null)
+            return;
+
+        ProjectilePredictionKey key =
+            ResolvePredictionKey();
+
+        if (!key.IsValid ||
+            !Runner.TryFindObject(
+                key.EmitterId,
+                out NetworkObject emitter) ||
+            !emitter.TryGetComponent(
+                out ProjectileWeapon weapon))
+        {
+            return;
+        }
+
+        weapon.TryReleasePredictedProjectile(
+            in key);
     }
 
 

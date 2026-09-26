@@ -294,8 +294,12 @@ public class ProjectileWeapon :
         bool mirrored,
         float attackDamageMultiplier)
     {
-        if(!CanFire()) 
+        if ((!HasStateAuthority &&
+             !HasInputAuthority) ||
+            !CanFire())
+        {
             return false;
+        }
 
         if (projectilePrefab == null ||
             !projectilePrefab.TryGetComponent<Projectile>
@@ -303,6 +307,15 @@ public class ProjectileWeapon :
         {
             return false;
         }
+
+        int previousAmmo =
+            Ammo;
+
+        TickTimer previousFireCooldown =
+            FireCooldown;
+
+        int previousFireSequence =
+            FireSequence;
 
         ApplyFireStates();
 
@@ -329,38 +342,39 @@ public class ProjectileWeapon :
                 in shot,
                 in projectileSettings);
 
-        // 로컬 예측
+        if (HasInputAuthority &&
+            !HasStateAuthority &&
+            Runner.IsForward)
+        {
+            PlayLocalFirePresentation(
+                in launchPose);
+
+            SpawnPredictedProjectiles(
+                projectile,
+                in launchPlan);
+        }
+
+        if (!HasStateAuthority)
+            return true;
+
+        if (!TrySpawnProjectilesAtOnce(
+                shot,
+                launchPlan))
+        {
+            RestoreFireStates(
+                previousAmmo,
+                previousFireCooldown,
+                previousFireSequence);
+
+            return false;
+        }
+
         if (HasInputAuthority &&
             Runner.IsForward)
         {
             PlayLocalFirePresentation(
                 in launchPose);
         }
-
-        if (HasInputAuthority &&
-            !HasStateAuthority &&
-            Runner.IsForward)
-        {
-            SpawnPredictedProjectiles(
-                projectile,
-                in launchPlan);
-        }
-
-        // 호스트 판정
-        if (!HasStateAuthority)
-            return true;
-
-        // 이친구는 예측 전에도 검사할까 고민중.. 서버에선 판정 안해도 예측 시도는 열어야할까
-        /*if (projectilePrefab == null)
-            return false; */    
-
-        if (!TrySpawnProjectilesAtOnce(
-                shot,
-                launchPlan))
-        {
-            return false;
-        }
-
 
         LastAuthoritativeFireOrigin =
             shot.FirePose.Origin;
@@ -369,6 +383,22 @@ public class ProjectileWeapon :
             shot.FirePose.Direction;
 
         return true;
+    }
+
+
+    private void RestoreFireStates(
+        int ammo,
+        TickTimer fireCooldown,
+        int fireSequence)
+    {
+        Ammo =
+            ammo;
+
+        FireCooldown =
+            fireCooldown;
+
+        FireSequence =
+            fireSequence;
     }
 
 
