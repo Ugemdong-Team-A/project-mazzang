@@ -273,7 +273,7 @@ public sealed class ShieldWeapon :
             ResolveStableHolderPosition(),
             ParryOrigin,
             ParryDirection,
-            parryRadius,
+            ParryRadius,
             ParryHalfAngle,
             IsParryActive,
             remaining > 0f,

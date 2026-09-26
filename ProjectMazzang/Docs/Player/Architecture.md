@@ -250,6 +250,9 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
   성공 순간 이 값을 `ParryHit`에 복사하고, State Authority의 `Projectile`이 현재 피해·속도·넉백·논리
   크기에 적용한다. `Projectile`은 `PlayerParry`, `ShieldWeapon`, `ParryData` 같은 구체 제공자를
   참조하지 않는다.
+- 패링의 판정과 연출은 모두 `IParryVolume`이 제공하는 최종 `ParryRadius`와 `ParryHalfAngle`을 사용한다.
+  기본 데이터나 무기의 직렬화 필드를 각 소비자가 다시 읽지 않으므로, 런타임 범위 보정이 추가되어도
+  판정 호와 표시 호가 서로 다른 값을 사용하지 않는다.
 - 비-Host Input Authority만 Forward 실행에서 판정 없는 `PredictedProjectile`을 즉시 표시한다.
   Host는 같은 Tick에 실제 투사체를 생성하므로 별도 예측 표시를 만들지 않는다.
 - 무기 `NetworkObject`의 Input Authority는 장착할 때 장착 플레이어에게 전달하고 드롭할 때 제거한다.
