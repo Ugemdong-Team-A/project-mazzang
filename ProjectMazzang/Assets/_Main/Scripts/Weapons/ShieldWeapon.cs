@@ -44,44 +44,15 @@ public sealed class ShieldWeapon :
     private float dashControlLock = 0.1f;
 
     [Header("Shield Parry")]
-    [Min(0.01f)]
     [SerializeField]
-    private float parryDuration = 0.22f;
-
-    [Min(0.1f)]
-    [SerializeField]
-    private float parryRadius = 1.15f;
-
-    [Range(10f, 180f)]
-    [SerializeField]
-    private float parryArcAngle = 92f;
-
-    [Range(0f, 1f)]
-    [SerializeField]
-    private float parryAimInfluence = 0.95f;
-
-    [Min(0f)]
-    [SerializeField]
-    private float parryDamageMultiplier = 1f;
-
-    [Min(0f)]
-    [SerializeField]
-    private float parrySpeedMultiplier = 1.25f;
-
-    [Min(0f)]
-    [SerializeField]
-    private float parryKnockbackMultiplier = 1f;
-
-    [Min(0.01f)]
-    [SerializeField]
-    private float parryScaleMultiplier = 1f;
+    private ParryData parryData;
 
     [Tooltip(
         "장착자 몸 기준 오프셋입니다. " +
         "X 양수는 바라보는 쪽의 앞, X 음수는 뒤이며 " +
         "Y 양수는 위, Y 음수는 아래입니다. 조준 회전의 영향은 받지 않습니다.")]
     [SerializeField]
-    private Vector2 parryAnchorOffset =
+    private Vector2 parryCenterOffset =
         new(0.52f, 0.75f);
 
     [Header("Presentation")]
@@ -143,12 +114,16 @@ public sealed class ShieldWeapon :
         WeaponButton button,
         WeaponAttackSlot slot)
     {
-        return button == WeaponButton.Secondary
-            ? parryDuration
-            : dashControlLock;
+        if (button != WeaponButton.Secondary)
+            return dashControlLock;
+
+        return parryData != null
+            ? parryData.ActiveDuration
+            : 0f;
     }
 
     public bool IsParryActive =>
+        parryData != null &&
         IsEquipped &&
         !ParryActiveTimer.ExpiredOrNotRunning(Runner);
 
@@ -158,20 +133,21 @@ public sealed class ShieldWeapon :
         ParryGeometry.ResolveOrigin(
             ResolveHolderRootPosition(),
             ActionFacingRight,
-            parryAnchorOffset);
+            parryCenterOffset);
 
     public Vector2 ParryDirection =>
         NormalizeDirection(ActionDirection);
 
-    public float ParryRadius => parryRadius;
-    public float ParryHalfAngle => parryArcAngle * 0.5f;
-    public float ParryAimInfluence => parryAimInfluence;
+    public float ParryRadius =>
+        parryData != null ? parryData.Radius : 0f;
+    public float ParryHalfAngle =>
+        parryData != null ? parryData.HalfAngle : 0f;
+    public float ParryAimInfluence =>
+        parryData != null ? parryData.AimInfluence : 0f;
     public ParryProjectileModifiers ProjectileModifiers =>
-        new(
-            parryDamageMultiplier,
-            parrySpeedMultiplier,
-            parryKnockbackMultiplier,
-            parryScaleMultiplier);
+        parryData != null
+            ? parryData.ProjectileModifiers
+            : ParryProjectileModifiers.Identity;
 
     public override void Spawned()
     {
@@ -238,7 +214,7 @@ public sealed class ShieldWeapon :
         bool mirrored,
         float attackDamageMultiplier)
     {
-        if (!CanStartAction())
+        if (parryData == null || !CanStartAction())
             return false;
 
         ActionOrigin = origin;
@@ -246,7 +222,7 @@ public sealed class ShieldWeapon :
         ActionFacingRight = !mirrored;
         ParryActiveTimer = TickTimer.CreateFromSeconds(
             Runner,
-            parryDuration);
+            parryData.ActiveDuration);
 
         StartSharedCooldown();
         ParrySequence++;
@@ -285,7 +261,7 @@ public sealed class ShieldWeapon :
             ParryGeometry.ResolveOrigin(
                 ResolveStableHolderPosition(),
                 ActionFacingRight,
-                parryAnchorOffset);
+                parryCenterOffset);
 
         _presentation.SetState(
             ResolveStableHolderPosition(),
