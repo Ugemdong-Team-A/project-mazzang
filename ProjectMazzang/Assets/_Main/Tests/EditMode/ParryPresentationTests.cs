@@ -114,7 +114,7 @@ namespace ProjectMazzang.Tests
 
 
         [Test]
-        public void ResolveOrigin_UsesBodyFacingOffset()
+        public void ResolveOrigin_MirrorsOnlyCenterOffsetX()
         {
             Vector2 rightFacingOrigin =
                 InvokeResolveOrigin(
@@ -163,9 +163,9 @@ namespace ProjectMazzang.Tests
 
 
         private static Vector2 InvokeResolveOrigin(
-            Vector2 anchor,
+            Vector2 rootPosition,
             bool facingRight,
-            Vector2 bodyOffset)
+            Vector2 centerOffset)
         {
             Assert.That(
                 ResolveOriginMethod,
@@ -175,9 +175,9 @@ namespace ProjectMazzang.Tests
                 null,
                 new object[]
                 {
-                    anchor,
+                    rootPosition,
                     facingRight,
-                    bodyOffset
+                    centerOffset
                 });
         }
     }

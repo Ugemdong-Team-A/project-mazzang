@@ -54,14 +54,14 @@ public interface IParryVolume
 public static class ParryGeometry
 {
     public static Vector2 ResolveOrigin(
-        Vector2 anchor,
+        Vector2 rootPosition,
         bool facingRight,
-        Vector2 bodyOffset)
+        Vector2 centerOffset)
     {
-        return anchor +
+        return rootPosition +
             new Vector2(
-                bodyOffset.x *
+                centerOffset.x *
                 (facingRight ? 1f : -1f),
-                bodyOffset.y);
+                centerOffset.y);
     }
 }

@@ -7,6 +7,21 @@ public sealed class PlayerParry :
     IParryVolume
 {
     [SerializeField] private ParryData data;
+
+    [Header("Use Policy")]
+    [Min(0f)]
+    [SerializeField] private float cooldown = 1.1f;
+
+    [Header("Origin")]
+    [Tooltip(
+        "플레이어 루트 기준 패링 중심입니다. " +
+        "X 양수는 바라보는 쪽의 앞, X 음수는 뒤이며 " +
+        "Y 양수는 위, Y 음수는 아래입니다. 조준 회전의 영향은 받지 않습니다.")]
+    [SerializeField]
+    private Vector2 centerOffset =
+        new(0.45f, 0.75f);
+
+    [Header("Presentation")]
     [SerializeField] private CameraShakeProfile successShakeProfile;
 
     [Networked] private NetworkButtons PreviousButtons { get; set; }
@@ -31,14 +46,10 @@ public sealed class PlayerParry :
     {
         get
         {
-            Vector2 anchorOffset = data != null
-                ? data.AnchorOffset
-                : Vector2.zero;
-
             return ParryGeometry.ResolveOrigin(
                 transform.position,
                 FacingRight,
-                anchorOffset);
+                centerOffset);
         }
     }
 
@@ -113,7 +124,7 @@ public sealed class PlayerParry :
             data.ActiveDuration);
         CooldownTimer = TickTimer.CreateFromSeconds(
             Runner,
-            data.Cooldown);
+            cooldown);
     }
 
     public void OnParrySuccess(Vector2 point)
@@ -133,15 +144,15 @@ public sealed class PlayerParry :
         EnsurePresentation();
 
         float cooldownRemaining = CooldownTimer.RemainingTime(Runner) ?? 0f;
-        float cooldownProgress = data.Cooldown <= 0f
+        float cooldownProgress = cooldown <= 0f
             ? 1f
-            : 1f - Mathf.Clamp01(cooldownRemaining / data.Cooldown);
+            : 1f - Mathf.Clamp01(cooldownRemaining / cooldown);
 
         _presentation.SetState(
             ResolvePresentationRoot(),
             ParryDirection,
             FacingRight,
-            data.AnchorOffset,
+            centerOffset,
             ParryRadius,
             ParryHalfAngle,
             IsParryActive,

@@ -14,7 +14,7 @@ public sealed class ParryPresentation : MonoBehaviour
     private Transform _holderRoot;
     private Vector2 _direction;
     private bool _facingRight;
-    private Vector2 _anchorOffset;
+    private Vector2 _centerOffset;
     private float _radius;
     private float _halfAngle;
     private float _cooldownProgress;
@@ -25,7 +25,7 @@ public sealed class ParryPresentation : MonoBehaviour
         Transform holderRoot,
         Vector2 direction,
         bool facingRight,
-        Vector2 anchorOffset,
+        Vector2 centerOffset,
         float radius,
         float halfAngle,
         bool active,
@@ -38,7 +38,7 @@ public sealed class ParryPresentation : MonoBehaviour
         _holderRoot = holderRoot;
         _direction = direction;
         _facingRight = facingRight;
-        _anchorOffset = anchorOffset;
+        _centerOffset = centerOffset;
         _radius = radius;
         _halfAngle = halfAngle;
         _active = active;
@@ -78,7 +78,7 @@ public sealed class ParryPresentation : MonoBehaviour
             ParryGeometry.ResolveOrigin(
                 ResolveHolderPosition(),
                 _facingRight,
-                _anchorOffset);
+                _centerOffset);
 
         float pulse =
             0.92f +
