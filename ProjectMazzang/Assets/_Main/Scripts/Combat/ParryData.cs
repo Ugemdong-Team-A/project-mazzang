@@ -8,7 +8,7 @@ public sealed class ParryData : ScriptableObject
     [Min(0.01f)] [SerializeField] private float activeDuration = 0.18f;
     [Min(0f)] [SerializeField] private float cooldown = 1.1f;
     [Min(0.1f)] [SerializeField] private float radius = 1f;
-    [Range(10f, 180f)] [SerializeField] private float arcAngle = 110f;
+    [Range(10f, 360f)] [SerializeField] private float arcAngle = 110f;
     [Range(0f, 1f)] [SerializeField] private float aimInfluence = 0.85f;
     [Tooltip(
         "플레이어 몸 기준 오프셋입니다. " +
