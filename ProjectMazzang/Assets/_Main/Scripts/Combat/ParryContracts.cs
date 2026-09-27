@@ -64,4 +64,25 @@ public static class ParryGeometry
                 (facingRight ? 1f : -1f),
                 centerOffset.y);
     }
+
+    public static Vector2 ResolveLocalOrigin(
+        Vector2 origin,
+        Vector2 forward,
+        Vector2 localOffset,
+        bool mirrored)
+    {
+        forward = forward.sqrMagnitude > 0.0001f
+            ? forward.normalized
+            : Vector2.right;
+
+        if (mirrored)
+            localOffset.y = -localOffset.y;
+
+        Vector2 up =
+            new(-forward.y, forward.x);
+
+        return origin +
+            forward * localOffset.x +
+            up * localOffset.y;
+    }
 }

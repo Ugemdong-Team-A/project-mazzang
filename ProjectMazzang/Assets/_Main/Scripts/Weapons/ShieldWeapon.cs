@@ -48,12 +48,12 @@ public sealed class ShieldWeapon :
     private ParryData parryData;
 
     [Tooltip(
-        "장착자 몸 기준 오프셋입니다. " +
-        "X 양수는 바라보는 쪽의 앞, X 음수는 뒤이며 " +
-        "Y 양수는 위, Y 음수는 아래입니다. 조준 회전의 영향은 받지 않습니다.")]
+        "패리 행동 원점 기준 로컬 오프셋입니다. " +
+        "X 양수는 패리 방향의 앞, X 음수는 뒤이며 " +
+        "Y는 무기 외형의 좌우 반전을 포함한 로컬 위·아래입니다.")]
     [SerializeField]
-    private Vector2 parryCenterOffset =
-        new(0.52f, 0.75f);
+    private Vector2 parryLocalOffset =
+        new(0.52f, 0f);
 
     [Header("Presentation")]
     [Min(0f)]
@@ -79,7 +79,10 @@ public sealed class ShieldWeapon :
     private Vector2 ActionOrigin { get; set; }
 
     [Networked]
-    private NetworkBool ActionFacingRight { get; set; }
+    private Vector2 ParryRootOffset { get; set; }
+
+    [Networked]
+    private NetworkBool ParryMirrored { get; set; }
 
     [Networked]
     private Vector2 SuccessPoint { get; set; }
@@ -130,10 +133,8 @@ public sealed class ShieldWeapon :
     public NetworkObject ParryOwner => Holder;
 
     public Vector2 ParryOrigin =>
-        ParryGeometry.ResolveOrigin(
-            ResolveHolderRootPosition(),
-            ActionFacingRight,
-            parryCenterOffset);
+        ResolveParryOrigin(
+            ResolveHolderRootPosition());
 
     public Vector2 ParryDirection =>
         NormalizeDirection(ActionDirection);
@@ -164,6 +165,8 @@ public sealed class ShieldWeapon :
 
         SharedCooldownTimer = TickTimer.None;
         ParryActiveTimer = TickTimer.None;
+        ParryRootOffset = Vector2.zero;
+        ParryMirrored = false;
     }
 
     public override void Despawned(
@@ -194,7 +197,6 @@ public sealed class ShieldWeapon :
         direction = NormalizeDirection(direction);
         ActionOrigin = origin;
         ActionDirection = direction;
-        ActionFacingRight = !mirrored;
 
         ApplyDash(direction);
         PerformBash(
@@ -219,7 +221,9 @@ public sealed class ShieldWeapon :
 
         ActionOrigin = origin;
         ActionDirection = NormalizeDirection(direction);
-        ActionFacingRight = !mirrored;
+        ParryRootOffset =
+            origin - ResolveHolderRootPosition();
+        ParryMirrored = mirrored;
         ParryActiveTimer = TickTimer.CreateFromSeconds(
             Runner,
             parryData.ActiveDuration);
@@ -258,10 +262,8 @@ public sealed class ShieldWeapon :
             Holder.InputAuthority == Runner.LocalPlayer;
 
         Vector2 presentationParryOrigin =
-            ParryGeometry.ResolveOrigin(
-                ResolveStableHolderPosition(),
-                ActionFacingRight,
-                parryCenterOffset);
+            ResolveParryOrigin(
+                ResolveStableHolderPosition());
 
         _presentation.SetState(
             ResolveStableHolderPosition(),
@@ -332,6 +334,28 @@ public sealed class ShieldWeapon :
                     Runner,
                     sharedCooldown)
                 : TickTimer.None;
+    }
+
+    protected override void OnAuthorityHolderChanged(
+        NetworkObject previousHolder,
+        NetworkObject currentHolder)
+    {
+        if (previousHolder == currentHolder)
+            return;
+
+        ParryActiveTimer = TickTimer.None;
+        ParryRootOffset = Vector2.zero;
+        ParryMirrored = false;
+    }
+
+    private Vector2 ResolveParryOrigin(
+        Vector2 holderRootPosition)
+    {
+        return ParryGeometry.ResolveLocalOrigin(
+            holderRootPosition + ParryRootOffset,
+            ParryDirection,
+            parryLocalOffset,
+            ParryMirrored);
     }
 
     private void ApplyDash(Vector2 direction)

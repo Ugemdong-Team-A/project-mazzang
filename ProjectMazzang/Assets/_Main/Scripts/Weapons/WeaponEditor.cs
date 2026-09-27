@@ -39,7 +39,7 @@ public sealed class WeaponEditor : Editor
                 ["fireClip"] = "발사 소리",
                 ["fireShakeProfile"] = "발사 화면 흔들림",
                 ["parryData"] = "패링 데이터",
-                ["parryCenterOffset"] = "패링 중심점 보정",
+                ["parryLocalOffset"] = "패링 로컬 위치 보정",
                 ["bashEffectForwardOffset"] = "밀치기 효과 앞 거리",
                 ["bashShakeProfile"] = "밀치기 화면 흔들림",
                 ["parrySuccessShakeProfile"] = "패링 성공 화면 흔들림"

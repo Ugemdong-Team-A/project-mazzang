@@ -256,10 +256,12 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
 - `ParryData`는 패리의 활성 시간·범위·조준 영향과 반사 투사체 배율만 보관한다. 플레이어 기본 패리와
   방패 패리는 각각의 프로필을 참조하고, 재사용 대기시간과 소비자별 몸 기준 중심 오프셋은 실행자인
   `PlayerParry`와 `ShieldWeapon`이 프리팹별로 직접 소유한다.
-- 패리 원점은 조준·무기 리그의 `RAP`/`WeaponSocket`과 분리된 플레이어 루트다. 오프셋은 몸 기준
-  `Vector2`로, X만 바라보는 방향에 따라 앞/뒤로 반전하고 Y는 조준 회전과 무관한 월드 위/아래다.
-  판정은 시뮬레이션 루트, 표현은 보간 대상 루트를 기준으로 `ParryGeometry.ResolveOrigin`에서 같은
-  규칙을 적용한다.
+- 기본 패리 원점은 조준·무기 리그의 `RAP`/`WeaponSocket`과 분리된 플레이어 루트다. 몸 기준
+  `Vector2`의 X만 바라보는 방향에 따라 앞/뒤로 반전하고 Y는 월드 위/아래로 유지한다. 방패는 발동
+  Tick의 무기 행동 원점을 Holder 루트에 대한 오프셋으로 고정하고, 확정 패리 방향을 로컬 X축으로
+  사용해 자신의 로컬 위치 보정을 적용한다. 이때 발동 시점의 무기 좌우 반전도 함께 고정하여 로컬 Y가
+  반대 방향에서 거꾸로 뒤집히지 않게 한다. 판정은 시뮬레이션 루트, 표현은 보간 대상 루트에 각 소비자의
+  같은 원점 계산을 적용한다.
 - 무기를 들지 않은 기본 패리는 Active 동안 매 Tick의 입력 월드 좌표를
   `PlayerTickState.ResolveAimDirectionTo`로 해석하고, 같은 상태의 허리 각도 제한을 적용해 방향과
   Facing을 갱신한다. 판정 원호와 표시 원호는 같은 Networked 방향을 사용한다. 무기 패리는 각 무기의
@@ -268,6 +270,9 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
   Host는 같은 Tick에 실제 투사체를 생성하므로 별도 예측 표시를 만들지 않는다.
 - 무기 `NetworkObject`의 Input Authority는 장착할 때 장착 플레이어에게 전달하고 드롭할 때 제거한다.
   따라서 비-Host 장착자도 `Ammo`, `FireCooldown`과 발사 표시를 자신의 예측 Tick에서 먼저 처리한다.
+- State Authority가 무기의 Holder를 장착·드롭으로 전환하면 `Weapon`의 권위 전환 훅을 호출한다.
+  `ShieldWeapon`은 이때 활성 패리만 즉시 취소하여 이전 사용자의 남은 판정이 새 장착자에게 이어지지
+  않게 하며, Bash와 공유하는 재사용 대기시간은 그대로 유지한다.
 - `ProjectileWeapon`은 별도 예측 프리팹이나 전역 매니저 없이 자신의 `GameObjectPool`을 소유한다.
   비-Host Client가 무기의 Input Authority를 얻으면 첫 발사 전에 풀을 준비하며, 기본 총기는 1개,
   샷건은 한 발의 펠릿 수만큼 미리 생성한다. 풀 인스턴스는 실제 투사체 프리팹 전체를 복제한 뒤

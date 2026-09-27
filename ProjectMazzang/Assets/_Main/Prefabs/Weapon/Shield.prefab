@@ -421,7 +421,7 @@ MonoBehaviour:
   dashSpeed: 7.5
   dashControlLock: 0.1
   parryData: {fileID: 11400000, guid: 81f30e2fa7d44ad3b21ab9cfaf51506a, type: 2}
-  parryCenterOffset: {x: 0.52, y: 0.75}
+  parryLocalOffset: {x: 0.52, y: 0}
   bashEffectForwardOffset: 0.68
   bashShakeProfile: {fileID: 11400000, guid: 020205b612304d22b1e00dd1c7382ffb, type: 2}
   parrySuccessShakeProfile: {fileID: 11400000, guid: fdf65936ba5844708f91f6dc02bbf986, type: 2}

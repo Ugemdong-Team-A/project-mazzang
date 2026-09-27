@@ -564,8 +564,14 @@ public abstract class Weapon :
             return false;
         }
 
-        Holder =
-            holder;
+        NetworkObject previousHolder =
+            Holder;
+
+        Holder = holder;
+
+        OnAuthorityHolderChanged(
+            previousHolder,
+            Holder);
 
         Object.AssignInputAuthority(
             holderPlayer);
@@ -595,10 +601,17 @@ public abstract class Weapon :
         if (!HasStateAuthority)
             return;
 
+        NetworkObject previousHolderObject =
+            Holder;
+
         Object.RemoveInputAuthority();
 
         Holder =
             null;
+
+        OnAuthorityHolderChanged(
+            previousHolderObject,
+            Holder);
 
         if (previousHolder != PlayerRef.None &&
             repickupBlockDuration > 0f)
@@ -628,6 +641,13 @@ public abstract class Weapon :
         ApplyLocalHolderState();
         ApplyLocalPickupState();
         ApplyLocalSortingState();
+    }
+
+
+    protected virtual void OnAuthorityHolderChanged(
+        NetworkObject previousHolder,
+        NetworkObject currentHolder)
+    {
     }
 
 

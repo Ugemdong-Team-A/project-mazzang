@@ -24,9 +24,9 @@ namespace ProjectMazzang.Tests
                         type.Name ==
                         "ParryPresentation")
                 .GetMethod(
-                "SetArc",
-                BindingFlags.Static |
-                BindingFlags.NonPublic);
+                    "SetArc",
+                    BindingFlags.Static |
+                    BindingFlags.NonPublic);
 
         private static MethodInfo ResolveOriginMethod =>
             RuntimeAssembly
@@ -37,6 +37,18 @@ namespace ProjectMazzang.Tests
                         "ParryGeometry")
                 .GetMethod(
                     "ResolveOrigin",
+                    BindingFlags.Static |
+                    BindingFlags.Public);
+
+        private static MethodInfo ResolveLocalOriginMethod =>
+            RuntimeAssembly
+                .GetTypes()
+                .Single(
+                    type =>
+                        type.Name ==
+                        "ParryGeometry")
+                .GetMethod(
+                    "ResolveLocalOrigin",
                     BindingFlags.Static |
                     BindingFlags.Public);
 
@@ -137,6 +149,63 @@ namespace ProjectMazzang.Tests
                 leftFacingOrigin,
                 Is.EqualTo(
                     new Vector2(8f, 23f)));
+        }
+
+
+        [Test]
+        public void ResolveLocalOrigin_RotatesOffsetWithForward()
+        {
+            Assert.That(
+                ResolveLocalOriginMethod,
+                Is.Not.Null);
+
+            Vector2 rightOrigin =
+                (Vector2)ResolveLocalOriginMethod.Invoke(
+                    null,
+                    new object[]
+                    {
+                        new Vector2(10f, 20f),
+                        Vector2.right,
+                        new Vector2(2f, 3f),
+                        false
+                    });
+
+            Assert.That(
+                rightOrigin,
+                Is.EqualTo(
+                    new Vector2(12f, 23f)));
+
+            Vector2 leftOrigin =
+                (Vector2)ResolveLocalOriginMethod.Invoke(
+                    null,
+                    new object[]
+                    {
+                        new Vector2(10f, 20f),
+                        Vector2.left,
+                        new Vector2(2f, 3f),
+                        true
+                    });
+
+            Assert.That(
+                leftOrigin,
+                Is.EqualTo(
+                    new Vector2(8f, 23f)));
+
+            Vector2 upOrigin =
+                (Vector2)ResolveLocalOriginMethod.Invoke(
+                    null,
+                    new object[]
+                    {
+                        new Vector2(10f, 20f),
+                        Vector2.up,
+                        new Vector2(2f, 3f),
+                        false
+                    });
+
+            Assert.That(
+                upOrigin,
+                Is.EqualTo(
+                    new Vector2(7f, 22f)));
         }
 
 
