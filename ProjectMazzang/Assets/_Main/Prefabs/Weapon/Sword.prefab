@@ -408,6 +408,7 @@ MonoBehaviour:
   defaultAttack:
     enabled: 1
     animation: {fileID: 11400000, guid: 9fa929d705ae8874fab8885d9c36c0bd, type: 2}
+    weaponAnimation: {fileID: 0}
     attack: {fileID: 11400000, guid: 762e944c78386a74dbc7593da86fe56d, type: 2}
     hitboxSize: {x: 1.89, y: 1.6}
     hitboxForwardOffset: 0.9
@@ -417,6 +418,7 @@ MonoBehaviour:
   noDirectionAttack:
     enabled: 0
     animation: {fileID: 0}
+    weaponAnimation: {fileID: 0}
     attack: {fileID: 0}
     hitboxSize: {x: 1.8, y: 0.8}
     hitboxForwardOffset: 0.9
@@ -426,6 +428,7 @@ MonoBehaviour:
   sideAttack:
     enabled: 0
     animation: {fileID: 0}
+    weaponAnimation: {fileID: 0}
     attack: {fileID: 0}
     hitboxSize: {x: 1.8, y: 0.8}
     hitboxForwardOffset: 0.9
@@ -435,6 +438,7 @@ MonoBehaviour:
   downAttack:
     enabled: 0
     animation: {fileID: 0}
+    weaponAnimation: {fileID: 0}
     attack: {fileID: 0}
     hitboxSize: {x: 1.8, y: 0.8}
     hitboxForwardOffset: 0.9

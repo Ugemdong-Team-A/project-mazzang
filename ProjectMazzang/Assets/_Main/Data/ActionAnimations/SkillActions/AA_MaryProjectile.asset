@@ -16,12 +16,12 @@ MonoBehaviour:
     clip: {fileID: 7400000, guid: ca2e135bddd730a41a7e70791252c3b4, type: 2}
     bodyMask: 0
     aimComposition: 2
-    handIkPolicy: 0
+    handIkPolicy: 1
   main:
     clip: {fileID: 7400000, guid: 7120d7ee9762e7345bf3dd115bab88c5, type: 2}
     bodyMask: 1
     aimComposition: 2
-    handIkPolicy: 0
+    handIkPolicy: 1
   recovery:
     clip: {fileID: 0}
     bodyMask: 0
