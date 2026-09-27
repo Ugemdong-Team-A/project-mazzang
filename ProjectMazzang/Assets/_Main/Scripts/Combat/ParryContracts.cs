@@ -50,3 +50,18 @@ public interface IParryVolume
 
     void OnParrySuccess(Vector2 point);
 }
+
+public static class ParryGeometry
+{
+    public static Vector2 ResolveOrigin(
+        Vector2 anchor,
+        bool facingRight,
+        Vector2 bodyOffset)
+    {
+        return anchor +
+            new Vector2(
+                bodyOffset.x *
+                (facingRight ? 1f : -1f),
+                bodyOffset.y);
+    }
+}

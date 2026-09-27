@@ -10,7 +10,11 @@ public sealed class ParryData : ScriptableObject
     [Min(0.1f)] [SerializeField] private float radius = 1f;
     [Range(10f, 180f)] [SerializeField] private float arcAngle = 110f;
     [Range(0f, 1f)] [SerializeField] private float aimInfluence = 0.85f;
-    [SerializeField] private float anchorForwardOffset = 0.45f;
+    [Tooltip(
+        "플레이어 몸 기준 오프셋입니다. " +
+        "X 양수는 바라보는 쪽의 앞, X 음수는 뒤이며 " +
+        "Y 양수는 위, Y 음수는 아래입니다. 조준 회전의 영향은 받지 않습니다.")]
+    [SerializeField] private Vector2 anchorOffset = new(0.45f, 0.75f);
     [Header("Reflected Projectile")]
     [Min(0f)] [SerializeField] private float damageMultiplier = 1f;
     [Min(0f)] [SerializeField] private float speedMultiplier = 1.15f;
@@ -28,5 +32,5 @@ public sealed class ParryData : ScriptableObject
             speedMultiplier,
             knockbackMultiplier,
             scaleMultiplier);
-    public float AnchorForwardOffset => anchorForwardOffset;
+    public Vector2 AnchorOffset => anchorOffset;
 }

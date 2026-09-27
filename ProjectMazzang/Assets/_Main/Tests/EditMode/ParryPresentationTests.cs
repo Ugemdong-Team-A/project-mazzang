@@ -28,6 +28,18 @@ namespace ProjectMazzang.Tests
                 BindingFlags.Static |
                 BindingFlags.NonPublic);
 
+        private static MethodInfo ResolveOriginMethod =>
+            RuntimeAssembly
+                .GetTypes()
+                .Single(
+                    type =>
+                        type.Name ==
+                        "ParryGeometry")
+                .GetMethod(
+                    "ResolveOrigin",
+                    BindingFlags.Static |
+                    BindingFlags.Public);
+
 
         [Test]
         public void SetArc_KeepsEndpointsSymmetricAroundDirection()
@@ -101,6 +113,33 @@ namespace ProjectMazzang.Tests
         }
 
 
+        [Test]
+        public void ResolveOrigin_UsesBodyFacingOffset()
+        {
+            Vector2 rightFacingOrigin =
+                InvokeResolveOrigin(
+                    new Vector2(10f, 20f),
+                    true,
+                    new Vector2(2f, 3f));
+
+            Assert.That(
+                rightFacingOrigin,
+                Is.EqualTo(
+                    new Vector2(12f, 23f)));
+
+            Vector2 leftFacingOrigin =
+                InvokeResolveOrigin(
+                    new Vector2(10f, 20f),
+                    false,
+                    new Vector2(2f, 3f));
+
+            Assert.That(
+                leftFacingOrigin,
+                Is.EqualTo(
+                    new Vector2(8f, 23f)));
+        }
+
+
         private static void InvokeSetArc(
             LineRenderer line,
             float halfAngle)
@@ -119,6 +158,26 @@ namespace ProjectMazzang.Tests
                     1f,
                     halfAngle,
                     1f
+                });
+        }
+
+
+        private static Vector2 InvokeResolveOrigin(
+            Vector2 anchor,
+            bool facingRight,
+            Vector2 bodyOffset)
+        {
+            Assert.That(
+                ResolveOriginMethod,
+                Is.Not.Null);
+
+            return (Vector2)ResolveOriginMethod.Invoke(
+                null,
+                new object[]
+                {
+                    anchor,
+                    facingRight,
+                    bodyOffset
                 });
         }
     }

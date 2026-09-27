@@ -46,7 +46,7 @@ public sealed class WeaponEditor : Editor
                 ["parrySpeedMultiplier"] = "패링 속도 배율",
                 ["parryKnockbackMultiplier"] = "패링 넉백 배율",
                 ["parryScaleMultiplier"] = "패링 크기 배율",
-                ["parryForwardOffset"] = "패링 앞 거리",
+                ["parryAnchorOffset"] = "패링 기준점 오프셋",
                 ["bashEffectForwardOffset"] = "밀치기 효과 앞 거리",
                 ["bashShakeProfile"] = "밀치기 화면 흔들림",
                 ["parrySuccessShakeProfile"] = "패링 성공 화면 흔들림"

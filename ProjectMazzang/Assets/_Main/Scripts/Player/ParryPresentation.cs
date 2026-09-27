@@ -12,9 +12,9 @@ public sealed class ParryPresentation : MonoBehaviour
     private float _successTime;
     private Vector2 _successPoint;
     private Transform _holderRoot;
-    private Transform _parryAnchor;
     private Vector2 _direction;
-    private float _forwardOffset;
+    private bool _facingRight;
+    private Vector2 _anchorOffset;
     private float _radius;
     private float _halfAngle;
     private float _cooldownProgress;
@@ -23,9 +23,9 @@ public sealed class ParryPresentation : MonoBehaviour
 
     public void SetState(
         Transform holderRoot,
-        Transform parryAnchor,
         Vector2 direction,
-        float forwardOffset,
+        bool facingRight,
+        Vector2 anchorOffset,
         float radius,
         float halfAngle,
         bool active,
@@ -36,9 +36,9 @@ public sealed class ParryPresentation : MonoBehaviour
         EnsureCreated();
 
         _holderRoot = holderRoot;
-        _parryAnchor = parryAnchor;
         _direction = direction;
-        _forwardOffset = forwardOffset;
+        _facingRight = facingRight;
+        _anchorOffset = anchorOffset;
         _radius = radius;
         _halfAngle = halfAngle;
         _active = active;
@@ -74,14 +74,11 @@ public sealed class ParryPresentation : MonoBehaviour
         if (!_active)
             return;
 
-        Vector2 anchorPosition =
-            _parryAnchor != null
-                ? _parryAnchor.position
-                : ResolveHolderPosition();
-
         Vector2 origin =
-            anchorPosition +
-            _direction * _forwardOffset;
+            ParryGeometry.ResolveOrigin(
+                ResolveHolderPosition(),
+                _facingRight,
+                _anchorOffset);
 
         float pulse =
             0.92f +

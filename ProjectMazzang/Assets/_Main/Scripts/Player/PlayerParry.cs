@@ -13,6 +13,7 @@ public sealed class PlayerParry :
     [Networked] private TickTimer ActiveTimer { get; set; }
     [Networked] private TickTimer CooldownTimer { get; set; }
     [Networked] private Vector2 Direction { get; set; }
+    [Networked] private NetworkBool FacingRight { get; set; }
     [Networked] private Vector2 SuccessPoint { get; set; }
     [Networked] private byte SuccessSequence { get; set; }
 
@@ -30,19 +31,14 @@ public sealed class PlayerParry :
     {
         get
         {
-            Transform parryAnchor =
-                ResolveParryAnchor();
+            Vector2 anchorOffset = data != null
+                ? data.AnchorOffset
+                : Vector2.zero;
 
-            Vector2 anchor = parryAnchor != null
-                ? parryAnchor.position
-                : transform.position;
-
-            float forwardOffset = data != null
-                ? data.AnchorForwardOffset
-                : 0f;
-
-            return anchor +
-                ParryDirection * forwardOffset;
+            return ParryGeometry.ResolveOrigin(
+                transform.position,
+                FacingRight,
+                anchorOffset);
         }
     }
 
@@ -97,9 +93,14 @@ public sealed class PlayerParry :
             return;
         }
 
+        bool facingRight =
+            !tick.State.HasMovement ||
+            tick.State.FacingRight;
+
         Direction = ClampDirectionToBody(
             tick.State.AimDirection,
-            !tick.State.HasMovement || tick.State.FacingRight);
+            facingRight);
+        FacingRight = facingRight;
 
         ActiveTimer = TickTimer.CreateFromSeconds(
             Runner,
@@ -132,9 +133,9 @@ public sealed class PlayerParry :
 
         _presentation.SetState(
             ResolvePresentationRoot(),
-            ResolveParryAnchor(),
             ParryDirection,
-            data.AnchorForwardOffset,
+            FacingRight,
+            data.AnchorOffset,
             ParryRadius,
             ParryHalfAngle,
             IsParryActive,
@@ -156,12 +157,7 @@ public sealed class PlayerParry :
             return;
 
         Transform parent =
-            ResolveParryAnchor();
-
-        if (parent == null)
-        {
-            parent = ResolvePresentationRoot();
-        }
+            ResolvePresentationRoot();
 
         GameObject presentationObject =
             new("Parry Presentation");
@@ -185,11 +181,6 @@ public sealed class PlayerParry :
         return presentationRoot != null
             ? presentationRoot
             : transform;
-    }
-
-    private Transform ResolveParryAnchor()
-    {
-        return _weaponHandler?.WeaponSocket;
     }
 
     private static Vector2 ClampDirectionToBody(

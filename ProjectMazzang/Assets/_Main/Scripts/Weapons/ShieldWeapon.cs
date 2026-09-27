@@ -76,8 +76,13 @@ public sealed class ShieldWeapon :
     [SerializeField]
     private float parryScaleMultiplier = 1f;
 
+    [Tooltip(
+        "장착자 몸 기준 오프셋입니다. " +
+        "X 양수는 바라보는 쪽의 앞, X 음수는 뒤이며 " +
+        "Y 양수는 위, Y 음수는 아래입니다. 조준 회전의 영향은 받지 않습니다.")]
     [SerializeField]
-    private float parryForwardOffset = 0.52f;
+    private Vector2 parryAnchorOffset =
+        new(0.52f, 0.75f);
 
     [Header("Presentation")]
     [Min(0f)]
@@ -101,6 +106,9 @@ public sealed class ShieldWeapon :
 
     [Networked]
     private Vector2 ActionOrigin { get; set; }
+
+    [Networked]
+    private NetworkBool ActionFacingRight { get; set; }
 
     [Networked]
     private Vector2 SuccessPoint { get; set; }
@@ -147,8 +155,10 @@ public sealed class ShieldWeapon :
     public NetworkObject ParryOwner => Holder;
 
     public Vector2 ParryOrigin =>
-        ResolveHolderAnchor() +
-        ParryDirection * parryForwardOffset;
+        ParryGeometry.ResolveOrigin(
+            ResolveHolderRootPosition(),
+            ActionFacingRight,
+            parryAnchorOffset);
 
     public Vector2 ParryDirection =>
         NormalizeDirection(ActionDirection);
@@ -208,6 +218,7 @@ public sealed class ShieldWeapon :
         direction = NormalizeDirection(direction);
         ActionOrigin = origin;
         ActionDirection = direction;
+        ActionFacingRight = !mirrored;
 
         ApplyDash(direction);
         PerformBash(
@@ -232,6 +243,7 @@ public sealed class ShieldWeapon :
 
         ActionOrigin = origin;
         ActionDirection = NormalizeDirection(direction);
+        ActionFacingRight = !mirrored;
         ParryActiveTimer = TickTimer.CreateFromSeconds(
             Runner,
             parryDuration);
@@ -269,9 +281,15 @@ public sealed class ShieldWeapon :
             Runner != null &&
             Holder.InputAuthority == Runner.LocalPlayer;
 
+        Vector2 presentationParryOrigin =
+            ParryGeometry.ResolveOrigin(
+                ResolveStableHolderPosition(),
+                ActionFacingRight,
+                parryAnchorOffset);
+
         _presentation.SetState(
             ResolveStableHolderPosition(),
-            ParryOrigin,
+            presentationParryOrigin,
             ParryDirection,
             ParryRadius,
             ParryHalfAngle,
@@ -297,7 +315,7 @@ public sealed class ShieldWeapon :
         {
             _visibleParrySequence = ParrySequence;
             _presentation.PlayParryStart(
-                ParryOrigin,
+                presentationParryOrigin,
                 ParryDirection);
         }
 
@@ -424,15 +442,10 @@ public sealed class ShieldWeapon :
         }
     }
 
-    private Vector2 ResolveHolderAnchor()
+    private Vector2 ResolveHolderRootPosition()
     {
-        if (Holder != null &&
-            Holder.TryGetComponent(
-                out IWeaponHandler handler) &&
-            handler.WeaponSocket != null)
-        {
-            return handler.WeaponSocket.position;
-        }
+        if (Holder != null)
+            return Holder.transform.position;
 
         return ActionOrigin.sqrMagnitude > 0.0001f
             ? ActionOrigin
@@ -472,7 +485,7 @@ public sealed class ShieldWeapon :
 
         Vector2 origin =
             Application.isPlaying
-                ? ResolveHolderAnchor()
+                ? ResolveHolderRootPosition()
                 : transform.position;
 
         float angle = Mathf.Atan2(

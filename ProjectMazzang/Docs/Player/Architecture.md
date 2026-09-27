@@ -191,8 +191,8 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
 - 플레이어를 따라가는 월드 공간 LineRenderer 연출은 시뮬레이션 루트가 아니라
   `IWeaponHandler.PresentationRoot`를 사용한다. `PlayerWeaponController`는 이 값을
   `NetworkRigidbody.InterpolationTarget`으로 제공하므로 방패와 패링 쿨다운 표시가 렌더 보간된
-  캐릭터 외형과 같은 프레임 위치를 사용한다. 기본 패링의 표시 오브젝트는 `WeaponSocket` 자식으로
-  만들고, 원호 좌표는 Animator와 IK가 Socket을 갱신한 뒤 `LateUpdate`에서 계산한다. 기본 패링은
+  캐릭터 외형과 같은 프레임 위치를 사용한다. 기본 패링의 표시 오브젝트는 보간 대상 루트 자식으로
+  만들고, 원호 좌표는 해당 루트의 프레임 위치가 갱신된 뒤 `LateUpdate`에서 계산한다. 기본 패링은
   중심을 기준으로 굵기와 투명도가 대칭인 외곽광·코어 원호를 사용하고, 현재 패링 각도에 비례해
   LineRenderer 점 수를 정한다. 판정과 Networked 상태를 소유하는 `PlayerParry` 자체는 계속 플레이어
   루트에 둔다.
@@ -253,6 +253,10 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
 - 패링의 판정과 연출은 모두 `IParryVolume`이 제공하는 최종 `ParryRadius`와 `ParryHalfAngle`을 사용한다.
   기본 데이터나 무기의 직렬화 필드를 각 소비자가 다시 읽지 않으므로, 런타임 범위 보정이 추가되어도
   판정 호와 표시 호가 서로 다른 값을 사용하지 않는다.
+- 패리 원점은 조준·무기 리그의 `RAP`/`WeaponSocket`과 분리된 플레이어 루트다. 오프셋은 몸 기준
+  `Vector2`로, X만 바라보는 방향에 따라 앞/뒤로 반전하고 Y는 조준 회전과 무관한 월드 위/아래다.
+  판정은 시뮬레이션 루트, 표현은 보간 대상 루트를 기준으로 `ParryGeometry.ResolveOrigin`에서 같은
+  규칙을 적용한다.
 - 비-Host Input Authority만 Forward 실행에서 판정 없는 `PredictedProjectile`을 즉시 표시한다.
   Host는 같은 Tick에 실제 투사체를 생성하므로 별도 예측 표시를 만들지 않는다.
 - 무기 `NetworkObject`의 Input Authority는 장착할 때 장착 플레이어에게 전달하고 드롭할 때 제거한다.

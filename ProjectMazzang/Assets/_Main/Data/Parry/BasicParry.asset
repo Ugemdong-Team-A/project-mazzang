@@ -21,4 +21,4 @@ MonoBehaviour:
   speedMultiplier: 1.15
   knockbackMultiplier: 1
   scaleMultiplier: 1
-  anchorForwardOffset: 0.45
+  anchorOffset: {x: 0.45, y: 0.75}
