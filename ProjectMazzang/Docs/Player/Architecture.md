@@ -466,18 +466,15 @@ Control Lock은 새 입력을 막을 뿐 이미 진행 중인 행동을 자동�
 
 ## 기본 능력치 데이터
 
-- 각 플레이어 프리팹은 일반 `MonoBehaviour`인 `PlayerStatsInstaller`와 선택적인
-  `PlayerStatsData` 참조를 소유한다. `CharacterData`와 `PlayerController`는 이 배포를 담당하지 않는다.
-- Installer는 같은 루트 GameObject의 `IStatsConsumer`만 찾아 초기화한다. 따라서 중첩된
-  `NetworkObject`나 다른 플레이어의 소비자를 잘못 초기화하지 않는다.
-- Installer는 Tick 모듈이 아니다. Stage, State, Command를 소유하지 않고 `Awake`에서 정적 설정만
-  전달한다.
-- `PlayerStatsData`가 없거나 Installer 자체가 없는 프리팹에서도 각 소비자는 자신의 안전한 기본값으로
-  동작해야 한다. 현재 기본값은 이동 속도 7, 최대 체력 100이다.
-- 현재 중앙화한 값은 실제로 공통 Modifier와 결합되는 이동 속도와 최대 체력뿐이다. 공격 데이터,
-  이동 가속도, 점프 규칙처럼 소유자가 명확한 설정은 해당 Data 또는 모듈에 유지한다.
-- 활성 스킬 배율은 계속 `PlayerTickState.ActiveStatModifiers`로 전달한다. 기본 능력치 Data는 TickState를
-  대체하지 않으며, 소비자는 `기본값 × 활성 배율`로 최종 값을 계산한다.
+- 현재 지원하는 Mary, Aron, Master 프리팹은 기본 능력치를 실제 소비 컴포넌트에 직렬화한다.
+  `PlayerMovement`는 이동 속도와 점프 설정을, `PlayerHealth`는 최대 체력을 직접 소유한다.
+- `CharacterData`와 `PlayerController`는 기본 능력치를 모아 배포하거나 구체적인 게임 규칙을 알지 않는다.
+  공격 데이터처럼 다른 소유자가 명확한 설정도 해당 Data 또는 모듈에 유지한다.
+- 활성 스킬 배율은 계속 `PlayerTickState.ActiveStatModifiers`로 전달하며, 각 소비자는
+  `직렬화 기본값 × 활성 배율`로 최종 값을 계산한다.
+- `PlayerStatsInstaller`와 `PlayerStatsData`는 이전 프리팹의 직렬화 참조가 깨지지 않게 남긴
+  호환 코드다. Installer는 Tick과 초기화 동작을 수행하지 않으며 새 프리팹에는 추가하지 않는다.
+  이전 프리팹을 정리한 뒤 두 타입과 기존 Data Asset을 함께 제거할 수 있다.
 
 ## Dash 데이터와 실행
 

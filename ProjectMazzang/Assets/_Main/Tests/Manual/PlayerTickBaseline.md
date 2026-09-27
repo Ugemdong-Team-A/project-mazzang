@@ -31,6 +31,8 @@
 
 ### 공격과 이동
 
+- Mary와 Aron은 이동 속도 7, 점프 속도 8, 공중 점프 1회, 최대 체력 100을 유지한다.
+  Master는 이동 속도 7, 점프 속도 6, 공중 점프 1회, 최대 체력 100을 유지한다.
 - 공격이 시작된 Tick부터 MovementMode가 Locked인 공격은 이동 입력을 적용하지 않는다.
 - Startup, Active, Recovery가 설정된 순서로 한 번씩 진행된다.
 - Recovery 종료 뒤 공격 상태가 None으로 복귀한다.
