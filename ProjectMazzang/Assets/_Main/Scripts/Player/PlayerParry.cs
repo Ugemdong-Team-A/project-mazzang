@@ -82,25 +82,31 @@ public sealed class PlayerParry :
             PreviousButtons,
             PlayerButton.Parry);
         PreviousButtons = input.Buttons;
+
+        bool isAlive =
+            !tick.State.HasHealth ||
+            tick.State.IsAlive;
+
+        if (IsParryActive && isAlive)
+        {
+            UpdateTrackedDirection(
+                in input,
+                tick.State);
+        }
         
         if (/*(_weaponState != null &&
              _weaponState.ConsumesParryInput) ||*/
             tick.State.HasEquippedWeapon ||
             !pressed ||
             !CooldownTimer.ExpiredOrNotRunning(Runner) ||
-            (tick.State.HasHealth && !tick.State.IsAlive))
+            !isAlive)
         {
             return;
         }
 
-        bool facingRight =
-            !tick.State.HasMovement ||
-            tick.State.FacingRight;
-
-        Direction = ClampDirectionToBody(
-            tick.State.AimDirection,
-            facingRight);
-        FacingRight = facingRight;
+        UpdateTrackedDirection(
+            in input,
+            tick.State);
 
         ActiveTimer = TickTimer.CreateFromSeconds(
             Runner,
@@ -183,25 +189,30 @@ public sealed class PlayerParry :
             : transform;
     }
 
-    private static Vector2 ClampDirectionToBody(
-        Vector2 direction,
-        bool facingRight)
+    private void UpdateTrackedDirection(
+        in PlayerInputData input,
+        PlayerTickState state)
     {
-        if (direction.sqrMagnitude <= 0.0001f)
-            return facingRight ? Vector2.right : Vector2.left;
+        bool facingRight =
+            !state.HasMovement ||
+            state.FacingRight;
 
-        Vector2 local = facingRight
-            ? direction.normalized
-            : new Vector2(-direction.x, direction.y).normalized;
-        float angle = Mathf.Clamp(
-            Mathf.Atan2(local.y, local.x) * Mathf.Rad2Deg,
-            -80f,
-            80f);
-        Vector2 clamped = new(
-            Mathf.Cos(angle * Mathf.Deg2Rad),
-            Mathf.Sin(angle * Mathf.Deg2Rad));
-        if (!facingRight)
-            clamped.x *= -1f;
-        return clamped.normalized;
+        Vector2 direction =
+            state.ResolveAimDirectionTo(
+                input.AimWorldPosition);
+
+        direction =
+            state.ResolveLimitedAimDirection(
+                direction);
+
+        if (direction.sqrMagnitude <= 0.0001f)
+        {
+            direction = facingRight
+                ? Vector2.right
+                : Vector2.left;
+        }
+
+        Direction = direction.normalized;
+        FacingRight = facingRight;
     }
 }

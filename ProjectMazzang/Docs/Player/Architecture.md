@@ -257,6 +257,10 @@ Unity의 `DefaultExecutionOrder`가 아니라 `PlayerController`가 네트워크
   `Vector2`로, X만 바라보는 방향에 따라 앞/뒤로 반전하고 Y는 조준 회전과 무관한 월드 위/아래다.
   판정은 시뮬레이션 루트, 표현은 보간 대상 루트를 기준으로 `ParryGeometry.ResolveOrigin`에서 같은
   규칙을 적용한다.
+- 무기를 들지 않은 기본 패리는 Active 동안 매 Tick의 입력 월드 좌표를
+  `PlayerTickState.ResolveAimDirectionTo`로 해석하고, 같은 상태의 허리 각도 제한을 적용해 방향과
+  Facing을 갱신한다. 판정 원호와 표시 원호는 같은 Networked 방향을 사용한다. 무기 패리는 각 무기의
+  행동 방향 정책이 정해질 때까지 발동 시점의 방향을 유지한다.
 - 비-Host Input Authority만 Forward 실행에서 판정 없는 `PredictedProjectile`을 즉시 표시한다.
   Host는 같은 Tick에 실제 투사체를 생성하므로 별도 예측 표시를 만들지 않는다.
 - 무기 `NetworkObject`의 Input Authority는 장착할 때 장착 플레이어에게 전달하고 드롭할 때 제거한다.
