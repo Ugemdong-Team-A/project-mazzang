@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Unity.Cinemachine;
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -45,9 +46,6 @@ public sealed class MagicCliffsArenaVisual :
     private readonly List<ParallaxLayer>
         _parallaxLayers = new();
 
-    private Camera _camera;
-
-
     private sealed class ParallaxLayer
     {
         public Transform Transform;
@@ -64,28 +62,50 @@ public sealed class MagicCliffsArenaVisual :
     }
 
 
-    private void LateUpdate()
+    private void OnEnable()
     {
-        if (_camera == null)
+        CinemachineCore.CameraUpdatedEvent
+            .AddListener(OnCameraUpdated);
+    }
+
+
+    private void OnDisable()
+    {
+        CinemachineCore.CameraUpdatedEvent
+            .RemoveListener(OnCameraUpdated);
+    }
+
+
+    private void OnCameraUpdated(
+        CinemachineBrain brain)
+    {
+        Camera outputCamera =
+            brain != null
+                ? brain.OutputCamera
+                : null;
+
+        if (outputCamera == null ||
+            outputCamera != Camera.main)
         {
-            _camera = Camera.main;
+            return;
         }
 
-        if (_camera == null)
-            return;
-
         Vector3 cameraPosition =
-            _camera.transform.position;
+            outputCamera.transform.position;
 
         foreach (ParallaxLayer layer
                  in _parallaxLayers)
         {
+            Vector3 cameraOffset =
+                cameraPosition -
+                layer.Origin;
+
             layer.Transform.position =
                 layer.Origin +
                 new Vector3(
-                    cameraPosition.x *
+                    cameraOffset.x *
                     layer.Follow,
-                    cameraPosition.y *
+                    cameraOffset.y *
                     layer.Follow,
                     0f);
         }

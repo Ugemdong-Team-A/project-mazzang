@@ -454,12 +454,12 @@ namespace ProjectMazzang.Tests
                 animation.FindProperty("cast")
                     .objectReferenceValue as AnimationClip;
 
-            AnimationClip release =
-                animation.FindProperty("release")
+            AnimationClip main =
+                animation.FindProperty("main")
                     .objectReferenceValue as AnimationClip;
 
             Assert.That(cast, Is.Not.Null);
-            Assert.That(release, Is.Not.Null);
+            Assert.That(main, Is.Not.Null);
 
             string[] expectedTargetPaths =
             {
@@ -468,7 +468,7 @@ namespace ProjectMazzang.Tests
             };
 
             foreach (AnimationClip clip in
-                     new[] { cast, release })
+                     new[] { cast, main })
             {
                 string[] targetPaths =
                     AnimationUtility
@@ -505,7 +505,7 @@ namespace ProjectMazzang.Tests
 
             Assert.That(
                 clipNames,
-                Does.Contain("SkillReleasePlaceholder"));
+                Does.Contain("SkillMainPlaceholder"));
 
             Assert.That(
                 clipNames,
@@ -521,8 +521,8 @@ namespace ProjectMazzang.Tests
                 {
                     ["Skill_Cast"] =
                         "SkillCastPlaceholder",
-                    ["Skill_Release"] =
-                        "SkillReleasePlaceholder",
+                    ["Skill_Main"] =
+                        "SkillMainPlaceholder",
                     ["Skill_Recovery"] =
                         "SkillRecoveryPlaceholder"
                 };
@@ -546,7 +546,7 @@ namespace ProjectMazzang.Tests
                 new()
                 {
                     ["Skill_Cast"] = 1f,
-                    ["Skill_Release"] = 2f,
+                    ["Skill_Main"] = 2f,
                     ["Skill_Recovery"] = 3f
                 };
 
@@ -572,6 +572,176 @@ namespace ProjectMazzang.Tests
                     phaseCondition.threshold,
                     Is.EqualTo(pair.Value));
             }*/
+        }
+
+
+        [Test]
+        public void SkillAnimationAssets_UseSharedActionAnimationData()
+        {
+            string[] assetNames =
+            {
+                "SA_AronDash",
+                "SA_Awakening",
+                "SA_Fireball",
+                "SA_MaryProjectile"
+            };
+
+            foreach (string assetName in assetNames)
+            {
+                ScriptableObject animation =
+                    AssetDatabase.LoadAssetAtPath<
+                        ScriptableObject>(
+                        "Assets/_Main/Data/Skill/Animation/" +
+                        assetName + ".asset");
+
+                Assert.That(
+                    animation,
+                    Is.Not.Null,
+                    assetName + "은 공용 ActionAnimationData여야 합니다.");
+
+                Assert.That(
+                    animation.GetType().Name,
+                    Is.EqualTo("ActionAnimationData"));
+            }
+
+            ScriptableObject mary =
+                AssetDatabase.LoadAssetAtPath<
+                    ScriptableObject>(
+                    "Assets/_Main/Data/Skill/Animation/" +
+                    "SA_MaryProjectile.asset");
+
+            SerializedObject serializedMary =
+                new(mary);
+
+            Assert.That(
+                serializedMary.FindProperty("cast")
+                    .FindPropertyRelative("clip")
+                    .objectReferenceValue,
+                Is.Not.Null);
+
+            Assert.That(
+                serializedMary.FindProperty("main")
+                    .FindPropertyRelative("clip")
+                    .objectReferenceValue,
+                Is.Not.Null);
+        }
+
+
+        [Test]
+        public void SkillAnimation_KeepsASeparatePresentationLifetime()
+        {
+            Type controllerType =
+                GetRuntimeType(
+                    "PlayerSkillController");
+
+            PropertyInfo timer =
+                controllerType.GetProperty(
+                    "SkillAnimationTimer",
+                    BindingFlags.NonPublic |
+                    BindingFlags.Instance);
+
+            Assert.That(timer, Is.Not.Null);
+            Assert.That(
+                timer.PropertyType.FullName,
+                Is.EqualTo("Fusion.TickTimer"));
+            Assert.That(
+                timer.CustomAttributes.Any(attribute =>
+                    attribute.AttributeType.FullName ==
+                    "Fusion.NetworkedAttribute"),
+                Is.True,
+                "스킬 판정이 끝나도 클립 정책을 동기화해 유지해야 합니다.");
+        }
+
+
+        [Test]
+        public void StandardPlayer_ActionLayer_EntersEveryAnimationPhase()
+        {
+            AnimatorController controller =
+                AssetDatabase.LoadAssetAtPath<AnimatorController>(
+                    "Assets/_Main/Art/Animators/" +
+                    "AC_StandardPlayer.controller");
+
+            Assert.That(controller, Is.Not.Null);
+
+            AnimatorControllerLayer[] layers =
+                controller.layers;
+
+            int actionLayerIndex =
+                Array.FindIndex(
+                    layers,
+                    layer =>
+                        layer.name == "Action_FullBody");
+
+            Assert.That(
+                actionLayerIndex,
+                Is.GreaterThanOrEqualTo(0));
+
+            AnimatorStateMachine action =
+                layers[actionLayerIndex]
+                    .stateMachine;
+
+            foreach (string layerName in new[]
+                     {
+                         "Action_UpperBody",
+                         "Action_ArmsOnly"
+                     })
+            {
+                AnimatorControllerLayer syncedLayer =
+                    layers.Single(layer =>
+                        layer.name == layerName);
+
+                Assert.That(
+                    syncedLayer.syncedLayerIndex,
+                    Is.EqualTo(actionLayerIndex),
+                    layerName +
+                    "는 FullBody 상태 전환과 블렌드를 공유해야 합니다.");
+            }
+
+            Dictionary<string, float> expectedPhases =
+                new()
+                {
+                    ["Cast"] = 1f,
+                    ["Main"] = 2f,
+                    ["Recovery"] = 3f
+                };
+
+            foreach (KeyValuePair<string, float> pair
+                     in expectedPhases)
+            {
+                AnimatorStateTransition entry =
+                    action.anyStateTransitions
+                        .Single(transition =>
+                            transition.destinationState != null &&
+                            transition.destinationState.name == pair.Key);
+
+                Assert.That(
+                    entry.conditions.Any(condition =>
+                        condition.parameter == "Skill" &&
+                        condition.mode == AnimatorConditionMode.If),
+                    Is.True,
+                    pair.Key + " 진입에는 공용 액션 트리거가 필요합니다.");
+
+                AnimatorCondition phase =
+                    entry.conditions.Single(condition =>
+                        condition.parameter == "SkillPhase");
+
+                Assert.That(
+                    phase.mode,
+                    Is.EqualTo(AnimatorConditionMode.Equals));
+                Assert.That(
+                    phase.threshold,
+                    Is.EqualTo(pair.Value));
+
+                AnimatorState state = entry.destinationState;
+
+                Assert.That(
+                    state.transitions.Any(transition =>
+                        transition.destinationState != null &&
+                        transition.destinationState.name == "Empty" &&
+                        transition.hasExitTime),
+                    Is.True,
+                    pair.Key + " 재생 후에는 Empty로 돌아가야 합니다.");
+            }
         }
 
 
@@ -1094,13 +1264,19 @@ namespace ProjectMazzang.Tests
                 tickStateType,
                 "SkillAnimationPhase",
                 GetRuntimeType(
-                    "SkillAnimationPhase"));
+                    "ActionAnimationPhase"));
 
             AssertPropertyType(
                 tickStateType,
                 "SkillAnimation",
                 GetRuntimeType(
-                    "SkillAnimationData"));
+                    "ActionAnimationData"));
+
+            AssertPropertyType(
+                tickStateType,
+                "AttackAnimation",
+                GetRuntimeType(
+                    "ActionAnimationData"));
 
             AssertPropertyType(
                 tickStateType,
@@ -1389,23 +1565,30 @@ namespace ProjectMazzang.Tests
 
 
         [Test]
-        public void MeterSkill_KeepsGenericRuntimeContract()
+        public void MeterPattern_KeepsGenericRuntimeContract()
         {
-            Type meterSkillType =
+            Assert.That(
+                RuntimeAssembly.GetType(
+                    "IMeterSkill"),
+                Is.Null);
+
+            Type meterSettingsType =
                 GetRuntimeType(
-                    "IMeterSkill");
+                    "MeterSettings");
 
             foreach (string propertyName in
                      new[]
                      {
                          "MaxMeter",
-                         "MeterCost",
+                         "InitialMeter",
+                         "RequiredMeter",
+                         "Cost",
                          "PassiveGainPerSecond",
                          "DamageGainPerDamage"
                      })
             {
                 AssertPropertyType(
-                    meterSkillType,
+                    meterSettingsType,
                     propertyName,
                     typeof(float));
             }
@@ -1424,14 +1607,8 @@ namespace ProjectMazzang.Tests
 
 
         [Test]
-        public void UltimateAwakeningSkill_CombinesGenericPatterns()
+        public void UltimateAwakeningSkill_UsesOnlyCommonPatterns()
         {
-            AssertInterfaces(
-                "UltimateAwakeningSkill",
-                "IMeterSkill",
-                "IDurationSkill",
-                "IPlayerStatModifierSkill");
-
             ScriptableObject data =
                 AssetDatabase.LoadAssetAtPath<
                     ScriptableObject>(
@@ -1444,30 +1621,33 @@ namespace ProjectMazzang.Tests
                 Is.EqualTo(
                     "UltimateAwakeningSkillData"));
 
-            AssertProperty(
-                data,
-                "MaxMeter",
-                100f);
+            Assert.That(
+                data.GetType()
+                    .GetProperty("Patterns")
+                    ?.GetValue(data),
+                Is.Not.Null);
 
-            AssertProperty(
-                data,
-                "MeterCost",
-                100f);
-
-            AssertProperty(
-                data,
-                "PassiveGainPerSecond",
-                2f);
-
-            AssertProperty(
-                data,
-                "DamageGainPerDamage",
-                1f);
-
-            AssertProperty(
-                data,
-                "Duration",
-                8f);
+            foreach (string fieldName in
+                     new[]
+                     {
+                         "maxMeter",
+                         "meterCost",
+                         "passiveGainPerSecond",
+                         "damageGainPerDamage",
+                         "duration",
+                         "moveSpeedMultiplier",
+                         "appearanceLibraryAsset"
+                     })
+            {
+                Assert.That(
+                    data.GetType().GetField(
+                        fieldName,
+                        BindingFlags.DeclaredOnly |
+                        BindingFlags.Instance |
+                        BindingFlags.NonPublic),
+                    Is.Null,
+                    fieldName);
+            }
 
             object runtimeSkill =
                 data.GetType()
@@ -1482,6 +1662,28 @@ namespace ProjectMazzang.Tests
                 runtimeSkill.GetType().Name,
                 Is.EqualTo(
                     "UltimateAwakeningSkill"));
+
+            foreach (string propertyName in
+                     new[]
+                     {
+                         "MaxMeter",
+                         "MeterCost",
+                         "PassiveGainPerSecond",
+                         "DamageGainPerDamage",
+                         "Duration",
+                         "StatModifiers",
+                         "AppearanceLibraryAsset"
+                     })
+            {
+                Assert.That(
+                    runtimeSkill.GetType().GetProperty(
+                        propertyName,
+                        BindingFlags.DeclaredOnly |
+                        BindingFlags.Instance |
+                        BindingFlags.Public),
+                    Is.Null,
+                    propertyName);
+            }
         }
 
 
@@ -1576,6 +1778,491 @@ namespace ProjectMazzang.Tests
                     Is.Not.Null,
                     $"SkillSlot prefab의 {propertyName}이 비어 있습니다.");
             }
+        }
+
+
+        [Test]
+        public void Sword_UsesFacingDirectionWithoutLateAimChanges()
+        {
+            GameObject swordPrefab =
+                AssetDatabase.LoadAssetAtPath<GameObject>(
+                    "Assets/_Main/Prefabs/Weapon/Sword.prefab");
+
+            Assert.That(swordPrefab, Is.Not.Null);
+
+            Type weaponType =
+                GetRuntimeType(
+                    "Weapon");
+
+            Component sword =
+                swordPrefab.GetComponent(
+                    weaponType);
+
+            Assert.That(sword, Is.Not.Null);
+
+            object directionMode =
+                weaponType.GetProperty(
+                        "PrimaryDirection")
+                    ?.GetValue(sword);
+
+            Assert.That(
+                directionMode?.ToString(),
+                Is.EqualTo("Facing"));
+
+            object stanceDirection =
+                weaponType.GetProperty(
+                        "StanceDirection")
+                    ?.GetValue(sword);
+
+            Assert.That(
+                stanceDirection?.ToString(),
+                Is.EqualTo("Facing"));
+
+            Assert.That(
+                weaponType.GetProperty(
+                        "StanceAnimation")
+                    ?.GetValue(sword),
+                Is.Null);
+
+            object[] arguments =
+            {
+                Enum.Parse(
+                    GetRuntimeType(
+                        "WeaponButton"),
+                    "Primary"),
+                Vector2.up,
+                Vector2.up,
+                false,
+                null
+            };
+
+            Vector2 resolvedDirection =
+                (Vector2)weaponType
+                    .GetMethod(
+                        "ResolveActionDirection")
+                    ?.Invoke(
+                        sword,
+                        arguments);
+
+            Assert.That(
+                resolvedDirection,
+                Is.EqualTo(Vector2.left));
+            Assert.That(
+                arguments[4]?.ToString(),
+                Is.EqualTo("Default"));
+
+            SerializedObject serializedSword =
+                new(sword);
+
+            Assert.That(
+                serializedSword.FindProperty(
+                        "defaultAttack")
+                    ?.FindPropertyRelative(
+                        "attack")
+                    ?.objectReferenceValue,
+                Is.Not.Null);
+        }
+
+
+        [Test]
+        public void Sword_AttackSlots_UseSharedWeaponSlotData()
+        {
+            Type swordType =
+                GetRuntimeType(
+                    "SwordWeapon");
+            Type slotDataType =
+                GetRuntimeType(
+                    "WeaponAttackSlotData");
+
+            foreach (string fieldName in
+                     new[]
+                     {
+                         "defaultAttack",
+                         "noDirectionAttack",
+                         "sideAttack",
+                         "downAttack"
+                     })
+            {
+                FieldInfo field =
+                    swordType.GetField(
+                        fieldName,
+                        BindingFlags.Instance |
+                        BindingFlags.NonPublic);
+
+                Assert.That(
+                    field,
+                    Is.Not.Null,
+                    $"Sword에 {fieldName} 슬롯이 없습니다.");
+                Assert.That(
+                    field.FieldType,
+                    Is.EqualTo(slotDataType),
+                    $"{fieldName}이 공용 무기 공격 슬롯 형식을 사용해야 합니다.");
+            }
+        }
+
+
+        [Test]
+        public void FacingStance_UsesMovementInputForFacing()
+        {
+            Type aimType =
+                GetRuntimeType(
+                    "PlayerAim");
+            Type commandsType =
+                GetRuntimeType(
+                    "PlayerTickCommands");
+
+            GameObject root =
+                new("Facing Stance Test");
+
+            try
+            {
+                Component aim =
+                    root.AddComponent(
+                        aimType);
+                object commands =
+                    Activator.CreateInstance(
+                        commandsType);
+
+                aimType.GetMethod(
+                        "UpdateFacing",
+                        BindingFlags.Instance |
+                        BindingFlags.NonPublic)
+                    ?.Invoke(
+                        aim,
+                        new object[]
+                        {
+                            commands,
+                            false,
+                            true,
+                            Vector2.right,
+                            -1f,
+                            false,
+                            true,
+                            true
+                        });
+
+                object[] consumeArguments =
+                {
+                    false
+                };
+
+                bool consumed =
+                    (bool)commandsType.GetMethod(
+                            "TryConsumeFacing",
+                            BindingFlags.Instance |
+                            BindingFlags.NonPublic)
+                        ?.Invoke(
+                            commands,
+                            consumeArguments);
+
+                Assert.That(
+                    consumed,
+                    Is.True);
+                Assert.That(
+                    consumeArguments[0],
+                    Is.EqualTo(false));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(
+                    root);
+            }
+        }
+
+
+        [Test]
+        public void PlayerAim_FindsRebuiltBodyCcdByReferenceBone()
+        {
+            Type aimType =
+                GetRuntimeType(
+                    "PlayerAim");
+            Type ccdType =
+                AppDomain.CurrentDomain
+                    .GetAssemblies()
+                    .Select(
+                        assembly =>
+                            assembly.GetType(
+                                "UnityEngine.U2D.IK.CCDSolver2D"))
+                    .First(
+                        type =>
+                            type != null);
+
+            GameObject root =
+                new("Aim CCD Recovery Test");
+            GameObject referenceObject =
+                new("chest");
+            GameObject pivotObject =
+                new("ResolvedAimPivot");
+            GameObject solverObject =
+                new("head_solver");
+            GameObject effectorObject =
+                new("head_effector");
+            GameObject targetObject =
+                new("head_solver_Target");
+
+            try
+            {
+                referenceObject.transform.SetParent(
+                    root.transform);
+                pivotObject.transform.SetParent(
+                    referenceObject.transform);
+                solverObject.transform.SetParent(
+                    root.transform);
+                effectorObject.transform.SetParent(
+                    referenceObject.transform);
+                targetObject.transform.SetParent(
+                    solverObject.transform);
+
+                Component aim =
+                    root.AddComponent(
+                        aimType);
+                Component solver =
+                    solverObject.AddComponent(
+                        ccdType);
+
+                SerializedObject serializedSolver =
+                    new(solver);
+                SerializedProperty chain =
+                    serializedSolver.FindProperty(
+                        "m_Chain");
+
+                chain.FindPropertyRelative(
+                        "m_EffectorTransform")
+                    .objectReferenceValue =
+                    effectorObject.transform;
+                chain.FindPropertyRelative(
+                        "m_TargetTransform")
+                    .objectReferenceValue =
+                    targetObject.transform;
+                chain.FindPropertyRelative(
+                        "m_TransformCount")
+                    .intValue = 1;
+
+                SerializedProperty transforms =
+                    chain.FindPropertyRelative(
+                        "m_Transforms");
+                transforms.arraySize = 1;
+                transforms.GetArrayElementAtIndex(0)
+                    .objectReferenceValue =
+                    referenceObject.transform;
+                serializedSolver
+                    .ApplyModifiedPropertiesWithoutUndo();
+
+                SerializedObject serializedAim =
+                    new(aim);
+                serializedAim.FindProperty(
+                        "resolvedAimPivot")
+                    .objectReferenceValue =
+                    pivotObject.transform;
+                serializedAim.FindProperty(
+                        "upperBodyAimRig")
+                    .objectReferenceValue = null;
+                serializedAim
+                    .ApplyModifiedPropertiesWithoutUndo();
+
+                object resolved =
+                    aimType.GetMethod(
+                            "FindBodyAimRig",
+                            BindingFlags.Instance |
+                            BindingFlags.NonPublic)
+                        ?.Invoke(
+                            aim,
+                            null);
+
+                Assert.That(
+                    resolved,
+                    Is.SameAs(solver));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(
+                    root);
+            }
+        }
+
+
+        [Test]
+        public void BrawlhallaDirection_UsesNoDirectionSideAndDownSlots()
+        {
+            GameObject swordPrefab =
+                AssetDatabase.LoadAssetAtPath<GameObject>(
+                    "Assets/_Main/Prefabs/Weapon/Sword.prefab");
+
+            GameObject instance =
+                UnityEngine.Object.Instantiate(
+                    swordPrefab);
+
+            try
+            {
+                Type weaponType =
+                    GetRuntimeType(
+                        "Weapon");
+
+                Component weapon =
+                    instance.GetComponent(
+                        weaponType);
+
+                SerializedObject serializedWeapon =
+                    new(weapon);
+
+                serializedWeapon.FindProperty(
+                        "primaryDirection")
+                    .enumValueIndex = 2;
+                serializedWeapon
+                    .ApplyModifiedPropertiesWithoutUndo();
+
+                Type buttonType =
+                    GetRuntimeType(
+                        "WeaponButton");
+
+                object primary =
+                    Enum.Parse(
+                        buttonType,
+                        "Primary");
+
+                MethodInfo resolveDirection =
+                    weaponType.GetMethod(
+                        "ResolveActionDirection");
+
+                object[] noDirectionArguments =
+                {
+                    primary,
+                    Vector2.up,
+                    Vector2.right,
+                    false,
+                    null
+                };
+
+                Vector2 noDirection =
+                    (Vector2)resolveDirection.Invoke(
+                        weapon,
+                        noDirectionArguments);
+
+                Assert.That(
+                    noDirection,
+                    Is.EqualTo(Vector2.left));
+                Assert.That(
+                    noDirectionArguments[4]
+                        ?.ToString(),
+                    Is.EqualTo("NoDirection"));
+
+                object[] sideArguments =
+                {
+                    primary,
+                    Vector2.right,
+                    Vector2.up,
+                    false,
+                    null
+                };
+
+                Assert.That(
+                    (Vector2)resolveDirection.Invoke(
+                        weapon,
+                        sideArguments),
+                    Is.EqualTo(Vector2.right));
+                Assert.That(
+                    sideArguments[4]?.ToString(),
+                    Is.EqualTo("Side"));
+
+                object[] downArguments =
+                {
+                    primary,
+                    Vector2.down,
+                    Vector2.right,
+                    true,
+                    null
+                };
+
+                Assert.That(
+                    (Vector2)resolveDirection.Invoke(
+                        weapon,
+                        downArguments),
+                    Is.EqualTo(Vector2.down));
+                Assert.That(
+                    downArguments[4]?.ToString(),
+                    Is.EqualTo("Down"));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(
+                    instance);
+            }
+        }
+
+
+        [Test]
+        public void Shield_KeepsSeparateAimActionsForBothButtons()
+        {
+            GameObject shieldPrefab =
+                AssetDatabase.LoadAssetAtPath<GameObject>(
+                    "Assets/_Main/Prefabs/Weapon/Shield.prefab");
+
+            Assert.That(shieldPrefab, Is.Not.Null);
+
+            Type weaponType =
+                GetRuntimeType(
+                    "Weapon");
+
+            Component shield =
+                shieldPrefab.GetComponent(
+                    weaponType);
+
+            Assert.That(shield, Is.Not.Null);
+            Assert.That(
+                weaponType.GetProperty(
+                        "PrimaryDirection")
+                    ?.GetValue(shield)
+                    ?.ToString(),
+                Is.EqualTo("Aim"));
+            Assert.That(
+                weaponType.GetProperty(
+                        "SecondaryDirection")
+                    ?.GetValue(shield)
+                    ?.ToString(),
+                Is.EqualTo("Aim"));
+
+            Type buttonType =
+                GetRuntimeType(
+                    "WeaponButton");
+            Type slotType =
+                GetRuntimeType(
+                    "WeaponAttackSlot");
+
+            MethodInfo getAction =
+                weaponType.GetMethod(
+                    "GetAction");
+
+            object primaryAction =
+                getAction.Invoke(
+                    shield,
+                    new[]
+                    {
+                        Enum.Parse(
+                            buttonType,
+                            "Primary"),
+                        Enum.Parse(
+                            slotType,
+                            "Default")
+                    });
+
+            object secondaryAction =
+                getAction.Invoke(
+                    shield,
+                    new[]
+                    {
+                        Enum.Parse(
+                            buttonType,
+                            "Secondary"),
+                        Enum.Parse(
+                            slotType,
+                            "Default")
+                    });
+
+            Assert.That(primaryAction, Is.Not.Null);
+            Assert.That(secondaryAction, Is.Not.Null);
+            Assert.That(
+                secondaryAction,
+                Is.Not.SameAs(primaryAction));
         }
 
 

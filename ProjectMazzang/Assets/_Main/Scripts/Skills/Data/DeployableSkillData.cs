@@ -7,16 +7,6 @@ using UnityEngine;
 public sealed class DeployableSkillData :
     SkillData
 {
-    [Header("Timing")]
-    [Min(0f)]
-    [SerializeField]
-    private float castDuration = 0.35f;
-
-    [Min(0f)]
-    [SerializeField]
-    private float recoveryDuration = 0.15f;
-
-
     [Header("Deployable")]
     [SerializeField]
     private NetworkObject deployablePrefab;
@@ -36,12 +26,6 @@ public sealed class DeployableSkillData :
     [SerializeField]
     private float spawnUp;
 
-
-    public float CastDuration =>
-        castDuration;
-
-    public float RecoveryDuration =>
-        recoveryDuration;
 
     public NetworkObject DeployablePrefab =>
         deployablePrefab;

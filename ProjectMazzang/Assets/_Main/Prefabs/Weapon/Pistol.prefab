@@ -393,17 +393,24 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4388df14a7a1894458b46c6707ddc11c, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ProjectileGun
+  m_EditorClassIdentifier: Assembly-CSharp::ProjectileWeapon
   rb: {fileID: 9023140553725785208}
   worldCollider: {fileID: 0}
   pickupTrigger: {fileID: 7881194972578852804}
+  stanceDirection: 0
+  stanceAnimation: {fileID: 0}
+  primaryDirection: 0
+  secondaryDirection: 0
   sortingGroup: {fileID: 2623011332169258659}
   presentationTemplate: {fileID: 6732957340894770001}
   visualSizeOffset: 0.5
   _Holder: {fileID: 0}
+  primaryAction:
+    enabled: 1
+    animation: {fileID: 0}
+    weaponAnimation: {fileID: 0}
   magazineSize: 5959
   fireInterval: 1.28
-  muzzle: {fileID: 2486731633620674725}
   projectilePrefab: {fileID: 4736335658398493549, guid: a82faefdd5d0cdd429a786b3436bc112, type: 3}
   fireShakeProfile: {fileID: 11400000, guid: f739317905b94175b317689597d4f39e, type: 2}
   muzzleFlash: {fileID: 0}

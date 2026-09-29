@@ -397,10 +397,22 @@ MonoBehaviour:
   rb: {fileID: 9023140553725785208}
   worldCollider: {fileID: 2778920603820171767}
   pickupTrigger: {fileID: 7881194972578852804}
+  stanceDirection: 0
+  stanceAnimation: {fileID: 0}
+  primaryDirection: 0
+  secondaryDirection: 0
   sortingGroup: {fileID: 2623011332169258659}
   presentationTemplate: {fileID: 6732957340894770001}
   visualSizeOffset: 0.5
   _Holder: {fileID: 0}
+  primaryAction:
+    enabled: 1
+    animation: {fileID: 0}
+    weaponAnimation: {fileID: 0}
+  secondaryAction:
+    enabled: 1
+    animation: {fileID: 0}
+    weaponAnimation: {fileID: 0}
   sharedCooldown: 1.35
   bashAttack: {fileID: 11400000, guid: e2a1f7c2b6d44a3fa92bc8e9d31f0104, type: 2}
   hitboxSize: {x: 1.25, y: 1.5}
@@ -410,12 +422,8 @@ MonoBehaviour:
     m_Bits: 256
   dashSpeed: 7.5
   dashControlLock: 0.1
-  parryDuration: 0.22
-  parryRadius: 1.15
-  parryArcAngle: 92
-  parryAimInfluence: 0.95
-  parrySpeedMultiplier: 1.25
-  parryForwardOffset: 0.52
+  parryData: {fileID: 11400000, guid: 81f30e2fa7d44ad3b21ab9cfaf51506a, type: 2}
+  parryLocalOffset: {x: 0.52, y: 0}
   bashEffectForwardOffset: 0.68
   bashShakeProfile: {fileID: 11400000, guid: 020205b612304d22b1e00dd1c7382ffb, type: 2}
   parrySuccessShakeProfile: {fileID: 11400000, guid: fdf65936ba5844708f91f6dc02bbf986, type: 2}

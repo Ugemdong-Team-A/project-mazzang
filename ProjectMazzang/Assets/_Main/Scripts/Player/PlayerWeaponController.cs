@@ -1,3 +1,4 @@
+using System;
 using Fusion;
 using Fusion.Addons.Physics;
 using UnityEngine;
@@ -51,6 +52,12 @@ public sealed class PlayerWeaponController :
 
     private Transform _presentationRoot;
 
+    private Weapon _presentedWeapon;
+
+    private byte _lastPresentedWeaponAnimationSequence;
+
+    private bool _weaponAnimationPresentationInitialized;
+
 
     // =========================================================
     // Network State
@@ -75,6 +82,48 @@ public sealed class PlayerWeaponController :
     {
         get;
         set;
+    }
+
+    [Networked]
+    private TickTimer WeaponAnimationTimer
+    {
+        get;
+        set;
+    }
+
+    [Networked]
+    private TickTimer WeaponActionTimer
+    {
+        get;
+        set;
+    }
+
+    [Networked]
+    private NetworkBool LockedWeaponFacingRight
+    {
+        get;
+        set;
+    }
+
+    [Networked]
+    private WeaponButton ActiveWeaponButton
+    {
+        get;
+        set;
+    }
+
+    [Networked]
+    private WeaponAttackSlot ActiveWeaponSlot
+    {
+        get;
+        set;
+    }
+
+    [Networked]
+    public byte WeaponAnimationSequence
+    {
+        get;
+        private set;
     }
 
 
@@ -123,6 +172,7 @@ public sealed class PlayerWeaponController :
                 ? networkRigidbody.InterpolationTarget
                 : null;
 
+        ResolveHandLimbReferences();
         CaptureAnimationHandIkTargets();
         RestoreAnimationHandIk();
 
@@ -137,6 +187,23 @@ public sealed class PlayerWeaponController :
 
         PreviousButtons =
             default;
+
+        WeaponAnimationTimer =
+            TickTimer.None;
+
+        WeaponActionTimer =
+            TickTimer.None;
+
+        LockedWeaponFacingRight = true;
+        ActiveWeaponButton =
+            WeaponButton.Primary;
+        ActiveWeaponSlot =
+            WeaponAttackSlot.Default;
+
+        WeaponAnimationSequence = 0;
+        _presentedWeapon = null;
+        _lastPresentedWeaponAnimationSequence = 0;
+        _weaponAnimationPresentationInitialized = false;
     }
 
 
@@ -144,6 +211,9 @@ public sealed class PlayerWeaponController :
         NetworkRunner runner,
         bool hasState)
     {
+        _presentedWeapon?.StopHeldAnimation();
+        _presentedWeapon = null;
+        _weaponAnimationPresentationInitialized = false;
         _boundIkView =
             null;
     }
@@ -156,6 +226,22 @@ public sealed class PlayerWeaponController :
     public override void Simulate(
         in PlayerTick tick)
     {
+        if (WeaponAnimationTimer.IsRunning &&
+            WeaponAnimationTimer.Expired(Runner))
+        {
+            WeaponAnimationTimer =
+                TickTimer.None;
+
+            WeaponAnimationSequence++;
+        }
+
+        if (WeaponActionTimer.IsRunning &&
+            WeaponActionTimer.Expired(Runner))
+        {
+            WeaponActionTimer =
+                TickTimer.None;
+        }
+
         TickPrepareAction(
             tick.State,
             false);
@@ -165,7 +251,30 @@ public sealed class PlayerWeaponController :
     void IPlayerTickStateSource.CaptureTickState(
         PlayerTickState state)
     {
-        state.HasEquippedWeapon = HasEquippedWeapon;
+        Weapon equippedWeapon =
+            EquippedWeapon;
+
+        state.HasEquippedWeapon =
+            equippedWeapon != null;
+        state.UsesWeaponFacingStance =
+            equippedWeapon != null &&
+            equippedWeapon.StanceDirection ==
+                WeaponStanceDirection.Facing;
+        state.WeaponStanceAnimation =
+            equippedWeapon?.StanceAnimation;
+        state.IsWeaponFacingLocked =
+            IsWeaponDirectionLocked;
+        state.WeaponFacingRight =
+            LockedWeaponFacingRight;
+        state.WeaponAnimationSequence =
+            WeaponAnimationSequence;
+        state.IsWeaponAnimationActive =
+            WeaponAnimationTimer.IsRunning &&
+            !WeaponAnimationTimer.Expired(Runner);
+        state.WeaponAnimation =
+            equippedWeapon?.GetAction(
+                ActiveWeaponButton,
+                ActiveWeaponSlot)?.Animation;
     }
 
 
@@ -174,6 +283,7 @@ public sealed class PlayerWeaponController :
         PlayerTickState state)
     {
         if (!commands.TryConsumeWeaponUse(
+                out Vector2 moveInput,
                 out Vector2 aimDirection))
         {
             return false;
@@ -187,11 +297,13 @@ public sealed class PlayerWeaponController :
         }
 
         TryUseWeapon(
+            WeaponButton.Primary,
+            moveInput,
             aimDirection,
             !state.HasHealth ||
             state.IsAlive,
-            state.HasMovement &&
-            !state.FacingRight,
+            !state.HasMovement ||
+            state.FacingRight,
             ResolveGameplayWeaponOrigin(
                 state),
             state.ActiveStatModifiers.AttackDamage);
@@ -212,7 +324,8 @@ public sealed class PlayerWeaponController :
         // 실제 게임플레이용 WeaponAngle은
         // StateAuthority가 현재 Tick 입력으로 확정한다.
         if (HasStateAuthority &&
-            hasInput)
+            hasInput &&
+            !IsWeaponDirectionLocked)
         {
             UpdateAuthoritativeWeaponAngle(
                 input.AimWorldPosition,
@@ -288,23 +401,46 @@ public sealed class PlayerWeaponController :
             input.Buttons;
 
         if (secondaryPressed &&
-            ConsumesParryInput)
+            ConsumesParryInput &&
+            !state.IsAttackControlLocked)
         {
-            TryUseSecondaryWeapon(
-                state.HasMovement &&
-                !state.FacingRight,
+            Vector2 aimDirection =
+                state.ResolveAimDirectionTo(
+                    input.AimWorldPosition);
+
+            TryUseWeapon(
+                WeaponButton.Secondary,
+                input.Move,
+                state.ResolveLimitedAimDirection(
+                    aimDirection),
+                !state.HasHealth ||
+                state.IsAlive,
+                !state.HasMovement ||
+                state.FacingRight,
                 ResolveGameplayWeaponOrigin(
-                    state));
+                    state),
+                state.ActiveStatModifiers.AttackDamage);
         }
     }
 
 
     public override void Present(in PlayerTickState tickState)
     {
+        if (tickState.TryGetActiveActionClipData(
+                out ActionAnimationClipData clipData))
+        {
+            ApplyActionHandIkPolicy(
+                clipData.HandIkPolicy);
+        }
+        else
+        {
+            UpdateWeaponIkBinding();
+        }
+
         if (weaponSocket == null ||
             !HasEquippedWeapon)
         {
-            UpdateWeaponIkBinding();
+            StopPresentedWeaponAnimation();
             return;
         }
 
@@ -316,15 +452,61 @@ public sealed class PlayerWeaponController :
             equippedWeapon
                 .RefreshHeldPresentation(
                     false);
-        }
 
-        UpdateWeaponIkBinding();
+            PresentWeaponAnimation(
+                equippedWeapon,
+                tickState);
+        }
+    }
+
+
+    private void PresentWeaponAnimation(
+        Weapon weapon,
+        PlayerTickState state)
+    {
+        bool changed =
+            !_weaponAnimationPresentationInitialized ||
+            _presentedWeapon != weapon ||
+            _lastPresentedWeaponAnimationSequence !=
+                state.WeaponAnimationSequence;
+
+        if (!changed)
+            return;
+
+        _presentedWeapon?.StopHeldAnimation();
+        _presentedWeapon = weapon;
+        _lastPresentedWeaponAnimationSequence =
+            state.WeaponAnimationSequence;
+        _weaponAnimationPresentationInitialized = true;
+
+        if (!state.IsWeaponAnimationActive)
+            return;
+
+        AnimationClip weaponClip =
+            weapon.GetAction(
+                ActiveWeaponButton,
+                ActiveWeaponSlot)?.WeaponAnimation;
+
+        if (weaponClip != null)
+            weapon.PlayHeldAnimation(weaponClip);
+    }
+
+
+    private void StopPresentedWeaponAnimation()
+    {
+        _presentedWeapon?.StopHeldAnimation();
+        _presentedWeapon = null;
+        _weaponAnimationPresentationInitialized = false;
     }
 
 
     // =========================================================
     // Weapon Aim
     // =========================================================
+
+    private bool IsWeaponDirectionLocked =>
+        WeaponActionTimer.IsRunning &&
+        !WeaponActionTimer.Expired(Runner);
 
     private void UpdateAuthoritativeWeaponAngle(
         Vector2 aimWorldPosition,
@@ -449,6 +631,18 @@ public sealed class PlayerWeaponController :
         EquippedWeaponObject =
             null;
 
+        bool wasAnimationRunning =
+            WeaponAnimationTimer.IsRunning;
+
+        WeaponAnimationTimer =
+            TickTimer.None;
+
+        if (wasAnimationRunning)
+            WeaponAnimationSequence++;
+
+        WeaponActionTimer =
+            TickTimer.None;
+
         RestoreAnimationHandIk();
 
         weapon.Drop(
@@ -465,6 +659,83 @@ public sealed class PlayerWeaponController :
     // =========================================================
     // Weapon IK
     // =========================================================
+
+    private void ResolveHandLimbReferences()
+    {
+        if (leftHandLimb != null &&
+            rightHandLimb != null)
+        {
+            return;
+        }
+
+        LimbSolver2D[] limbs =
+            GetComponentsInChildren<LimbSolver2D>(
+                true);
+
+        leftHandLimb ??=
+            FindStandardLimb(
+                limbs,
+                "arm_l");
+
+        rightHandLimb ??=
+            FindStandardLimb(
+                limbs,
+                "arm_r");
+
+        if (leftHandLimb == null ||
+            rightHandLimb == null)
+        {
+            Debug.LogWarning(
+                $"[{name}] 표준 양손 IK 제어기를 찾지 못해 " +
+                "무기 손잡이 연결이 일부 적용되지 않습니다.",
+                this);
+        }
+    }
+
+
+    private static LimbSolver2D FindStandardLimb(
+        LimbSolver2D[] limbs,
+        string prefix)
+    {
+        string solverName =
+            null;
+
+        foreach (Standard2DRigDefinition.LimbSpec spec
+                 in Standard2DRigDefinition.LimbSpecs)
+        {
+            if (!string.Equals(
+                    spec.Prefix,
+                    prefix,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            solverName =
+                spec.SolverName;
+            break;
+        }
+
+        if (string.IsNullOrEmpty(
+                solverName))
+        {
+            return null;
+        }
+
+        foreach (LimbSolver2D limb in limbs)
+        {
+            if (limb != null &&
+                string.Equals(
+                    limb.name,
+                    solverName,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return limb;
+            }
+        }
+
+        return null;
+    }
 
     private void UpdateWeaponIkBinding()
     {
@@ -492,6 +763,37 @@ public sealed class PlayerWeaponController :
         }
 
         RestoreAnimationHandIk();
+    }
+
+
+    private void ApplyActionHandIkPolicy(
+        ActionHandIkPolicy policy)
+    {
+        switch (policy)
+        {
+            case ActionHandIkPolicy.AnimatedTargets:
+                RestoreAnimationHandIk();
+                break;
+
+            case ActionHandIkPolicy.WeaponGrips:
+                Weapon equippedWeapon =
+                    EquippedWeapon;
+
+                if (equippedWeapon?.HeldView != null)
+                {
+                    BindWeaponIk(
+                        equippedWeapon.HeldView);
+                }
+                else
+                {
+                    RestoreAnimationHandIk();
+                }
+                break;
+
+            default:
+                UpdateWeaponIkBinding();
+                break;
+        }
     }
 
 
@@ -622,42 +924,20 @@ public sealed class PlayerWeaponController :
     // =========================================================
 
 
-    private bool TryUseSecondaryWeapon(
-        bool mirrored,
-        Vector2 origin)
-    {
-        if (!HasStateAuthority)
-            return false;
-
-        Weapon weapon =
-            EquippedWeapon;
-
-        if (weapon == null ||
-            !weapon.ConsumesParryInput)
-        {
-            return false;
-        }
-
-        return weapon.TryUseSecondary(
-            origin,
-            WeaponDirection,
-            mirrored);
-    }
-
-
     private bool TryUseWeapon(
+        WeaponButton button,
+        Vector2 moveInput,
         Vector2 aimDirection,
         bool isAlive,
-        bool mirrored,
+        bool facingRight,
         Vector2 origin,
         float attackDamageMultiplier)
     {
-        // 기존 aimDirection 인자는 호출 호환성을 위해 유지하지만,
-        // 실제 판정 방향은 StateAuthority가 확정한 WeaponAngle을 사용한다.
-        _ = aimDirection;
-
-        if (!HasStateAuthority)
+        if (!HasStateAuthority &&
+            !HasInputAuthority)
+        {
             return false;
+        }
 
         if (!isAlive)
             return false;
@@ -668,11 +948,113 @@ public sealed class PlayerWeaponController :
         if (weapon == null)
             return false;
 
-        return weapon.TryUse(
-            origin,
-            WeaponDirection,
-            mirrored,
-            attackDamageMultiplier);
+        Vector2 useDirection =
+            weapon.ResolveActionDirection(
+                button,
+                moveInput,
+                aimDirection,
+                facingRight,
+                out WeaponAttackSlot slot);
+
+        WeaponActionData action =
+            weapon.GetAction(
+                button,
+                slot);
+
+        if (action == null ||
+            !action.Enabled)
+        {
+            return false;
+        }
+
+        bool useFacingRight =
+            Mathf.Abs(useDirection.x) > 0.0001f
+                ? useDirection.x > 0f
+                : facingRight;
+
+        bool used = button == WeaponButton.Secondary
+            ? weapon.TryUseSecondary(
+                origin,
+                useDirection,
+                slot,
+                !useFacingRight,
+                attackDamageMultiplier)
+            : weapon.TryUse(
+                origin,
+                useDirection,
+                slot,
+                !useFacingRight,
+                attackDamageMultiplier);
+
+        if (used)
+        {
+            WeaponAngle =
+                DirectionToAngle(
+                    useDirection);
+            ActiveWeaponButton = button;
+            ActiveWeaponSlot = slot;
+
+            ActionAnimationData animation =
+                action.Animation;
+
+            ActionAnimationClipData clipData =
+                animation != null
+                    ? animation.GetClipData(
+                        ActionAnimationPhase.Main)
+                    : default;
+
+            AnimationClip weaponClip =
+                action.WeaponAnimation;
+
+            float animationDuration =
+                Mathf.Max(
+                    clipData.HasClip
+                        ? clipData.Clip.length
+                        : 0f,
+                    weaponClip != null
+                        ? weaponClip.length
+                        : 0f);
+
+            WeaponAnimationTimer =
+                TickTimer.None;
+
+            WeaponAnimationSequence++;
+
+            if (animationDuration > 0f)
+            {
+                WeaponAnimationTimer =
+                    TickTimer.CreateFromSeconds(
+                        Runner,
+                        Mathf.Max(
+                            animationDuration,
+                            Runner.DeltaTime));
+            }
+
+            WeaponActionTimer =
+                TickTimer.None;
+
+            if (weapon.GetDirectionMode(
+                    button) !=
+                WeaponAttackDirection.Aim)
+            {
+                float actionDuration =
+                    Mathf.Max(
+                        weapon.GetActionDuration(
+                            button,
+                            slot),
+                        animationDuration,
+                        Runner.DeltaTime);
+
+                LockedWeaponFacingRight =
+                    useFacingRight;
+                WeaponActionTimer =
+                    TickTimer.CreateFromSeconds(
+                        Runner,
+                        actionDuration);
+            }
+        }
+
+        return used;
     }
 
 

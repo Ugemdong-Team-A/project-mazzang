@@ -167,6 +167,12 @@ public sealed class PlayerAim :
     // Fusion
     // =========================================================
 
+    private void OnEnable()
+    {
+        ResolveAimRigReferences();
+    }
+
+
     public override void Spawned()
     {
         ResolveAimRigReferences();
@@ -263,7 +269,11 @@ public sealed class PlayerAim :
             tick.Commands,
             isWallSliding,
             facingRight,
-            inputFacingDirection);
+            inputFacingDirection,
+            input.Move.x,
+            tick.State.IsWeaponFacingLocked,
+            tick.State.WeaponFacingRight,
+            tick.State.UsesWeaponFacingStance);
 
         UpdateBodyAim(facingRight);
     }
@@ -273,11 +283,26 @@ public sealed class PlayerAim :
     {
         bool facingRight = tickState.FacingRight;
 
+        bool hasActionAnimation =
+            tickState.TryGetActiveActionClipData(
+                out ActionAnimationClipData clipData);
+
+        PlayerAimRigMode presentationRigMode =
+            hasActionAnimation
+                ? ResolveRigMode(
+                    clipData.AimComposition)
+                : !IsAimOverridden &&
+                  tickState.UsesWeaponFacingStance
+                    ? PlayerAimRigMode.AnimationOnly
+                    : RigMode;
+
         UpdateBodyAimPresentation(facingRight);
         UpdateRigPresentation(
             facingRight,
-            tickState.HasCombat &&
-            tickState.IsAttacking);
+            presentationRigMode,
+            hasActionAnimation ||
+            (tickState.HasCombat &&
+             tickState.IsAttacking));
     }
 
 
@@ -554,10 +579,22 @@ public sealed class PlayerAim :
         PlayerTickCommands commands,
         bool isWallSliding,
         bool facingRight,
-        Vector2 facingDirection)
+        Vector2 facingDirection,
+        float movementInputX,
+        bool isWeaponFacingLocked,
+        bool weaponFacingRight,
+        bool usesWeaponFacingStance)
     {        
         if (isWallSliding)
             return;
+
+        if (isWeaponFacingLocked)
+        {
+            RequestFacing(
+                commands,
+                weaponFacingRight);
+            return;
+        }
 
         if (FacingMode ==
             PlayerAimFacingMode.Locked)
@@ -565,6 +602,19 @@ public sealed class PlayerAim :
             RequestFacing(
                 commands,
                 LockedFacingRight);
+
+            return;
+        }
+
+        if (usesWeaponFacingStance)
+        {
+            TryUpdateFacingFromDirection(
+                commands,
+                new Vector2(
+                    movementInputX,
+                    0f),
+                false,
+                facingRight);
 
             return;
         }
@@ -723,13 +773,14 @@ public sealed class PlayerAim :
 
     private void UpdateRigPresentation(
         bool facingRight,
-        bool isAttacking)
+        PlayerAimRigMode rigMode,
+        bool isActionPlaying)
     {
         _applyAnimationBodyAim =
-            RigMode ==
+            rigMode ==
             PlayerAimRigMode.AnimationWithBodyAim;
 
-        if (RigMode ==
+        if (rigMode ==
             PlayerAimRigMode.AnimationOnly)
         {
             if (upperBodyAimRig != null &&
@@ -764,7 +815,7 @@ public sealed class PlayerAim :
         // 평상시에는 달리기와 대기 클립의 가슴 움직임을 보존합니다.
         // 공격의 ProceduralAim만 기본 포즈에서 풀어 상체를 완전히 덮습니다.
         upperBodyAimRig.solveFromDefaultPose =
-            isAttacking;
+            isActionPlaying;
 
         // Target 회전이 아니라 Effector 위치로 상체 방향을 풉니다.
         upperBodyAimRig.constrainRotation = false;
@@ -775,6 +826,20 @@ public sealed class PlayerAim :
             upperBodyAimRig.enabled =
                 true;
         }
+    }
+
+
+    private static PlayerAimRigMode ResolveRigMode(
+        ActionAimComposition composition)
+    {
+        return composition switch
+        {
+            ActionAimComposition.AnimationOnly =>
+                PlayerAimRigMode.AnimationOnly,
+            ActionAimComposition.AnimationWithBodyAim =>
+                PlayerAimRigMode.AnimationWithBodyAim,
+            _ => PlayerAimRigMode.Procedural
+        };
     }
 
 
@@ -959,6 +1024,12 @@ public sealed class PlayerAim :
         }
 
         if (upperBodyAimRig == null)
+        {
+            upperBodyAimRig =
+                FindBodyAimRig();
+        }
+
+        if (upperBodyAimRig == null)
             return;
 
         IKChain2D chain =
@@ -971,6 +1042,35 @@ public sealed class PlayerAim :
             resolvedAimPivot != null
                 ? resolvedAimPivot.parent
                 : chain?.rootTransform;
+    }
+
+
+    private CCDSolver2D FindBodyAimRig()
+    {
+        Transform referenceBone =
+            resolvedAimPivot != null
+                ? resolvedAimPivot.parent
+                : null;
+
+        if (referenceBone == null)
+            return null;
+
+        CCDSolver2D[] candidates =
+            GetComponentsInChildren<CCDSolver2D>(
+                true);
+
+        foreach (CCDSolver2D candidate in candidates)
+        {
+            IKChain2D chain =
+                candidate != null
+                    ? candidate.GetChain(0)
+                    : null;
+
+            if (chain?.rootTransform == referenceBone)
+                return candidate;
+        }
+
+        return null;
     }
 
 

@@ -1,7 +1,89 @@
 using Fusion;
 using Fusion.Addons.Physics;
+using System;
 using UnityEngine;
 using UnityEngine.Rendering;
+
+public enum WeaponAttackDirection : byte
+{
+    Aim = 0,
+    Facing,
+    Brawlhalla
+}
+
+public enum WeaponStanceDirection : byte
+{
+    Aim = 0,
+    Facing
+}
+
+public enum WeaponButton : byte
+{
+    Primary = 0,
+    Secondary
+}
+
+public enum WeaponAttackSlot : byte
+{
+    Default = 0,
+    NoDirection,
+    Side,
+    Down
+}
+
+public readonly struct WeaponFirePose
+{
+    public readonly Vector2 Origin;
+    public readonly Vector2 Direction;
+
+    public WeaponFirePose(
+        Vector2 origin,
+        Vector2 direction)
+    {
+        Origin = origin;
+        Direction =
+            direction.sqrMagnitude > 0.0001f
+                ? direction.normalized
+                : Vector2.right;
+    }
+}
+
+[Serializable]
+public class WeaponActionData
+{
+    [InspectorName("사용")]
+    [SerializeField]
+    private bool enabled = true;
+
+    [InspectorName("애니메이션")]
+    [SerializeField]
+    private ActionAnimationData animation;
+
+    [InspectorName("무기 자체 애니메이션")]
+    [Tooltip(
+        "캐릭터 애니메이션과 동시에 재생할 무기 외형의 동작입니다. " +
+        "비어 있으면 무기는 WeaponSocket의 기본 자세를 유지합니다.")]
+    [SerializeField]
+    private AnimationClip weaponAnimation;
+
+    public bool Enabled => enabled;
+
+    public ActionAnimationData Animation =>
+        animation;
+
+    public AnimationClip WeaponAnimation =>
+        weaponAnimation;
+
+    public WeaponActionData()
+    {
+    }
+
+    protected WeaponActionData(
+        bool enabled)
+    {
+        this.enabled = enabled;
+    }
+}
 
 [RequireComponent(typeof(NetworkObject))]
 [RequireComponent(typeof(Rigidbody2D))]
@@ -20,7 +102,36 @@ public abstract class Weapon :
     private WeaponPickupTrigger pickupTrigger;
 
 
+    [Header("Stance")]
+    [Tooltip(
+        "Aim: 평상시에도 마우스를 바라봅니다.\n" +
+        "Facing: 이동으로 정한 좌우를 바라보고 마우스 조준을 사용하지 않습니다.")]
+    [SerializeField]
+    private WeaponStanceDirection stanceDirection =
+        WeaponStanceDirection.Aim;
+
+    [Tooltip("장착 중 대기 자세입니다. 비어 있으면 캐릭터의 일반 Idle을 사용합니다.")]
+    [SerializeField]
+    private AnimationClip stanceAnimation;
+
+
+    [Header("Attack Direction")]
+    [Tooltip(
+        "Aim: 마우스 방향으로 사용합니다.\n" +
+        "Facing: 공격을 시작한 좌우 방향으로 고정합니다.\n" +
+        "Brawlhalla: 방향 입력 없음/좌우/아래 슬롯을 선택합니다.")]
+    [SerializeField]
+    private WeaponAttackDirection primaryDirection =
+        WeaponAttackDirection.Aim;
+
+    [Tooltip("보조 공격의 방향 선택 방식입니다.")]
+    [SerializeField]
+    private WeaponAttackDirection secondaryDirection =
+        WeaponAttackDirection.Aim;
+
+
     [Header("Presentation")]
+
     [SerializeField]
     private SortingGroup sortingGroup;
 
@@ -67,22 +178,225 @@ public abstract class Weapon :
     public HeldWeaponView HeldView =>
         _heldView;
 
-    public bool TryGetHeldMuzzlePosition(
-        out Vector2 position)
+    public WeaponAttackDirection PrimaryDirection =>
+        primaryDirection;
+
+    public WeaponAttackDirection SecondaryDirection =>
+        secondaryDirection;
+
+    public WeaponStanceDirection StanceDirection =>
+        stanceDirection;
+
+    public AnimationClip StanceAnimation =>
+        stanceAnimation;
+
+    public HeldWeaponView PresentationTemplate =>
+        presentationTemplate;
+
+    public WeaponAttackDirection GetDirectionMode(
+        WeaponButton button)
+    {
+        return button == WeaponButton.Secondary
+            ? secondaryDirection
+            : primaryDirection;
+    }
+
+    public abstract WeaponActionData GetAction(
+        WeaponButton button,
+        WeaponAttackSlot slot);
+
+    public virtual float GetActionDuration(
+        WeaponButton button,
+        WeaponAttackSlot slot)
+    {
+        return 0f;
+    }
+
+    public Vector2 ResolveActionDirection(
+        WeaponButton button,
+        Vector2 moveInput,
+        Vector2 aimDirection,
+        bool facingRight,
+        out WeaponAttackSlot slot)
+    {
+        Vector2 facingDirection =
+            facingRight
+                ? Vector2.right
+                : Vector2.left;
+
+        switch (GetDirectionMode(
+                    button))
+        {
+            case WeaponAttackDirection.Facing:
+                slot =
+                    WeaponAttackSlot.Default;
+                return facingDirection;
+
+            case WeaponAttackDirection.Brawlhalla:
+                return ResolveBrawlhallaDirection(
+                    moveInput,
+                    facingDirection,
+                    out slot);
+
+            default:
+                slot =
+                    WeaponAttackSlot.Default;
+                return aimDirection.sqrMagnitude > 0.0001f
+                    ? aimDirection.normalized
+                    : facingDirection;
+        }
+    }
+
+    private static Vector2 ResolveBrawlhallaDirection(
+        Vector2 moveInput,
+        Vector2 facingDirection,
+        out WeaponAttackSlot slot)
+    {
+        if (moveInput.y < -0.25f)
+        {
+            slot =
+                WeaponAttackSlot.Down;
+            return Vector2.down;
+        }
+
+        if (Mathf.Abs(moveInput.x) > 0.25f)
+        {
+            slot =
+                WeaponAttackSlot.Side;
+            return moveInput.x >= 0f
+                ? Vector2.right
+                : Vector2.left;
+        }
+
+        slot =
+            WeaponAttackSlot.NoDirection;
+        return facingDirection;
+    }
+
+    public WeaponFirePose ResolveMuzzlePose(
+        Vector2 fallbackOrigin,
+        Vector2 fallbackDirection,
+        bool mirrored)
     {
         if (_heldView != null &&
             _heldView.Muzzle != null)
         {
-            position =
-                _heldView.Muzzle.position;
+            Transform heldMuzzle =
+                _heldView.Muzzle;
 
-            return true;
+            return new WeaponFirePose(
+                heldMuzzle.position,
+                ResolveVisualForward(
+                    heldMuzzle));
         }
 
-        position =
-            default;
+        fallbackDirection =
+            ResolveWeaponForward(
+                fallbackDirection);
 
-        return false;
+        Transform templateMuzzle =
+            presentationTemplate != null
+                ? presentationTemplate.Muzzle
+                : null;
+
+        if (templateMuzzle == null)
+        {
+            return new WeaponFirePose(
+                fallbackOrigin,
+                fallbackDirection);
+        }
+
+        Transform templateRoot =
+            presentationTemplate.transform;
+
+        Vector2 localPosition =
+            templateRoot.InverseTransformPoint(
+                templateMuzzle.position);
+
+        Vector2 localDirection =
+            templateRoot.InverseTransformVector(
+                ResolveVisualForward(
+                    templateMuzzle));
+
+        if (mirrored)
+        {
+            localPosition.y =
+                -localPosition.y;
+            localDirection.y =
+                -localDirection.y;
+        }
+
+        float angle =
+            Mathf.Atan2(
+                fallbackDirection.y,
+                fallbackDirection.x) *
+            Mathf.Rad2Deg;
+
+        return new WeaponFirePose(
+            fallbackOrigin +
+            RotateVector(
+                localPosition,
+                angle),
+            RotateVector(
+                localDirection,
+                angle));
+    }
+
+    protected static Vector2 ResolveVisualForward(
+        Transform muzzle)
+    {
+        if (muzzle == null)
+            return Vector2.right;
+
+        Vector2 direction =
+            muzzle.TransformVector(
+                Vector3.right);
+
+        return direction.sqrMagnitude > 0.0001f
+            ? direction.normalized
+            : Vector2.right;
+    }
+
+    private Vector2 ResolveWeaponForward(
+        Vector2 fallbackDirection)
+    {
+        IWeaponHandler handler =
+            Object != null &&
+            Holder != null
+                ? Holder.GetComponent<IWeaponHandler>()
+                : null;
+
+        if (handler != null &&
+            handler.WeaponDirection.sqrMagnitude >
+                0.0001f)
+        {
+            return handler.WeaponDirection.normalized;
+        }
+
+        return fallbackDirection.sqrMagnitude > 0.0001f
+            ? fallbackDirection.normalized
+            : Vector2.right;
+    }
+
+    private static Vector2 RotateVector(
+        Vector2 value,
+        float angle)
+    {
+        float radians =
+            angle * Mathf.Deg2Rad;
+
+        float cos =
+            Mathf.Cos(radians);
+
+        float sin =
+            Mathf.Sin(radians);
+
+        return new Vector2(
+            value.x * cos -
+            value.y * sin,
+
+            value.x * sin +
+            value.y * cos);
     }
 
     public virtual bool ConsumesParryInput =>
@@ -250,8 +564,17 @@ public abstract class Weapon :
             return false;
         }
 
-        Holder =
-            holder;
+        NetworkObject previousHolder =
+            Holder;
+
+        Holder = holder;
+
+        OnAuthorityHolderChanged(
+            previousHolder,
+            Holder);
+
+        Object.AssignInputAuthority(
+            holderPlayer);
 
         ApplyLocalHolderState();
 
@@ -278,8 +601,17 @@ public abstract class Weapon :
         if (!HasStateAuthority)
             return;
 
+        NetworkObject previousHolderObject =
+            Holder;
+
+        Object.RemoveInputAuthority();
+
         Holder =
             null;
+
+        OnAuthorityHolderChanged(
+            previousHolderObject,
+            Holder);
 
         if (previousHolder != PlayerRef.None &&
             repickupBlockDuration > 0f)
@@ -309,6 +641,13 @@ public abstract class Weapon :
         ApplyLocalHolderState();
         ApplyLocalPickupState();
         ApplyLocalSortingState();
+    }
+
+
+    protected virtual void OnAuthorityHolderChanged(
+        NetworkObject previousHolder,
+        NetworkObject currentHolder)
+    {
     }
 
 
@@ -434,7 +773,7 @@ public abstract class Weapon :
             Vector3.one * 1f / visualSizeOffset;
 
         _heldView.name =
-            $"{name} Held View";
+            HeldWeaponView.RuntimeViewName;
 
         _heldView.gameObject
             .SetActive(
@@ -462,17 +801,37 @@ public abstract class Weapon :
     }
 
 
+    public void PlayHeldAnimation(
+        AnimationClip clip)
+    {
+        EnsureHeldView();
+        _heldView?.PlayAnimation(clip);
+    }
+
+
+    public void StopHeldAnimation()
+    {
+        _heldView?.StopAnimation();
+    }
+
+
     private void DestroyHeldView()
     {
         if (_heldView == null)
             return;
 
+        WeaponPose pose =
+            _heldView.Pose;
+
+        _heldView.StopAnimation();
         _heldView.gameObject
             .SetActive(
                 false);
 
-        Destroy(
-            _heldView.gameObject);
+        if (pose != null)
+            Destroy(pose.gameObject);
+        else
+            Destroy(_heldView.gameObject);
 
         _heldView =
             null;
@@ -519,13 +878,16 @@ public abstract class Weapon :
     public abstract bool TryUse(
         Vector2 origin,
         Vector2 direction,
+        WeaponAttackSlot slot,
         bool mirrored,
         float attackDamageMultiplier);
 
     public virtual bool TryUseSecondary(
         Vector2 origin,
         Vector2 direction,
-        bool mirrored)
+        WeaponAttackSlot slot,
+        bool mirrored,
+        float attackDamageMultiplier)
     {
         return false;
     }

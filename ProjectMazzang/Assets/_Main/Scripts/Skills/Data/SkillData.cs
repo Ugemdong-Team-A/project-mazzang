@@ -13,7 +13,24 @@ public abstract class SkillData :
 
     [Header("Presentation")]
     [SerializeField]
-    private SkillAnimationData animation;
+    private ActionAnimationData animation;
+
+    [Space]
+    [SerializeField]
+    private SkillPatternSettings patterns = new();
+
+    public SkillPatternSettings Patterns => patterns;
+
+    public bool ValidatePatterns(out string error)
+    {
+        if (patterns == null)
+        {
+            error = "패턴 설정이 없습니다.";
+            return false;
+        }
+
+        return patterns.Validate(out error);
+    }
 
     public float Cooldown =>
         cooldown;
@@ -21,7 +38,7 @@ public abstract class SkillData :
     public Sprite Icon
         => icon;
 
-    public SkillAnimationData Animation =>
+    public ActionAnimationData Animation =>
         animation;
 
     public abstract Skill CreateSkill();

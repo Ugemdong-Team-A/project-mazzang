@@ -40,6 +40,7 @@ public sealed class ProjectileTrail : MonoBehaviour
     private GameObject _visualObject;
     private Transform _followTarget;
     private bool _completed;
+    private float _widthMultiplier = 1f;
 
     private void Awake()
     {
@@ -84,7 +85,7 @@ public sealed class ProjectileTrail : MonoBehaviour
     }
 
     private void LateUpdate()
-    {
+    {       
         if (_completed ||
             _visualObject == null)
         {
@@ -99,7 +100,7 @@ public sealed class ProjectileTrail : MonoBehaviour
 
         _visualObject.transform.SetPositionAndRotation(
             _followTarget.position,
-            _followTarget.rotation);
+            _followTarget.rotation);       
     }
 
     public void Complete()
@@ -135,6 +136,58 @@ public sealed class ProjectileTrail : MonoBehaviour
         _visualObject = null;
     }
 
+
+    public void SetWidthMultiplier(
+        float multiplier)
+    {
+        _widthMultiplier =
+            Mathf.Max(
+                0f,
+                multiplier);
+
+        if (_visualTrail != null)
+        {
+            ApplySettings(
+                _visualTrail);
+        }
+    }
+
+
+    public void CopySettingsFrom(
+        ProjectileTrail source)
+    {
+        if (source == null)
+            return;
+
+        lifetime =
+            source.lifetime;
+
+        minVertexDistance =
+            source.minVertexDistance;
+
+        startWidth =
+            source.startWidth;
+
+        endWidth =
+            source.endWidth;
+
+        colorOverTrail =
+            source.colorOverTrail;
+
+        trailMaterial =
+            source.trailMaterial;
+
+        sortingLayerName =
+            source.sortingLayerName;
+
+        sortingOrder =
+            source.sortingOrder;
+
+        ResolveSourceTrail();
+        ApplySettings(
+            _sourceTrail);
+    }
+
     private void OnDestroy()
     {
         Complete();
@@ -163,6 +216,27 @@ public sealed class ProjectileTrail : MonoBehaviour
             new AnimationCurve(
                 new Keyframe(0f, startWidth),
                 new Keyframe(1f, endWidth));
+
+        AnimationCurve widthCurve =
+            trail.widthCurve;
+
+        for (int i = 0;
+             i < widthCurve.length;
+             i++)
+        {
+            Keyframe key =
+                widthCurve[i];
+
+            key.value *=
+                _widthMultiplier;
+
+            widthCurve.MoveKey(
+                i,
+                key);
+        }
+
+        trail.widthCurve =
+            widthCurve;
 
         if (colorOverTrail != null)
         {

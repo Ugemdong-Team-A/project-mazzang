@@ -3,20 +3,53 @@ using UnityEngine;
 public sealed class PlayerAnimation :
     PlayerTickModule
 {
+    private const float ActionPoseBlendDuration = 0.1f;
+
+    private const string BaseIdlePlaceholder =
+        "Idle";
+
     private const string ActionCastPlaceholder =
         "ActionCastPlaceholder";
 
-    private const string ActionReleasePlaceholder =
-        "ActionReleasePlaceholder";
+    private const string ActionMainPlaceholder =
+        "ActionMainPlaceholder";
 
     private const string ActionRecoveryPlaceholder =
         "ActionRecoveryPlaceholder";
+
+    private const string FullBodyLayer =
+        "Action_FullBody";
+
+    private const string UpperBodyLayer =
+        "Action_UpperBody";
+
+    private const string ArmsOnlyLayer =
+        "Action_ArmsOnly";
+
+    private static readonly string[] ActionLayerNames =
+    {
+        FullBodyLayer,
+        UpperBodyLayer,
+        ArmsOnlyLayer
+    };
 
     [SerializeField]
     private Animator animator;
 
     private AnimatorOverrideController
-        _skillOverrideController;
+        _actionOverrideController;
+
+    private AnimationClip _defaultIdleAnimation;
+
+    private AnimationClip _appliedStanceAnimation;
+
+    private readonly int[] _actionLayerIndices =
+        { -1, -1, -1 };
+
+    private readonly float[] _actionLayerTargets =
+        new float[ActionLayerNames.Length];
+
+    private bool _isBlendingActionLayers;
 
     private byte _lastJumpSequence;
 
@@ -26,6 +59,10 @@ public sealed class PlayerAnimation :
 
     private bool _attackPresentationInitialized;
 
+    private byte _lastAttackAnimationSequence;
+
+    private bool _attackAnimationPresentationInitialized;
+
     private byte _lastDeathSequence;
 
     private bool _deathPresentationInitialized;
@@ -34,22 +71,35 @@ public sealed class PlayerAnimation :
 
     private bool _skillPresentationInitialized;
 
+    private byte _lastWeaponAnimationSequence;
+
+    private bool _weaponAnimationPresentationInitialized;
+
     public override PlayerTickStage Stage => PlayerTickStage.Finalize;
 
 
     public override void Spawned()
     {
-        InitializeSkillOverrideController();
+        InitializeActionOverrideController();
+        InitializeActionLayers();
 
         _jumpPresentationInitialized = false;
         _attackPresentationInitialized = false;
+        _attackAnimationPresentationInitialized = false;
         _deathPresentationInitialized = false;
         _skillPresentationInitialized = false;
+        _weaponAnimationPresentationInitialized = false;
+        _appliedStanceAnimation = null;
     }
 
 
     public override void Present(in PlayerTickState tickState)
     {
+        HandleWeaponStance(
+            tickState.HasEquippedWeapon
+                ? tickState.WeaponStanceAnimation
+                : null);
+
         if (tickState.HasMovement)
         {
             Vector2 velocity =
@@ -88,16 +138,37 @@ public sealed class PlayerAnimation :
                 tickState.LastJumpType);
         }
 
+        HandleActionAnimation(
+            ref _lastWeaponAnimationSequence,
+            ref _weaponAnimationPresentationInitialized,
+            tickState.WeaponAnimationSequence,
+            tickState.IsWeaponAnimationActive
+                ? ActionAnimationPhase.Main
+                : ActionAnimationPhase.None,
+            tickState.WeaponAnimation);
+
         if (tickState.HasCombat)
         {
-            HandleAttackAnimation(
-                tickState.AttackSequence,
-                tickState.AttackId);
+            HandleActionAnimation(
+                ref _lastAttackAnimationSequence,
+                ref _attackAnimationPresentationInitialized,
+                tickState.AttackAnimationSequence,
+                tickState.AttackAnimationPhase,
+                tickState.AttackAnimation);
+
+            if (tickState.AttackAnimation == null)
+            {
+                HandleAttackAnimation(
+                    tickState.AttackSequence,
+                    tickState.AttackId);
+            }
         }
 
         if (tickState.HasSkill)
         {
-            HandleSkillAnimation(
+            HandleActionAnimation(
+                ref _lastSkillAnimationSequence,
+                ref _skillPresentationInitialized,
                 tickState.SkillAnimationSequence,
                 tickState.SkillAnimationPhase,
                 tickState.SkillAnimation);
@@ -108,6 +179,8 @@ public sealed class PlayerAnimation :
             HandleDeathAnimation(
                 tickState.DeathSequence);
         }
+
+        UpdateActionLayerWeights();
     }
 
 
@@ -179,26 +252,36 @@ public sealed class PlayerAnimation :
     }
 
 
-    private void HandleSkillAnimation(
+    private void HandleActionAnimation(
+        ref byte previousSequence,
+        ref bool initialized,
         byte skillAnimationSequence,
-        SkillAnimationPhase phase,
-        SkillAnimationData animation)
+        ActionAnimationPhase phase,
+        ActionAnimationData animation)
     {
         if (!HasSequenceChanged(
-                ref _lastSkillAnimationSequence,
-                ref _skillPresentationInitialized,
+                ref previousSequence,
+                ref initialized,
                 skillAnimationSequence))
         {
             return;
         }
 
-        AnimationClip clip =
-            animation?.GetClip(phase);
+        if (phase == ActionAnimationPhase.None)
+        {
+            ClearActionLayers();
+            return;
+        }
 
-        if (clip == null ||
-            !TryApplySkillOverride(
+        ActionAnimationClipData clipData =
+            animation != null
+                ? animation.GetClipData(phase)
+                : default;
+
+        if (!clipData.HasClip ||
+            !TryApplyActionOverride(
                 phase,
-                clip))
+                clipData))
         {
             return;
         }
@@ -207,49 +290,95 @@ public sealed class PlayerAnimation :
             "SkillPhase",
             (int)phase);
 
-        animator.SetTrigger(
-            "Skill");
+        BlendToActionPhase(phase);
     }
 
 
-    private void InitializeSkillOverrideController()
+    private void ClearActionLayers()
     {
-        if (_skillOverrideController != null ||
+        animator.SetInteger(
+            "SkillPhase",
+            (int)ActionAnimationPhase.None);
+
+        for (int index = 0;
+             index < _actionLayerTargets.Length;
+             index++)
+        {
+            _actionLayerTargets[index] = 0f;
+        }
+
+        _isBlendingActionLayers = true;
+    }
+
+
+    private void InitializeActionOverrideController()
+    {
+        if (_actionOverrideController != null ||
             animator == null ||
             animator.runtimeAnimatorController == null)
         {
             return;
         }
 
-        _skillOverrideController =
+        _actionOverrideController =
             new AnimatorOverrideController(
                 animator.runtimeAnimatorController)
             {
                 name =
                     $"{animator.runtimeAnimatorController.name} " +
-                    "(Player Skill Instance)"
+                    "(Player Action Instance)"
             };
 
         animator.runtimeAnimatorController =
-            _skillOverrideController;
+            _actionOverrideController;
+
+        _defaultIdleAnimation =
+            _actionOverrideController[
+                BaseIdlePlaceholder];
     }
 
 
-    private bool TryApplySkillOverride(
-        SkillAnimationPhase phase,
-        AnimationClip clip)
+    private void HandleWeaponStance(
+        AnimationClip stanceAnimation)
     {
-        if (_skillOverrideController == null)
+        if (_actionOverrideController == null)
+            return;
+
+        AnimationClip nextAnimation =
+            stanceAnimation != null
+                ? stanceAnimation
+                : _defaultIdleAnimation;
+
+        if (_appliedStanceAnimation ==
+            nextAnimation)
+        {
+            return;
+        }
+
+        _actionOverrideController[
+            BaseIdlePlaceholder] =
+            nextAnimation;
+
+        _appliedStanceAnimation =
+            nextAnimation;
+    }
+
+
+    private bool TryApplyActionOverride(
+        ActionAnimationPhase phase,
+        ActionAnimationClipData clipData)
+    {
+        if (_actionOverrideController == null)
             return false;
 
         string placeholder =
             phase switch
             {
-                SkillAnimationPhase.Cast =>
+                ActionAnimationPhase.Cast =>
                     ActionCastPlaceholder,
-                SkillAnimationPhase.Release =>
-                    ActionReleasePlaceholder,
-                SkillAnimationPhase.Recovery =>
+                ActionAnimationPhase.Main =>
+                    ActionMainPlaceholder,
+                ActionAnimationPhase.Recovery =>
                     ActionRecoveryPlaceholder,
                 _ =>
                     null
@@ -258,20 +387,175 @@ public sealed class PlayerAnimation :
         if (placeholder == null)
             return false;
 
-        _skillOverrideController[placeholder] =
-            clip;
+        SelectActionLayer(
+            clipData.BodyMask);
 
-        return _skillOverrideController[placeholder] ==
-               clip;
+        _actionOverrideController[placeholder] =
+            clipData.Clip;
+
+        return _actionOverrideController[placeholder] ==
+               clipData.Clip;
+    }
+
+
+    private void SelectActionLayer(
+        ActionBodyMask bodyMask)
+    {
+        SetActionLayerTarget(
+            0,
+            bodyMask == ActionBodyMask.FullBody);
+
+        SetActionLayerTarget(
+            1,
+            bodyMask == ActionBodyMask.UpperBody);
+
+        SetActionLayerTarget(
+            2,
+            bodyMask == ActionBodyMask.ArmsOnly);
+
+        _isBlendingActionLayers = true;
+    }
+
+
+    private void SetActionLayerTarget(
+        int actionLayer,
+        bool active)
+    {
+        _actionLayerTargets[actionLayer] =
+            active ? 1f : 0f;
+    }
+
+
+    private void InitializeActionLayers()
+    {
+        for (int index = 0;
+             index < ActionLayerNames.Length;
+             index++)
+        {
+            int layerIndex =
+                animator.GetLayerIndex(
+                    ActionLayerNames[index]);
+
+            _actionLayerIndices[index] =
+                layerIndex;
+
+            _actionLayerTargets[index] =
+                layerIndex >= 0
+                    ? animator.GetLayerWeight(
+                        layerIndex)
+                    : 0f;
+        }
+
+        _isBlendingActionLayers = false;
+    }
+
+
+    private void BlendToActionPhase(
+        ActionAnimationPhase phase)
+    {
+        string stateName =
+            phase switch
+            {
+                ActionAnimationPhase.Cast =>
+                    "Cast",
+                ActionAnimationPhase.Main =>
+                    "Main",
+                ActionAnimationPhase.Recovery =>
+                    "Recovery",
+                _ =>
+                    null
+            };
+
+        if (stateName == null)
+            return;
+
+        int sourceLayerIndex =
+            _actionLayerIndices[0];
+
+        if (sourceLayerIndex < 0)
+        {
+            animator.SetTrigger(
+                "Skill");
+            return;
+        }
+
+        int stateHash =
+            Animator.StringToHash(
+                FullBodyLayer +
+                "." +
+                stateName);
+
+        if (!animator.HasState(
+                sourceLayerIndex,
+                stateHash))
+        {
+            animator.SetTrigger(
+                "Skill");
+            return;
+        }
+
+        // UpperBody와 ArmsOnly는 FullBody에 동기화된 레이어라
+        // 원본 상태만 전환하면 같은 블렌드 시간을 공유한다.
+        animator.CrossFadeInFixedTime(
+            stateHash,
+            ActionPoseBlendDuration,
+            sourceLayerIndex,
+            0f);
+    }
+
+
+    private void UpdateActionLayerWeights()
+    {
+        if (!_isBlendingActionLayers)
+            return;
+
+        float step =
+            ActionPoseBlendDuration <= 0f
+                ? 1f
+                : Time.deltaTime /
+                  ActionPoseBlendDuration;
+
+        bool finished = true;
+
+        for (int index = 0;
+             index < _actionLayerIndices.Length;
+             index++)
+        {
+            int layerIndex =
+                _actionLayerIndices[index];
+
+            if (layerIndex < 0)
+                continue;
+
+            float targetWeight =
+                _actionLayerTargets[index];
+
+            float nextWeight =
+                Mathf.MoveTowards(
+                    animator.GetLayerWeight(
+                        layerIndex),
+                    targetWeight,
+                    step);
+
+            animator.SetLayerWeight(
+                layerIndex,
+                nextWeight);
+
+            finished &= Mathf.Approximately(
+                nextWeight,
+                targetWeight);
+        }
+
+        _isBlendingActionLayers = !finished;
     }
 
 
     private void OnDestroy()
     {
-        if (_skillOverrideController != null)
+        if (_actionOverrideController != null)
         {
             Destroy(
-                _skillOverrideController);
+                _actionOverrideController);
         }
     }
 

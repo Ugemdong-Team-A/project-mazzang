@@ -7,12 +7,28 @@ public sealed class PlayerParry :
     IParryVolume
 {
     [SerializeField] private ParryData data;
+
+    [Header("Use Policy")]
+    [Min(0f)]
+    [SerializeField] private float cooldown = 1.1f;
+
+    [Header("Origin")]
+    [Tooltip(
+        "플레이어 루트 기준 패링 중심입니다. " +
+        "X 양수는 바라보는 쪽의 앞, X 음수는 뒤이며 " +
+        "Y 양수는 위, Y 음수는 아래입니다. 조준 회전의 영향은 받지 않습니다.")]
+    [SerializeField]
+    private Vector2 centerOffset =
+        new(0.45f, 0.75f);
+
+    [Header("Presentation")]
     [SerializeField] private CameraShakeProfile successShakeProfile;
 
     [Networked] private NetworkButtons PreviousButtons { get; set; }
     [Networked] private TickTimer ActiveTimer { get; set; }
     [Networked] private TickTimer CooldownTimer { get; set; }
     [Networked] private Vector2 Direction { get; set; }
+    [Networked] private NetworkBool FacingRight { get; set; }
     [Networked] private Vector2 SuccessPoint { get; set; }
     [Networked] private byte SuccessSequence { get; set; }
 
@@ -30,19 +46,10 @@ public sealed class PlayerParry :
     {
         get
         {
-            Transform parryAnchor =
-                ResolveParryAnchor();
-
-            Vector2 anchor = parryAnchor != null
-                ? parryAnchor.position
-                : transform.position;
-
-            float forwardOffset = data != null
-                ? data.AnchorForwardOffset
-                : 0f;
-
-            return anchor +
-                ParryDirection * forwardOffset;
+            return ParryGeometry.ResolveOrigin(
+                transform.position,
+                FacingRight,
+                centerOffset);
         }
     }
 
@@ -54,7 +61,10 @@ public sealed class PlayerParry :
     public float ParryRadius => data != null ? data.Radius : 0f;
     public float ParryHalfAngle => data != null ? data.HalfAngle : 0f;
     public float ParryAimInfluence => data != null ? data.AimInfluence : 0f;
-    public float ParrySpeedMultiplier => data != null ? data.SpeedMultiplier : 1f;
+    public ParryProjectileModifiers ProjectileModifiers =>
+        data != null
+            ? data.ProjectileModifiers
+            : ParryProjectileModifiers.Identity;
 
     public override PlayerTickStage Stage => PlayerTickStage.DefenseIntent;
 
@@ -83,27 +93,38 @@ public sealed class PlayerParry :
             PreviousButtons,
             PlayerButton.Parry);
         PreviousButtons = input.Buttons;
+
+        bool isAlive =
+            !tick.State.HasHealth ||
+            tick.State.IsAlive;
+
+        if (IsParryActive && isAlive)
+        {
+            UpdateTrackedDirection(
+                in input,
+                tick.State);
+        }
         
         if (/*(_weaponState != null &&
              _weaponState.ConsumesParryInput) ||*/
             tick.State.HasEquippedWeapon ||
             !pressed ||
             !CooldownTimer.ExpiredOrNotRunning(Runner) ||
-            (tick.State.HasHealth && !tick.State.IsAlive))
+            !isAlive)
         {
             return;
         }
 
-        Direction = ClampDirectionToBody(
-            tick.State.AimDirection,
-            !tick.State.HasMovement || tick.State.FacingRight);
+        UpdateTrackedDirection(
+            in input,
+            tick.State);
 
         ActiveTimer = TickTimer.CreateFromSeconds(
             Runner,
             data.ActiveDuration);
         CooldownTimer = TickTimer.CreateFromSeconds(
             Runner,
-            data.Cooldown);
+            cooldown);
     }
 
     public void OnParrySuccess(Vector2 point)
@@ -123,17 +144,17 @@ public sealed class PlayerParry :
         EnsurePresentation();
 
         float cooldownRemaining = CooldownTimer.RemainingTime(Runner) ?? 0f;
-        float cooldownProgress = data.Cooldown <= 0f
+        float cooldownProgress = cooldown <= 0f
             ? 1f
-            : 1f - Mathf.Clamp01(cooldownRemaining / data.Cooldown);
+            : 1f - Mathf.Clamp01(cooldownRemaining / cooldown);
 
         _presentation.SetState(
             ResolvePresentationRoot(),
-            ResolveParryAnchor(),
             ParryDirection,
-            data.AnchorForwardOffset,
-            data.Radius,
-            data.HalfAngle,
+            FacingRight,
+            centerOffset,
+            ParryRadius,
+            ParryHalfAngle,
             IsParryActive,
             cooldownRemaining > 0f,
             cooldownProgress,
@@ -153,12 +174,7 @@ public sealed class PlayerParry :
             return;
 
         Transform parent =
-            ResolveParryAnchor();
-
-        if (parent == null)
-        {
-            parent = ResolvePresentationRoot();
-        }
+            ResolvePresentationRoot();
 
         GameObject presentationObject =
             new("Parry Presentation");
@@ -184,30 +200,30 @@ public sealed class PlayerParry :
             : transform;
     }
 
-    private Transform ResolveParryAnchor()
+    private void UpdateTrackedDirection(
+        in PlayerInputData input,
+        PlayerTickState state)
     {
-        return _weaponHandler?.WeaponSocket;
-    }
+        bool facingRight =
+            !state.HasMovement ||
+            state.FacingRight;
 
-    private static Vector2 ClampDirectionToBody(
-        Vector2 direction,
-        bool facingRight)
-    {
+        Vector2 direction =
+            state.ResolveAimDirectionTo(
+                input.AimWorldPosition);
+
+        direction =
+            state.ResolveLimitedAimDirection(
+                direction);
+
         if (direction.sqrMagnitude <= 0.0001f)
-            return facingRight ? Vector2.right : Vector2.left;
+        {
+            direction = facingRight
+                ? Vector2.right
+                : Vector2.left;
+        }
 
-        Vector2 local = facingRight
-            ? direction.normalized
-            : new Vector2(-direction.x, direction.y).normalized;
-        float angle = Mathf.Clamp(
-            Mathf.Atan2(local.y, local.x) * Mathf.Rad2Deg,
-            -80f,
-            80f);
-        Vector2 clamped = new(
-            Mathf.Cos(angle * Mathf.Deg2Rad),
-            Mathf.Sin(angle * Mathf.Deg2Rad));
-        if (!facingRight)
-            clamped.x *= -1f;
-        return clamped.normalized;
+        Direction = direction.normalized;
+        FacingRight = facingRight;
     }
 }

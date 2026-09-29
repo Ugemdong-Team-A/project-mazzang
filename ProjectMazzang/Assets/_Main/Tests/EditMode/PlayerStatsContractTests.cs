@@ -18,43 +18,37 @@ namespace ProjectMazzang.Tests
                         "Assembly-CSharp");
 
         private static readonly object[]
-            PlayerPrefabCases =
+            SupportedPlayerPrefabCases =
             {
                 new object[]
                 {
                     "Assets/_Main/Prefabs/Characters/PC_Mary.prefab",
                     7f,
+                    8f,
+                    1,
                     100
                 },
                 new object[]
                 {
-                    "Assets/_Main/Prefabs/Characters/PlayerCharacter_Knight.prefab",
+                    "Assets/_Main/Prefabs/Characters/PC_Aron.prefab",
                     7f,
+                    8f,
+                    1,
                     100
                 },
                 new object[]
                 {
-                    "Assets/_Main/Prefabs/Characters/PlayerCharacter_TestChar.prefab",
+                    "Assets/_Main/Prefabs/Characters/PC_MasterCharacter.prefab",
                     7f,
-                    100
-                },
-                new object[]
-                {
-                    "Assets/_Main/Prefabs/Characters/PlayerCharacter_Werewolf.prefab",
-                    9f,
-                    100
-                },
-                new object[]
-                {
-                    "Assets/_Main/Prefabs/Characters/PlayerCharacter_Witch.prefab",
-                    7f,
+                    6f,
+                    1,
                     100
                 }
             };
 
 
         [Test]
-        public void StatsInstaller_IsNotATickModule()
+        public void LegacyStatsInstaller_IsPassiveAndNotATickModule()
         {
             Type installerType =
                 GetRuntimeType(
@@ -68,32 +62,27 @@ namespace ProjectMazzang.Tests
                 installerType.IsSubclassOf(
                     moduleType),
                 Is.False);
+
+            MethodInfo awakeMethod =
+                installerType.GetMethod(
+                    "Awake",
+                    BindingFlags.Instance |
+                    BindingFlags.Public |
+                    BindingFlags.NonPublic |
+                    BindingFlags.DeclaredOnly);
+
+            Assert.That(
+                awakeMethod,
+                Is.Null);
         }
 
 
-        [Test]
-        public void StatsConsumers_UseSafeDefaultsWithoutData()
-        {
-            Assert.That(
-                ResolveFallback<float>(
-                    GetRuntimeType(
-                        "PlayerMovement"),
-                    "ResolveBaseMoveSpeed"),
-                Is.EqualTo(7f));
-
-            Assert.That(
-                ResolveFallback<int>(
-                    GetRuntimeType(
-                        "PlayerHealth"),
-                    "ResolveBaseMaxHealth"),
-                Is.EqualTo(100));
-        }
-
-
-        [TestCaseSource(nameof(PlayerPrefabCases))]
-        public void PlayerPrefabs_OwnConfiguredStatsData(
+        [TestCaseSource(nameof(SupportedPlayerPrefabCases))]
+        public void SupportedPlayerPrefabs_OwnComponentStats(
             string prefabPath,
             float expectedMoveSpeed,
+            float expectedJumpSpeed,
+            int expectedAirJumps,
             int expectedMaxHealth)
         {
             GameObject prefab =
@@ -105,96 +94,53 @@ namespace ProjectMazzang.Tests
                 Is.Not.Null,
                 prefabPath);
 
-            Type installerType =
-                GetRuntimeType(
-                    "PlayerStatsInstaller");
-
-            Component installer =
+            Assert.That(
                 prefab.GetComponent(
-                    installerType);
-
-            Assert.That(
-                installer,
-                Is.Not.Null,
+                    GetRuntimeType(
+                        "PlayerStatsInstaller")),
+                Is.Null,
                 prefabPath);
 
-            PropertyInfo statsDataProperty =
-                installerType.GetProperty(
-                    "StatsData");
+            Component movement =
+                GetRequiredComponent(
+                    prefab,
+                    "PlayerMovement",
+                    prefabPath);
 
-            Assert.That(
-                statsDataProperty,
-                Is.Not.Null,
+            Component health =
+                GetRequiredComponent(
+                    prefab,
+                    "PlayerHealth",
+                    prefabPath);
+
+            AssertSerializedValue(
+                movement,
+                "moveSpeed",
+                expectedMoveSpeed,
                 prefabPath);
 
-            object statsData =
-                statsDataProperty.GetValue(
-                    installer);
-
-            Assert.That(
-                statsData,
-                Is.Not.Null,
+            AssertSerializedValue(
+                movement,
+                "jumpSpeed",
+                expectedJumpSpeed,
                 prefabPath);
 
-            Assert.That(
-                ReadProperty<float>(
-                    statsData,
-                    "MoveSpeed"),
-                Is.EqualTo(expectedMoveSpeed),
+            AssertSerializedValue(
+                movement,
+                "maxAirJumps",
+                expectedAirJumps,
                 prefabPath);
 
-            Assert.That(
-                ReadProperty<int>(
-                    statsData,
-                    "MaxHealth"),
-                Is.EqualTo(expectedMaxHealth),
-                prefabPath);
-
-            Type consumerType =
-                GetRuntimeType(
-                    "IStatsConsumer");
-
-            AssertConsumer(
-                prefab,
-                consumerType,
-                "PlayerMovement",
-                prefabPath);
-
-            AssertConsumer(
-                prefab,
-                consumerType,
-                "PlayerHealth",
+            AssertSerializedValue(
+                health,
+                "maxHealth",
+                expectedMaxHealth,
                 prefabPath);
         }
 
 
-        private static T ResolveFallback<T>(
-            System.Type consumerType,
-            string methodName)
-        {
-            MethodInfo method =
-                consumerType.GetMethod(
-                    methodName,
-                    BindingFlags.Static |
-                    BindingFlags.NonPublic);
-
-            Assert.That(
-                method,
-                Is.Not.Null,
-                consumerType.Name);
-
-            return (T)method.Invoke(
-                null,
-                new object[]
-                {
-                    null
-                });
-        }
-
-
-        private static void AssertConsumer(
+        private static Component GetRequiredComponent(
             GameObject prefab,
-            Type consumerType,
             string componentTypeName,
             string prefabPath)
         {
@@ -208,29 +154,55 @@ namespace ProjectMazzang.Tests
                 Is.Not.Null,
                 prefabPath);
 
-            Assert.That(
-                consumerType.IsInstanceOfType(
-                    component),
-                Is.True,
-                prefabPath);
+            return component;
         }
 
 
-        private static T ReadProperty<T>(
-            object target,
-            string propertyName)
+        private static void AssertSerializedValue(
+            Component component,
+            string propertyName,
+            float expectedValue,
+            string prefabPath)
         {
-            PropertyInfo property =
-                target.GetType().GetProperty(
-                    propertyName);
+            SerializedProperty property =
+                new SerializedObject(
+                    component)
+                    .FindProperty(
+                        propertyName);
 
             Assert.That(
                 property,
                 Is.Not.Null,
                 propertyName);
 
-            return (T)property.GetValue(
-                target);
+            Assert.That(
+                property.floatValue,
+                Is.EqualTo(expectedValue),
+                prefabPath);
+        }
+
+
+        private static void AssertSerializedValue(
+            Component component,
+            string propertyName,
+            int expectedValue,
+            string prefabPath)
+        {
+            SerializedProperty property =
+                new SerializedObject(
+                    component)
+                    .FindProperty(
+                        propertyName);
+
+            Assert.That(
+                property,
+                Is.Not.Null,
+                propertyName);
+
+            Assert.That(
+                property.intValue,
+                Is.EqualTo(expectedValue),
+                prefabPath);
         }
 
 

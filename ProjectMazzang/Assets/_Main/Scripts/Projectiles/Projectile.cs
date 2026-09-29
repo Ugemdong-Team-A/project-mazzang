@@ -1,12 +1,23 @@
 using Fusion;
 using UnityEngine;
 
+
 [RequireComponent(typeof(NetworkObject))]
 [RequireComponent(typeof(NetworkTransform))]
 public class Projectile :
     NetworkBehaviour,
     IParryable
 {
+    private const int PredictionBindingGraceTicks =
+        3;
+
+    private enum PredictionBindingResult
+    {
+        NotLocal,
+        Pending,
+        Bound
+    }
+
     [Header("Launch")]
     [Min(0.01f)]
     [SerializeField]
@@ -65,9 +76,13 @@ public class Projectile :
 
     [Header("Presentation")]
     [SerializeField]
-    private ProjectileTrail projectileTrail;
+    private ProjectileVisual projectileVisual;
 
-    private bool _trailStarted;
+    private bool _presentationShown;
+    private bool _useAuthoritativePresentation;
+    private bool _pendingPredictionRelease;
+    private bool _predictionBindingWaitStarted;
+    private int _predictionBindingDeadlineTick;
 
     [Tooltip(
         "충돌 시 카메라 진동 연출")]
@@ -82,7 +97,46 @@ public class Projectile :
     private float impactPresentationDuration = 0.15f;
     
     private int _visibleImpactSequence;
+    private int _visibleTrajectoryRevision;
 
+    private ProjectileLaunchSettings _runtimeLaunchSettings;
+
+    private ProjectileCollision _projectileCollision;
+
+    private ProjectileWeapon _predictionWeapon;
+    private PredictedProjectile _localPrediction;
+
+    public ProjectileBaseSettings BaseSettings =>
+        new(
+            initialSpeed,
+            lifetime,
+            gravityScale,
+            gravityAcceleration,
+            linearDrag,
+            alignRotationToVelocity,
+            collisionRadius);
+
+    public ProjectileLaunchSettings LaunchSettings =>
+        BaseSettings.Resolve(
+            ProjectileStatSnapshot.Identity);
+
+    public ProjectileVisual Visual =>
+        projectileVisual;
+
+    internal LayerMask CollisionMask =>
+        collisionMask;
+
+    internal float MaxSimulationStepDistance =>
+        maxSimulationStepDistance;
+
+    internal int MaxSimulationStepsPerTick =>
+        maxSimulationStepsPerTick;
+
+    internal bool DespawnOnImpact =>
+        despawnOnImpact;
+
+    internal float ImpactPresentationDuration =>
+        impactPresentationDuration;
 
     public Vector2 ParryVelocity => Velocity;
 
@@ -167,6 +221,20 @@ public class Projectile :
     }
 
     [Networked]
+    private Vector2 PresentationInitialVelocity
+    {
+        get;
+        set;
+    }
+
+    [Networked]
+    private float ScaleMultiplier
+    {
+        get;
+        set;
+    }
+
+    [Networked]
     private NetworkBool HasImpacted
     {
         get;
@@ -188,7 +256,49 @@ public class Projectile :
     }
 
     [Networked]
+    private int TrajectoryRevision
+    {
+        get;
+        set;
+    }
+
+    [Networked]
     private TickTimer ImpactDespawnTimer
+    {
+        get;
+        set;
+    }
+
+    [Networked]
+    private NetworkId PredictionEmitterId
+    {
+        get;
+        set;
+    }
+
+    [Networked]
+    private PlayerRef PredictionOwner
+    {
+        get;
+        set;
+    }
+
+    [Networked]
+    private int PredictionFireTick
+    {
+        get;
+        set;
+    }
+
+    [Networked]
+    private int PredictionFireSequence
+    {
+        get;
+        set;
+    }
+
+    [Networked]
+    private int PredictionProjectileIndex
     {
         get;
         set;
@@ -197,17 +307,68 @@ public class Projectile :
 
     protected virtual void Awake()
     {
-        if (projectileTrail == null)
+        _projectileCollision =
+            GetComponent<ProjectileCollision>();
+
+        if (_projectileCollision == null)
         {
-            projectileTrail =
-                GetComponent<ProjectileTrail>();
+            _projectileCollision =
+                gameObject.AddComponent<
+                    ProjectileCollision>();
+        }
+
+        if (projectileVisual == null)
+        {
+            projectileVisual =
+                GetComponent<ProjectileVisual>();
+        }
+
+        if (projectileVisual == null)
+        {
+            projectileVisual =
+                gameObject.AddComponent<
+                    ProjectileVisual>();
+        }
+
+        projectileVisual.Initialize();
+
+        if (Application.isPlaying)
+        {
+            projectileVisual.Hide();
         }
     }
 
 
     public override void Spawned()
     {
-        TryStartTrailPresentation();
+        _presentationShown =
+            false;
+
+        _useAuthoritativePresentation =
+            false;
+
+        _pendingPredictionRelease =
+            false;
+
+        _predictionBindingWaitStarted =
+            false;
+
+        _predictionBindingDeadlineTick =
+            0;
+
+        _predictionWeapon =
+            null;
+
+        _localPrediction =
+            null;
+
+        projectileVisual.Hide();
+
+        _visibleTrajectoryRevision =
+            0;
+
+        TryResolveTrajectoryChange();
+        TryResolvePresentation();
 
         _visibleImpactSequence =
             ImpactSequence;
@@ -216,7 +377,9 @@ public class Projectile :
 
     public override void Render()
     {
-        TryStartTrailPresentation();
+        TryResolveTrajectoryChange();
+        TryReleasePredictionAfterTrajectoryChange();
+        TryResolvePresentation();
 
         if (_visibleImpactSequence ==
             ImpactSequence)
@@ -243,25 +406,33 @@ public class Projectile :
         NetworkRunner runner,
         bool hasState)
     {
-        if (projectileTrail != null)
+        ReleaseBoundLocalPrediction();
+
+        _pendingPredictionRelease =
+            false;
+
+        if (projectileVisual != null)
         {
-            projectileTrail.Complete();
+            projectileVisual.Hide();
+            projectileVisual.Complete();
         }
     }
 
 
     public virtual void Initialize(
         NetworkRunner runner,
-        NetworkObject source,
-        Vector2 direction,
-        float attackDamageMultiplier = 1f)
+        ProjectileShotContext shot,
+        ProjectileLaunchSettings launchSettings,
+        Vector2? optionalDir = null,
+        ProjectilePredictionKey predictionKey = default)
     {
         if (!HasStateAuthority)
             return;
 
-        direction =
-            NormalizeDirection(
-                direction);
+        Vector2 direction =
+            ProjectileTrajectory.NormalizeDirection(
+                optionalDir ??
+                shot.LaunchPose.Direction);
 
         if (direction == Vector2.zero)
         {
@@ -271,27 +442,63 @@ public class Projectile :
 
         Vector2 knockback =
             attack != null
-                ? direction *
-                  attack.KnockbackForward +
-                  Vector2.up *
-                  attack.KnockbackUp
+                ? (direction *
+                   attack.KnockbackForward +
+                   Vector2.up *
+                   attack.KnockbackUp) *
+                  shot.Stats.KnockbackMultiplier
                 : Vector2.zero;
 
         Source =
-            source;
+            shot.Source;
 
         PresentationOrigin =
             transform.position;
 
+        ScaleMultiplier =
+            shot.Stats.ScaleMultiplier;
+
         Velocity =
             direction *
-            initialSpeed;
+            launchSettings.Speed;
+
+        PresentationInitialVelocity =
+            Velocity;
+
+        _runtimeLaunchSettings =
+            launchSettings;
+
+        _projectileCollision.Initialize(
+            transform,
+            Object,
+            Source,
+            collisionMask);
+
+        PredictionEmitterId =
+            predictionKey.EmitterId;
+
+        PredictionOwner =
+            shot.Source != null
+                ? shot.Source.InputAuthority
+                : PlayerRef.None;
+
+        PredictionFireTick =
+            predictionKey.FireTick;
+
+        PredictionFireSequence =
+            predictionKey.FireSequence;
+
+        PredictionProjectileIndex =
+            predictionKey.ProjectileIndex;
+
+        TrajectoryRevision =
+            0;
 
         Damage =
             attack != null
                 ? DamageInfo.ResolveAttackDamage(
                     attack.Damage,
-                    attackDamageMultiplier)
+                    shot.AttackDamageMultiplier)
                 : 0;
 
         LocalKnockback =
@@ -317,34 +524,309 @@ public class Projectile :
             crowdControl.StopMovementOnApply;
 
         LifeTimer =
-            lifetime > 0f
+            launchSettings.Lifetime > 0f
                 ? TickTimer.CreateFromSeconds(
                     runner,
-                    lifetime)
+                    launchSettings.Lifetime)
                 : TickTimer.None;
 
         IsInitialized =
             true;
 
         ApplyRotationFromVelocity();
-        TryStartTrailPresentation();
     }
 
 
-    private void TryStartTrailPresentation()
+    private void TryResolvePresentation()
     {
-        if (_trailStarted ||
+        if (_presentationShown ||
             !IsInitialized ||
-            projectileTrail == null)
+            projectileVisual == null ||
+            !IsRenderInterpolationReady())
         {
             return;
         }
 
-        _trailStarted = true;
+        if (!_useAuthoritativePresentation)
+        {
+            PredictionBindingResult bindingResult =
+                TryBindLocalPrediction();
 
-        projectileTrail.Begin(
-            PresentationOrigin,
+            if (bindingResult ==
+                PredictionBindingResult.Bound)
+            {
+                _presentationShown =
+                    true;
+
+                return;
+            }
+
+            if (bindingResult ==
+                PredictionBindingResult.Pending)
+            {
+                if (ShouldWaitForPredictionBinding())
+                    return;
+
+                ReleaseUnboundLocalPrediction();
+
+                _useAuthoritativePresentation =
+                    true;
+            }
+        }
+
+        float scaleMultiplier =
+            ResolveScaleMultiplier();
+
+        ProjectileStatSnapshot stats =
+            new(
+                1f,
+                1f,
+                1f,
+                1f,
+                scaleMultiplier,
+                1f);
+
+        projectileVisual.Apply(
+            in stats);
+
+        _presentationShown =
+            true;
+
+        Vector3 trailOrigin =
+            HasStateAuthority &&
+            !_useAuthoritativePresentation
+                ? PresentationOrigin
+                : transform.position;
+
+        projectileVisual.Show(
+            trailOrigin,
             transform);
+    }
+
+
+    private void TryResolveTrajectoryChange()
+    {
+        if (_visibleTrajectoryRevision ==
+            TrajectoryRevision)
+        {
+            return;
+        }
+
+        _visibleTrajectoryRevision =
+            TrajectoryRevision;
+
+        _useAuthoritativePresentation =
+            true;
+
+        _pendingPredictionRelease =
+            true;
+
+        ReleaseBoundLocalPrediction();
+
+        _presentationShown =
+            false;
+
+        if (projectileVisual != null)
+        {
+            projectileVisual.Hide();
+        }
+
+        TryReleasePredictionAfterTrajectoryChange();
+    }
+
+
+    private void TryReleasePredictionAfterTrajectoryChange()
+    {
+        if (!_pendingPredictionRelease ||
+            Runner == null)
+        {
+            return;
+        }
+
+        if (PredictionOwner !=
+            Runner.LocalPlayer)
+        {
+            _pendingPredictionRelease =
+                false;
+
+            return;
+        }
+
+        ProjectilePredictionKey key =
+            ResolvePredictionKey();
+
+        if (!key.IsValid)
+        {
+            _pendingPredictionRelease =
+                false;
+
+            return;
+        }
+
+        if (!Runner.TryFindObject(
+                key.EmitterId,
+                out NetworkObject emitter) ||
+            !emitter.TryGetComponent(
+                out ProjectileWeapon weapon))
+        {
+            return;
+        }
+
+        weapon.TryReleasePredictedProjectile(
+            in key);
+
+        _pendingPredictionRelease =
+            false;
+    }
+
+
+    private void ReleaseBoundLocalPrediction()
+    {
+        if (_predictionWeapon != null &&
+            _localPrediction != null)
+        {
+            _predictionWeapon
+                .ReleasePredictedProjectile(
+                    _localPrediction);
+        }
+
+        _predictionWeapon =
+            null;
+
+        _localPrediction =
+            null;
+    }
+
+
+    private PredictionBindingResult
+        TryBindLocalPrediction()
+    {
+        if (HasStateAuthority ||
+            Runner == null)
+        {
+            return PredictionBindingResult.NotLocal;
+        }
+
+        ProjectilePredictionKey key =
+            ResolvePredictionKey();
+
+        if (!key.IsValid)
+        {
+            return PredictionBindingResult.NotLocal;
+        }
+
+        if (PredictionOwner !=
+            Runner.LocalPlayer)
+        {
+            return PredictionBindingResult.NotLocal;
+        }
+
+        if (!Runner.TryFindObject(
+                key.EmitterId,
+                out NetworkObject emitter) ||
+            !emitter.TryGetComponent(
+                out ProjectileWeapon weapon))
+        {
+            return PredictionBindingResult.Pending;
+        }
+
+        if (weapon.TryBindPredictedProjectile(
+                in key,
+                this,
+                out PredictedProjectile predicted))
+        {
+            _predictionWeapon =
+                weapon;
+
+            _localPrediction =
+                predicted;
+
+            return PredictionBindingResult.Bound;
+        }
+
+        return PredictionBindingResult.Pending;
+    }
+
+
+    private bool ShouldWaitForPredictionBinding()
+    {
+        if (Runner == null)
+            return false;
+
+        int currentTick =
+            Runner.Tick.Raw;
+
+        if (!_predictionBindingWaitStarted)
+        {
+            _predictionBindingWaitStarted =
+                true;
+
+            _predictionBindingDeadlineTick =
+                currentTick +
+                PredictionBindingGraceTicks;
+        }
+
+        return currentTick <
+               _predictionBindingDeadlineTick;
+    }
+
+
+    private void ReleaseUnboundLocalPrediction()
+    {
+        if (Runner == null)
+            return;
+
+        ProjectilePredictionKey key =
+            ResolvePredictionKey();
+
+        if (!key.IsValid ||
+            !Runner.TryFindObject(
+                key.EmitterId,
+                out NetworkObject emitter) ||
+            !emitter.TryGetComponent(
+                out ProjectileWeapon weapon))
+        {
+            return;
+        }
+
+        weapon.TryReleasePredictedProjectile(
+            in key);
+    }
+
+
+    private ProjectilePredictionKey ResolvePredictionKey()
+    {
+        return new ProjectilePredictionKey(
+            PredictionEmitterId,
+            PredictionFireTick,
+            PredictionFireSequence,
+            PredictionProjectileIndex);
+    }
+
+
+    internal bool TryGetAuthoritativeLaunch(
+        out Vector2 origin,
+        out Vector2 initialVelocity)
+    {
+        origin =
+            PresentationOrigin;
+
+        initialVelocity =
+            PresentationInitialVelocity;
+
+        return IsInitialized;
+    }
+
+
+    private bool IsRenderInterpolationReady()
+    {
+        if (HasStateAuthority)
+            return true;
+
+        return TryGetSnapshotsBuffers(
+            out _,
+            out _,
+            out _);
     }
 
 
@@ -383,28 +865,14 @@ public class Projectile :
         float tickDeltaTime =
             Runner.DeltaTime;
 
-        Vector2 gravity =
-            Vector2.down *
-            gravityAcceleration *
-            gravityScale;
-
-        Vector2 estimatedEndVelocity =
-            Velocity +
-            gravity *
-            tickDeltaTime;
-
-        float estimatedMaxSpeed =
-            Mathf.Max(
-                Velocity.magnitude,
-                estimatedEndVelocity.magnitude);
-
-        float estimatedDistance =
-            estimatedMaxSpeed *
-            tickDeltaTime;
-
         int stepCount =
-            CalculateStepCount(
-                estimatedDistance);
+            ProjectileTrajectory
+                .CalculateStepCount(
+                    Velocity,
+                    in _runtimeLaunchSettings,
+                    tickDeltaTime,
+                    maxSimulationStepDistance,
+                    maxSimulationStepsPerTick);
 
         float stepDeltaTime =
             tickDeltaTime /
@@ -414,12 +882,24 @@ public class Projectile :
              i < stepCount;
              i++)
         {
-            ApplyBallistics(
-                gravity,
+            Vector2 position =
+                transform.position;
+
+            Vector2 velocity =
+                Velocity;
+
+            ProjectileTrajectory.Step(
+                ref position,
+                ref velocity,
+                in _runtimeLaunchSettings,
                 stepDeltaTime);
 
+            Velocity =
+                velocity;
+
             if (!SimulateMovementStep(
-                    stepDeltaTime))
+                    position -
+                    (Vector2)transform.position))
             {
                 return;
             }
@@ -429,43 +909,14 @@ public class Projectile :
     }
 
 
-    private void ApplyBallistics(
-        Vector2 gravity,
-        float deltaTime)
-    {
-        Velocity +=
-            gravity *
-            deltaTime;
-
-        if (linearDrag <= 0f)
-            return;
-
-        Velocity /=
-            1f +
-            linearDrag *
-            deltaTime;
-    }
-
-
     private bool SimulateMovementStep(
-        float deltaTime)
+        Vector2 displacement)
     {
-        Vector2 displacement =
-            Velocity *
-            deltaTime;
-
-        float distance =
-            displacement.magnitude;
-
-        if (distance <=
-            0.0001f)
+        if (displacement.sqrMagnitude <=
+            0.00000001f)
         {
             return true;
         }
-
-        Vector2 direction =
-            displacement /
-            distance;
 
         Vector2 start =
             transform.position;
@@ -479,12 +930,17 @@ public class Projectile :
             return true;
         }
 
-        if (TryFindCollision(
+        if (_projectileCollision.TrySweep(
                 start,
-                direction,
-                distance,
+                displacement,
+                _runtimeLaunchSettings
+                    .ResolveCollisionRadius(
+                        ResolveScaleMultiplier()),
                 out RaycastHit2D hit))
         {
+            Vector2 direction =
+                displacement.normalized;
+
             transform.position =
                 start +
                 direction *
@@ -506,125 +962,11 @@ public class Projectile :
     }
 
 
-    private int CalculateStepCount(
-        float estimatedDistance)
+    private float ResolveScaleMultiplier()
     {
-        float stepDistance =
-            Mathf.Max(
-                0.005f,
-                maxSimulationStepDistance);
-
-        int stepCount =
-            Mathf.CeilToInt(
-                estimatedDistance /
-                stepDistance);
-
-        return Mathf.Clamp(
-            stepCount,
-            1,
-            Mathf.Max(
-                1,
-                maxSimulationStepsPerTick));
-    }
-
-
-    private bool TryFindCollision(
-        Vector2 start,
-        Vector2 direction,
-        float distance,
-        out RaycastHit2D nearestHit)
-    {
-        RaycastHit2D[] hits =
-            Physics2D.CircleCastAll(
-                start,
-                collisionRadius,
-                direction,
-                distance,
-                collisionMask);
-
-        bool found =
-            false;
-
-        nearestHit =
-            default;
-
-        float nearestDistance =
-            float.MaxValue;
-
-        for (int i = 0;
-             i < hits.Length;
-             i++)
-        {
-            RaycastHit2D hit =
-                hits[i];
-
-            Collider2D candidate =
-                hit.collider;
-
-            if (candidate == null)
-                continue;
-
-            if (ShouldIgnoreCollider(
-                    candidate))
-            {
-                continue;
-            }
-
-            if (hit.distance >=
-                nearestDistance)
-            {
-                continue;
-            }
-
-            nearestDistance =
-                hit.distance;
-
-            nearestHit =
-                hit;
-
-            found =
-                true;
-        }
-
-        return found;
-    }
-
-
-    protected virtual bool ShouldIgnoreCollider(
-        Collider2D candidate)
-    {
-        if (candidate.transform ==
-            transform)
-        {
-            return true;
-        }
-
-        if (candidate.transform.IsChildOf(
-                transform))
-        {
-            return true;
-        }
-
-        NetworkObject targetObject =
-            candidate.GetComponentInParent<
-                NetworkObject>();
-
-        if (targetObject == null)
-            return false;
-
-        if (targetObject ==
-            Object)
-        {
-            return true;
-        }
-
-        if (Source != null &&
-    targetObject == Source)
-        {
-            return true;
-        }
-
-        return false;
+        return ScaleMultiplier > 0f
+            ? ScaleMultiplier
+            : 1f;
     }
 
 
@@ -707,52 +1049,34 @@ public class Projectile :
         }
 
         Source = hit.Owner;
+
+        _projectileCollision.SetSource(
+            Source);
+
+        ParryProjectileModifiers modifiers =
+            hit.ProjectileModifiers;
+
+        Damage =
+            Mathf.Max(
+                0,
+                Mathf.RoundToInt(
+                    Damage *
+                    modifiers.DamageMultiplier));
+
+        LocalKnockback *=
+            modifiers.KnockbackMultiplier;
+
+        ScaleMultiplier =
+            ResolveScaleMultiplier() *
+            modifiers.ScaleMultiplier;
+
         Velocity = hit.Direction.normalized *
                    Velocity.magnitude *
-                   Mathf.Max(0f, hit.SpeedMultiplier);
+                   modifiers.SpeedMultiplier;
 
         transform.position = hit.Point;
+        TrajectoryRevision++;
         ApplyRotationFromVelocity();
-        return true;
-    }
-
-
-    public virtual bool Reflect(
-        PlayerRef newOwner,
-        Vector2 newDirection,
-        float speedMultiplier = 1f)
-    {
-        if (!HasStateAuthority ||
-            !IsInitialized)
-        {
-            return false;
-        }
-
-        newDirection =
-            NormalizeDirection(
-                newDirection);
-
-        if (newDirection ==
-            Vector2.zero)
-        {
-            return false;
-        }
-
-        float speed =
-            Velocity.magnitude *
-            Mathf.Max(
-                0f,
-                speedMultiplier);
-
-        /*Source =
-            newOwner;*/
-
-        Velocity =
-            newDirection *
-            speed;
-
-        ApplyRotationFromVelocity();
-
         return true;
     }
 
@@ -779,11 +1103,12 @@ public class Projectile :
 
     private void ApplyRotationFromVelocity()
     {
-        if (!alignRotationToVelocity)
+        if (!_runtimeLaunchSettings
+                .AlignRotationToVelocity)
             return;
 
         Vector2 direction =
-            NormalizeDirection(
+            ProjectileTrajectory.NormalizeDirection(
                 Velocity);
 
         if (direction ==

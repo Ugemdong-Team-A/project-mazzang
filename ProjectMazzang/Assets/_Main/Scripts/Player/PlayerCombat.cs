@@ -133,6 +133,13 @@ public sealed class PlayerCombat :
         private set;
     }
 
+    [Networked]
+    public byte AttackAnimationSequence
+    {
+        get;
+        private set;
+    }
+
 
     // =========================================================
     // State
@@ -195,6 +202,8 @@ public sealed class PlayerCombat :
         CurrentAttackId =
             NoneAttackId;
 
+        AttackAnimationSequence = 0;
+
         AttackPhaseTimer =
             TickTimer.None;
 
@@ -246,6 +255,18 @@ public sealed class PlayerCombat :
         state.IsAttacking = IsAttacking;
         state.AttackSequence = AttackSequence;
         state.AttackId = (byte)CurrentAttackId;
+        state.AttackAnimationSequence =
+            AttackAnimationSequence;
+
+        if (TryGetCurrentAttackData(
+                out PlayerAttackData currentAttack))
+        {
+            state.AttackAnimation =
+                currentAttack.Animation;
+            state.AttackAnimationPhase =
+                ResolveAnimationPhase(
+                    AttackState);
+        }
         state.IsAttackControlLocked =
             IsAttackControlLocked;
         state.IsCombatMovementLocked = IsMovementLocked;
@@ -418,6 +439,7 @@ public sealed class PlayerCombat :
             if (Commands != null)
             {
                 Commands.RequestWeaponUse(
+                    input.Move,
                     aimDirection);
             }
 
@@ -516,6 +538,7 @@ public sealed class PlayerCombat :
 
 
         AttackSequence++;
+        AttackAnimationSequence++;
     }
 
 
@@ -723,6 +746,8 @@ public sealed class PlayerCombat :
         AttackState =
             PlayerAttackState.Active;
 
+        AttackAnimationSequence++;
+
 
         if (attack is
             BoxAttackData boxAttack)
@@ -767,6 +792,8 @@ public sealed class PlayerCombat :
 
         AttackState =
             PlayerAttackState.Recovery;
+
+        AttackAnimationSequence++;
 
 
         AttackPhaseTimer =
@@ -946,6 +973,8 @@ public sealed class PlayerCombat :
         CurrentAttackId =
             NoneAttackId;
 
+        AttackAnimationSequence++;
+
         ComboInputCount = 0;
         ComboDepth = 0;
 
@@ -960,6 +989,21 @@ public sealed class PlayerCombat :
         {
             Commands.RequestClearAimOverride();
         }
+    }
+
+    private static ActionAnimationPhase ResolveAnimationPhase(
+        PlayerAttackState state)
+    {
+        return state switch
+        {
+            PlayerAttackState.Startup =>
+                ActionAnimationPhase.Cast,
+            PlayerAttackState.Active =>
+                ActionAnimationPhase.Main,
+            PlayerAttackState.Recovery =>
+                ActionAnimationPhase.Recovery,
+            _ => ActionAnimationPhase.None
+        };
     }
 
 

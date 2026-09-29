@@ -17,6 +17,7 @@ MonoBehaviour:
   activeDuration: 0.1
   recoveryDuration: 0.2
   cooldown: 0.8
+  animation: {fileID: 11400000, guid: 1d4347d4cff85cf43961d46563ddd307, type: 2}
   aim:
     aimMode: 1
     poseMode: 2

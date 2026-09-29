@@ -17,9 +17,11 @@ MonoBehaviour:
   activeDuration: 0.1
   recoveryDuration: 0.2
   cooldown: 0.8
+  animation: {fileID: 11400000, guid: 213aaddfbf4ed0045ade31f15265cd3f, type: 2}
   aim:
     aimMode: 0
     poseMode: 2
   movementMode: 0
+  dash: {fileID: 0}
   comboFollowUp: {fileID: 0}
   allowRepeatedComboInput: 1

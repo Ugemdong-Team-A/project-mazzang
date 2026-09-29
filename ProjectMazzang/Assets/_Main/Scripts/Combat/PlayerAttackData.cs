@@ -33,6 +33,10 @@ public sealed class PlayerAttackData :
     private float cooldown;
 
     [Header("Player Rules")]
+    [Tooltip("비워두면 기존 AttackId 기반 Animator 상태를 사용합니다.")]
+    [SerializeField]
+    private ActionAnimationData animation;
+
     [SerializeField]
     private PlayerAttackAimData aim;
 
@@ -75,6 +79,9 @@ public sealed class PlayerAttackData :
 
     public PlayerAttackAimData Aim =>
         aim;
+
+    public ActionAnimationData Animation =>
+        animation;
 
     public PlayerAttackMovementMode MovementMode =>
         movementMode;

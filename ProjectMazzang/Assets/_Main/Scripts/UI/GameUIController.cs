@@ -338,9 +338,6 @@ public sealed class GameUIController : MonoBehaviour
     private void HandlePlaying()
     {
         ui.ShowPlaying();
-
-        BattleCameraController.Instance?
-            .RestoreBattleView();
     }
 
 
@@ -351,32 +348,6 @@ public sealed class GameUIController : MonoBehaviour
     private void HandleEnding()
     {
         ui.ShowEnding();
-
-        if (!TryGetWinnerData(
-                out NetworkPlayerData winnerData))
-        {
-            return;
-        }
-
-        NetworkObject character =
-            winnerData.CharacterObject;
-
-        if (character == null)
-            return;
-
-        Transform cameraTarget =
-            character.transform;
-
-        if (character.TryGetComponent(
-                out PlayerHealth health))
-        {
-            cameraTarget =
-                health.CameraTarget;
-        }
-
-        BattleCameraController.Instance?
-            .FocusWinner(
-                cameraTarget);
     }
 
 

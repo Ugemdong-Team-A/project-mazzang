@@ -1,9 +1,8 @@
 using Fusion;
 using UnityEngine;
 
-public class ProjectileSkill : 
-    Skill,
-    ICastTimeSkill
+public class ProjectileSkill :
+    Skill
 {
     protected Vector2 _aimDirection = Vector2.right;
     protected Vector2 _aimWorldPosition;
@@ -12,8 +11,6 @@ public class ProjectileSkill :
 
     protected ProjectileSkillData ProjectileData =>
         (ProjectileSkillData)Data;
-
-    public float CastDuration => ProjectileData.CastDuration;
 
     public override bool CanUse(
         in SkillUseContext useContext)
@@ -74,12 +71,16 @@ public class ProjectileSkill :
 
         EnsurePresentation();
 
+        float castDuration =
+            Patterns.GetPhaseDuration(
+                SkillUsePhase.Cast);
+
         float progress =
-            CastDuration <= 0f
+            castDuration <= 0f
                 ? 1f
                 : 1f -
                   Controller.GetPhaseRemaining(Slot) /
-                  CastDuration;
+                  castDuration;
 
         Vector2 direction =
             Controller.GetSkillAimDirection(Slot);
@@ -169,6 +170,14 @@ public class ProjectileSkill :
             Mathf.Atan2(direction.y, direction.x) *
             Mathf.Rad2Deg;
 
+        ProjectileShotContext shot
+            = new ProjectileShotContext(
+                Controller.Object,
+                new WeaponFirePose(origin, direction),
+                Controller.TickState
+                        .ActiveStatModifiers
+                        .AttackDamage);
+
         Controller.Runner.Spawn(
             prefab,
             origin,
@@ -181,11 +190,8 @@ public class ProjectileSkill :
 
                 projectile?.Initialize(
                     runner,
-                    Controller.Object,
-                    direction,
-                    Controller.TickState
-                        .ActiveStatModifiers
-                        .AttackDamage);
+                    shot,
+                    projectile.LaunchSettings);
             });
     }
 

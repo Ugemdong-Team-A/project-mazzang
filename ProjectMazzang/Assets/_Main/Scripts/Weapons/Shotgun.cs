@@ -1,17 +1,9 @@
-using Fusion;
 using UnityEngine;
 
-public sealed class Shotgun : Weapon
+public sealed class Shotgun :
+    ProjectileWeapon
 {
     [Header("Shotgun")]
-    [Min(1)]
-    [SerializeField]
-    private int magazineSize = 6;
-
-    [Min(0f)]
-    [SerializeField]
-    private float fireInterval = 0.8f;
-
     [Min(1)]
     [SerializeField]
     private int pelletCount = 4;
@@ -19,16 +11,6 @@ public sealed class Shotgun : Weapon
     [Min(0f)]
     [SerializeField]
     private float spreadAngle = 30f;
-
-
-    [Header("Muzzle")]
-    [SerializeField]
-    private Transform muzzle;
-
-
-    [Header("Projectile")]
-    [SerializeField]
-    private NetworkObject projectilePrefab;
 
     [Min(0.01f)]
     [SerializeField]
@@ -38,241 +20,94 @@ public sealed class Shotgun : Weapon
     [SerializeField]
     private float projectileLifetime = 1.5f;
 
-    [Header("Presentation")]
-    [SerializeField]
-    private CameraShakeProfile fireShakeProfile;
+    protected override int PredictionPrewarmCount =>
+        Mathf.Max(
+            1,
+            pelletCount);
 
-    private int _visibleFireSequence;
 
-    [Networked]
-    public int Ammo
+    protected override ProjectileLaunchPlan BuildLaunchPlan(
+        in ProjectileShotContext shot,
+        in ProjectileBaseSettings projectileSettings)
     {
-        get;
-        private set;
-    }
+        ProjectileStatSnapshot stats =
+            shot.Stats;
 
-    [Networked]
-    private TickTimer FireCooldown
-    {
-        get;
-        set;
-    }
+        ProjectileLaunchSettings baseLaunchSettings =
+            projectileSettings.Resolve(
+                in stats);
 
-    [Networked]
-    private int FireSeqeunce
-    {
-        get;
-        set;
-    }
+        ProjectileLaunchSettings launchSettings =
+            new(
+                projectileSpeed *
+                stats.SpeedMultiplier,
 
-    [Networked]
-    private Vector2 LastAuthoritativeFireOrigin
-    {
-        get;
-        set;
-    }
+                projectileLifetime *
+                stats.LifetimeMultiplier,
 
+                baseLaunchSettings.GravityScale,
+                baseLaunchSettings.GravityAcceleration,
+                baseLaunchSettings.LinearDrag,
+                baseLaunchSettings.AlignRotationToVelocity,
+                baseLaunchSettings.BaseCollisionRadius);
 
-    public override void Spawned()
-    {
-        base.Spawned();
+        int count =
+            Mathf.Max(
+                1,
+                pelletCount);
 
-        _visibleFireSequence = FireSeqeunce;
+        ProjectileLaunch[] launches =
+            new ProjectileLaunch[count];
 
-        if (!HasStateAuthority)
-            return;
-
-        Ammo = magazineSize;
-        FireCooldown = TickTimer.None;
-    }
-
-    public override void Render()
-    {
-        base.Render();
-
-        if(_visibleFireSequence == FireSeqeunce)
+        for (int i = 0;
+             i < count;
+             i++)
         {
-            return;
-        }
-
-        _visibleFireSequence = FireSeqeunce;
-
-        CameraShakeService.Play(
-            fireShakeProfile,
-            LastAuthoritativeFireOrigin
-            );
-    }
-
-    public override bool TryUse(
-        Vector2 origin,
-        Vector2 direction,
-        bool mirrored,
-        float attackDamageMultiplier)
-    {       
-        if (!HasStateAuthority)
-            return false;
-
-        if (!IsEquipped)
-            return false;
-
-        if (Holder == null)
-            return false;
-
-        if (Ammo <= 0)
-            return false;
-
-        if (!FireCooldown.ExpiredOrNotRunning(Runner))
-            return false;
-
-        if (projectilePrefab == null)
-            return false;
-
-
-        direction = ResolveShotDirection(direction);
-
-        float angle =
-            Mathf.Atan2(
-                direction.y,
-                direction.x) *
-            Mathf.Rad2Deg;
-
-
-        Vector2 spawnPosition =
-            ResolveMuzzlePosition(
-                origin,
-                angle,
-                mirrored);
-
-
-        NetworkObject source = Holder;
-
-
-        for (int i = 0; i < pelletCount; i++)
-        {
-            float pelletAngle =
-                CalculatePelletAngle(i);
-
             Vector2 pelletDirection =
                 RotateVector(
-                    direction,
-                    pelletAngle);
+                    shot.LaunchPose.Direction,
+                    CalculatePelletAngle(
+                        i,
+                        count));
 
+            ProjectileLaunchPose pose =
+                new(
+                    shot.LaunchPose.Origin,
+                    pelletDirection);
 
-            Quaternion rotation =
-                Quaternion.Euler(
-                    0f,
-                    0f,
-                    Mathf.Atan2(
-                        pelletDirection.y,
-                        pelletDirection.x) *
-                    Mathf.Rad2Deg);
+            ProjectilePredictionKey key =
+                BuildPredictionKey(
+                    in shot,
+                    i);
 
-
-            Vector2 projectileVelocity =
-                pelletDirection *
-                projectileSpeed;
-
-
-
-
-            Runner.Spawn(
-                projectilePrefab,
-                spawnPosition,
-                rotation,
-                source.InputAuthority,
-                (runner, obj) =>
-                {
-                    Projectile projectile =
-                        obj.GetComponent<Projectile>();
-
-                    if (projectile == null)
-                        return;
-
-                    projectile.Initialize(
-                        runner,
-                        source,
-                        projectileVelocity,
-                        attackDamageMultiplier);
-                });
+            launches[i] =
+                new ProjectileLaunch(
+                    key,
+                    pose,
+                    launchSettings,
+                    stats);
         }
 
-
-        Ammo--;
-
-        FireCooldown =
-            fireInterval > 0f
-                ? TickTimer.CreateFromSeconds(
-                    Runner,
-                    fireInterval)
-                : TickTimer.None;
-
-        LastAuthoritativeFireOrigin =
-            spawnPosition;
-
-        FireSeqeunce++;
-
-        return true;
+        return new ProjectileLaunchPlan(
+            launches);
     }
 
 
     private float CalculatePelletAngle(
-        int index)
+        int index,
+        int count)
     {
-        if (pelletCount <= 1)
+        if (count <= 1)
             return 0f;
 
         float t =
             (float)index /
-            (pelletCount - 1);
+            (count - 1);
 
         return Mathf.Lerp(
             -spreadAngle * 0.5f,
              spreadAngle * 0.5f,
              t);
-    }
-
-
-    private Vector2 ResolveShotDirection(
-        Vector2 direction)
-    {
-        if (direction.sqrMagnitude <=
-            0.0001f)
-        {
-            return Vector2.right;
-        }
-
-        return direction.normalized;
-    }
-
-
-    private Vector2 ResolveMuzzlePosition(
-        Vector2 weaponPosition,
-        float weaponAngle,
-        bool mirrored)
-    {
-        if (TryGetHeldMuzzlePosition(
-                out Vector2 heldMuzzlePosition))
-        {
-            return heldMuzzlePosition;
-        }
-
-        if (muzzle == null)
-            return weaponPosition;
-
-        Vector2 muzzleOffset =
-            muzzle.localPosition;
-
-        if (mirrored)
-        {
-            muzzleOffset.y =
-                -muzzleOffset.y;
-        }
-
-        return
-            weaponPosition +
-            RotateVector(
-                muzzleOffset,
-                weaponAngle);
     }
 
 

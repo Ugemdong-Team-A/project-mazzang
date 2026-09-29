@@ -193,6 +193,6 @@ public interface IPlayerSkillAnimationState :
 
     SkillSlot LastSkillAnimationSlot { get; }
 
-    SkillAnimationPhase LastSkillAnimationPhase { get; }
+    ActionAnimationPhase LastSkillAnimationPhase { get; }
 }
 */
